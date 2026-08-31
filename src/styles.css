@@ -20,8 +20,26 @@ button { cursor: pointer; }
   background-repeat: no-repeat;
 }
 
-.login-bg { background-image: url('/login-current.jpg'); }
-.password-bg { background-image: url('/password-current.jpg'); }
+.login-bg, .password-bg {
+  background:
+    radial-gradient(circle at 68% 28%, rgba(110,176,255,.28), transparent 24%),
+    linear-gradient(135deg, #0d2b88 0%, #1355d7 47%, #0b2d82 100%);
+}
+.page::before {
+  content: ''; position: absolute; inset: 0; pointer-events: none; opacity: .33;
+  background:
+    linear-gradient(90deg, transparent 0 28%, rgba(255,255,255,.09) 28.2% 28.5%, transparent 28.7% 100%),
+    repeating-linear-gradient(90deg, transparent 0 78px, rgba(255,255,255,.06) 80px 82px),
+    repeating-linear-gradient(0deg, transparent 0 54px, rgba(255,255,255,.045) 56px 58px);
+  transform: perspective(700px) rotateX(4deg) scale(1.05);
+}
+.brand-hero { position: absolute; left: 4.5%; top: 3%; width: 52%; height: 90%; color: #fff; z-index: 1; }
+.sohu-logo { position: absolute; top: 0; left: 0; width: 94px; padding: 7px 8px 5px; background: #ffd900; color: #111; border: 2px solid #111; text-align: center; line-height: 1; }
+.sohu-logo strong { display: block; font-family: serif; font-size: 22px; letter-spacing: 6px; margin-left: 5px; }
+.sohu-logo small { display: block; margin-top: 5px; font-size: 11px; letter-spacing: 3px; }
+.brand-title { position: absolute; top: 21%; left: 17%; display: grid; gap: 20px; font-size: clamp(54px, 5vw, 86px); font-weight: 300; letter-spacing: 4px; line-height: 1.05; text-shadow: 0 8px 30px rgba(0,0,0,.2); }
+.brand-title em { color: #ffd500; font-style: normal; }
+.brand-copy { position: absolute; left: 18%; top: 58%; font-size: clamp(18px, 1.8vw, 28px); line-height: 1.8; text-shadow: 0 4px 18px rgba(0,0,0,.25); }
 
 .card {
   position: absolute;
