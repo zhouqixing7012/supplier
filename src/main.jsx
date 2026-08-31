@@ -66,9 +66,20 @@ function PasswordInput({ value, onChange, placeholder = '请输入密码' }) {
   );
 }
 
+function BrandHero() {
+  return (
+    <section className="brand-hero" aria-hidden="true">
+      <div className="sohu-logo"><strong>搜 狐</strong><small>SOHU.com</small></div>
+      <div className="brand-title"><span>搜狐供应商</span><span><em>协</em>同门户</span></div>
+      <div className="brand-copy">欢迎登陆供应商协同门户<br />请您注册账号，并妥善保管账号和密码。</div>
+    </section>
+  );
+}
+
 function PageShell({ title, icon, children, background = 'login' }) {
   return (
     <main className={`page ${background === 'password' ? 'password-bg' : 'login-bg'}`}>
+      <BrandHero />
       <section className="card">
         <div className="card-title">
           <span className="title-mark" />
