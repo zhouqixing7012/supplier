@@ -1,6 +1,6 @@
 # 供应商系统原型
 
-React + Vite + Tailwind CSS + shadcn/ui 组件源码模式的可点击原型，当前包含协同门户登录安全升级和供应商代注册基础信息页面。
+React + Vite 的可点击原型，当前包含协同门户登录安全升级和供应商代注册基础信息页面。
 
 ## 原型场景
 
@@ -21,9 +21,9 @@ React + Vite + Tailwind CSS + shadcn/ui 组件源码模式的可点击原型，�
 - `#/register/government`：政府机构或社团
 - `#/register/foreign`：国外供应商
 
-四类页面统一使用 React + shadcn/ui 默认组件风格。页面顶部使用 Tabs 切换供应商类型，表单字段采用响应式两列布局，桌面端按“从左到右、从上到下”顺排，移动端自动变为单列。
+四类代注册页面统一使用 React + Ant Design 默认组件风格。页面顶部使用 Tabs 切换供应商类型，表单字段采用响应式两列布局，桌面端按“从左到右、从上到下”顺排，移动端自动变为单列。
 
-企业、政府机构/社团、国外供应商在“供应商名称”后的下一个位置展示必填“供应商注册邮箱”；个人供应商在“姓名”后的下一个位置展示该字段。注册邮箱使用 shadcn Tooltip 说明：`用于供应商登录协同门户及修改密码时接收验证码`。
+企业、政府机构/社团、国外供应商在“供应商名称”后的下一个位置展示必填“供应商注册邮箱”；个人供应商在“姓名”后的下一个位置展示该字段。注册邮箱使用 Ant Design Form.Item Tooltip 说明：`用于供应商登录协同门户及修改密码时接收验证码`。
 
 `public/*-register.html` 为前一阶段高保真静态对照页，暂时保留，但不再作为当前注册模块主实现。
 
@@ -32,12 +32,10 @@ React + Vite + Tailwind CSS + shadcn/ui 组件源码模式的可点击原型，�
 - React 19
 - Vite 7
 - Tailwind CSS 4
-- shadcn/ui 组件源码模式
-- Radix UI primitives
-- Sonner Toast
-- Lucide 图标
+- 登录模块：shadcn/ui + Radix UI + Sonner
+- 代注册模块：Ant Design + Ant Design Icons
 
-代注册模块统一使用本地 shadcn `Button`、`Input`、`Textarea`、`Select`、`Tabs`、`Tooltip`、`Card`、`Label`、`Badge`、`Separator` 等组件，不使用 Ant Design。
+代注册模块使用 Ant Design `Form`、`Row`、`Col`、`Input`、`Select`、`DatePicker`、`Upload`、`Steps`、`Tabs`、`Tooltip`、`Button`、`Card`、`Breadcrumb` 等组件。
 
 ## 本地运行
 
@@ -64,7 +62,7 @@ npm run build
 - [x] 个人供应商代注册基础信息页
 - [x] 政府机构或社团代注册基础信息页
 - [x] 国外供应商代注册基础信息页
-- [x] 代注册模块 React + shadcn 统一重构
+- [x] 代注册模块 React + Ant Design 重构
 - [x] 供应商注册邮箱必填字段及 Tooltip
 
 ## 待办
