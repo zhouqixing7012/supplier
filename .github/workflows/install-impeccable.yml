@@ -1,15 +1,13 @@
-name: Install Impeccable
+name: Update Impeccable
 
 on:
-  push:
-    paths:
-      - '.impeccable-install-trigger'
+  workflow_dispatch:
 
 permissions:
   contents: write
 
 jobs:
-  install:
+  update:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -22,17 +20,17 @@ jobs:
         with:
           node-version: 20
 
-      - name: Install Impeccable project skill
-        run: npx --yes impeccable@latest install --providers=github --scope=project --no-hooks
+      - name: Update Impeccable project skill
+        run: npx --yes impeccable@latest update --providers=github --scope=project --no-hooks
 
-      - name: Commit generated skill
+      - name: Commit generated skill updates
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
           if git diff --cached --quiet; then
-            echo "No generated changes to commit"
+            echo "Impeccable is already up to date"
           else
-            git commit -m "Install Impeccable project skill"
+            git commit -m "Update Impeccable project skill"
             git push
           fi
