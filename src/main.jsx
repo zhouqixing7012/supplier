@@ -1,14 +1,20 @@
 import React, { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { message } from 'antd';
+import { toast } from 'sonner';
 import {
+  ArrowLeft,
   Eye,
   EyeOff,
   LockKeyhole,
+  Mail,
   RefreshCw,
   ShieldCheck,
   UserRound,
 } from 'lucide-react';
+
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Toaster } from '@/components/ui/sonner';
 import './styles.css';
 
 const screens = ['login', 'email', 'upgrade', 'forgot'];
@@ -34,34 +40,76 @@ function useHashScreen() {
   return [screen, go];
 }
 
-function Field({ label, required = false, children }) {
+function BrandPanel() {
   return (
-    <div className="field-row">
-      <div className="field-label">
-        {required && <span className="required">*</span>}
-        {label}
+    <section className="brand-panel" aria-label="搜狐供应商协同门户">
+      <div className="sohu-badge">
+        <strong>搜 狐</strong>
+        <span>SOHU.com</span>
       </div>
-      <div className="field-control">{children}</div>
-    </div>
+
+      <div className="brand-content">
+        <div className="brand-kicker">SOHU SUPPLIER PORTAL</div>
+        <h1>
+          搜狐供应商
+          <br />
+          <span>协同门户</span>
+        </h1>
+        <p>欢迎登录供应商协同门户</p>
+      </div>
+    </section>
   );
 }
 
-function PasswordInput({ value, onChange, placeholder = '请输入密码' }) {
+function AuthShell({ title, subtitle, icon, children }) {
+  return (
+    <main className="auth-shell">
+      <BrandPanel />
+      <section className="auth-panel">
+        <div className="auth-card">
+          <header className="auth-card-header">
+            <div className="auth-icon">{icon}</div>
+            <div>
+              <h2>{title}</h2>
+              {subtitle && <p>{subtitle}</p>}
+            </div>
+          </header>
+          {children}
+        </div>
+      </section>
+    </main>
+  );
+}
+
+function FormField({ label, required = false, children }) {
+  return (
+    <label className="form-field">
+      <span className="field-title">
+        {required && <em>*</em>}
+        {label}
+      </span>
+      {children}
+    </label>
+  );
+}
+
+function PasswordField({ value, onChange, placeholder = '请输入密码' }) {
   const [visible, setVisible] = useState(false);
 
   return (
-    <div className="input-shell">
-      <input
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
+    <div className="password-field">
+      <Input
         type={visible ? 'text' : 'password'}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
+        autoComplete="current-password"
       />
       <button
-        className="icon-button"
+        className="password-toggle"
         type="button"
-        onClick={() => setVisible(!visible)}
-        aria-label="切换密码可见"
+        aria-label={visible ? '隐藏密码' : '显示密码'}
+        onClick={() => setVisible((current) => !current)}
       >
         {visible ? <EyeOff size={18} /> : <Eye size={18} />}
       </button>
@@ -69,65 +117,25 @@ function PasswordInput({ value, onChange, placeholder = '请输入密码' }) {
   );
 }
 
-function BrandHero() {
-  return (
-    <section className="brand-hero" aria-hidden="true">
-      <div className="sohu-logo"><strong>搜 狐</strong><small>SOHU.com</small></div>
-      <div className="brand-title"><span>搜狐供应商</span><span><em>协</em>同门户</span></div>
-      <div className="brand-copy">欢迎登陆供应商协同门户<br />请您注册账号，并妥善保管账号和密码。</div>
-    </section>
-  );
-}
-
-function PageShell({ title, icon, children, background = 'login' }) {
-  return (
-    <main className={`page ${background === 'password' ? 'password-bg' : 'login-bg'}`}>
-      <BrandHero />
-      <section className="card">
-        <div className="card-title">
-          <span className="title-mark" />
-          {icon}
-          <strong>{title}</strong>
-        </div>
-        {children}
-      </section>
-    </main>
-  );
-}
-
-function LoginScreen({ go, messageApi }) {
-  const [account, setAccount] = useState('liuyjm');
-  const [password, setPassword] = useState('12345678');
+function LoginScreen({ go }) {
+  const [account, setAccount] = useState('');
+  const [password, setPassword] = useState('');
   const [captcha, setCaptcha] = useState('');
 
-  const showWarning = (content, duration = 4) => {
-    messageApi.open({
-      type: 'warning',
-      content,
-      duration,
-      className: 'security-warning-toast',
-    });
-  };
-
-  const onSubmit = (e) => {
-    e.preventDefault();
-
-    // 原型仅用于演示三类登录结果，正式系统由接口返回账号状态。
+  const onSubmit = (event) => {
+    event.preventDefault();
     const key = account.trim().toLowerCase();
 
     if (key === 'noemail') {
-      showWarning(
-        <div className="security-warning-content">
-          <div>当前账号未维护注册邮箱，暂时无法登录。</div>
-          <div>为保障账号安全，请联系搜狐业务对接人补充注册邮箱后重新登录。</div>
-        </div>,
-        5,
-      );
+      toast.warning('当前账号未维护注册邮箱，暂时无法登录。', {
+        description: '为保障账号安全，请联系搜狐业务对接人补充注册邮箱后重新登录。',
+        duration: 5000,
+      });
       return;
     }
 
     if (key === 'oldpwd') {
-      showWarning('为保障账号安全，请先修改密码。');
+      toast.warning('为保障账号安全，请先修改密码。');
       go('upgrade');
       return;
     }
@@ -136,30 +144,51 @@ function LoginScreen({ go, messageApi }) {
   };
 
   return (
-    <PageShell title="用户登录" icon={<UserRound size={18} />}>
-      <div className="section-heading">Please login or register</div>
-      <form className="form" onSubmit={onSubmit}>
-        <Field label="账号" required>
-          <input value={account} onChange={(e) => setAccount(e.target.value)} placeholder="请输入登录账号" />
-        </Field>
-        <Field label="密码" required>
-          <PasswordInput value={password} onChange={setPassword} />
-        </Field>
-        <Field label="验证码" required>
-          <div className="captcha-line">
-            <input value={captcha} onChange={(e) => setCaptcha(e.target.value)} placeholder="请输入验证码" />
-            <div className="captcha-image">YHJV</div>
-            <button className="link-button" type="button"><RefreshCw size={14} />换一张</button>
+    <AuthShell
+      title="用户登录"
+      subtitle="Please login or register"
+      icon={<UserRound size={22} />}
+    >
+      <form className="auth-form" onSubmit={onSubmit}>
+        <FormField label="账号" required>
+          <Input
+            value={account}
+            onChange={(event) => setAccount(event.target.value)}
+            placeholder="请输入登录账号"
+            autoComplete="username"
+          />
+        </FormField>
+
+        <FormField label="密码" required>
+          <PasswordField value={password} onChange={setPassword} />
+        </FormField>
+
+        <FormField label="验证码" required>
+          <div className="captcha-row">
+            <Input
+              value={captcha}
+              onChange={(event) => setCaptcha(event.target.value)}
+              placeholder="请输入验证码"
+            />
+            <div className="captcha-code">YHJV</div>
+            <Button type="button" variant="ghost" size="sm" className="captcha-refresh">
+              <RefreshCw size={14} />
+              换一张
+            </Button>
           </div>
-        </Field>
-        <div className="form-link-row">
-          <button className="text-link" type="button" onClick={() => go('forgot')}>修改密码</button>
+        </FormField>
+
+        <div className="form-tools">
+          <Button type="button" variant="link" className="password-link" onClick={() => go('forgot')}>
+            修改密码
+          </Button>
         </div>
-        <div className="actions left-actions">
-          <button className="primary warm" type="submit">登录</button>
-        </div>
+
+        <Button type="submit" size="lg" className="submit-button">
+          登录
+        </Button>
       </form>
-    </PageShell>
+    </AuthShell>
   );
 }
 
@@ -170,41 +199,71 @@ function EmailScreen({ go }) {
 
   useEffect(() => {
     if (!countdown) return undefined;
-    const timer = window.setInterval(() => setCountdown((value) => Math.max(value - 1, 0)), 1000);
+    const timer = window.setInterval(() => {
+      setCountdown((current) => Math.max(current - 1, 0));
+    }, 1000);
     return () => window.clearInterval(timer);
   }, [countdown]);
 
+  const sendCode = () => {
+    setCountdown(60);
+    toast.success('验证码已发送');
+  };
+
+  const onSubmit = (event) => {
+    event.preventDefault();
+    toast.success('登录成功');
+  };
+
   return (
-    <PageShell title="安全验证" icon={<ShieldCheck size={18} />}>
-      <form
-        className="form compact"
-        onSubmit={(e) => {
-          e.preventDefault();
-          message.success('登录成功');
-        }}
-      >
-        <Field label="注册邮箱" required>
-          <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="请输入注册邮箱" />
-        </Field>
-        <Field label="验证码" required>
-          <div className="verify-line">
-            <input value={code} onChange={(e) => setCode(e.target.value)} placeholder="请输入邮箱验证码" maxLength={6} />
-            <button
-              className="outline-button"
+    <AuthShell
+      title="安全验证"
+      subtitle="请输入注册邮箱及邮箱验证码"
+      icon={<ShieldCheck size={22} />}
+    >
+      <form className="auth-form" onSubmit={onSubmit}>
+        <FormField label="注册邮箱" required>
+          <div className="input-with-icon">
+            <Mail size={17} />
+            <Input
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              placeholder="请输入注册邮箱"
+              type="email"
+            />
+          </div>
+        </FormField>
+
+        <FormField label="邮箱验证码" required>
+          <div className="verify-row">
+            <Input
+              value={code}
+              onChange={(event) => setCode(event.target.value)}
+              placeholder="请输入验证码"
+              maxLength={6}
+            />
+            <Button
               type="button"
+              variant="outline"
               disabled={countdown > 0}
-              onClick={() => setCountdown(60)}
+              onClick={sendCode}
             >
               {countdown > 0 ? `${countdown}s 后重发` : '获取验证码'}
-            </button>
+            </Button>
           </div>
-        </Field>
-        <div className="actions">
-          <button className="primary" type="submit">确定</button>
-          <button className="secondary" type="button" onClick={() => go('login')}>返回</button>
+        </FormField>
+
+        <div className="action-row">
+          <Button type="button" variant="outline" size="lg" onClick={() => go('login')}>
+            <ArrowLeft size={16} />
+            返回
+          </Button>
+          <Button type="submit" size="lg" className="submit-button compact-submit">
+            确定
+          </Button>
         </div>
       </form>
-    </PageShell>
+    </AuthShell>
   );
 }
 
@@ -217,111 +276,183 @@ function UpgradeScreen({ go }) {
 
   useEffect(() => {
     if (!countdown) return undefined;
-    const timer = window.setInterval(() => setCountdown((value) => Math.max(value - 1, 0)), 1000);
+    const timer = window.setInterval(() => {
+      setCountdown((current) => Math.max(current - 1, 0));
+    }, 1000);
     return () => window.clearInterval(timer);
   }, [countdown]);
 
+  const sendCode = () => {
+    setCountdown(60);
+    toast.success('验证码已发送');
+  };
+
+  const onSubmit = (event) => {
+    event.preventDefault();
+    toast.success('密码修改成功');
+    window.setTimeout(() => go('login'), 600);
+  };
+
   return (
-    <PageShell title="修改密码" icon={<LockKeyhole size={18} />} background="password">
-      <form
-        className="form compact"
-        onSubmit={(e) => {
-          e.preventDefault();
-          message.success('密码修改成功');
-          window.setTimeout(() => go('login'), 500);
-        }}
-      >
-        <Field label="账号" required>
-          <input value="oldpwd" readOnly className="readonly" />
-        </Field>
-        <Field label="注册邮箱" required>
-          <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="请输入注册时邮箱" />
-        </Field>
-        <Field label="验证码" required>
-          <div className="verify-line">
-            <input value={code} onChange={(e) => setCode(e.target.value)} placeholder="请输入邮箱验证码" maxLength={6} />
-            <button
-              className="outline-button"
+    <AuthShell
+      title="修改密码"
+      subtitle="请完成密码修改后重新登录"
+      icon={<LockKeyhole size={22} />}
+    >
+      <form className="auth-form" onSubmit={onSubmit}>
+        <FormField label="账号" required>
+          <Input value="oldpwd" readOnly className="read-only-input" />
+        </FormField>
+
+        <FormField label="注册邮箱" required>
+          <Input
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            placeholder="请输入注册邮箱"
+            type="email"
+          />
+        </FormField>
+
+        <FormField label="邮箱验证码" required>
+          <div className="verify-row">
+            <Input
+              value={code}
+              onChange={(event) => setCode(event.target.value)}
+              placeholder="请输入验证码"
+              maxLength={6}
+            />
+            <Button
               type="button"
+              variant="outline"
               disabled={countdown > 0}
-              onClick={() => setCountdown(60)}
+              onClick={sendCode}
             >
               {countdown > 0 ? `${countdown}s 后重发` : '发送验证码'}
-            </button>
+            </Button>
           </div>
-        </Field>
-        <Field label="新密码" required>
-          <PasswordInput value={password} onChange={setPassword} placeholder="请输入新密码" />
-        </Field>
-        <Field label="密码确认" required>
-          <PasswordInput value={confirm} onChange={setConfirm} placeholder="请再次输入密码" />
-        </Field>
-        <div className="actions">
-          <button className="primary" type="submit">提交</button>
-          <button className="secondary" type="button" onClick={() => go('login')}>返回</button>
+        </FormField>
+
+        <FormField label="新密码" required>
+          <PasswordField value={password} onChange={setPassword} placeholder="请输入新密码" />
+        </FormField>
+
+        <FormField label="确认密码" required>
+          <PasswordField value={confirm} onChange={setConfirm} placeholder="请再次输入新密码" />
+        </FormField>
+
+        <div className="action-row">
+          <Button type="button" variant="outline" size="lg" onClick={() => go('login')}>
+            返回
+          </Button>
+          <Button type="submit" size="lg" className="submit-button compact-submit">
+            提交
+          </Button>
         </div>
       </form>
-    </PageShell>
+    </AuthShell>
   );
 }
 
 function ForgotScreen({ go }) {
-  const [account, setAccount] = useState('liuyjm');
+  const [account, setAccount] = useState('');
   const [email, setEmail] = useState('');
   const [code, setCode] = useState('');
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
+  const [countdown, setCountdown] = useState(0);
+
+  useEffect(() => {
+    if (!countdown) return undefined;
+    const timer = window.setInterval(() => {
+      setCountdown((current) => Math.max(current - 1, 0));
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, [countdown]);
+
+  const onSubmit = (event) => {
+    event.preventDefault();
+    toast.success('密码修改成功');
+  };
 
   return (
-    <PageShell title="修改密码" icon={<LockKeyhole size={18} />} background="password">
-      <form
-        className="form compact"
-        onSubmit={(e) => {
-          e.preventDefault();
-          message.success('密码修改成功');
-        }}
-      >
-        <Field label="账号" required>
-          <input value={account} onChange={(e) => setAccount(e.target.value)} placeholder="请输入登录账号" />
-        </Field>
-        <Field label="注册邮箱" required>
-          <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="请输入注册邮箱" />
-        </Field>
-        <Field label="验证码" required>
-          <div className="verify-line">
-            <input value={code} onChange={(e) => setCode(e.target.value)} placeholder="请输入邮箱验证码" />
-            <button className="outline-button" type="button">发送验证码</button>
+    <AuthShell
+      title="修改密码"
+      subtitle="通过注册邮箱验证身份"
+      icon={<LockKeyhole size={22} />}
+    >
+      <form className="auth-form" onSubmit={onSubmit}>
+        <FormField label="账号" required>
+          <Input
+            value={account}
+            onChange={(event) => setAccount(event.target.value)}
+            placeholder="请输入登录账号"
+          />
+        </FormField>
+
+        <FormField label="注册邮箱" required>
+          <Input
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            placeholder="请输入注册邮箱"
+            type="email"
+          />
+        </FormField>
+
+        <FormField label="邮箱验证码" required>
+          <div className="verify-row">
+            <Input
+              value={code}
+              onChange={(event) => setCode(event.target.value)}
+              placeholder="请输入验证码"
+            />
+            <Button
+              type="button"
+              variant="outline"
+              disabled={countdown > 0}
+              onClick={() => {
+                setCountdown(60);
+                toast.success('验证码已发送');
+              }}
+            >
+              {countdown > 0 ? `${countdown}s 后重发` : '发送验证码'}
+            </Button>
           </div>
-        </Field>
-        <Field label="新密码" required>
-          <PasswordInput value={password} onChange={setPassword} placeholder="请输入新密码" />
-        </Field>
-        <Field label="密码确认" required>
-          <PasswordInput value={confirm} onChange={setConfirm} placeholder="请再次输入密码" />
-        </Field>
-        <div className="actions">
-          <button className="primary" type="submit">提交</button>
-          <button className="secondary" type="button" onClick={() => go('login')}>返回</button>
+        </FormField>
+
+        <FormField label="新密码" required>
+          <PasswordField value={password} onChange={setPassword} placeholder="请输入新密码" />
+        </FormField>
+
+        <FormField label="确认密码" required>
+          <PasswordField value={confirm} onChange={setConfirm} placeholder="请再次输入新密码" />
+        </FormField>
+
+        <div className="action-row">
+          <Button type="button" variant="outline" size="lg" onClick={() => go('login')}>
+            返回
+          </Button>
+          <Button type="submit" size="lg" className="submit-button compact-submit">
+            提交
+          </Button>
         </div>
       </form>
-    </PageShell>
+    </AuthShell>
   );
 }
 
 function App() {
   const [screen, go] = useHashScreen();
-  const [messageApi, contextHolder] = message.useMessage();
 
-  let content;
-  if (screen === 'email') content = <EmailScreen go={go} />;
-  else if (screen === 'upgrade') content = <UpgradeScreen go={go} />;
-  else if (screen === 'forgot') content = <ForgotScreen go={go} />;
-  else content = <LoginScreen go={go} messageApi={messageApi} />;
+  let page;
+  if (screen === 'email') page = <EmailScreen go={go} />;
+  else if (screen === 'upgrade') page = <UpgradeScreen go={go} />;
+  else if (screen === 'forgot') page = <ForgotScreen go={go} />;
+  else page = <LoginScreen go={go} />;
 
   return (
     <>
-      {contextHolder}
-      {content}
+      <Toaster />
+      {page}
     </>
   );
 }
