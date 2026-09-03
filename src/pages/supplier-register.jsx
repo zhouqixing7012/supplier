@@ -1,354 +1,435 @@
 import React from 'react';
-import { CalendarDays, CircleHelp, Plus } from 'lucide-react';
+import { ChevronRight, CircleHelp, UploadCloud } from 'lucide-react';
 import { toast } from 'sonner';
 
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { NativeSelect } from '@/components/ui/native-select';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Separator } from '@/components/ui/separator';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import './supplier-register.css';
 
-const TYPE_META = {
-  company: { label: '企业供应商', steps: 4 },
-  personal: { label: '个人供应商', steps: 2 },
-  government: { label: '政府机构或社团', steps: 4 },
-  foreign: { label: '国外供应商', steps: 4 },
-};
+const REGISTER_EMAIL_TIP = '用于供应商登录协同门户及修改密码时接收验证码';
 
-const typeOptions = [
+const TYPE_OPTIONS = [
   ['company', '企业供应商'],
   ['personal', '个人供应商'],
   ['government', '政府机构或社团'],
   ['foreign', '国外供应商'],
 ];
 
-const watermarkPositions = Array.from({ length: 28 }, (_, index) => ({
-  left: `${3 + (index % 7) * 15.5}%`,
-  top: `${3 + Math.floor(index / 7) * 26}%`,
-}));
+const FOUR_STEPS = [
+  ['基本信息', '营业执照、证书、合作内容等'],
+  ['联系人信息', '供应商联系人电话及邮箱等'],
+  ['银行信息', '银行账号、开户证明等'],
+  ['预览提交', ''],
+];
 
-function WatermarkLayer() {
+const TWO_STEPS = [
+  ['基本信息', '证件、联系方式、合作内容等'],
+  ['预览提交', ''],
+];
+
+const COMMON = {
+  registerEmail: {
+    key: 'registerEmail',
+    label: '供应商注册邮箱',
+    required: true,
+    type: 'email',
+    placeholder: '请输入供应商注册邮箱',
+    tooltip: REGISTER_EMAIL_TIP,
+  },
+  countryDomestic: {
+    key: 'country',
+    label: '国家',
+    required: true,
+    type: 'select',
+    placeholder: '请选择国家',
+    defaultValue: 'domestic',
+    options: [
+      ['domestic', '国内'],
+      ['foreign', '国外'],
+    ],
+  },
+  address: {
+    key: 'address',
+    label: '注册地址',
+    required: true,
+    type: 'address',
+  },
+};
+
+const PAGE_CONFIG = {
+  company: {
+    label: '企业供应商',
+    steps: FOUR_STEPS,
+    upload: {
+      label: '营业执照',
+      required: true,
+      note: '请先上传营业执照，企业信息可自动填充',
+    },
+    fields: [
+      { key: 'supplierName', label: '供应商名称', required: true, placeholder: '请输入供应商名称' },
+      COMMON.registerEmail,
+      { key: 'creditCode', label: '统一社会信用代码', required: true, placeholder: '请输入统一社会信用代码' },
+      { key: 'establishedAt', label: '成立日期', required: true, type: 'date' },
+      { key: 'licenseUntil', label: '证件有效期至', required: true, type: 'date' },
+      { key: 'legalRepresentative', label: '法人代表', required: true, placeholder: '请输入法人代表' },
+      { key: 'companyPhone', label: '公司电话', placeholder: '请输入公司电话' },
+      {
+        key: 'companyType',
+        label: '企业类型',
+        required: true,
+        type: 'select',
+        placeholder: '请选择企业类型',
+        options: [['limited', '有限责任公司'], ['joint', '股份有限公司']],
+      },
+      {
+        key: 'industry',
+        label: '所属行业',
+        required: true,
+        type: 'select',
+        placeholder: '请选择所属行业',
+        options: [['it', '信息技术服务业'], ['media', '文化传媒业']],
+      },
+      { key: 'capital', label: '注册资金', required: true, placeholder: '请输入注册资金' },
+      {
+        key: 'currency',
+        label: '注册币种',
+        required: true,
+        type: 'select',
+        placeholder: '请选择注册币种',
+        options: [['cny', '人民币'], ['usd', '美元'], ['eur', '欧元']],
+      },
+      COMMON.countryDomestic,
+      COMMON.address,
+      { key: 'invoiceAddress', label: '接收发票地址', placeholder: '请输入接收发票地址' },
+      { key: 'website', label: '公司网址', placeholder: '请输入公司网址' },
+      {
+        key: 'taxpayer',
+        label: '纳税人资格',
+        type: 'select',
+        placeholder: '请选择纳税人资格',
+        options: [['general', '一般纳税人'], ['small', '小规模纳税人']],
+      },
+      {
+        key: 'businessScope',
+        label: '经营范围',
+        required: true,
+        type: 'textarea',
+        placeholder: '请输入经营范围',
+        maxLength: 4000,
+        full: true,
+      },
+    ],
+  },
+  personal: {
+    label: '个人供应商',
+    steps: TWO_STEPS,
+    fields: [
+      {
+        key: 'certificateType',
+        label: '证件类型',
+        required: true,
+        type: 'select',
+        placeholder: '请选择证件类型',
+        options: [['id', '身份证'], ['passport', '护照']],
+        full: true,
+      },
+      { key: 'name', label: '姓名', required: true, placeholder: '请输入姓名' },
+      COMMON.registerEmail,
+      {
+        key: 'gender',
+        label: '性别',
+        required: true,
+        type: 'select',
+        placeholder: '请选择性别',
+        options: [['male', '男'], ['female', '女']],
+      },
+      { key: 'certificateNumber', label: '证件号码', required: true, placeholder: '请输入证件号码' },
+      { key: 'certificateStart', label: '证件有效起始日期', required: true, type: 'date' },
+      { key: 'certificateEnd', label: '证件有效截止日期', required: true, type: 'date' },
+      COMMON.countryDomestic,
+      COMMON.address,
+      { key: 'email', label: '邮箱', required: true, type: 'email', placeholder: '请输入邮箱' },
+      { key: 'mobile', label: '手机', required: true, placeholder: '请输入手机' },
+      { key: 'qq', label: 'QQ', placeholder: '请输入QQ' },
+      { key: 'wechat', label: '微信', placeholder: '请输入微信' },
+      {
+        key: 'cooperation',
+        label: '与搜狐合作事项',
+        required: true,
+        type: 'textarea',
+        placeholder: '请输入与搜狐合作事项',
+        maxLength: 500,
+        full: true,
+      },
+      { key: 'remark', label: '备注', type: 'textarea', placeholder: '请输入备注', maxLength: 500, full: true },
+    ],
+  },
+  government: {
+    label: '政府机构或社团',
+    steps: FOUR_STEPS,
+    fields: [
+      { key: 'supplierName', label: '供应商名称', required: true, placeholder: '请输入供应商名称' },
+      COMMON.registerEmail,
+      COMMON.countryDomestic,
+      COMMON.address,
+      {
+        key: 'cooperation',
+        label: '与搜狐合作事项',
+        required: true,
+        type: 'textarea',
+        placeholder: '请输入与搜狐合作事项',
+        maxLength: 500,
+        full: true,
+      },
+      { key: 'remark', label: '备注', type: 'textarea', placeholder: '请输入备注', maxLength: 500, full: true },
+    ],
+  },
+  foreign: {
+    label: '国外供应商',
+    steps: FOUR_STEPS,
+    upload: { label: '证书', required: true },
+    fields: [
+      { key: 'supplierName', label: '供应商名称', required: true, placeholder: '请输入供应商名称' },
+      COMMON.registerEmail,
+      { key: 'certificateNumber', label: '证件号码', required: true, placeholder: '请输入证件号码' },
+      { key: 'establishedAt', label: '成立日期', required: true, type: 'date' },
+      { key: 'licenseUntil', label: '证件有效期至', required: true, type: 'date' },
+      { key: 'legalRepresentative', label: '法人代表', required: true, placeholder: '请输入法人代表' },
+      { key: 'companyPhone', label: '公司电话', placeholder: '请输入公司电话' },
+      { key: 'capital', label: '注册资金', required: true, placeholder: '请输入注册资金' },
+      {
+        key: 'currency',
+        label: '注册币种',
+        required: true,
+        type: 'select',
+        placeholder: '请选择注册币种',
+        options: [['usd', '美元'], ['eur', '欧元'], ['cny', '人民币']],
+      },
+      {
+        key: 'country',
+        label: '国家',
+        required: true,
+        type: 'select',
+        placeholder: '请选择国家',
+        defaultValue: 'foreign',
+        options: [['foreign', '国外'], ['domestic', '国内']],
+      },
+      { key: 'address', label: '注册地址', required: true, placeholder: '请输入注册地址' },
+      {
+        key: 'cooperation',
+        label: '与搜狐合作事项',
+        required: true,
+        type: 'textarea',
+        placeholder: '请输入与搜狐合作事项',
+        maxLength: 500,
+        full: true,
+      },
+      { key: 'remark', label: '备注', type: 'textarea', placeholder: '请输入备注', maxLength: 500, full: true },
+    ],
+  },
+};
+
+function RequiredMark() {
+  return <span className="text-red-500" aria-hidden="true">*</span>;
+}
+
+function FieldLabel({ field }) {
   return (
-    <div className="register-watermarks" aria-hidden="true">
-      {watermarkPositions.map((position, index) => (
-        <span key={index} style={position}>闫海量 220784</span>
-      ))}
+    <div className="flex min-h-5 items-center gap-1.5">
+      <Label htmlFor={field.key} className="flex items-center gap-1">
+        {field.required && <RequiredMark />}
+        <span>{field.label}</span>
+      </Label>
+      {field.tooltip && (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button type="button" className="inline-flex text-muted-foreground hover:text-foreground" aria-label={`${field.label}说明`}>
+              <CircleHelp className="h-4 w-4" />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="top" align="start" className="max-w-[320px]">
+            {field.tooltip}
+          </TooltipContent>
+        </Tooltip>
+      )}
     </div>
   );
 }
 
-function Stepper({ count }) {
-  const steps = count === 2
-    ? [
-        ['基本信息', '营业执照、证书、合作内容等'],
-        ['预览提交', ''],
-      ]
-    : [
-        ['基本信息', '营业执照、证书、合作内容等'],
-        ['联系人信息', '供应商联系人电话及邮箱等'],
-        ['银行信息', '银行账号、开户证明等'],
-        ['预览提交', ''],
-      ];
-
+function BasicSelect({ field }) {
   return (
-    <div className={`register-stepper ${count === 2 ? 'is-two' : ''}`}>
-      {steps.map(([title, desc], index) => (
-        <div className={`register-step ${index === 0 ? 'active' : ''}`} key={title}>
-          <div className="step-head">
-            <span className="step-number">{index + 1}</span>
-            {index < steps.length - 1 && <span className="step-line" />}
-          </div>
-          <strong>{title}</strong>
-          {desc && <small>{desc}</small>}
-        </div>
-      ))}
+    <Select defaultValue={field.defaultValue}>
+      <SelectTrigger id={field.key}>
+        <SelectValue placeholder={field.placeholder || '请选择'} />
+      </SelectTrigger>
+      <SelectContent>
+        {(field.options || []).map(([value, label]) => (
+          <SelectItem key={value} value={value}>{label}</SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+}
+
+function AddressControl({ field }) {
+  return (
+    <div className="grid gap-2 sm:grid-cols-[180px_minmax(0,1fr)]">
+      <Select>
+        <SelectTrigger aria-label={`${field.label}地区`}>
+          <SelectValue placeholder="请选择地区" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="haidian">北京市 / 北京市 / 海淀区</SelectItem>
+          <SelectItem value="chaoyang">北京市 / 北京市 / 朝阳区</SelectItem>
+        </SelectContent>
+      </Select>
+      <Input id={field.key} placeholder="请输入详细地址" maxLength={50} />
     </div>
   );
 }
 
-function FieldLabel({ children, required = false, help = false }) {
-  return (
-    <div className="register-label">
-      {required && <span className="required-star">*</span>}
-      <span>{children}：</span>
-      {help && <CircleHelp size={15} />}
-    </div>
-  );
-}
-
-function RegisterField({ label, required = false, help = false, children, className = '' }) {
-  return (
-    <div className={`register-field ${className}`}>
-      <FieldLabel required={required} help={help}>{label}</FieldLabel>
-      <div className="register-control">{children}</div>
-    </div>
-  );
-}
-
-function DateInput({ placeholder }) {
-  return (
-    <div className="date-input-wrap">
-      <CalendarDays size={15} />
-      <Input placeholder={placeholder} />
-    </div>
-  );
-}
-
-function AddressInput({ foreign = false }) {
-  if (foreign) {
-    return <Input placeholder="请输入注册地址" />;
+function FieldControl({ field }) {
+  if (field.type === 'select') return <BasicSelect field={field} />;
+  if (field.type === 'address') return <AddressControl field={field} />;
+  if (field.type === 'textarea') {
+    return (
+      <div className="space-y-1.5">
+        <Textarea id={field.key} placeholder={field.placeholder} maxLength={field.maxLength} />
+        {field.maxLength && <p className="text-right text-xs text-muted-foreground">最多 {field.maxLength} 字</p>}
+      </div>
+    );
   }
+  if (field.type === 'date') return <Input id={field.key} type="date" required={field.required} />;
+  return <Input id={field.key} type={field.type || 'text'} placeholder={field.placeholder} required={field.required} />;
+}
 
+function FormField({ field }) {
   return (
-    <div className="address-control">
-      <NativeSelect defaultValue="">
-        <option value="" disabled>请选择</option>
-        <option>北京市 / 北京市 / 海淀区</option>
-        <option>北京市 / 北京市 / 朝阳区</option>
-      </NativeSelect>
-      <div className="counted-input">
-        <Input placeholder="请输入详细地址" maxLength={50} />
-        <span>0/50</span>
-      </div>
+    <div className={`space-y-2 ${field.full ? 'md:col-span-2' : ''}`}>
+      <FieldLabel field={field} />
+      <FieldControl field={field} />
     </div>
   );
 }
 
-function CountedTextarea({ placeholder, maxLength, className = '' }) {
+function SupplierTypeSelect({ type, onTypeChange }) {
   return (
-    <div className={`counted-textarea ${className}`}>
-      <Textarea placeholder={placeholder} maxLength={maxLength} />
-      <span>0/{maxLength}</span>
+    <div className="space-y-2">
+      <Label className="flex items-center gap-1"><RequiredMark />供应商类型</Label>
+      <Select value={type} onValueChange={onTypeChange}>
+        <SelectTrigger>
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {TYPE_OPTIONS.map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}
+        </SelectContent>
+      </Select>
     </div>
   );
 }
 
-function UploadBox({ label, note }) {
+function UploadField({ upload }) {
+  if (!upload) return null;
   return (
-    <div className="upload-row">
-      <FieldLabel required help>{label}</FieldLabel>
-      <button className="upload-box" type="button" aria-label={`上传${label}`}>
-        <Plus size={34} strokeWidth={1.5} />
-      </button>
-      {note && <span className="upload-note">{note}</span>}
+    <div className="space-y-2">
+      <Label className="flex items-center gap-1">
+        {upload.required && <RequiredMark />}
+        {upload.label}
+      </Label>
+      <Button type="button" variant="outline" className="h-24 w-full border-dashed text-muted-foreground hover:text-foreground">
+        <span className="flex flex-col items-center gap-2">
+          <UploadCloud className="h-6 w-6" />
+          <span>点击上传{upload.label}</span>
+        </span>
+      </Button>
+      {upload.note && <p className="text-xs text-muted-foreground">{upload.note}</p>}
     </div>
   );
 }
 
-function TypeField({ type, onTypeChange }) {
+function RegisterSteps({ steps }) {
   return (
-    <RegisterField label="供应商类型" required>
-      <NativeSelect value={type} onChange={(event) => onTypeChange(event.target.value)}>
-        {typeOptions.map(([value, label]) => (
-          <option key={value} value={value}>{label}</option>
-        ))}
-      </NativeSelect>
-    </RegisterField>
-  );
-}
-
-function RegisterTypeTabs({ type, onTypeChange }) {
-  return (
-    <nav className="register-page-tabs" aria-label="供应商类型切换">
-      <span className="register-page-tabs-title">供应商类型</span>
-      <div className="register-page-tabs-list">
-        {typeOptions.map(([value, label]) => (
-          <Button
-            key={value}
-            type="button"
-            variant="ghost"
-            className={`register-page-tab ${type === value ? 'is-active' : ''}`}
-            onClick={() => onTypeChange(value)}
-          >
-            {label}
-          </Button>
-        ))}
-      </div>
-    </nav>
-  );
-}
-
-function CompanyForm({ type, onTypeChange }) {
-  return (
-    <>
-      <div className="register-top-grid">
-        <TypeField type={type} onTypeChange={onTypeChange} />
-        <UploadBox label="营业执照" note="请先上传营业执照，企业信息可自动填充" />
-      </div>
-
-      <div className="register-divider" />
-
-      <div className="register-form-grid">
-        <RegisterField label="供应商名称" required><Input placeholder="请输入供应商名称" /></RegisterField>
-        <RegisterField label="统一社会信用代码" required><Input placeholder="请输入统一社会信用代码" /></RegisterField>
-        <RegisterField label="成立日期" required><DateInput placeholder="请选择成立日期" /></RegisterField>
-        <RegisterField label="证件有效期至" required help><DateInput placeholder="请选择证件有效期至" /></RegisterField>
-        <RegisterField label="法人代表" required><Input placeholder="请输入法人代表" /></RegisterField>
-        <RegisterField label="公司电话"><Input placeholder="请输入公司电话" /></RegisterField>
-        <RegisterField label="企业类型" required>
-          <NativeSelect defaultValue=""><option value="" disabled>请选择企业类型</option><option>有限责任公司</option></NativeSelect>
-        </RegisterField>
-        <RegisterField label="所属行业" required>
-          <NativeSelect defaultValue=""><option value="" disabled>请选择所属行业</option><option>信息技术服务业</option></NativeSelect>
-        </RegisterField>
-        <RegisterField label="注册资金" required help><Input placeholder="请输入注册资金" /></RegisterField>
-        <RegisterField label="注册币种" required>
-          <NativeSelect defaultValue=""><option value="" disabled>请选择注册币种</option><option>人民币</option></NativeSelect>
-        </RegisterField>
-        <RegisterField label="国家" required>
-          <NativeSelect defaultValue="国内"><option>国内</option><option>国外</option></NativeSelect>
-        </RegisterField>
-        <RegisterField label="注册地址" required><AddressInput /></RegisterField>
-        <RegisterField label="接收发票地址"><Input placeholder="请输入接收发票地址" /></RegisterField>
-        <RegisterField label="公司网址"><Input placeholder="请输入公司网址" /></RegisterField>
-        <RegisterField label="纳税人资格">
-          <NativeSelect defaultValue=""><option value="" disabled>请选择纳税人资格</option><option>一般纳税人</option><option>小规模纳税人</option></NativeSelect>
-        </RegisterField>
-      </div>
-
-      <RegisterField label="经营范围" required className="full-width-field">
-        <CountedTextarea placeholder="请输入经营范围" maxLength={4000} />
-      </RegisterField>
-    </>
-  );
-}
-
-function PersonalForm({ type, onTypeChange }) {
-  return (
-    <>
-      <div className="register-form-grid personal-grid">
-        <TypeField type={type} onTypeChange={onTypeChange} />
-        <div />
-        <RegisterField label="证件类型" required>
-          <NativeSelect defaultValue=""><option value="" disabled>请选择证件类型</option><option>身份证</option><option>护照</option></NativeSelect>
-        </RegisterField>
-        <div />
-        <RegisterField label="姓名" required><Input placeholder="请输入姓名" /></RegisterField>
-        <RegisterField label="性别" required>
-          <NativeSelect defaultValue=""><option value="" disabled>请选择性别</option><option>男</option><option>女</option></NativeSelect>
-        </RegisterField>
-        <RegisterField label="证件号码" required><Input placeholder="请输入证件号码" /></RegisterField>
-        <div />
-        <RegisterField label="证件有效起始日期" required><DateInput placeholder="请选择证件有效起始日期" /></RegisterField>
-        <RegisterField label="证件有效截止日期" required><DateInput placeholder="请选择证件有效截止日期" /></RegisterField>
-        <RegisterField label="国家" required>
-          <NativeSelect defaultValue="国内"><option>国内</option><option>国外</option></NativeSelect>
-        </RegisterField>
-        <RegisterField label="注册地址" required><AddressInput /></RegisterField>
-        <RegisterField label="邮箱" required><Input placeholder="请输入邮箱" /></RegisterField>
-        <RegisterField label="手机" required><Input placeholder="请输入手机" /></RegisterField>
-        <RegisterField label="QQ"><Input placeholder="请输入QQ" /></RegisterField>
-        <RegisterField label="微信"><Input placeholder="请输入微信" /></RegisterField>
-      </div>
-
-      <RegisterField label="与搜狐合作事项" required className="full-width-field">
-        <CountedTextarea placeholder="不能为空与搜狐合作事项" maxLength={500} />
-      </RegisterField>
-      <RegisterField label="备注" className="full-width-field">
-        <CountedTextarea placeholder="请输入备注" maxLength={500} />
-      </RegisterField>
-    </>
-  );
-}
-
-function GovernmentForm({ type, onTypeChange }) {
-  return (
-    <>
-      <div className="register-form-grid government-grid">
-        <TypeField type={type} onTypeChange={onTypeChange} />
-        <div />
-        <RegisterField label="供应商名称" required><Input placeholder="请输入供应商名称" /></RegisterField>
-        <div />
-        <RegisterField label="国家" required>
-          <NativeSelect defaultValue="国内"><option>国内</option><option>国外</option></NativeSelect>
-        </RegisterField>
-        <RegisterField label="注册地址" required><AddressInput /></RegisterField>
-      </div>
-
-      <RegisterField label="与搜狐合作事项" required className="full-width-field">
-        <CountedTextarea placeholder="不能为空与搜狐合作事项" maxLength={500} />
-      </RegisterField>
-      <RegisterField label="备注" className="full-width-field">
-        <CountedTextarea placeholder="请输入备注" maxLength={500} />
-      </RegisterField>
-    </>
-  );
-}
-
-function ForeignForm({ type, onTypeChange }) {
-  return (
-    <>
-      <div className="register-top-grid foreign-top-grid">
-        <div>
-          <TypeField type={type} onTypeChange={onTypeChange} />
-          <UploadBox label="证书" />
+    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      {steps.map(([title, description], index) => (
+        <div key={title} className="flex min-w-0 items-start gap-3">
+          <Badge variant={index === 0 ? 'default' : 'outline'} className="mt-0.5 h-6 min-w-6 justify-center px-1.5">
+            {index + 1}
+          </Badge>
+          <div className="min-w-0 space-y-1">
+            <p className={`whitespace-nowrap text-sm font-medium ${index === 0 ? 'text-foreground' : 'text-muted-foreground'}`}>{title}</p>
+            {description && <p className="text-xs leading-5 text-muted-foreground">{description}</p>}
+          </div>
         </div>
-      </div>
-
-      <div className="register-form-grid foreign-grid">
-        <RegisterField label="供应商名称" required><Input placeholder="请输入供应商名称" /></RegisterField>
-        <RegisterField label="证件号码" required><Input placeholder="请输入证件号码" /></RegisterField>
-        <RegisterField label="成立日期" required><DateInput placeholder="请选择成立日期" /></RegisterField>
-        <RegisterField label="证件有效期至" required help><DateInput placeholder="请选择证件有效期至" /></RegisterField>
-        <RegisterField label="法人代表" required><Input placeholder="请输入法人代表" /></RegisterField>
-        <RegisterField label="公司电话"><Input placeholder="请输入公司电话" /></RegisterField>
-        <RegisterField label="注册资金" required help><Input placeholder="请输入注册资金" /></RegisterField>
-        <RegisterField label="注册币种" required>
-          <NativeSelect defaultValue=""><option value="" disabled>请选择注册币种</option><option>美元</option><option>欧元</option><option>人民币</option></NativeSelect>
-        </RegisterField>
-        <RegisterField label="国家" required>
-          <NativeSelect defaultValue="国外"><option>国外</option><option>国内</option></NativeSelect>
-        </RegisterField>
-        <RegisterField label="注册地址" required><AddressInput foreign /></RegisterField>
-      </div>
-
-      <RegisterField label="与搜狐合作事项" required className="full-width-field">
-        <CountedTextarea placeholder="不能为空与搜狐合作事项" maxLength={500} />
-      </RegisterField>
-      <RegisterField label="备注" className="full-width-field">
-        <CountedTextarea placeholder="请输入备注" maxLength={500} />
-      </RegisterField>
-    </>
+      ))}
+    </div>
   );
 }
 
 function SupplierRegisterPage({ type = 'company', onTypeChange }) {
-  const meta = TYPE_META[type] || TYPE_META.company;
+  const config = PAGE_CONFIG[type] || PAGE_CONFIG.company;
 
-  const onNext = () => {
+  const handleNext = () => {
     toast.success('基本信息已保存');
   };
 
   return (
-    <main className="supplier-register-page">
-      <WatermarkLayer />
-      <div className="register-scroll-area">
-        <header className="register-breadcrumb">
-          <span className="breadcrumb-mark" />
-          <button type="button">供应商管理首页</button>
-          <span>›</span>
-          <strong>代注册</strong>
-        </header>
+    <TooltipProvider>
+      <main className="supplier-register-modern min-h-screen bg-secondary/40 text-foreground">
+        <div className="border-b border-border bg-background">
+          <div className="mx-auto flex max-w-7xl items-center gap-1 px-4 py-4 text-sm md:px-8">
+            <button type="button" className="text-muted-foreground transition-colors hover:text-foreground">供应商管理首页</button>
+            <ChevronRight className="h-4 w-4 text-muted-foreground" />
+            <span className="font-medium">代注册</span>
+          </div>
+        </div>
 
-        <RegisterTypeTabs type={type} onTypeChange={onTypeChange} />
+        <div className="mx-auto max-w-7xl space-y-6 px-4 py-6 md:px-8 md:py-8">
+          <Tabs value={type} onValueChange={onTypeChange}>
+            <TabsList className="h-auto w-full justify-start gap-1 overflow-x-auto p-1 md:w-auto">
+              {TYPE_OPTIONS.map(([value, label]) => (
+                <TabsTrigger key={value} value={value} className="shrink-0">{label}</TabsTrigger>
+              ))}
+            </TabsList>
+          </Tabs>
 
-        <section className="register-content">
-          <Stepper count={meta.steps} />
+          <Card>
+            <CardHeader>
+              <CardTitle>供应商代注册</CardTitle>
+              <CardDescription>当前类型：{config.label}</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <RegisterSteps steps={config.steps} />
+              <Separator />
 
-          <form className={`register-form register-${type}`} onSubmit={(event) => event.preventDefault()}>
-            {type === 'company' && <CompanyForm type={type} onTypeChange={onTypeChange} />}
-            {type === 'personal' && <PersonalForm type={type} onTypeChange={onTypeChange} />}
-            {type === 'government' && <GovernmentForm type={type} onTypeChange={onTypeChange} />}
-            {type === 'foreign' && <ForeignForm type={type} onTypeChange={onTypeChange} />}
+              <form onSubmit={(event) => event.preventDefault()} className="space-y-8">
+                <section className="grid gap-6 md:grid-cols-2">
+                  <SupplierTypeSelect type={type} onTypeChange={onTypeChange} />
+                  <UploadField upload={config.upload} />
+                </section>
 
-            <div className="register-actions">
+                <Separator />
+
+                <section className="grid gap-x-8 gap-y-6 md:grid-cols-2">
+                  {config.fields.map((field) => <FormField key={field.key} field={field} />)}
+                </section>
+              </form>
+            </CardContent>
+            <CardFooter className="justify-end gap-3 border-t border-border pt-6">
               <Button type="button" variant="outline" onClick={() => window.history.back()}>返回</Button>
-              <Button type="button" variant="outline" onClick={onNext}>下一步</Button>
-            </div>
-          </form>
-        </section>
-      </div>
-    </main>
+              <Button type="button" onClick={handleNext}>下一步</Button>
+            </CardFooter>
+          </Card>
+        </div>
+      </main>
+    </TooltipProvider>
   );
 }
 
