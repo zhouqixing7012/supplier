@@ -21,7 +21,11 @@ React + Vite + Tailwind CSS + shadcn/ui 组件源码模式的可点击原型，�
 - `#/register/government`：政府机构或社团
 - `#/register/foreign`：国外供应商
 
-四类页面按现有供应商系统截图复刻基础信息步骤，并支持在“供应商类型”下拉框中切换类型。
+四类页面统一使用 React + shadcn/ui 默认组件风格。页面顶部使用 Tabs 切换供应商类型，表单字段采用响应式两列布局，桌面端按“从左到右、从上到下”顺排，移动端自动变为单列。
+
+企业、政府机构/社团、国外供应商在“供应商名称”后的下一个位置展示必填“供应商注册邮箱”；个人供应商在“姓名”后的下一个位置展示该字段。注册邮箱使用 shadcn Tooltip 说明：`用于供应商登录协同门户及修改密码时接收验证码`。
+
+`public/*-register.html` 为前一阶段高保真静态对照页，暂时保留，但不再作为当前注册模块主实现。
 
 ## UI 技术
 
@@ -29,10 +33,11 @@ React + Vite + Tailwind CSS + shadcn/ui 组件源码模式的可点击原型，�
 - Vite 7
 - Tailwind CSS 4
 - shadcn/ui 组件源码模式
+- Radix UI primitives
 - Sonner Toast
 - Lucide 图标
 
-基础控件统一复用本地 `Button`、`Input`、`Textarea`、`NativeSelect`、`Toaster` 组件，不使用 Ant Design。
+代注册模块统一使用本地 shadcn `Button`、`Input`、`Textarea`、`Select`、`Tabs`、`Tooltip`、`Card`、`Label`、`Badge`、`Separator` 等组件，不使用 Ant Design。
 
 ## 本地运行
 
@@ -47,11 +52,6 @@ npm run dev
 npm run build
 ```
 
-## 搜索记录
-
-- skills.sh：参考 `interactive-prototype` 的可点击、多场景 React 原型思路，以及 `vite-react` 的 Vite + React 项目结构。
-- GitHub：没有直接复用第三方业务实现；原型以现有供应商门户截图和已确认需求为准。
-
 ## 已完成
 
 - [x] shadcn 风格登录页
@@ -64,8 +64,11 @@ npm run build
 - [x] 个人供应商代注册基础信息页
 - [x] 政府机构或社团代注册基础信息页
 - [x] 国外供应商代注册基础信息页
+- [x] 代注册模块 React + shadcn 统一重构
+- [x] 供应商注册邮箱必填字段及 Tooltip
 
 ## 待办
 
 - [ ] 对接真实登录、邮箱验证码和账号状态接口
 - [ ] 对接代注册表单真实数据、OCR、地址、下一步流程
+- [ ] 实现审批通过后将新增字段赋值给供应商正式注册邮箱
