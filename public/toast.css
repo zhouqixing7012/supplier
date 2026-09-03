@@ -1,0 +1,28 @@
+.security-warning-toast .ant-message-notice-content {
+  padding: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.security-warning-toast .ant-message-custom-content {
+  min-width: 380px;
+  padding: 13px 18px;
+  border: 1px solid #ffd591;
+  border-radius: 4px;
+  background: #fff7e6;
+  color: #d46b08;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
+  font-size: 14px;
+  line-height: 1.6;
+  align-items: flex-start;
+}
+
+.security-warning-toast .ant-message-custom-content > .anticon {
+  margin-top: 3px;
+  color: #fa8c16 !important;
+}
+
+.security-warning-content {
+  text-align: left;
+  line-height: 1.6;
+}
