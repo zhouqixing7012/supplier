@@ -17,3 +17,4 @@
 - 当页面级背景修改“看起来没生效”时，要同时检查全局 `body/html/#root` 背景和模块入口导入的全局 CSS；只改页面容器可能仍会在边缘、滚动或回弹区域透出全局底色。
 - 页面“丑”时不要优先换组件库。先做 critique：检查层级、密度、对齐、组件 Demo 感、视觉噪音和主任务是否突出；再用 distill/layout/polish 精简现有设计。换库只能改变默认皮肤，不能自动建立好的视觉层级。
 - 对成熟企业后台，Impeccable 方法要结合业务场景使用：重点采用“去模板感、避免 cards 套 cards、减少无意义装饰、保持一致节奏和明确主次”，而不是机械照搬营销网站的字体或表现性设计规则。
+- Impeccable 已安装为项目级 skill。后续任何 UI/页面视觉相关任务，优先读取 `.github/skills/impeccable/SKILL.md`、对应 command reference、`PRODUCT.md` 和 `DESIGN.md` 后再动代码；不要只凭组件库默认样式或临时审美判断直接修改。
