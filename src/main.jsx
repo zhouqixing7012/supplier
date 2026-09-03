@@ -95,11 +95,19 @@ function PageShell({ title, icon, children, background = 'login' }) {
   );
 }
 
-function LoginScreen({ go }) {
-  const [messageApi, contextHolder] = message.useMessage();
+function LoginScreen({ go, messageApi }) {
   const [account, setAccount] = useState('liuyjm');
   const [password, setPassword] = useState('12345678');
   const [captcha, setCaptcha] = useState('');
+
+  const showWarning = (content, duration = 4) => {
+    messageApi.open({
+      type: 'warning',
+      content,
+      duration,
+      className: 'security-warning-toast',
+    });
+  };
 
   const onSubmit = (e) => {
     e.preventDefault();
@@ -108,21 +116,19 @@ function LoginScreen({ go }) {
     const key = account.trim().toLowerCase();
 
     if (key === 'noemail') {
-      messageApi.warning({
-        content: (
-          <div style={{ textAlign: 'left' }}>
-            <div style={{ fontWeight: 600, marginBottom: 4 }}>当前账号未维护注册邮箱，暂时无法登录。</div>
-            <div>为保障账号安全，请联系搜狐业务对接人补充注册邮箱后重新登录。</div>
-          </div>
-        ),
-        duration: 5,
-      });
+      showWarning(
+        <div className="security-warning-content">
+          <div>当前账号未维护注册邮箱，暂时无法登录。</div>
+          <div>为保障账号安全，请联系搜狐业务对接人补充注册邮箱后重新登录。</div>
+        </div>,
+        5,
+      );
       return;
     }
 
     if (key === 'oldpwd') {
-      messageApi.warning('为保障账号安全，请先修改密码。');
-      window.setTimeout(() => go('upgrade'), 300);
+      showWarning('为保障账号安全，请先修改密码。');
+      go('upgrade');
       return;
     }
 
@@ -130,33 +136,30 @@ function LoginScreen({ go }) {
   };
 
   return (
-    <>
-      {contextHolder}
-      <PageShell title="用户登录" icon={<UserRound size={18} />}>
-        <div className="section-heading">Please login or register</div>
-        <form className="form" onSubmit={onSubmit}>
-          <Field label="账号" required>
-            <input value={account} onChange={(e) => setAccount(e.target.value)} placeholder="请输入登录账号" />
-          </Field>
-          <Field label="密码" required>
-            <PasswordInput value={password} onChange={setPassword} />
-          </Field>
-          <Field label="验证码" required>
-            <div className="captcha-line">
-              <input value={captcha} onChange={(e) => setCaptcha(e.target.value)} placeholder="请输入验证码" />
-              <div className="captcha-image">YHJV</div>
-              <button className="link-button" type="button"><RefreshCw size={14} />换一张</button>
-            </div>
-          </Field>
-          <div className="form-link-row">
-            <button className="text-link" type="button" onClick={() => go('forgot')}>修改密码</button>
+    <PageShell title="用户登录" icon={<UserRound size={18} />}>
+      <div className="section-heading">Please login or register</div>
+      <form className="form" onSubmit={onSubmit}>
+        <Field label="账号" required>
+          <input value={account} onChange={(e) => setAccount(e.target.value)} placeholder="请输入登录账号" />
+        </Field>
+        <Field label="密码" required>
+          <PasswordInput value={password} onChange={setPassword} />
+        </Field>
+        <Field label="验证码" required>
+          <div className="captcha-line">
+            <input value={captcha} onChange={(e) => setCaptcha(e.target.value)} placeholder="请输入验证码" />
+            <div className="captcha-image">YHJV</div>
+            <button className="link-button" type="button"><RefreshCw size={14} />换一张</button>
           </div>
-          <div className="actions left-actions">
-            <button className="primary warm" type="submit">登录</button>
-          </div>
-        </form>
-      </PageShell>
-    </>
+        </Field>
+        <div className="form-link-row">
+          <button className="text-link" type="button" onClick={() => go('forgot')}>修改密码</button>
+        </div>
+        <div className="actions left-actions">
+          <button className="primary warm" type="submit">登录</button>
+        </div>
+      </form>
+    </PageShell>
   );
 }
 
@@ -307,11 +310,20 @@ function ForgotScreen({ go }) {
 
 function App() {
   const [screen, go] = useHashScreen();
+  const [messageApi, contextHolder] = message.useMessage();
 
-  if (screen === 'email') return <EmailScreen go={go} />;
-  if (screen === 'upgrade') return <UpgradeScreen go={go} />;
-  if (screen === 'forgot') return <ForgotScreen go={go} />;
-  return <LoginScreen go={go} />;
+  let content;
+  if (screen === 'email') content = <EmailScreen go={go} />;
+  else if (screen === 'upgrade') content = <UpgradeScreen go={go} />;
+  else if (screen === 'forgot') content = <ForgotScreen go={go} />;
+  else content = <LoginScreen go={go} messageApi={messageApi} />;
+
+  return (
+    <>
+      {contextHolder}
+      {content}
+    </>
+  );
 }
 
 createRoot(document.getElementById('root')).render(<App />);
