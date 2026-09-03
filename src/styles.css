@@ -46,7 +46,7 @@ body {
   min-height: 100vh;
   font-family: "Microsoft YaHei", "PingFang SC", Arial, sans-serif;
   color: var(--foreground);
-  background: #f4f9fd;
+  background: #fff;
 }
 
 button,
