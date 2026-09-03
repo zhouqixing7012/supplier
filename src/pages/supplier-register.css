@@ -1,6 +1,6 @@
 .supplier-register-antd {
   min-height: 100vh;
-  background: #f4f5f7;
+  background: #fff;
   color: #4f5f73;
 }
 
@@ -192,7 +192,7 @@
 .register-upload-tile:hover {
   border-color: #1677ff;
   color: #1677ff;
-  background: #f7fbff;
+  background: #fff;
 }
 
 .register-upload-copy {
