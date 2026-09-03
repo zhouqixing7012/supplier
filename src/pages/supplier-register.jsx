@@ -2,8 +2,8 @@ import React from 'react';
 import {
   Breadcrumb,
   Button,
-  Card,
   Col,
+  ConfigProvider,
   DatePicker,
   Divider,
   Form,
@@ -13,16 +13,14 @@ import {
   Space,
   Steps,
   Tabs,
-  Tag,
   Typography,
   Upload,
   message,
 } from 'antd';
-import { InboxOutlined, LeftOutlined, RightOutlined } from '@ant-design/icons';
+import { LeftOutlined, PlusOutlined, RightOutlined } from '@ant-design/icons';
 import './supplier-register.css';
 
 const { TextArea } = Input;
-const { Dragger } = Upload;
 
 const REGISTER_EMAIL_TIP = '用于供应商登录协同门户及修改密码时接收验证码';
 
@@ -199,14 +197,14 @@ function FieldControl({ field }) {
   }
 
   if (field.type === 'textarea') {
-    return <TextArea rows={4} placeholder={field.placeholder} maxLength={field.maxLength} showCount />;
+    return <TextArea rows={3} placeholder={field.placeholder} maxLength={field.maxLength} showCount />;
   }
 
   if (field.type === 'address') {
     return (
       <Space.Compact block>
         <Select
-          style={{ width: '42%' }}
+          className="register-region-select"
           placeholder="请选择地区"
           options={[
             { value: 'haidian', label: '北京市 / 北京市 / 海淀区' },
@@ -226,19 +224,24 @@ function UploadField({ upload }) {
 
   return (
     <Form.Item label={upload.label} required={upload.required} className="register-upload-item">
-      <Dragger beforeUpload={() => false} showUploadList={false} multiple={false} className="register-upload">
-        <p className="ant-upload-drag-icon"><InboxOutlined /></p>
-        <p className="ant-upload-text">点击或拖拽上传{upload.label}</p>
-        <p className="ant-upload-hint">支持常见图片或 PDF 文件</p>
-      </Dragger>
-      {upload.note && <Typography.Text type="danger" className="register-upload-note">{upload.note}</Typography.Text>}
+      <div className="register-upload-control">
+        <Upload beforeUpload={() => false} showUploadList={false} maxCount={1} accept=".jpg,.jpeg,.png,.pdf">
+          <button type="button" className="register-upload-tile">
+            <PlusOutlined />
+            <span>上传{upload.label}</span>
+          </button>
+        </Upload>
+        <div className="register-upload-copy">
+          {upload.note && <Typography.Text type="danger">{upload.note}</Typography.Text>}
+          <Typography.Text type="secondary">支持 JPG、PNG、PDF 文件</Typography.Text>
+        </div>
+      </div>
     </Form.Item>
   );
 }
 
-function SupplierRegisterPage({ type = 'company', onTypeChange }) {
+function SupplierRegisterContent({ type = 'company', onTypeChange }) {
   const config = PAGE_CONFIG[type] || PAGE_CONFIG.company;
-
   const tabItems = TYPE_OPTIONS.map((item) => ({ key: item.value, label: item.label }));
 
   const handleFinish = () => {
@@ -248,25 +251,39 @@ function SupplierRegisterPage({ type = 'company', onTypeChange }) {
   return (
     <div className="supplier-register-antd">
       <div className="register-shell">
-        <Breadcrumb
-          className="register-breadcrumb"
-          items={[
-            { title: <a href="#">供应商管理首页</a> },
-            { title: '代注册' },
-          ]}
-        />
+        <div className="register-breadcrumb-bar">
+          <Breadcrumb
+            className="register-breadcrumb"
+            items={[
+              { title: <a href="#">供应商管理首页</a> },
+              { title: '代注册' },
+            ]}
+          />
+        </div>
 
-        <Tabs activeKey={type} items={tabItems} onChange={onTypeChange} className="register-type-tabs" />
+        <div className="register-tabs-bar">
+          <Tabs activeKey={type} items={tabItems} onChange={onTypeChange} className="register-type-tabs" tabBarGutter={36} />
+        </div>
 
-        <Card
-          className="register-card"
-          title={<Space><span>供应商代注册</span><Tag color="blue">{config.label}</Tag></Space>}
-        >
-          <Steps current={0} items={config.steps} responsive={false} className="register-steps" />
-          <Divider />
+        <section className="register-panel">
+          <div className="register-step-wrap">
+            <Steps current={0} items={config.steps} responsive={false} size="small" className="register-steps" />
+          </div>
 
-          <Form key={type} layout="vertical" onFinish={handleFinish} requiredMark>
-            <Row gutter={[24, 0]}>
+          <Divider className="register-divider" />
+
+          <Form
+            key={type}
+            className="register-form"
+            layout="horizontal"
+            labelAlign="right"
+            labelCol={{ flex: '142px' }}
+            wrapperCol={{ flex: 1 }}
+            colon
+            onFinish={handleFinish}
+            requiredMark
+          >
+            <Row gutter={[32, 0]} className="register-summary-row">
               <Col xs={24} md={12}>
                 <Form.Item label="供应商类型" required>
                   <Select
@@ -283,9 +300,9 @@ function SupplierRegisterPage({ type = 'company', onTypeChange }) {
               )}
             </Row>
 
-            <Divider orientation="left" plain>基本信息</Divider>
+            <div className="register-section-title"><span>基本信息</span></div>
 
-            <Row gutter={[24, 0]}>
+            <Row gutter={[32, 0]}>
               {config.fields.map((field) => (
                 <Col xs={24} md={field.full ? 24 : 12} key={field.key}>
                   <Form.Item
@@ -303,12 +320,37 @@ function SupplierRegisterPage({ type = 'company', onTypeChange }) {
 
             <div className="register-actions">
               <Button type="default" icon={<LeftOutlined />} onClick={() => window.history.back()}>返回</Button>
-              <Button type="primary" htmlType="submit" icon={<RightOutlined />} iconPosition="end">下一步</Button>
+              <Button type="primary" htmlType="submit">下一步 <RightOutlined /></Button>
             </div>
           </Form>
-        </Card>
+        </section>
       </div>
     </div>
+  );
+}
+
+function SupplierRegisterPage(props) {
+  return (
+    <ConfigProvider
+      componentSize="middle"
+      theme={{
+        token: {
+          colorPrimary: '#1677ff',
+          borderRadius: 3,
+          controlHeight: 32,
+          fontSize: 14,
+          colorBgLayout: '#f4f5f7',
+          colorBorder: '#d9e0e8',
+        },
+        components: {
+          Form: { itemMarginBottom: 16 },
+          Tabs: { horizontalItemPadding: '11px 2px' },
+          Button: { controlHeight: 32 },
+        },
+      }}
+    >
+      <SupplierRegisterContent {...props} />
+    </ConfigProvider>
   );
 }
 
