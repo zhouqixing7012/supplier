@@ -147,6 +147,27 @@ function TypeField({ type, onTypeChange }) {
   );
 }
 
+function RegisterTypeTabs({ type, onTypeChange }) {
+  return (
+    <nav className="register-page-tabs" aria-label="供应商类型切换">
+      <span className="register-page-tabs-title">供应商类型</span>
+      <div className="register-page-tabs-list">
+        {typeOptions.map(([value, label]) => (
+          <Button
+            key={value}
+            type="button"
+            variant="ghost"
+            className={`register-page-tab ${type === value ? 'is-active' : ''}`}
+            onClick={() => onTypeChange(value)}
+          >
+            {label}
+          </Button>
+        ))}
+      </div>
+    </nav>
+  );
+}
+
 function CompanyForm({ type, onTypeChange }) {
   return (
     <>
@@ -308,6 +329,8 @@ function SupplierRegisterPage({ type = 'company', onTypeChange }) {
           <span>›</span>
           <strong>代注册</strong>
         </header>
+
+        <RegisterTypeTabs type={type} onTypeChange={onTypeChange} />
 
         <section className="register-content">
           <Stepper count={meta.steps} />
