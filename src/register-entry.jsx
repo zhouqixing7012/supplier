@@ -1,10 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 
-import { Toaster } from '@/components/ui/sonner';
+import 'antd/dist/reset.css';
 import { SupplierRegisterPage } from '@/pages/supplier-register';
 import './styles.css';
-import './register-nav.css';
 
 const registerTypes = ['company', 'personal', 'government', 'foreign'];
 
@@ -26,12 +25,7 @@ function RegisterApp() {
     window.location.hash = `/register/${nextType}`;
   };
 
-  return (
-    <>
-      <Toaster />
-      <SupplierRegisterPage type={type} onTypeChange={goType} />
-    </>
-  );
+  return <SupplierRegisterPage type={type} onTypeChange={goType} />;
 }
 
 createRoot(document.getElementById('root')).render(<RegisterApp />);
