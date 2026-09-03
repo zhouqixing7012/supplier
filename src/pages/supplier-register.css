@@ -1,26 +1,89 @@
-.supplier-register-modern {
-  --background: #ffffff;
-  --foreground: #171717;
-  --primary: #171717;
-  --primary-foreground: #fafafa;
-  --secondary: #f5f5f5;
-  --secondary-foreground: #171717;
-  --accent: #f5f5f5;
-  --accent-foreground: #171717;
-  --border: #e5e5e5;
-  --input: #e5e5e5;
-  --ring: #a3a3a3;
-  --muted-foreground: #737373;
-  background: #fafafa;
-  color: var(--foreground);
+.supplier-register-antd {
+  min-height: 100vh;
+  padding: 24px;
+  background: #f5f7fa;
 }
 
-.supplier-register-modern button,
-.supplier-register-modern input,
-.supplier-register-modern textarea {
-  font-family: inherit;
+.register-shell {
+  width: min(1280px, 100%);
+  margin: 0 auto;
 }
 
-.supplier-register-modern input[type='date'] {
-  color-scheme: light;
+.register-breadcrumb {
+  margin-bottom: 12px;
+}
+
+.register-type-tabs {
+  margin-bottom: 16px;
+}
+
+.register-type-tabs .ant-tabs-nav {
+  margin-bottom: 0;
+}
+
+.register-card .ant-card-body {
+  padding: 28px 32px 24px;
+}
+
+.register-steps {
+  margin: 4px 0 8px;
+}
+
+.register-steps .ant-steps-item-title {
+  white-space: nowrap;
+}
+
+.register-steps .ant-steps-item-description {
+  max-width: 220px;
+}
+
+.register-upload-item .ant-form-item-control-input {
+  min-height: 0;
+}
+
+.register-upload .ant-upload-drag {
+  min-height: 128px;
+}
+
+.register-upload .ant-upload-drag-container {
+  padding: 8px 12px;
+}
+
+.register-upload .ant-upload-drag-icon {
+  margin-bottom: 8px !important;
+}
+
+.register-upload .ant-upload-drag-icon .anticon {
+  font-size: 30px;
+}
+
+.register-upload-note {
+  display: inline-block;
+  margin-top: 8px;
+}
+
+.register-actions {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+@media (max-width: 768px) {
+  .supplier-register-antd {
+    padding: 12px;
+  }
+
+  .register-card .ant-card-body {
+    padding: 20px 16px;
+  }
+
+  .register-steps {
+    overflow-x: auto;
+    padding-bottom: 8px;
+  }
+
+  .register-steps .ant-steps-item {
+    min-width: 180px;
+  }
 }
