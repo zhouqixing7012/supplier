@@ -1,12 +1,12 @@
 # CONTEXT
 
-当前：供应商协同门户 React 原型已整体重做为 shadcn/ui 风格。
+当前：在现有 shadcn/ui 协同门户登录原型基础上，新增供应商代注册基础信息原型。
 
 关键决定：
-- 移除 Ant Design 运行依赖，使用 shadcn 组件源码模式 + Sonner Toast。
-- 登录页改为现代双栏布局，保留搜狐供应商门户品牌感；页面仅展示真实用户会看到的内容。
-- `noemail`：登录页使用橙色 Warning Toast 提示补充注册邮箱，不跳转说明页。
-- `oldpwd`：使用 Warning Toast 提示先修改密码，并进入修改密码页。
-- 其他账号：进入注册邮箱 + 邮箱验证码校验页。
+- 登录模块保持现状，不因注册页复刻而改动。
+- 代注册新增四类页面：企业供应商、个人供应商、政府机构或社团、国外供应商。
+- 注册页使用本地 shadcn 组件体系，统一复用 Button、Input，并新增 Textarea、NativeSelect。
+- 通过独立入口 `src/entry.jsx` 按 Hash 路由区分登录原型与注册原型，避免两个模块互相影响。
+- 四类注册页分别可通过 `#/register/company`、`#/register/personal`、`#/register/government`、`#/register/foreign` 访问。
 
-位置：React/Vite/Tailwind/shadcn 原型代码已更新到 main，可继续用于 Vercel 自动部署。
+位置：代注册基础信息页面已按用户提供截图复刻，下一步按评审反馈细化字段、交互或继续复刻联系人/银行/预览步骤。
