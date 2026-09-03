@@ -4,6 +4,7 @@ import { createRoot } from 'react-dom/client';
 import { Toaster } from '@/components/ui/sonner';
 import { SupplierRegisterPage } from '@/pages/supplier-register';
 import './styles.css';
+import './register-nav.css';
 
 const registerTypes = ['company', 'personal', 'government', 'foreign'];
 
