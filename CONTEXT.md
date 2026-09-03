@@ -1,6 +1,15 @@
 # CONTEXT
 
-当前：供应商代注册主实现保持 React + Ant Design，视觉调整按 Impeccable 的 critique → distill/layout → polish 方法进行，不再通过反复更换组件库解决观感问题。
+当前：供应商代注册主实现保持 React + Ant Design；Impeccable 已作为项目级 UI skill 安装到仓库，后续页面设计、视觉审查、布局优化优先按 Impeccable 流程执行。
+
+Impeccable：
+- 已安装官方项目级 GitHub skill：`.github/skills/impeccable/`。
+- 当前安装版本：`4.1.3`。
+- 项目产品上下文：`PRODUCT.md`。
+- 项目设计上下文：`DESIGN.md`。
+- 后续涉及 UI 设计/重设计/critique/audit/polish/layout/distill/typeset/clarify 等任务，先读取 `.github/skills/impeccable/SKILL.md` 及对应 `reference/<command>.md`，再修改页面。
+- 仓库提供 `.github/workflows/install-impeccable.yml` 作为手动更新 workflow；需要升级时运行该 workflow，执行官方 `impeccable update`。
+- `.gitignore` 已加入 Impeccable runtime/临时文件忽略规则；共享设计上下文与 skill 文件保持提交状态。
 
 关键决定：
 - 登录模块保持现状，继续使用现有 shadcn/ui + Sonner，不受注册页组件体系影响。
@@ -19,4 +28,4 @@
 - 审批通过后将该字段赋值给供应商正式注册邮箱属于后续业务实现；当前原型仅体现字段及说明。
 - `public/*-register.html` 四个静态页继续保留作为前一阶段视觉对照，不作为主实现继续迭代。
 
-位置：Impeccable 风格的第一轮 critique/polish 已应用到注册页 CSS 并提交 main；下一步只基于实际线上观感做局部校准，不再整体换风格。
+位置：Impeccable 已正式安装并初始化项目设计上下文；下一步 UI 工作直接以项目内 Impeccable skill + `PRODUCT.md` + `DESIGN.md` 为设计基线。
