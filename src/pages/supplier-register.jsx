@@ -255,19 +255,20 @@ function SupplierRegisterContent({ type = 'company', onTypeChange }) {
           <Breadcrumb
             className="register-breadcrumb"
             items={[
-              { title: <a href="#">供应商管理首页</a> },
+              { title: '供应商系统' },
               { title: '代注册' },
+              { title: config.label },
             ]}
           />
         </div>
 
         <div className="register-tabs-bar">
-          <Tabs activeKey={type} items={tabItems} onChange={onTypeChange} className="register-type-tabs" tabBarGutter={36} />
+          <Tabs activeKey={type} items={tabItems} onChange={onTypeChange} className="register-type-tabs" tabBarGutter={28} />
         </div>
 
         <section className="register-panel">
           <div className="register-step-wrap">
-            <Steps current={0} items={config.steps} responsive={false} size="small" className="register-steps" />
+            <Steps current={0} items={config.steps} responsive size="small" className="register-steps" />
           </div>
 
           <Divider className="register-divider" />
@@ -277,14 +278,14 @@ function SupplierRegisterContent({ type = 'company', onTypeChange }) {
             className="register-form"
             layout="horizontal"
             labelAlign="right"
-            labelCol={{ flex: '142px' }}
+            labelCol={{ flex: '144px' }}
             wrapperCol={{ flex: 1 }}
             colon
             onFinish={handleFinish}
             requiredMark
           >
-            <Row gutter={[32, 0]} className="register-summary-row">
-              <Col xs={24} md={12}>
+            <Row gutter={[36, 0]} className="register-summary-row">
+              <Col xs={24} lg={12}>
                 <Form.Item label="供应商类型" required>
                   <Select
                     value={type}
@@ -294,7 +295,7 @@ function SupplierRegisterContent({ type = 'company', onTypeChange }) {
                 </Form.Item>
               </Col>
               {config.upload && (
-                <Col xs={24} md={12}>
+                <Col xs={24} lg={12}>
                   <UploadField upload={config.upload} />
                 </Col>
               )}
@@ -302,9 +303,9 @@ function SupplierRegisterContent({ type = 'company', onTypeChange }) {
 
             <div className="register-section-title"><span>基本信息</span></div>
 
-            <Row gutter={[32, 0]}>
+            <Row gutter={[36, 0]}>
               {config.fields.map((field) => (
-                <Col xs={24} md={field.full ? 24 : 12} key={field.key}>
+                <Col xs={24} lg={field.full ? 24 : 12} key={field.key}>
                   <Form.Item
                     name={field.key}
                     label={field.label}
@@ -335,17 +336,17 @@ function SupplierRegisterPage(props) {
       componentSize="middle"
       theme={{
         token: {
-          colorPrimary: '#1677ff',
+          colorPrimary: '#2f6fd6',
           borderRadius: 3,
-          controlHeight: 32,
+          controlHeight: 36,
           fontSize: 14,
-          colorBgLayout: '#f4f5f7',
+          colorBgLayout: '#ffffff',
           colorBorder: '#d9e0e8',
         },
         components: {
           Form: { itemMarginBottom: 16 },
-          Tabs: { horizontalItemPadding: '11px 2px' },
-          Button: { controlHeight: 32 },
+          Tabs: { horizontalItemPadding: '12px 2px' },
+          Button: { controlHeight: 36 },
         },
       }}
     >
