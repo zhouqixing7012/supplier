@@ -1,20 +1,21 @@
 .supplier-register-antd {
-  min-height: 100vh;
+  min-height: calc(100vh - 52px);
   background: #ffffff;
   color: #344054;
 }
 
 .register-shell {
-  width: min(1320px, calc(100% - 48px));
+  width: 100%;
+  max-width: 1680px;
   margin: 0 auto;
-  padding: 8px 0 32px;
+  padding: 8px clamp(20px, 2.5vw, 44px) 36px;
 }
 
 .register-breadcrumb-bar {
   display: flex;
   min-height: 40px;
   align-items: center;
-  padding: 0 4px;
+  padding: 0 2px;
   border-bottom: 1px solid #eef1f5;
 }
 
@@ -27,12 +28,7 @@
   color: #7d899a;
 }
 
-.register-breadcrumb a {
-  color: #52627a;
-}
-
 .register-tabs-bar {
-  padding: 0 4px;
   background: #ffffff;
   border-bottom: 1px solid #e2e7ee;
 }
@@ -72,14 +68,14 @@
 }
 
 .register-panel {
-  padding: 24px 6px 0;
+  padding: 24px 0 0;
   background: #ffffff;
 }
 
 .register-step-wrap {
-  width: min(100%, 1020px);
+  width: min(100%, 1180px);
   margin: 0 auto;
-  padding: 0 10px 18px;
+  padding: 0 6px 18px;
 }
 
 .register-steps .ant-steps-item-title {
@@ -91,8 +87,8 @@
 }
 
 .register-steps .ant-steps-item-description {
-  max-width: 190px;
-  color: #96a0af !important;
+  max-width: 210px;
+  color: #7f8a9c !important;
   font-size: 12px;
   line-height: 18px;
 }
@@ -107,7 +103,7 @@
 }
 
 .register-steps .ant-steps-item-wait .ant-steps-icon {
-  color: #9ba6b5;
+  color: #8f9bac;
 }
 
 .register-steps .ant-steps-item-tail::after {
@@ -120,13 +116,13 @@
 }
 
 .register-form {
-  width: min(100%, 1220px);
+  width: 100%;
   margin: 0 auto;
   color: #445168;
 }
 
 .register-form .ant-form-item {
-  margin-bottom: 14px;
+  margin-bottom: 16px;
 }
 
 .register-form .ant-form-item-row {
@@ -138,9 +134,9 @@
 }
 
 .register-form .ant-form-item-label > label {
-  height: 32px;
-  color: #4d5c72;
-  font-size: 13px;
+  height: 36px;
+  color: #46566d;
+  font-size: 14px;
   font-weight: 400;
   white-space: nowrap;
 }
@@ -150,7 +146,7 @@
 }
 
 .register-form .ant-form-item-tooltip {
-  color: #8a96a7;
+  color: #7f8b9d;
 }
 
 .register-form .ant-form-item-explain-error {
@@ -162,13 +158,13 @@
 .register-form .ant-picker,
 .register-form .ant-select-selector,
 .register-form .ant-btn {
-  border-radius: 2px !important;
+  border-radius: 3px !important;
 }
 
 .register-form .ant-input,
 .register-form .ant-picker,
 .register-form .ant-select-single .ant-select-selector {
-  min-height: 32px;
+  min-height: 36px;
   border-color: #d4dae4;
   box-shadow: none;
 }
@@ -190,70 +186,76 @@
 .register-form .ant-input::placeholder,
 .register-form .ant-select-selection-placeholder,
 .register-form .ant-picker-input > input::placeholder {
-  color: #aab3c0;
+  color: #8d98a8;
 }
 
 .register-form textarea.ant-input {
-  min-height: 86px;
-  padding-top: 7px;
+  min-height: 92px;
+  padding-top: 8px;
   line-height: 1.65;
 }
 
 .register-form .ant-input-textarea-show-count::after {
   margin-top: 3px;
-  color: #a1aab7;
+  color: #7f8a9a;
   font-size: 12px;
 }
 
 .register-summary-row {
-  min-height: 56px;
+  min-height: 58px;
   margin-bottom: 2px;
 }
 
 .register-section-title {
   display: flex;
   align-items: center;
-  min-height: 30px;
+  gap: 14px;
+  min-height: 32px;
   margin: 4px 0 16px;
-  padding-left: 10px;
-  border-left: 3px solid #3f73c8;
-  color: #33435a;
-  font-size: 14px;
+  color: #2f4058;
+  font-size: 15px;
   font-weight: 600;
-  line-height: 20px;
+  line-height: 22px;
+}
+
+.register-section-title::after {
+  content: '';
+  height: 1px;
+  flex: 1;
+  background: #e8edf3;
 }
 
 .register-region-select {
-  width: 43%;
+  width: 40%;
 }
 
 .register-upload-item .ant-form-item-control-input {
-  min-height: 32px;
+  min-height: 36px;
 }
 
 .register-upload-control {
   display: flex;
-  min-height: 52px;
+  min-height: 54px;
   align-items: center;
   gap: 12px;
 }
 
 .register-upload-tile {
   display: inline-flex;
-  width: 86px;
-  height: 52px;
+  width: 92px;
+  height: 54px;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 3px;
   border: 1px dashed #b8c2cf;
-  border-radius: 2px;
+  border-radius: 3px;
   background: #ffffff;
   color: #66758a;
   font: inherit;
   font-size: 12px;
   cursor: pointer;
-  transition: border-color .16s ease, color .16s ease, background .16s ease;
+  transition: border-color 160ms ease, color 160ms ease, background 160ms ease;
 }
 
 .register-upload-tile:hover {
@@ -262,12 +264,17 @@
   color: #356cc8;
 }
 
+.register-upload-tile:focus-visible {
+  outline: 2px solid rgba(47, 111, 214, 0.28);
+  outline-offset: 2px;
+}
+
 .register-upload-copy {
   display: flex;
   min-width: 0;
   flex-direction: column;
   gap: 2px;
-  color: #8a96a7;
+  color: #7f8a9a;
   font-size: 12px;
   line-height: 18px;
 }
@@ -287,9 +294,9 @@
 }
 
 .register-actions .ant-btn {
-  min-width: 84px;
-  height: 32px;
-  border-radius: 2px !important;
+  min-width: 88px;
+  height: 36px;
+  border-radius: 3px !important;
   box-shadow: none;
 }
 
@@ -301,29 +308,29 @@
   background: #3b79dc !important;
 }
 
-@media (max-width: 900px) {
+@media (max-width: 1100px) {
   .register-shell {
-    width: min(100% - 24px, 1320px);
-  }
-
-  .register-panel {
-    padding-inline: 0;
+    padding-inline: 24px;
   }
 
   .register-step-wrap {
-    overflow-x: auto;
-    padding-inline: 0;
+    width: 100%;
+  }
+}
+
+@media (max-width: 991px) {
+  .register-panel {
+    padding-top: 20px;
   }
 
-  .register-steps {
-    min-width: 700px;
+  .register-form {
+    max-width: 860px;
   }
 }
 
 @media (max-width: 768px) {
   .register-shell {
-    width: calc(100% - 16px);
-    padding-top: 4px;
+    padding: 4px 16px 28px;
   }
 
   .register-breadcrumb-bar {
@@ -331,16 +338,23 @@
   }
 
   .register-tabs-bar {
-    overflow-x: auto;
-    padding-inline: 0;
+    overflow: hidden;
   }
 
-  .register-type-tabs {
-    min-width: 500px;
+  .register-type-tabs .ant-tabs-tab {
+    padding-block: 11px 10px;
   }
 
   .register-panel {
     padding-top: 18px;
+  }
+
+  .register-step-wrap {
+    padding-bottom: 14px;
+  }
+
+  .register-steps .ant-steps-item-description {
+    display: none;
   }
 
   .register-form .ant-form-item-row {
@@ -354,6 +368,7 @@
 
   .register-form .ant-form-item-label > label {
     height: auto;
+    min-height: 22px;
   }
 
   .register-upload-control {
@@ -361,6 +376,47 @@
   }
 
   .register-region-select {
+    width: 44%;
+  }
+
+  .register-section-title {
+    margin-top: 8px;
+  }
+}
+
+@media (max-width: 520px) {
+  .register-shell {
+    padding-inline: 12px;
+  }
+
+  .register-breadcrumb {
+    font-size: 12px;
+  }
+
+  .register-type-tabs .ant-tabs-tab {
+    font-size: 13px;
+  }
+
+  .register-upload-control {
+    flex-direction: column;
+  }
+
+  .register-region-select {
     width: 46%;
+  }
+
+  .register-actions {
+    justify-content: stretch;
+  }
+
+  .register-actions .ant-btn {
+    flex: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .register-upload-tile,
+  .register-type-tabs .ant-tabs-tab-btn {
+    transition-duration: 0.01ms !important;
   }
 }
