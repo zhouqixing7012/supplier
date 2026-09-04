@@ -12,6 +12,7 @@ import {
   UserRound,
 } from 'lucide-react';
 
+import { AppNavigation } from '@/components/app-navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Toaster } from '@/components/ui/sonner';
@@ -49,13 +50,12 @@ function BrandPanel() {
       </div>
 
       <div className="brand-content">
-        <div className="brand-kicker">SOHU SUPPLIER PORTAL</div>
         <h1>
           搜狐供应商
           <br />
-          <span>协同门户</span>
+          协同门户
         </h1>
-        <p>欢迎登录供应商协同门户</p>
+        <p>安全、便捷地完成供应商账号验证与协同操作</p>
       </div>
     </section>
   );
@@ -146,8 +146,8 @@ function LoginScreen({ go }) {
   return (
     <AuthShell
       title="用户登录"
-      subtitle="Please login or register"
-      icon={<UserRound size={22} />}
+      subtitle="使用供应商账号登录协同门户"
+      icon={<UserRound size={20} />}
     >
       <form className="auth-form" onSubmit={onSubmit}>
         <FormField label="账号" required>
@@ -219,7 +219,7 @@ function EmailScreen({ go }) {
     <AuthShell
       title="安全验证"
       subtitle="请输入注册邮箱及邮箱验证码"
-      icon={<ShieldCheck size={22} />}
+      icon={<ShieldCheck size={20} />}
     >
       <form className="auth-form" onSubmit={onSubmit}>
         <FormField label="注册邮箱" required>
@@ -297,7 +297,7 @@ function UpgradeScreen({ go }) {
     <AuthShell
       title="修改密码"
       subtitle="请完成密码修改后重新登录"
-      icon={<LockKeyhole size={22} />}
+      icon={<LockKeyhole size={20} />}
     >
       <form className="auth-form" onSubmit={onSubmit}>
         <FormField label="账号" required>
@@ -378,7 +378,7 @@ function ForgotScreen({ go }) {
     <AuthShell
       title="修改密码"
       subtitle="通过注册邮箱验证身份"
-      icon={<LockKeyhole size={22} />}
+      icon={<LockKeyhole size={20} />}
     >
       <form className="auth-form" onSubmit={onSubmit}>
         <FormField label="账号" required>
@@ -451,6 +451,7 @@ function App() {
 
   return (
     <>
+      <AppNavigation activeKey="portal" />
       <Toaster />
       {page}
     </>
