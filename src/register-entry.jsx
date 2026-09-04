@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 
 import 'antd/dist/reset.css';
+import { AppNavigation } from '@/components/app-navigation';
 import { SupplierRegisterPage } from '@/pages/supplier-register';
 import './styles.css';
 
@@ -25,7 +26,12 @@ function RegisterApp() {
     window.location.hash = `/register/${nextType}`;
   };
 
-  return <SupplierRegisterPage type={type} onTypeChange={goType} />;
+  return (
+    <>
+      <AppNavigation activeKey={type} />
+      <SupplierRegisterPage type={type} onTypeChange={goType} />
+    </>
+  );
 }
 
 createRoot(document.getElementById('root')).render(<RegisterApp />);
