@@ -12,18 +12,18 @@ export default function MobileSupplier() {
   return (
     <div className="mobile-page">
       <header className="mobile-title">
-        <button>‹</button>
+        <button className="back">‹</button>
         <h1>供应商管理平台</h1>
       </header>
 
-      <section className="section">
-        <h2>供应商信息</h2>
-        <p><span>*</span>供应商名称　{supplierInfo.name}</p>
-        <p><span>*</span>供应商类型　{supplierInfo.type}</p>
+      <section className="section supplier-section">
+        <h2><span className="collapse">⌃</span>供应商信息</h2>
+        <p><em>*</em>供应商名称　{supplierInfo.name}</p>
+        <p><em>*</em>供应商类型　{supplierInfo.type}</p>
       </section>
 
-      <section className="section">
-        <h2>银行信息</h2>
+      <section className="section bank-section">
+        <h2><span className="collapse">⌃</span>银行信息</h2>
         <div className="bank-card">
           <h3>112297879</h3>
           <p>账户类型　基本账户</p>
@@ -37,10 +37,12 @@ export default function MobileSupplier() {
           <p>开户证明　📎</p>
           <p>备注</p>
           <p>状态</p>
+          <button className="more">•••</button>
         </div>
+        <div className="empty-data">暂无更多相关数据</div>
       </section>
 
-      <button className="float-button">+</button>
+      <button className="float-button">▣</button>
 
       <footer className="actions">
         <button>取消</button>
@@ -50,7 +52,7 @@ export default function MobileSupplier() {
       {showTip && (
         <div className="screen-tip">
           <div className="tip-card">
-            <div className="tip-image">📱</div>
+            <div className="tip-image">👨‍💻</div>
             <p>截屏已生效，分享需谨慎</p>
             <button onClick={() => setShowTip(false)}>知道了</button>
           </div>
