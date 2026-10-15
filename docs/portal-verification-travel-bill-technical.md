@@ -2,7 +2,7 @@
 
 版本：2026-10-15，配套评审稿。
 
-业务规则及验收要求统一维护在 [需求文档](portal-verification-travel-bill-prd.md)。
+业务规则统一维护在 [需求文档](portal-verification-travel-bill-prd.md)。
 
 ## 当前技术现状
 
