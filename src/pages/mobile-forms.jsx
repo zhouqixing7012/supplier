@@ -1,0 +1,117 @@
+import React, { useState } from 'react';
+import { Check, ChevronRight, MoreHorizontal, Plus, Trash2 } from 'lucide-react';
+import { Actions, DateSheet, Empty, Field, OptionSheet, Overlay, Row, SearchBox, Section, UploadField } from './mobile-ui.jsx';
+import { bankNames, branches, people, permissionGroups, supplierTypes } from './mobile-data.js';
+
+export const blankBank = name => ({ accountType: '', bank: '', branch: '', country: '', province: '', city: '', name: name || '', number: '', currency: '', proof: '', note: '' });
+export function bankError(bank, company = true) {
+  for (const [key, label] of [['bank', '开户银行'], ['branch', '银行分行'], ['name', '账户名称'], ['number', '银行账号'], ['currency', '币种']]) if (!bank[key]?.trim()) return `请填写${label}`;
+  if (company && !bank.accountType) return '请选择账户类型';
+  if (company && !bank.proof) return '请上传开户证明';
+  return '';
+}
+
+export function BankFields({ bank, setBank, company = true, proofRequired = company }) {
+  const [picker, setPicker] = useState(null);
+  const change = (key, value) => setBank({ ...bank, [key]: value });
+  return <>
+    {company && <Field label="账户类型" required options={['基本账户', '一般账户']} value={bank.accountType} onChange={v => change('accountType', v)} />}
+    <Field label="开户银行" required value={bank.bank} help="开户银行来自银行基础数据，未查询到时请联系业务对接人。" onPick={() => setPicker('bank')} />
+    <Field label="银行分行" required value={bank.branch} help="选择开户银行后选择对应分行。" onPick={() => setPicker('branch')} />
+    <Field label="开户行所在国家/地区" value={bank.country} readOnly />
+    <div className="m-field-divider" />
+    <Field label="开户所在省" value={bank.province} readOnly /><Field label="开户所在市" value={bank.city} readOnly />
+    <Field label="账户名称" required value={bank.name} onChange={v => change('name', v)} maxLength={100} />
+    <Field label="银行账号" required value={bank.number} onChange={v => change('number', v)} maxLength={50} />
+    <Field label="币种" required options={['人民币', '美元', '港币']} value={bank.currency} onChange={v => change('currency', v)} />
+    <div className="m-field-divider" />
+    <UploadField label="开户证明" required={proofRequired} value={bank.proof} onChange={v => change('proof', v)} help="上传银行开户证明；个人供应商可不上传银行卡照片。" />
+    <Field label="备注" multiline value={bank.note} onChange={v => change('note', v)} maxLength={400} />
+    {picker && <Overlay label={picker === 'bank' ? '开户银行' : '银行分行'} onClose={() => setPicker(null)} sheet><div className="m-picker-title"><button onClick={() => setPicker(null)}>取消</button><strong>{picker === 'bank' ? '开户银行' : '银行分行'}</strong></div><ReferenceList kind={picker} selected={picker === 'bank' ? bank.bank : bank.branch} bank={bank.bank} onCancel={() => setPicker(null)} onConfirm={v => { if (picker === 'bank') setBank({ ...bank, bank: v, branch: '', country: '', province: '', city: '' }); else { const branch = branches.find(x => x.name === v); setBank({ ...bank, branch: v, country: branch?.country || '', province: branch?.province || '', city: branch?.city || '' }); } setPicker(null); }} /></Overlay>}
+  </>;
+}
+
+export function ReferenceList({ kind, selected = '', bank = bankNames[0], onCancel, onConfirm, initialSearch = '' }) {
+  const [query, setQuery] = useState(initialSearch);
+  const [choice, setChoice] = useState(selected);
+  const entries = kind === 'bank' ? bankNames.map(name => ({ name, rows: [['国家（地区）代码', 'CN'], ['国家（地区）', '中国']] })) : kind === 'branch' ? branches.filter(x => x.bank === bank).map(x => ({ name: x.name, rows: [['银行名称', x.bank], ['国家（地区）代码', 'CN'], ['国家（地区）', x.country], ['省份', x.province], ['城市', x.city]] })) : query ? people.filter(x => x.name.includes(query) || x.phone.includes(query)).map(x => ({ name: x.name, rows: [['座机', x.phone], ['邮箱', x.email], ['职位', x.job], ['部门', x.department]] })) : [];
+  const matches = entries.filter(x => x.name.includes(query));
+  return <div className="m-reference-list"><SearchBox value={query} onChange={setQuery} placeholder={kind === 'people' ? '请输入人员工号或姓名' : ''} /><div className="m-reference-content">{matches.length ? matches.map(x => <label key={x.name} className="m-reference-card"><input type="radio" name={`reference-${kind}`} value={x.name} checked={choice === x.name} onChange={() => setChoice(x.name)} /><span className="m-radio">{choice === x.name && <Check />}</span><div><h3>{x.name}</h3>{x.rows.map(([label, value]) => <Row key={label} label={label} compact>{value}</Row>)}</div></label>) : <Empty />}</div><Actions flat items={[{ label: '取消', muted: true, onClick: onCancel }, { label: '确定', disabled: !choice, onClick: () => onConfirm(choice) }]} /></div>;
+}
+
+export function BankCard({ bank, onEdit, onDelete, onPreview }) {
+  const [menu, setMenu] = useState(false);
+  return <article className="m-bank-card"><h3>{bank.id || bank.number || '银行信息'}</h3><div className="m-card-body">
+    {bank.accountType && <Row label="账户类型" compact>{bank.accountType}</Row>}<Row label="开户银行" compact>{bank.bank}</Row><Row label="银行分行" compact>{bank.branch}</Row><Row label="开户行所在国家/地区" compact>{bank.country}</Row><Row label="开户所在省" compact>{bank.province}</Row><Row label="开户所在市" compact>{bank.city}</Row><Row label="账户名称" compact>{bank.name}</Row><Row label="银行账号" compact>{bank.number}</Row><Row label="币种" compact>{bank.currency}</Row><Row label="开户证明" compact>{bank.proof && <button className="m-proof-thumb" onClick={onPreview}>{bank.proof === '开户证明.png' ? <span className="m-proof-plate"><img src="/mobile-assets/bank-proof-source.jpg" alt="开户证明" /></span> : bank.proof}</button>}</Row><Row label="备注" compact>{bank.note}</Row><Row label="状态" compact>{bank.change && <span className={`m-change m-change-${bank.change}`}>{bank.change}</span>}</Row>
+    {onEdit && <div className="m-card-menu"><button aria-label="银行信息操作" onClick={() => setMenu(!menu)}><MoreHorizontal /></button>{menu && <div><button onClick={() => { onEdit(); setMenu(false); }}>修改</button>{onDelete && <button onClick={onDelete}>删除</button>}</div>}</div>}
+  </div></article>;
+}
+
+export function PermissionForm({ initial = {}, onSave, onCancel, notify }) {
+  const [data, setData] = useState({ group: '', category: '', note: '', ...initial });
+  return <><Field label="所属权限" required options={Object.keys(permissionGroups)} value={data.group} onChange={group => setData({ ...data, group, category: '' })} /><Field label="权限分类" required options={permissionGroups[data.group] || []} value={data.category} onChange={category => setData({ ...data, category })} /><Field label="备注" multiline value={data.note} maxLength={100} onChange={note => setData({ ...data, note })} /><Actions items={[{ label: '取消', onClick: onCancel }, { label: '提交', onClick: () => data.group && data.category ? onSave(data) : notify('请选择所属权限和权限分类') }]} /></>;
+}
+
+const basicCompany = [
+  ['supplierName', '供应商名称', true], ['creditCode', '统一社会信用代码', true],
+  ['establishedAt', '成立日期', true, 'date'], ['licenseUntil', '证件有效期至', true, 'date'],
+  ['legalRepresentative', '法人代表', true], ['companyPhone', '公司电话'],
+  ['companyType', '企业类型', true, ['有限责任公司', '股份有限公司', '其他']],
+  ['industry', '所属行业', true, ['信息传输、计算机服务和软件业', '农林牧渔业', '制造业', '教育', '文化、体育、娱乐业', '其他']],
+  ['capital', '注册资金', true], ['currency', '注册币种', true, ['人民币', '美元', '港币']],
+  ['country', '国家', true, ['国内', '国外']], ['address', '注册地址', true, 'address'],
+  ['invoiceAddress', '接收发票地址'], ['website', '公司网址'], ['taxpayer', '纳税人资格', false, ['一般纳税人', '小规模纳税人']],
+  ['listed', '是否上市公司', false, ['是', '否']], ['branchOffice', '是否分支机构', false, ['是', '否']],
+  ['businessScope', '经营范围', true, 'textarea'], ['cooperation', '与搜狐合作事项', false, 'textarea'], ['remark', '备注', false, 'textarea'],
+];
+const personalFields = [
+  ['certificateType', '证件类型', true, ['身份证', '港澳通行证', '护照']], ['supplierName', '姓名', true],
+  ['gender', '性别', true, ['男', '女']], ['creditCode', '证件号码', true], ['establishedAt', '证件有效起始日期', true, 'date'], ['licenseUntil', '证件有效截止日期', true, 'date'],
+  ['country', '国家', true, ['国内', '国外']], ['address', '注册地址', true, 'address'], ['email', '邮箱', true, 'email'], ['mobile', '手机', true], ['qq', 'QQ'], ['wechat', '微信'], ['cooperation', '与搜狐合作事项', true, 'textarea'], ['remark', '备注', false, 'textarea'],
+];
+const governmentFields = [['supplierName', '供应商名称', true], ['country', '国家', true, ['国内', '国外']], ['address', '注册地址', true, 'address'], ['cooperation', '与搜狐合作事项', true, 'textarea'], ['remark', '备注', false, 'textarea']];
+const foreignFields = [['supplierName', '供应商名称', true], ['creditCode', '证件号码', true], ['establishedAt', '成立日期', true, 'date'], ['licenseUntil', '证件有效期至', true, 'date'], ['legalRepresentative', '法人代表', true], ['companyPhone', '公司电话'], ['capital', '注册资金', true], ['currency', '注册币种', true, ['人民币', '美元', '港币']], ['country', '国家', true, ['国内', '国外']], ['address', '注册地址', true], ['cooperation', '与搜狐合作事项', true, 'textarea'], ['remark', '备注', false, 'textarea']];
+export const fieldsFor = type => type === supplierTypes[1] ? personalFields : type === supplierTypes[2] ? governmentFields : type === supplierTypes[3] ? foreignFields : basicCompany;
+
+export const filledBasic = { type: supplierTypes[0], proof: '营业执照.jpg', supplierName: '北京初然文化传媒有限公司483920', creditCode: '73652184MACA1H2A43', establishedAt: '2023-03-07', licenseUntil: '2053-03-06', legalRepresentative: '王嵩涵', companyPhone: '010-52867111', companyType: '有限责任公司', industry: '文化、体育、娱乐业', capital: '100', currency: '人民币', country: '国内', address: '', invoiceAddress: '', website: '', taxpayer: '', listed: '', branchOffice: '', businessScope: '', cooperation: '', remark: '' };
+
+export function BasicFields({ data, setData, shot = false, onAddress, initialDate = false }) {
+  const [picker, setPicker] = useState(initialDate ? { key: 'licenseUntil', title: '证件有效期至' } : null);
+  const change = (key, value) => setData({ ...data, [key]: value });
+  return <>
+    <Field label="供应商类型" required options={supplierTypes} value={data.type} onChange={type => setData({ type, supplierName: data.supplierName || '', registerEmail: data.registerEmail || '' })} />
+    {[supplierTypes[0], supplierTypes[3]].includes(data.type) && <UploadField label={data.type === supplierTypes[0] ? '营业执照' : '证书'} required value={data.proof} onChange={v => change('proof', v)} help="上传证照附件。" />}
+    <div className="m-field-divider" />
+    {fieldsFor(data.type).flatMap(([key, label, required, kind]) => {
+      const field = <Field key={key} label={label} required={required} value={data[key] || ''} onChange={v => change(key, v)} options={Array.isArray(kind) ? kind : undefined} type={kind === 'email' ? 'email' : 'text'} multiline={kind === 'textarea'} maxLength={kind === 'textarea' ? 500 : undefined} onPick={kind === 'date' ? () => setPicker({ key, title: label }) : kind === 'address' ? onAddress : undefined} />;
+      return key === 'supplierName' && !shot ? [field, <Field key="registerEmail" label="供应商注册邮箱" required type="email" value={data.registerEmail || ''} help="用于供应商登录协同门户及修改密码时接收验证码" onChange={v => change('registerEmail', v)} />] : [field];
+    })}
+    {picker && <DateSheet title={picker.title} value={data[picker.key]} onChange={v => change(picker.key, v)} onClose={() => setPicker(null)} allowLong={picker.key === 'licenseUntil'} />}
+  </>;
+}
+
+export function ContactFields({ contacts, setContacts }) {
+  const update = (i, key, value) => setContacts(contacts.map((x, n) => n === i ? { ...x, [key]: value } : x));
+  return <Section title="联系人信息" className="m-contact-section">{contacts.map((c, i) => <div className="m-contact-form" key={c.id}><button className="m-delete-contact" aria-label={`删除联系人${i + 1}`} onClick={() => setContacts(contacts.filter((_, n) => n !== i))}><Trash2 /></button>{[['name', '姓名', true], ['phone', '电话', true], ['email', '邮箱', true], ['department', '部门'], ['job', '职位'], ['wechat', '微信'], ['note', '备注']].map(([key, label, required]) => <Field key={key} label={label} required={required} value={c[key] || ''} type={key === 'email' ? 'email' : 'text'} multiline={key === 'note'} maxLength={['department', 'job'].includes(key) ? 50 : key === 'note' ? 400 : undefined} onChange={v => update(i, key, v)} />)}</div>)}<button className="m-dashed-add" onClick={() => setContacts([...contacts, { id: crypto.randomUUID(), name: '', phone: '', email: '', department: '', job: '', wechat: '', note: '' }])}><Plus />添加</button></Section>;
+}
+
+export function AddressForm({ initial = '', startRegion = false, onConfirm, onCancel }) {
+  const split = initial.split(' ');
+  const [region, setRegion] = useState(split[0] || '');
+  const [detail, setDetail] = useState(split.slice(1).join(' ') || '');
+  const [open, setOpen] = useState(startRegion);
+  const [stage, setStage] = useState(0);
+  const [selected, setSelected] = useState(region.split('/'));
+  const regionData = { '云南省': { '保山市': ['龙陵县'] }, '北京市': { '北京市': ['朝阳区', '海淀区'] }, '天津市': { '天津市': ['和平区'] }, '河北省': { '石家庄市': ['长安区'] } };
+  const provinces = ['重庆', '四川省', '贵州省', '云南省', '西藏自治区', '陕西省', '甘肃省', '青海省', '宁夏回族自治区', '北京市', '天津市', '河北省'];
+  const options = stage === 0 ? provinces : stage === 1 ? Object.keys(regionData[selected[0]] || {}) : regionData[selected[0]]?.[selected[1]] || [];
+  return <><Field label="选择地址" required value={region} onPick={() => { setOpen(true); setStage(0); }} /><Field label="详细地址" required value={detail} maxLength={50} onChange={setDetail} /><Actions flat items={[{ label: '确定', disabled: !region || !detail.trim(), onClick: () => onConfirm(`${region} ${detail}`) }]} />
+    {open && <Overlay sheet label="省市区选择" onClose={() => setOpen(false)}><div className="m-region-head"><button aria-label="关闭地址选择" onClick={() => setOpen(false)}>关闭</button></div><div className="m-region-tabs">{[0, 1, 2].map(i => <button key={i} onClick={() => setStage(i)}>{selected[i] || ['省', '市', '区/县'][i]}</button>)}</div><div className="m-sheet-options">{options.length ? options.map(x => <button key={x} className={selected[stage] === x ? 'selected' : ''} onClick={() => { const next = [...selected.slice(0, stage), x]; setSelected(next); if (stage === 2) { setRegion(next.join('/')); setOpen(false); } else setStage(stage + 1); }}>{x}{selected[stage] === x && <Check />}</button>) : <Empty text="暂无相关数据" />}</div></Overlay>}
+  </>;
+}
+
+export function InviteForm({ initial, onSave, onCancel, notify }) {
+  const [data, setData] = useState({ type: '', name: '', contact: '', email: '', phone: '', ...initial });
+  const change = (key, value) => setData({ ...data, [key]: value });
+  return <><Section title="企业名称"><Field label="供应商类型" required options={supplierTypes} value={data.type} onChange={v => change('type', v)} /><div className="m-field-divider" /><p className="m-orange-copy">请选择正确的供应商类型，以免影响供应商准入、合同及付款业务</p><Field label="供应商名称" required value={data.name} onChange={v => change('name', v)} /><div className="m-field-divider" /><Field label="联系人姓名" required value={data.contact} onChange={v => change('contact', v)} /><Field label="邮箱" required type="email" value={data.email} onChange={v => change('email', v)} /><Field label="手机号" required value={data.phone} onChange={v => change('phone', v)} /><div className="m-orange-copy"><p>邀请须知：</p><p>1、邀请提交后，邀请注册地址将通过邮件发送至填写的联系人邮箱内</p><p>2、请通知供应商通过邮件内的邀请注册地址，登陆供应商协同门户注册账号</p><p>3、系统将引导供应商填写基本信息、证照、联系人、银行信息</p></div></Section><Actions items={[{ label: '取消', onClick: onCancel }, { label: '提交', onClick: () => { if (![data.type, data.name, data.contact, data.email, data.phone].every(x => x.trim())) return notify('请填写全部必填信息'); if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)) return notify('请输入正确的邮箱格式'); if (!/^1\d{10}$/.test(data.phone)) return notify('请输入11位手机号'); onSave(data); } }]} /></>;
+}

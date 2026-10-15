@@ -1,0 +1,64 @@
+import React, { useEffect, useRef, useState } from 'react';
+import { Check, ClipboardList, Edit3, Filter, List, MoreHorizontal, Plus, X } from 'lucide-react';
+import { Actions, Empty, Field, OptionSheet, Overlay, Row, SearchBox, Section } from './mobile-ui.jsx';
+import { BankCard } from './mobile-forms.jsx';
+import { cooperation, supplierStates, supplierTypes } from './mobile-data.js';
+
+export const mobileTabs = ['供应商查询', '我的邀请', '我的评分', '供应商评分', '供应商运维-评分查询', '银行信息申请'];
+export function Tabs({ active, onChange, items = mobileTabs }) {
+  const ref = useRef(null);
+  useEffect(() => { let cancelled = false; const align = () => { const nav = ref.current; const node = nav?.querySelector('[aria-current="page"]'); if (!cancelled && node) nav.scrollLeft = active === items.length - 1 ? nav.scrollWidth - nav.clientWidth : Math.max(0, node.getBoundingClientRect().left - nav.getBoundingClientRect().left + nav.scrollLeft - (nav.clientWidth - node.clientWidth) / 2); }; align(); document.fonts.ready.then(align); return () => { cancelled = true; }; }, [active, items.length]);
+  return <nav ref={ref} className="m-tabs" aria-label="功能模块">{items.map((label, i) => <button className={active === i ? 'active' : ''} aria-current={active === i ? 'page' : undefined} key={label} onClick={() => onChange(i)}>{label}</button>)}</nav>;
+}
+
+export function SupplierList({ suppliers, mine = false, batch = false, checked, setChecked, onDetail, onBank, onMore, onInviter, onReinvite, onEdit, onDelete, admin = false }) {
+  return <div className="m-supplier-list">{suppliers.length ? suppliers.map(s => <article className="m-supplier-card" key={s.id}>
+    <h3>{batch && <label className="m-checkbox"><input type="checkbox" aria-label={`选择${s.name}`} checked={checked.includes(s.id)} onChange={e => setChecked(e.target.checked ? [...checked, s.id] : checked.filter(x => x !== s.id))} /><span>{checked.includes(s.id) && <Check />}</span></label>}<i className="m-blue-mark" />{s.name}</h3>
+    <dl>{(mine ? [['证件号码', s.code], ['供应商类型', s.type], ['联系人姓名', s.contact], ['联系人邮箱', s.email], ['联系人电话', s.phone], ['审批状态', s.status], ['邀请时间', s.date], ['更新时间', s.updated]] : [['供应商类型', s.type], ['审批状态', s.status], ['注册方式', s.mode], ['邀请人', s.inviter], ['邀请时间', s.date], ['更新时间', s.updated], ['评分', s.score]]).map(([label, value]) => <div key={label}><dt>{label}：</dt><dd>{value}</dd></div>)}</dl>
+    {!batch && <div className="m-supplier-buttons"><button onClick={() => onDetail(s)}><ClipboardList className="blue-icon" />详情</button>{s.status === '已审批' ? mine ? <button onClick={() => onInviter(s)}><Edit3 className="green-icon" />变更邀请人</button> : <><button onClick={() => onBank(s)}><Edit3 className="green-icon" />修改银行</button><button onClick={() => onMore(s)}>更多</button></> : <>
+      {mine && ['草稿', '邀请中'].includes(s.status) && <button onClick={() => onReinvite(s)}>重新邀请</button>}
+      {s.status === '草稿' && <button onClick={() => onEdit(s)}>修改</button>}
+      {s.status === '草稿' && (mine || admin) && <button onClick={() => onDelete(s)}>删除</button>}
+      {!['草稿', '邀请中', '注册中', '注册驳回'].includes(s.status) && <button onClick={() => onMore(s, true)}><ClipboardList className="blue-icon" />审批记录</button>}
+    </>}</div>}
+  </article>) : <Empty />}</div>;
+}
+
+export function FilterView({ rating = false, initial = {}, onApply, onCancel, initialDepartment = false }) {
+  const [data, setData] = useState(initial);
+  const [department, setDepartment] = useState(initialDepartment);
+  const update = (key, value) => setData({ ...data, [key]: value });
+  const fields = rating ? [['cooperationType', '合作类型', ['技术服务']], ['person', '业务线联系人'], ['department', '所属部门', 'department'], ['start', '评分开始时间', 'date'], ['end', '评分结束时间', 'date']] : [['type', '供应商类型', supplierTypes], ['status', '供应商状态', supplierStates], ['start', '邀请时间（起）', 'date'], ['end', '邀请时间（止）', 'date'], ['recommended', '供应商推荐', ['是', '否']], ['inviter', '邀请人']];
+  return <div className="m-filter-view">{fields.map(([key, label, kind]) => <Field key={key} label={label} value={data[key] || ''} type={kind === 'date' ? 'date' : 'text'} options={Array.isArray(kind) ? kind : undefined} onChange={v => update(key, v)} onPick={kind === 'department' ? () => setDepartment(true) : undefined} />)}<Actions flat items={[{ label: '取消', muted: true, onClick: onCancel }, { label: '重置', muted: true, onClick: () => setData({}) }, { label: '确定', onClick: () => onApply(data) }]} />{department && <OptionSheet title="所属部门" value={data.department} options={[]} onChange={v => update('department', v)} onClose={() => setDepartment(false)} />}</div>;
+}
+
+export function Approval({ supplier, populated = true, history = false, showSupplier = true, number = 'SUP202610140004' }) {
+  return <div className="m-approval">{showSupplier && <Row label="供应商名称">{supplier.name}</Row>}<Section title="当前审批进度"><Row label="审批类型">{populated ? '注册' : ''}</Row><div className="m-field-divider" /><Row label="审批单号">{populated ? number : ''}</Row><div className="m-table-scroll"><table><colgroup>{[65, 87, 87, 87, 100, 100, 100].map((width, i) => <col key={i} style={{ width }} />)}</colgroup><thead><tr>{['序号', '审批人', '代理人', '审批节点', '审批时间', '审批意见', '审批状态'].map(x => <th key={x}>{x}</th>)}</tr></thead><tbody>{populated ? [['陈才慧(208660)', '开始'], ['陈才慧(208660)', '业务审批'], ['史小曼(110933)', '部门领导审批'], ['许丽(111505)', '财务审批']].map(([person, node], i) => <tr key={node}><td>{i + 1}</td><td>{person}</td><td /><td>{node}</td><td>2026-10-14</td><td /><td>{i === 3 ? '待审批' : '已审批'}</td></tr>) : <tr><td colSpan={7}>暂无数据</td></tr>}</tbody></table></div></Section><Section title="审批历史">{history ? ['审批单号', '审批类型', '审批状态', '发起时间', '发起人'].map(x => <Row key={x} label={x} />) : <Empty text="无数据" />}</Section></div>;
+}
+
+export function SupplierDetail({ supplier, initialTab = 0, approvalEmpty = false, onPreview }) {
+  const [tab, setTab] = useState(initialTab);
+  const basic = [['供应商名称', supplier.name], ['供应商类型', supplier.type], ['供应商编码', supplier.id], ['证件类型', supplier.type === supplierTypes[1] ? '身份证' : '三证合一'], ['证件号码', supplier.type === supplierTypes[1] ? '12******34' : supplier.code], ...(supplier.type === supplierTypes[1] ? [['姓名', supplier.name], ['性别', '男']] : [['邀请人', supplier.inviter], ['邀请时间', supplier.date], ['注册方式', supplier.mode], ['曾用名', ''], ['注册邮箱', supplier.email]])];
+  return <div className="m-detail"><Section title="供应商信息">{basic.map(([label, value]) => <Row key={label} label={label}>{value}</Row>)}</Section><Tabs items={['基本信息', '联系人信息', '银行信息', '分配权限', '财务OU', '黑名单操作记录', '审批记录', '合作信息及评分']} active={tab} onChange={setTab} />
+    {tab === 0 && <Section>{basic.map(([label, value]) => <Row key={label} label={label}>{value}</Row>)}</Section>}
+    {tab === 1 && <Section>{supplier.contact ? <><Row label="姓名">{supplier.contact}</Row><Row label="电话">{supplier.phone}</Row><Row label="邮箱">{supplier.email}</Row></> : <Empty text="无数据" />}</Section>}
+    {tab === 2 && <Section>{supplier.banks.length ? supplier.banks.map(b => <div key={b.id}>{[['账户类型', b.accountType], ['开户银行', b.bank], ['银行分行', b.branch], ['账户名称', b.name], ['银行账户', b.number], ['开户行所在国家（地区）', b.country], ['所在省', b.province], ['所在市', b.city], ['币种', b.currency], ['备注', b.note]].map(([label, value]) => <Row key={label} label={label}>{value}</Row>)}</div>) : <Empty text="无数据" />}</Section>}
+    {tab === 3 && <Section>{supplier.permissions.length ? supplier.permissions.map(p => <div key={p.id}><Row label="所属权限">{p.group}</Row><Row label="权限分类">{p.category}</Row><Row label="备注">{p.note}</Row></div>) : <Empty text="无数据" />}</Section>}
+    {[4, 5].includes(tab) && <Section><Empty text="无数据" /></Section>}
+    {tab === 6 && <Approval supplier={supplier} populated={!approvalEmpty} showSupplier={false} />}
+    {tab === 7 && <RatingList entries={cooperation.filter(x => x.name === supplier.name)} />}
+  </div>;
+}
+
+export function RatingList({ entries = cooperation }) {
+  return <div className="m-rating-list">{entries.length ? entries.map(x => <article className="m-bank-card" key={x.id}><h3>{x.id}</h3><div className="m-card-body">{[['供应商名称', x.name], ['合作类型', x.type], ['合作内容', x.content], ['业务线联系人', x.person], ['所属部门', x.department], ['合作时间', x.date], ['评分时间', x.rated], ['评分', x.score]].map(([label, value]) => <Row compact key={label} label={label}>{value}</Row>)}</div></article>) : <Empty />}</div>;
+}
+
+export function PermissionCard({ data, onEdit, onDelete }) {
+  const [menu, setMenu] = useState(false);
+  return <article className="m-bank-card"><div className="m-card-body"><Row compact label="所属权限">{data.group}</Row><Row compact label="权限分类">{data.category}</Row><Row compact label="备注">{data.note}</Row><Row compact label="状态">{data.change && <span className="m-change">{data.change}</span>}</Row><div className="m-card-menu"><button aria-label="权限操作" onClick={() => setMenu(!menu)}><MoreHorizontal /></button>{menu && <div><button onClick={onEdit}>修改</button>{onDelete && <button onClick={onDelete}>删除</button>}</div>}</div></div></article>;
+}
+
+export function BankApplication({ onApply }) {
+  return <div className="m-bank-application"><h2>申请须知</h2><p>若邀请注册供应商反馈添加银行信息时，未查询到目标开户银行或分行，可通过本功能补充未收录银行。</p><button onClick={onApply}>确认申请</button></div>;
+}

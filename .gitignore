@@ -21,3 +21,6 @@ dist/
 .impeccable/live/deferred-svelte-component-accepts.json
 .impeccable/live/*.png
 # impeccable-ignore-end
+
+# 浏览器验证的临时截图和结果不作为产品资源提交。
+test-output/

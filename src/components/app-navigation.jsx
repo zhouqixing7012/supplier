@@ -19,6 +19,7 @@ function AppNavigation({ activeKey = 'portal' }) {
         </a>
 
         <nav className="system-nav-links" aria-label="供应商系统页面导航">
+          <a className="system-nav-link" href="#/mobile">移动端</a>
           <a
             className={`system-nav-link ${activeKey === 'portal' ? 'is-active' : ''}`}
             href="#/login"
@@ -42,3 +43,4 @@ function AppNavigation({ activeKey = 'portal' }) {
 }
 
 export { AppNavigation };
+

@@ -2,6 +2,8 @@
 
 React + Vite 的可点击原型，当前包含协同门户登录安全升级和供应商代注册基础信息页面。
 
+移动端现状复刻已增加独立入口 `#/mobile`，截图目录为 `#/mobile/scenes`，覆盖提供的 47 张截图。逐张入口见 [截图覆盖表](docs/mobile-screenshot-coverage.md)，规则与范围见 [移动端原型 PRD](docs/mobile-prd.md)，演示限制见 [工程说明](docs/mobile-prototype.md)。
+
 ## 页面导航
 
 协同门户和四类代注册页面共用顶部“供应商系统”导航，可在页面内直接切换：
@@ -55,6 +57,15 @@ npm run dev
 npm run build
 ```
 
+移动端浏览器验证：
+
+```bash
+npx playwright install chromium
+npm run test:mobile
+```
+
+验证运行生产构建，请先执行 `npm run build`。测试会自动启动本地服务，结果和截图输出至 `test-output/mobile`，该目录不提交。
+
 ## 已完成
 
 - [x] 协同门户登录、安全验证和修改密码原型
@@ -74,3 +85,4 @@ npm run build
 - [ ] 对接真实登录、邮箱验证码和账号状态接口
 - [ ] 对接代注册表单真实数据、OCR、地址、下一步流程
 - [ ] 实现审批通过后将新增字段赋值给供应商正式注册邮箱
+

@@ -3,6 +3,14 @@
 ## 文件职责
 
 - `src/entry.jsx`：前端总入口，根据 Hash 判断加载协同门户模块或代注册模块；跨模块切换时通过 Hash 触发模块重载。
+- `src/mobile-entry.jsx`：移动端独立入口，避免电脑端 CSS 污染移动端样式。
+- `src/pages/mobile-supplier.jsx`：移动端页面状态、会话演示数据、暂存与提交路径。
+- `src/pages/mobile-data.js`：截图样本、演示参考目录和 47 张截图的独立路由映射。
+- `src/pages/mobile-ui.jsx`：移动端字段、上传、弹层、选择器、固定操作栏和空状态。
+- `src/pages/mobile-forms.jsx`：银行、联系人、地址、权限、邀请及注册字段。
+- `src/pages/mobile-views.jsx`：列表、筛选、详情、审批记录、评分与银行信息申请。
+- `src/pages/mobile-supplier.css`：隔离的移动端复刻视觉，手机布局与截图状态。
+- `tests/mobile.smoke.mjs`：生产构建服务及浏览器流程验证，不调用业务接口。
 - `src/main.jsx`：协同门户登录、邮箱验证、60 天改密、主动修改密码页面。
 - `src/register-entry.jsx`：代注册模块入口，读取四类供应商注册 Hash 路由并维护当前供应商类型，同时加载 Ant Design reset 样式。
 - `src/components/app-navigation.jsx`：协同门户和四类代注册页面共用的顶部系统导航。
@@ -19,11 +27,18 @@
 
 ## 调用关系
 
+移动端：`index.html` → `src/entry.jsx` → `src/mobile-entry.jsx` → `MobileSupplier` → 移动端字段、表单、视图及演示数据。
+
+总入口通过独立的加载函数分别动态导入三个模块，确保 Vite 预加载各自的 CSS。不得把三条入口导入合并为同一动态条件表达式。
+
 协同门户：`index.html` → `src/entry.jsx` → `src/main.jsx` → `AppNavigation + src/components/ui/*`
 
 代注册：`index.html` → `src/entry.jsx` → `src/register-entry.jsx` → `AppNavigation + src/pages/supplier-register.jsx` → Ant Design
 
 ## 导航规则
+
+- `#/mobile` 和其下的页面、截图目录及单张状态属于移动端模块；逐张映射见 `docs/mobile-screenshot-coverage.md`。
+- 移动端与电脑端之间切换会重载；移动端内部通过 Hash 更新并保留本次会话的演示记录。
 
 - `#/login`、`#/email`、`#/upgrade`、`#/forgot` 属于协同门户模块。
 - `#/register/company`、`#/register/personal`、`#/register/government`、`#/register/foreign` 属于代注册模块。
@@ -48,3 +63,4 @@
 - 登录操作区不再使用玻璃拟态卡片、重阴影或装饰性网格背景。
 - 主操作使用搜狐橙色，蓝色用于系统导航和输入 Focus 等状态。
 - 1100px 以下改为上下结构，移动端进一步压缩品牌区高度，表单保持完整可操作。
+
