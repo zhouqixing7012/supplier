@@ -2,7 +2,7 @@
 
 React + Vite 的可点击原型，当前包含协同门户登录安全升级和供应商代注册基础信息页面。
 
-移动端现状复刻已增加独立入口 `#/mobile`，截图目录为 `#/mobile/scenes`，覆盖提供的 47 张截图。逐张入口见 [截图覆盖表](docs/mobile-screenshot-coverage.md)，规则与范围见 [移动端原型 PRD](docs/mobile-prd.md)，演示限制见 [工程说明](docs/mobile-prototype.md)。
+移动端原型入口为 `#/mobile`，原页面状态目录为 `#/mobile/scenes`，覆盖提供的 47 张截图。逐张入口见 [截图覆盖表](docs/mobile-screenshot-coverage.md)，规则与范围见 [移动端原型 PRD](docs/mobile-prd.md)，演示限制见 [工程说明](docs/mobile-prototype.md)。
 
 ## 页面导航
 
@@ -86,3 +86,7 @@ npm run test:mobile
 - [ ] 对接代注册表单真实数据、OCR、地址、下一步流程
 - [ ] 实现审批通过后将新增字段赋值给供应商正式注册邮箱
 
+
+## 移动端适配修复
+
+当前原型直接承载修复后的页面，需求与待确认项见 [移动端适配修复 PRD](docs/mobile-prd.md)。评分填写、查看、修改，已有银行和权限维护、草稿恢复、信息变更及银行申请均在移动端菜单中操作。当前交互使用明确标识的演示数据，业务服务限制见工程说明。

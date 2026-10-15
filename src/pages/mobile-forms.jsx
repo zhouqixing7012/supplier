@@ -14,21 +14,19 @@ export function bankError(bank, company = true) {
 export function BankFields({ bank, setBank, company = true, proofRequired = company }) {
   const [picker, setPicker] = useState(null);
   const change = (key, value) => setBank({ ...bank, [key]: value });
-  return <>
+  return <div className="m-bank-fields"><Section title="开户银行信息">
     {company && <Field label="账户类型" required options={['基本账户', '一般账户']} value={bank.accountType} onChange={v => change('accountType', v)} />}
     <Field label="开户银行" required value={bank.bank} help="开户银行来自银行基础数据，未查询到时请联系业务对接人。" onPick={() => setPicker('bank')} />
     <Field label="银行分行" required value={bank.branch} help="选择开户银行后选择对应分行。" onPick={() => setPicker('branch')} />
     <Field label="开户行所在国家/地区" value={bank.country} readOnly />
-    <div className="m-field-divider" />
     <Field label="开户所在省" value={bank.province} readOnly /><Field label="开户所在市" value={bank.city} readOnly />
-    <Field label="账户名称" required value={bank.name} onChange={v => change('name', v)} maxLength={100} />
+    </Section><Section title="账户信息"><Field label="账户名称" required value={bank.name} onChange={v => change('name', v)} maxLength={100} />
     <Field label="银行账号" required value={bank.number} onChange={v => change('number', v)} maxLength={50} />
     <Field label="币种" required options={['人民币', '美元', '港币']} value={bank.currency} onChange={v => change('currency', v)} />
-    <div className="m-field-divider" />
-    <UploadField label="开户证明" required={proofRequired} value={bank.proof} onChange={v => change('proof', v)} help="上传银行开户证明；个人供应商可不上传银行卡照片。" />
+    </Section><Section title="证明及备注"><UploadField label="开户证明" required={proofRequired} value={bank.proof} onChange={v => change('proof', v)} help="上传银行开户证明；个人供应商可不上传银行卡照片。" />
     <Field label="备注" multiline value={bank.note} onChange={v => change('note', v)} maxLength={400} />
-    {picker && <Overlay label={picker === 'bank' ? '开户银行' : '银行分行'} onClose={() => setPicker(null)} sheet><div className="m-picker-title"><button onClick={() => setPicker(null)}>取消</button><strong>{picker === 'bank' ? '开户银行' : '银行分行'}</strong></div><ReferenceList kind={picker} selected={picker === 'bank' ? bank.bank : bank.branch} bank={bank.bank} onCancel={() => setPicker(null)} onConfirm={v => { if (picker === 'bank') setBank({ ...bank, bank: v, branch: '', country: '', province: '', city: '' }); else { const branch = branches.find(x => x.name === v); setBank({ ...bank, branch: v, country: branch?.country || '', province: branch?.province || '', city: branch?.city || '' }); } setPicker(null); }} /></Overlay>}
-  </>;
+    </Section>{picker && <Overlay label={picker === 'bank' ? '开户银行' : '银行分行'} onClose={() => setPicker(null)} sheet><div className="m-picker-title"><button onClick={() => setPicker(null)}>取消</button><strong>{picker === 'bank' ? '开户银行' : '银行分行'}</strong></div><ReferenceList kind={picker} selected={picker === 'bank' ? bank.bank : bank.branch} bank={bank.bank} onCancel={() => setPicker(null)} onConfirm={v => { if (picker === 'bank') setBank({ ...bank, bank: v, branch: '', country: '', province: '', city: '' }); else { const branch = branches.find(x => x.name === v); setBank({ ...bank, branch: v, country: branch?.country || '', province: branch?.province || '', city: branch?.city || '' }); } setPicker(null); }} /></Overlay>}
+  </div>;
 }
 
 export function ReferenceList({ kind, selected = '', bank = bankNames[0], onCancel, onConfirm, initialSearch = '' }) {
@@ -40,10 +38,9 @@ export function ReferenceList({ kind, selected = '', bank = bankNames[0], onCanc
 }
 
 export function BankCard({ bank, onEdit, onDelete, onPreview }) {
-  const [menu, setMenu] = useState(false);
   return <article className="m-bank-card"><h3>{bank.id || bank.number || '银行信息'}</h3><div className="m-card-body">
     {bank.accountType && <Row label="账户类型" compact>{bank.accountType}</Row>}<Row label="开户银行" compact>{bank.bank}</Row><Row label="银行分行" compact>{bank.branch}</Row><Row label="开户行所在国家/地区" compact>{bank.country}</Row><Row label="开户所在省" compact>{bank.province}</Row><Row label="开户所在市" compact>{bank.city}</Row><Row label="账户名称" compact>{bank.name}</Row><Row label="银行账号" compact>{bank.number}</Row><Row label="币种" compact>{bank.currency}</Row><Row label="开户证明" compact>{bank.proof && <button className="m-proof-thumb" onClick={onPreview}>{bank.proof === '开户证明.png' ? <span className="m-proof-plate"><img src="/mobile-assets/bank-proof-source.jpg" alt="开户证明" /></span> : bank.proof}</button>}</Row><Row label="备注" compact>{bank.note}</Row><Row label="状态" compact>{bank.change && <span className={`m-change m-change-${bank.change}`}>{bank.change}</span>}</Row>
-    {onEdit && <div className="m-card-menu"><button aria-label="银行信息操作" onClick={() => setMenu(!menu)}><MoreHorizontal /></button>{menu && <div><button onClick={() => { onEdit(); setMenu(false); }}>修改</button>{onDelete && <button onClick={onDelete}>删除</button>}</div>}</div>}
+    {(onEdit || onDelete) && <div className="m-record-actions">{onEdit && <button onClick={onEdit}>修改</button>}{onDelete && <button onClick={onDelete}>删除</button>}</div>}
   </div></article>;
 }
 

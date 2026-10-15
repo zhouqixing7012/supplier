@@ -15,13 +15,15 @@ export function Row({ label, children, required = false, compact = false }) {
 
 export function Field({ label, value = '', onChange, required = false, options, onPick, type = 'text', placeholder, maxLength, help, readOnly = false, multiline = false }) {
   const id = useId();
-  return <div className={`m-field ${multiline ? 'm-field-block' : ''}`}>
+  const [choosing, setChoosing] = useState(false);
+  const [dateOpen, setDateOpen] = useState(false);
+  return <><div className={`m-field ${multiline ? 'm-field-block' : ''}`}>
     <label htmlFor={id}>{required && <em>*</em>}{label}{help && <span className="m-help" title={help} tabIndex={0} aria-label={help}><HelpCircle /></span>}</label>
     <div className="m-field-control">
-      {onPick ? <button id={id} aria-label={label} type="button" className="m-select-field" onClick={onPick}><span className={!value ? 'm-placeholder' : ''}>{value || placeholder || `请选择${label}`}</span><ChevronRight /></button> : options ? <div className="m-native-select"><select id={id} aria-label={label} value={value} onChange={e => onChange(e.target.value)} required={required}><option value="">{placeholder || `请选择${label}`}</option>{options.map(x => <option key={x} value={x}>{x}</option>)}</select><ChevronRight /></div> : multiline ? <textarea id={id} aria-label={label} value={value} onChange={e => onChange(e.target.value)} maxLength={maxLength} placeholder={placeholder || `请输入${label}`} required={required} readOnly={readOnly} /> : <input id={id} aria-label={label} value={value} onChange={e => onChange?.(e.target.value)} type={type} maxLength={maxLength} placeholder={readOnly ? '' : placeholder || `请输入${label}`} required={required} readOnly={readOnly} />}
+      {onPick ? <button id={id} aria-label={label} type="button" className="m-select-field" onClick={onPick}><span className={!value ? 'm-placeholder' : ''}>{value || placeholder || `请选择${label}`}</span><ChevronRight /></button> : options ? <button id={id} role="combobox" aria-label={label} aria-expanded={choosing} aria-haspopup="dialog" type="button" className="m-select-field" onClick={() => setChoosing(true)}><span className={!value ? 'm-placeholder' : ''}>{value || placeholder || `请选择${label}`}</span><ChevronRight /></button> : type === 'date' ? <button id={id} aria-label={label} className="m-select-field" type="button" onClick={() => setDateOpen(true)}><span className={!value ? 'm-placeholder' : ''}>{value || '请选择日期'}</span><ChevronDown /></button> : multiline ? <textarea id={id} aria-label={label} value={value} onChange={e => onChange(e.target.value)} maxLength={maxLength} placeholder={placeholder || `请输入${label}`} required={required} readOnly={readOnly} /> : <input id={id} aria-label={label} value={value} onChange={e => onChange?.(e.target.value)} type={type} maxLength={maxLength} placeholder={readOnly ? '' : placeholder || `请输入${label}`} required={required} readOnly={readOnly} />}
       {maxLength && !options && !onPick && <small className="m-counter">{value.length}/{maxLength}</small>}
     </div>
-  </div>;
+  </div>{choosing && <OptionSheet title={label} options={options} value={value} onChange={onChange} onClose={() => setChoosing(false)} />}{dateOpen && <DateSheet title={label} value={value} onChange={onChange} onClose={() => setDateOpen(false)} />}</>;
 }
 
 export function UploadField({ label, required, value, onChange, help }) {
@@ -83,7 +85,9 @@ export function DateSheet({ title, value, onChange, onClose, allowLong = false }
 
 export function OptionSheet({ title, options = [], value, onChange, onClose }) {
   const [selected, setSelected] = useState(value || '');
-  return <Overlay label={title} onClose={onClose} sheet><div className="m-picker-title"><button onClick={() => setSelected('')}>清空</button><strong>{title}</strong><button onClick={() => { onChange(selected); onClose(); }}>确认</button></div><div className="m-sheet-options">{options.length ? options.map(x => <button className={x === selected ? 'selected' : ''} key={x} onClick={() => setSelected(x)}>{x}{x === selected && <Check />}</button>) : <Empty />}</div></Overlay>;
+  const [query, setQuery] = useState('');
+  const matches = options.filter(x => x.includes(query.trim()));
+  return <Overlay label={title} onClose={onClose} sheet><div className="m-picker-title"><button onClick={onClose}>取消</button><strong>{title}</strong><button onClick={() => { onChange(selected); onClose(); }}>确认</button></div><SearchBox value={query} onChange={setQuery} placeholder={'搜索' + title} /><div className="m-sheet-options">{matches.length ? matches.map(x => <button aria-pressed={x === selected} className={x === selected ? 'selected' : ''} key={x} onClick={() => setSelected(x)}>{x}{x === selected && <Check />}</button>) : <Empty />}</div><button className="m-picker-clear" onClick={() => setSelected('')}>清空选择</button></Overlay>;
 }
 
 export function Header({ onBack, title = '供应商管理平台', close }) {

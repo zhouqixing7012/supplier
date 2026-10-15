@@ -346,3 +346,44 @@ body { font-family: "Microsoft YaHei", "Supplier Noto SC", "PingFang SC", Arial,
 .m-shot .m-approval .m-empty { padding-top: 8px; padding-bottom: 8px; }
 .m-shot .m-vconsole-approval { left: auto; right: max(0px, calc((100vw - 430px) / 2)); bottom: 42px; }
 .m-shot .m-approval .m-empty { padding-top: 0; }
+
+/* 本轮适配修复直接用于当前原型，不新增对照入口。 */
+.m-list-page { background: #fff; }
+.m-supplier-card { background: #fff; }
+.m-select-field { min-height: 44px; height: auto; padding: 10px 0 !important; align-items: center; }
+.m-select-field > span { white-space: normal; overflow: visible; text-overflow: clip; overflow-wrap: anywhere; flex: 1; min-width: 0; text-align: left; }
+.m-select-field > svg { flex-shrink: 0; }
+.m-reference-card h3 { overflow-wrap: anywhere; white-space: normal; }
+.m-picker-title { gap: 12px; flex-wrap: wrap; min-height: 56px; }
+.m-picker-title > div { display: flex; gap: 20px; }
+.m-picker-title button { min-width: 44px; min-height: 44px; padding: 8px !important; }
+.m-picker-clear { width: 100%; padding: 14px !important; color: var(--m-blue); border-top: 1px solid #e1e2e7 !important; }
+.m-sheet-options { max-height: 48dvh; overflow-y: auto; }
+.m-record-actions { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 12px; padding: 12px 0 0; }
+.m-record-actions > button, .m-filter-link { color: #2476c4; border: 1px solid #2476c4 !important; border-radius: 4px; min-height: 40px; padding: 7px 12px !important; }
+.m-field-error { color: #c12f2f; margin: 4px 8px 12px; font-size: 14px; }
+.m-form-heading { font-size: 18px; font-weight: 600; padding: 14px 12px; margin: 0; }
+.m-bank-fields .m-section { padding-bottom: 6px; }
+.m-status-tabs { display: flex; gap: 24px; padding: 10px 18px; border-bottom: 1px solid #e1e2e7; }
+.m-status-tabs button { min-height: 40px; }
+.m-status-tabs button.active { color: #2476c4; border-bottom: 2px solid #2476c4; }
+.m-rating-dimensions { padding: 8px; }
+.m-rating-dimension { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 12px 0; border-bottom: 1px solid #eee; }
+.m-rating-dimension > label { flex: 1 1 100%; color: #565d6e; }
+.m-rating-dimension em { color: #c12f2f; padding-right: 4px; }
+.m-star-control { display: flex; align-items: center; gap: 8px; }
+.m-star-control > span:first-child { display: flex; gap: 5px; }
+.m-star-control svg { width: 23px; height: 23px; color: #a6afbc; }
+.m-star-control svg.filled { color: #d98b00; fill: #d98b00; }
+.m-star-control input { width: 75px; min-height: 44px; border: 1px solid #a6afbc !important; padding: 8px !important; border-radius: 4px; }
+.m-form-result { padding: 18px 8px; color: #2476c4; }
+.m-inline-bank { position: relative; }
+.m-shot .m-bank-fields .m-field { min-height: 55px; }
+.m-star-control { flex-wrap: wrap; }
+.m-star-control > span:first-child button { min-width: 32px; min-height: 44px; display: flex; align-items: center; justify-content: center; }
+.m-fullscreen-panel { left: max(0px, calc((100vw - 430px) / 2)); transform: none; scroll-padding-bottom: 100px; }
+.m-field { scroll-margin-block: 90px; }
+.m-star-slot { position: relative; display: block; width: 23px; height: 23px; }
+.m-half-star { position: absolute; inset: 0; width: 50%; overflow: hidden; }
+.m-label, .m-field > label { color: #565d6e; }
+.m-placeholder, .m-field input::placeholder, .m-field textarea::placeholder { color: #747a84 !important; }
