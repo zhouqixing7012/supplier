@@ -64,7 +64,7 @@ npx playwright install chromium
 npm run test:mobile
 ```
 
-验证运行生产构建，请先执行 `npm run build`。测试会自动启动本地服务，结果和截图输出至 `test-output/mobile`，该目录不提交。
+验证运行生产构建，请先执行 `npm run build`。当前脚本为 `tests/mobile.interaction.mjs`；历史 `mobile.smoke.mjs` 保留用于追溯。测试会自动启动本地服务，结果和截图输出至 `test-output/mobile-interaction`，该目录不提交。
 
 ## 已完成
 

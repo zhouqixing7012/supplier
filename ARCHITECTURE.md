@@ -6,11 +6,13 @@
 - `src/mobile-entry.jsx`：移动端独立入口，避免电脑端 CSS 污染移动端样式。
 - `src/pages/mobile-supplier.jsx`：移动端页面状态、会话演示数据、暂存与提交路径。
 - `src/pages/mobile-data.js`：截图样本、演示参考目录和 47 张截图的独立路由映射。
+- `src/pages/mobile-interaction.jsx`：移动交互上下文、未保存保护、系统返回层级、滑动识别、焦点隔离和会话附件预览。
 - `src/pages/mobile-ui.jsx`：移动端字段、上传、弹层、选择器、固定操作栏和空状态。
 - `src/pages/mobile-forms.jsx`：银行、联系人、地址、权限、邀请及注册字段。
 - `src/pages/mobile-views.jsx`：列表、筛选、详情、审批记录、评分与银行信息申请。
 - `src/pages/mobile-supplier.css`：隔离的移动端复刻视觉，手机布局与截图状态。
-- `tests/mobile.smoke.mjs`：生产构建服务及浏览器流程验证，不调用业务接口。
+- `tests/mobile.interaction.mjs`：当前移动工作流的生产构建服务、手势/返回/填写流程及布局验证，不调用业务接口。
+- `tests/mobile.smoke.mjs`：2026-10-15版本的历史验证脚本，保留用于追溯；其旧界面定位不作为新版验收依据。
 - `src/main.jsx`：协同门户登录、邮箱验证、60 天改密、主动修改密码页面。
 - `src/register-entry.jsx`：代注册模块入口，读取四类供应商注册 Hash 路由并维护当前供应商类型，同时加载 Ant Design reset 样式。
 - `src/components/app-navigation.jsx`：协同门户和四类代注册页面共用的顶部系统导航。
@@ -68,3 +70,5 @@
 ## 移动端适配工作流
 
 `mobile-supplier.jsx` 维护移动端会话、供应商、评分及路由状态。`mobile-workflows.jsx` 负责评分工作台、评分表单、运维列表和银行申请表单；复用 `mobile-ui.jsx` 的字段、日期、统一搜索选择弹层和操作栏。`mobile-forms.jsx` 负责银行及注册字段。正式信息与待审批信息分别保存，更新草稿使用原记录ID。
+
+移动端使用带顺序标识的History记录处理前进/返回；内部导航保持会话状态，系统返回先关闭当前层或触发未保存保护。`InteractionProvider`集中维护表单快照与返回层级；`SwipeArea`只识别允许区域的横向手势。附件以独立ID关联本次会话的Object URL，退出模块后释放；不存真实服务器附件。
