@@ -19,15 +19,15 @@ export function SupplierList({ suppliers, mine = false, batch = false, checked, 
 function SupplierSummary({ s, mine, batch, checked, setChecked, onDetail, onBank, onMore, onInviter, onReinvite, onEdit, onEditAll, onDelete, admin }) {
   const [menu, setMenu] = useState(false);
   const selectable = mine || s.status === '草稿';
-  const fields = mine ? [['证件号码', s.code], ['供应商类型', s.type], ['联系人姓名', s.contact], ['联系人邮箱', s.email], ['联系人电话', s.phone], ['更新时间', s.updated]] : [['供应商类型', s.type], ['注册方式', s.mode], ['更新时间', s.updated], ['评分', s.score]];
+  const fields = mine ? [['证件号码', s.code], ['联系人姓名', s.contact], ['联系人邮箱', s.email], ['联系人电话', s.phone], ['更新时间', s.updated]] : [['注册方式', s.mode], ['更新时间', s.updated]];
   return <article className="m-supplier-card">
-    <h3>{batch && <label className="m-checkbox"><input type="checkbox" disabled={!selectable} aria-label={`选择${s.name}`} checked={checked.includes(s.id)} onChange={e => setChecked(e.target.checked ? [...checked, s.id] : checked.filter(x => x !== s.id))} /><span>{checked.includes(s.id) && <Check />}</span></label>}{s.name}</h3>
-    <dl>{[['审批状态', s.status], ['邀请人', s.inviter], ['邀请时间', s.date]].map(([label, value]) => <div key={label}><dt>{label}：</dt><dd>{value || '—'}</dd></div>)}</dl>
+    <h3>{batch && <label className="m-checkbox"><input type="checkbox" disabled={!selectable} aria-label={`选择${s.name}`} checked={checked.includes(s.id)} onChange={e => setChecked(e.target.checked ? [...checked, s.id] : checked.filter(x => x !== s.id))} /><span>{checked.includes(s.id) && <Check />}</span></label>}<i className="m-blue-mark" aria-hidden="true" />{s.name}</h3>
+    <dl>{[['供应商类型', s.type], ['审批状态', s.status], ['邀请人', s.inviter], ['邀请时间', s.date], ...(!mine ? [['评分', s.score]] : [])].map(([label, value]) => <div key={label}><dt>{label}：</dt><dd>{value || '—'}</dd></div>)}</dl>
     <details className="m-card-extra"><summary>更多信息</summary><dl>{fields.map(([label, value]) => <div key={label}><dt>{label}：</dt><dd>{value || '—'}</dd></div>)}</dl></details>
     {batch && !selectable && <p className="m-input-note">仅草稿可删除</p>}
-    {!batch && <div className="m-supplier-buttons"><button onClick={() => onDetail(s)}>详情</button><button onClick={() => setMenu(true)}>更多操作</button></div>}
+    {!batch && <div className="m-supplier-buttons"><button onClick={() => onDetail(s)}>详情</button>{s.status === '草稿' ? <button onClick={() => onEdit(s)}>修改</button> : s.status === '已审批' ? mine ? <button onClick={() => onEditAll(s)}>修改全部信息</button> : <button onClick={() => onBank(s)}>修改银行</button> : null}<button onClick={() => setMenu(true)}>更多操作</button></div>}
     {menu && <Overlay sheet label={s.name + '操作'} onClose={() => setMenu(false)}><div className="m-action-sheet"><h2>{s.name}</h2>
-      {s.status === '已审批' && <>{mine ? <><button onClick={() => { setMenu(false); onInviter(s); }}>变更邀请人</button><button onClick={() => { setMenu(false); onEditAll(s); }}>修改全部信息</button></> : <><button onClick={() => { setMenu(false); onBank(s); }}>修改银行</button><button onClick={() => { setMenu(false); onMore(s); }}>其他操作</button></>}</>}
+      {s.status === '已审批' && <>{mine ? <><button onClick={() => { setMenu(false); onInviter(s); }}>变更邀请人</button><button onClick={() => { setMenu(false); onEditAll(s); }}>修改全部信息</button></> : <><button onClick={() => { setMenu(false); onBank(s); }}>修改银行</button><button onClick={() => { setMenu(false); onMore(s, 'permissions'); }}>分配权限</button><button onClick={() => { setMenu(false); onInviter(s); }}>变更邀请人</button></>}</>}
       {mine && ['草稿', '邀请中'].includes(s.status) && <button onClick={() => { setMenu(false); onReinvite(s); }}>重新邀请</button>}
       {s.status === '草稿' && <button onClick={() => { setMenu(false); onEdit(s); }}>修改</button>}
       {s.status === '草稿' && (mine || admin) && <button onClick={() => { setMenu(false); onDelete(s); }}>删除</button>}

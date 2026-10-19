@@ -2,8 +2,8 @@ import React, { useEffect, useId, useRef, useState } from 'react';
 import { Camera, Check, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, HelpCircle, Search, X } from 'lucide-react';
 import { useBackLayer, rememberAttachment, attachmentFiles, attachmentName } from './mobile-interaction.jsx';
 
-export function Section({ title, children, className = '', collapsible = true }) {
-  const [open, setOpen] = useState(true);
+export function Section({ title, children, className = '', collapsible = true, defaultOpen = true }) {
+  const [open, setOpen] = useState(defaultOpen);
   const ref = useRef(null);
   useEffect(() => { const reveal = e => { if ([...ref.current.querySelectorAll('[data-field-label]')].some(n => e.detail.includes(n.dataset.fieldLabel))) setOpen(true); }; window.addEventListener('mobile-validation', reveal); return () => window.removeEventListener('mobile-validation', reveal); }, []);
   return <section ref={ref} className={`m-section ${className}`}>
@@ -32,7 +32,7 @@ export function Field({ label, value = '', onChange, required = false, options, 
   const [visiblePassword, setVisiblePassword] = useState(false);
   const numeric = /邮箱验证码|注册资金|QQ/.test(label);
   const attrs = { 'aria-invalid': !!error, 'aria-describedby': error ? id + '-error' : undefined, inputMode: inputMode || (numeric ? 'numeric' : /电话|手机/.test(label) ? 'tel' : /邮箱/.test(label) ? 'email' : undefined), autoComplete: autoComplete || (type === 'password' ? (/新/.test(label) ? 'new-password' : 'current-password') : /邮箱/.test(label) ? 'email' : /邮箱验证码/.test(label) ? 'one-time-code' : /账号/.test(label) ? 'username' : /电话|手机/.test(label) ? 'tel' : 'off'), enterKeyHint: 'next' };
-  return <><div data-field-label={label} className={`m-field ${error ? 'has-error' : ''} ${multiline ? 'm-field-block' : ''}`}>
+  return <><div data-field-label={label} className={`m-field ${multiline || label.length > 6 || /邮箱|账号|账户|银行|供应商名称|详细地址|合作事项/.test(label) ? 'm-field-stacked' : 'm-field-inline'} ${error ? 'has-error' : ''} ${multiline ? 'm-field-block' : ''}`}>
     <label htmlFor={id}>{required && <em>*</em>}{label}{help && <button type="button" className="m-help" aria-label={label + "填写说明"} onClick={() => setHelpOpen(true)}><HelpCircle /></button>}</label>
     <div className="m-field-control">
       {onPick ? <button aria-invalid={!!error} aria-describedby={error ? id + "-error" : undefined} id={id} aria-label={label} type="button" className="m-select-field" onClick={onPick}><span className={!value ? 'm-placeholder' : ''}>{value || placeholder || `请选择${label}`}</span><ChevronRight /></button> : options ? <button aria-invalid={!!error} aria-describedby={error ? id + "-error" : undefined} id={id} role="combobox" aria-label={label} aria-expanded={choosing} aria-haspopup="dialog" type="button" className="m-select-field" onClick={() => setChoosing(true)}><span className={!value ? 'm-placeholder' : ''}>{value || placeholder || `请选择${label}`}</span><ChevronRight /></button> : type === 'date' ? <button aria-invalid={!!error} aria-describedby={error ? id + "-error" : undefined} id={id} aria-label={label} className="m-select-field" type="button" onClick={() => setDateOpen(true)}><span className={!value ? 'm-placeholder' : ''}>{value || '请选择日期'}</span><ChevronDown /></button> : multiline ? <textarea {...attrs} id={id} aria-label={label} value={value} onChange={e => onChange(e.target.value)} maxLength={maxLength} placeholder={placeholder || `请输入${label}`} required={required} readOnly={readOnly} /> : <input {...attrs} id={id} aria-label={label} value={value} onChange={e => onChange?.(e.target.value)} type={type === 'password' && visiblePassword ? 'text' : type} maxLength={maxLength} placeholder={readOnly ? '' : placeholder || `请输入${label}`} required={required} readOnly={readOnly} />}
@@ -121,3 +121,19 @@ export function Header({ onBack, title = '供应商管理平台', close }) {
   return <header className="m-header"><button onClick={onBack} aria-label="返回"><ChevronLeft /></button><h1>{title}</h1>{close && <button onClick={close} aria-label="关闭"><X /></button>}</header>;
 }
 
+
+export function RegistrationSteps({ personal, step }) {
+  const [expanded, setExpanded] = useState(false);
+  const id = useId();
+  const stages = personal ? [[0, '基本信息'], [2, '银行信息'], [3, '预览提交']] : [[0, '基本信息'], [1, '联系人信息'], [2, '银行信息'], [3, '预览提交']];
+  const index = stages.findIndex(([value]) => value === step);
+  useEffect(() => setExpanded(false), [step]);
+  return <nav className="m-registration-steps" aria-label="注册步骤" data-no-swipe>
+    <button type="button" className="m-steps-toggle" aria-expanded={expanded} aria-controls={id} onClick={() => setExpanded(!expanded)}>
+      <span>第 {index + 1} / {stages.length} 步</span><strong>{stages[index][1]}</strong><span className="m-steps-disclosure">{expanded ? '收起步骤' : '全部步骤'}{expanded ? <ChevronUp /> : <ChevronDown />}</span>
+    </button>
+    <ol id={id} hidden={!expanded}>{stages.map(([value, title], i) => <li key={value} aria-current={value === step ? 'step' : undefined} className={value < step ? 'completed' : value === step ? 'current' : ''}>
+      <span className="m-step-number">{value < step ? <Check aria-label="已完成" /> : i + 1}</span><span className="m-step-name">{title}</span><span className="m-step-state">{value < step ? '已完成' : value === step ? '当前步骤' : '待填写'}</span>
+    </li>)}</ol>
+  </nav>;
+}

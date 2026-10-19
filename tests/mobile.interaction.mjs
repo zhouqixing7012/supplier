@@ -164,7 +164,7 @@ try {
   await check('四类供应商表单及个人注册跳过联系人', async () => {
     for (const type of ['企业供应商', '个人供应商', '政府机构', '国外供应商']) {
       await goto('mobile/register'); await choose('供应商类型', type); assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1));
-      if (type === '个人供应商') { assert.ok((await page.locator('.m-steps').innerText()).includes('银行信息')); assert.ok(!(await page.locator('.m-steps').innerText()).includes('联系人信息')); }
+      if (type === '个人供应商') { await page.locator('.m-steps-toggle').click(); assert.ok((await page.locator('.m-registration-steps').innerText()).includes('银行信息')); assert.ok(!(await page.locator('.m-registration-steps').innerText()).includes('联系人信息')); }
     }
   });
   await check('少量选项不强制搜索，长枚举保留搜索', async () => {
@@ -186,6 +186,35 @@ try {
     await records.nth(0).getByRole('button', { name: '测试证明.png', exact: true }).click(); const second = await page.locator('.m-attachment-full').getAttribute('src'); await page.getByRole('dialog').getByRole('button', { name: '关闭', exact: true }).click();
     await records.nth(1).getByRole('button', { name: '测试证明.png', exact: true }).click(); const first = await page.locator('.m-attachment-full').getAttribute('src'); assert.notEqual(first, second); await page.getByRole('dialog').getByRole('button', { name: '关闭', exact: true }).click();
     assert.equal(await records.filter({ hasText: '基本账户' }).getByRole('button', { name: '删除', exact: true }).count(), 0); await records.nth(0).getByRole('button', { name: '删除', exact: true }).click(); await page.getByRole('dialog').getByRole('button', { name: '确认', exact: true }).click(); assert.equal(await records.count(), 2);
+  });
+  await check('竖向步骤默认收起，展开顺序、当前步骤和窄屏布局正确', async () => {
+    for (const width of [320, 390, 430]) {
+      await page.setViewportSize({ width, height: 845 }); await goto('mobile/register');
+      const toggle = page.locator('.m-steps-toggle'); assert.equal(await toggle.getAttribute('aria-expanded'), 'false'); assert.ok((await toggle.innerText()).includes('第 1 / 4 步'));
+      await toggle.click(); const items = await page.locator('.m-registration-steps li').all(); assert.equal(items.length, 4);
+      const boxes = await Promise.all(items.map(n => n.boundingBox())); for (let i = 1; i < boxes.length; i++) { assert.ok(boxes[i].y > boxes[i - 1].y); assert.equal(boxes[i].x, boxes[0].x); }
+      assert.ok((await page.locator('.m-registration-steps [aria-current="step"]').innerText()).includes('基本信息'));
+      assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)); await shot('vertical-steps-' + width); await toggle.click(); assert.equal(await toggle.getAttribute('aria-expanded'), 'false');
+    }
+    await page.setViewportSize({ width: 390, height: 845 });
+  });
+  await check('供应商蓝条与关键摘要默认可见，常用操作不藏菜单', async () => {
+    await goto('mobile'); const records = page.locator('.m-supplier-card'); assert.equal(await records.locator('h3 .m-blue-mark').count(), await records.count());
+    const sample = card('北京初然'); assert.ok(await sample.getByText('企业供应商', { exact: true }).isVisible()); assert.ok(await sample.getByText('未评分', { exact: true }).isVisible()); assert.ok(await sample.getByRole('button', { name: '修改银行', exact: true }).isVisible());
+    const typeLabel = sample.locator('dt').filter({ hasText: '供应商类型' }); assert.equal(await typeLabel.evaluate(n => getComputedStyle(n).whiteSpace), 'nowrap'); const mark = await sample.locator('.m-blue-mark').boundingBox(); assert.ok(mark.width > 0 && mark.height > 0); await shot('supplier-summary');
+    await goto('mobile/mine'); assert.ok(await card('代注册草稿').getByRole('button', { name: '修改', exact: true }).isVisible()); assert.ok(await card('北京初然').getByRole('button', { name: '修改全部信息', exact: true }).isVisible());
+  });
+  await check('权限入口不经过二级更多，常用修改可直接进入', async () => {
+    await goto('mobile'); await card('代注册草稿').getByRole('button', { name: '修改', exact: true }).click(); await headerBack(); await page.locator('[data-scene="query"]').waitFor(); await action('北京初然', '分配权限'); await page.locator('[data-scene="permissions"]').waitFor(); await button('取消').click(); await card('北京初然').getByRole('button', { name: '修改银行', exact: true }).click(); await page.locator('[data-scene="bank"]').waitFor();
+  });
+  await check('短字段紧凑排列，长字段与窄屏保持完整宽度', async () => {
+    await page.setViewportSize({ width: 390, height: 845 }); await goto('mobile/register'); const short = page.locator('[data-field-label="法人代表"]'); const long = page.locator('[data-field-label="供应商名称"]');
+    assert.equal(await short.evaluate(n => getComputedStyle(n).display), 'flex'); assert.equal(await long.evaluate(n => getComputedStyle(n).display), 'block');
+    await page.setViewportSize({ width: 320, height: 845 }); assert.equal(await short.evaluate(n => getComputedStyle(n).display), 'block'); await page.setViewportSize({ width: 390, height: 845 });
+  });
+  await check('评分页先展示评分项，基础信息可展开且结果不浮动遮挡', async () => {
+    await goto('mobile/rating-edit'); const info = button('供应商基本信息'); assert.equal(await info.getAttribute('aria-expanded'), 'false'); assert.ok((await page.locator('.m-rating-dimension').first().boundingBox()).y < 845); await shot('rating-focused'); await info.click(); await page.getByText('供应商名称', { exact: true }).waitFor(); await shot('rating-basic-expanded');
+    await goto('mobile/register'); await field('供应商名称').fill('结果展示检查'); await button('保存草稿').click(); await page.locator('[data-scene="mine"]').waitFor(); assert.equal(await page.locator('.m-result-banner').evaluate(n => getComputedStyle(n).position), 'relative'); assert.ok((await page.locator('.m-result-banner').boundingBox()).y < (await page.locator('.mobile-page').boundingBox()).y);
   });
   for (const width of [320, 390, 430, 768]) await check('代表页面宽度 ' + width, async () => {
     await page.setViewportSize({ width, height: width === 768 ? 1024 : 845 });

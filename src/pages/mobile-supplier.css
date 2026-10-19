@@ -198,18 +198,6 @@ body { font-family: "Microsoft YaHei", "Supplier Noto SC", "PingFang SC", Arial,
 .m-detail .m-tabs button { min-width: auto; }
 .m-detail .m-tabs { margin-top: 7px; box-shadow: 0 3px 6px #0000000a; }
 .m-detail .m-bank-card { margin-top: 10px; }
-.m-steps { display: flex; justify-content: space-between; background: #fff; padding: 21px 20px 12px; border-top: 14px solid #f5f6fa; border-bottom: 1px solid #eee; margin-bottom: 30px; }
-.m-steps > div { position: relative; flex: 1; min-width: 0; font-size: 14px; color: #999; }
-.m-steps > div:not(:last-child)::after { content: ""; height: 1px; background: #e7e7e9; position: absolute; top: 31px; left: 13px; right: 5px; }
-.m-steps > div.done:not(:last-child)::after { background: #4098fa; }
-.m-steps span { white-space: nowrap; }
-.m-steps i { display: flex; height: 14px; margin: 6px 0 0; align-items: center; }
-.m-steps i b { width: 6px; height: 6px; border-radius: 50%; background: #999; }
-.m-steps i svg { width: 16px; height: 16px; color: #4098fa; }
-.m-steps .done { color: #4098fa; }
-.m-steps .done i b { background: #4098fa; }
-.m-steps small { display: block; max-width: 84px; font-size: 12px; line-height: 1.1; }
-.m-steps > div:last-child small { display: none; }
 .m-contact-section { padding: 10px 17px 16px; border-top-width: 30px; }
 .m-contact-form, .m-inline-bank { position: relative; padding-top: 35px; }
 .m-contact-form + .m-contact-form { margin-top: 10px; border-top: 15px solid #f4f5fa; }
@@ -472,8 +460,6 @@ body { font-family: "Microsoft YaHei", "Supplier Noto SC", "PingFang SC", Arial,
 .m-login-button { min-height: 46px; width: 100%; }
 .m-captcha-field { gap: 10px; }
 .m-captcha-field > button { min-height: 44px; color: #fff; }
-.m-steps { position: relative; padding: 14px 16px; margin-bottom: 12px; border-top-width: 8px; }
-.m-steps small { display: none; }
 @media (max-width: 360px) { .m-actions { gap: 8px; }.m-actions button { font-size: 16px; }.m-field > label { font-size: 15px; }.m-star-control input { width: 70px; } }
 .m-upload-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 10px; }
 .m-upload-tools > label, .m-upload-tools > button { display: inline-flex; align-items: center; min-height: 44px; padding: 4px 8px; color: #2476c4; cursor: pointer; font-size: 14px; }
@@ -495,3 +481,40 @@ body { font-family: "Microsoft YaHei", "Supplier Noto SC", "PingFang SC", Arial,
 .m-portal-form .m-captcha-field { grid-template-columns: minmax(0, 1fr) 70px 48px; gap: 6px; }
 .m-portal-form .m-captcha-field .m-captcha { width: 70px; }
 .m-portal-form .m-captcha-field > button { width: 48px; }
+
+/* 保留业务识别，不以减少元素为目标压缩移动操作。 */
+.m-supplier-card h3 .m-blue-mark { width: 8px; height: 16px; border-radius: 4px; background: #0087ff; flex-shrink: 0; }
+.m-registration-steps { margin: 8px 0 12px; border-bottom: 1px solid #e1e2e7; background: #fff; }
+.m-steps-toggle { width: 100%; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; min-height: 60px; padding: 12px 16px !important; text-align: left; }
+.m-steps-toggle > span:first-child { font-size: 14px; color: #565d6e; white-space: nowrap; }
+.m-steps-toggle strong { font-size: 17px; color: #2476c4; }
+.m-steps-disclosure { margin-left: auto; display: inline-flex; align-items: center; font-size: 14px; color: #2476c4; white-space: nowrap; }
+.m-registration-steps ol { list-style: none; margin: 0; padding: 2px 18px 14px; }
+.m-registration-steps li { display: flex; position: relative; align-items: center; gap: 12px; min-height: 56px; padding: 6px 0; }
+.m-registration-steps li:not(:last-child)::after { content: ''; width: 1px; height: 24px; background: #d4d8df; position: absolute; left: 13px; top: 42px; }
+.m-step-number { width: 28px; height: 28px; border: 1px solid #747a84; border-radius: 50%; display: grid; place-items: center; flex-shrink: 0; color: #565d6e; background: #fff; }
+.m-step-number svg { width: 18px; height: 18px; }
+.m-step-name { flex: 1; min-width: 0; font-size: 16px; }
+.m-step-state { font-size: 13px; color: #565d6e; white-space: nowrap; }
+.m-registration-steps li.current .m-step-number { background: #2476c4; border-color: #2476c4; color: #fff; }
+.m-registration-steps li.current .m-step-name { font-weight: 600; color: #2476c4; }
+.m-registration-steps li.completed .m-step-number { border-color: #2476c4; color: #2476c4; }
+.m-field.m-field-inline { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; min-height: 68px; }
+.m-field.m-field-inline > label { width: 112px; flex-shrink: 0; margin-bottom: 0; }
+.m-field.m-field-inline > .m-field-control { width: auto; flex: 1; min-width: 0; }
+.m-field.m-field-inline > .m-field-error { flex-basis: 100%; }
+.m-portal-form .m-field.m-field-inline { display: block; }
+.m-portal-form .m-field.m-field-inline > label, .m-portal-form .m-field.m-field-inline > .m-field-control { width: 100%; }
+.m-result-banner { position: relative; left: auto; right: auto; bottom: auto; width: min(100%, 430px); max-width: 430px; margin: 0 auto; border-radius: 0; box-shadow: none; z-index: auto; }
+.m-rating-summary { padding: 14px 18px; }
+.m-rating-summary h2 { font-size: 19px; line-height: 1.5; margin: 0 0 6px; }
+.m-rating-summary p { margin: 0; color: #565d6e; font-size: 15px; }
+@media (max-width: 360px) {
+  .m-field.m-field-inline { display: block; }
+  .m-field.m-field-inline > label, .m-field.m-field-inline > .m-field-control { width: 100%; }
+  .m-steps-toggle { gap: 6px 10px; }
+  .m-steps-toggle strong { font-size: 16px; }
+  .m-supplier-buttons { gap: 8px 14px; }
+}
+.m-result-banner { box-sizing: border-box; }
+.m-supplier-card dt { width: 96px; flex: 0 0 96px; white-space: nowrap; text-align: left; }
