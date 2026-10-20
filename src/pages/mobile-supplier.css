@@ -518,3 +518,42 @@ body { font-family: "Microsoft YaHei", "Supplier Noto SC", "PingFang SC", Arial,
 }
 .m-result-banner { box-sizing: border-box; }
 .m-supplier-card dt { width: 96px; flex: 0 0 96px; white-space: nowrap; text-align: left; }
+
+/* 问题清单复核：编辑态、导出与门户导航。 */
+.m-field-clear { position: absolute; right: 0; top: 0; min-width: 44px; min-height: 44px; color: #565d6e !important; }
+.m-field-clear svg { width: 18px; height: 18px; }
+.m-field-control:has(.m-field-clear) input, .m-field-control:has(.m-field-clear) textarea { padding-right: 48px; }
+.m-field-control:has(.m-field-clear):has(.m-counter) input { padding-right: 88px; }
+.m-field-control:has(.m-field-clear) .m-counter { right: 44px; }
+.m-edit-mode .m-field-control:has(input:not([readonly]), textarea), .m-edit-mode .m-select-field { border: 1px solid #a6afbc; border-radius: 4px; padding: 0 8px; }
+.m-edit-mode .has-error .m-field-control { border-color: #b42318; }
+.m-address-editor { max-height: 78dvh; overflow-y: auto; padding-bottom: 8px; }
+.m-address-editor > .m-actions { position: static; transform: none; width: 100%; padding: 8px 18px; }
+.m-batch-actions { display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: 12px; row-gap: 4px; padding: 8px 16px max(8px, env(safe-area-inset-bottom, 0px)); font-size: 15px; }
+.m-batch-actions > .m-checkbox { grid-column: 1; grid-row: 1; }
+.m-batch-actions > span { grid-column: 1; grid-row: 2; padding-left: 30px; font-size: 14px; }
+.m-batch-actions > button { grid-column: 2; grid-row: 1 / 3; min-height: 48px; white-space: normal; overflow-wrap: anywhere; }
+.m-actions:has(> button:nth-child(4)) { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.mobile-page:has(.m-actions > button:nth-child(4)) { padding-bottom: calc(145px + env(safe-area-inset-bottom, 0px)); }
+.m-list-tools { display: flex; justify-content: flex-end; padding: 0 16px; }
+.m-list-tools > button { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; color: #2476c4; }
+.m-list-tools svg, .m-record-actions svg, .m-dashed-add svg { width: 20px; height: 20px; flex-shrink: 0; }
+.m-dashed-add { display: flex; gap: 8px; align-items: center; justify-content: center; }
+.m-export-choice { display: flex; gap: 12px; align-items: center; min-height: 56px; padding: 12px 0; border-bottom: 1px solid #e1e2e7; }
+.m-export-choice input { width: 24px; height: 24px; flex-shrink: 0; accent-color: #2476c4; }
+.m-export-choice span { min-width: 0; overflow-wrap: anywhere; }
+.m-export-choice small { display: block; color: #565d6e; font-size: 14px; margin-top: 4px; }
+.m-download-link { width: 100%; min-height: 44px; border: 1px solid #a6afbc; padding: 8px; border-radius: 4px; }
+.m-record-actions a { display: inline-flex; align-items: center; min-height: 44px; color: #2476c4; text-decoration: underline; text-underline-offset: 3px; }
+.m-record-actions button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+.m-workspace { padding-bottom: 90px; }
+.m-portal-supplier { font-size: 19px; line-height: 1.6; overflow-wrap: anywhere; margin: 12px 0; }
+.m-workspace-menu { padding: 0 18px; }
+.m-workspace-menu button { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; min-height: 64px; text-align: left; border-bottom: 1px solid #e1e2e7; }
+.m-workspace-menu svg { width: 20px; height: 20px; }
+.m-bottom-nav { position: fixed; z-index: 30; bottom: 0; left: 50%; transform: translateX(-50%); width: min(100%, 430px); display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); background: #fff; border-top: 1px solid #e1e2e7; padding-bottom: env(safe-area-inset-bottom, 0px); }
+.m-bottom-nav button { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; min-height: 64px; font-size: 14px; color: #565d6e; }
+.m-bottom-nav svg { width: 22px; height: 22px; }
+.m-bottom-nav [aria-current] { color: #2476c4; font-weight: 600; }
+.m-change-comparison article { padding: 12px 0; border-bottom: 1px solid #e1e2e7; }
+.m-change-comparison h3 { font-size: 16px; line-height: 1.6; overflow-wrap: anywhere; margin: 0; }

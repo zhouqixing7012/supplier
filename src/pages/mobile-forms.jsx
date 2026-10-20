@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Check, ChevronRight, MoreHorizontal, Plus, Trash2 } from 'lucide-react';
+import { Check, ChevronRight, MoreHorizontal, Plus, Trash2, UserRoundPlus } from 'lucide-react';
 import { Actions, Confirm, DateSheet, Empty, Field, OptionSheet, Overlay, Row, SearchBox, Section, UploadField } from './mobile-ui.jsx';
 import { bankNames, branches, people, permissionGroups, supplierTypes } from './mobile-data.js';
 import { useDirtyForm, useBackLayer, attachmentFiles, attachmentName } from './mobile-interaction.jsx';
@@ -107,7 +107,7 @@ export function ContactFields({ contacts, setContacts }) {
   const close = () => guard.leave(() => setEditing(null));
   useBackLayer(editing !== null, close);
   return <Section title="联系人信息" className="m-contact-section">{contacts.length ? contacts.map((c, i) => <article className="m-contact-summary" key={c.id}><h3>联系人 {i + 1} · {c.name || '未填写姓名'}</h3><Row label="电话">{c.phone || '—'}</Row><Row label="邮箱">{c.email || '—'}</Row><div className="m-record-actions"><button onClick={() => { setDraft({ ...c }); setEditing(i); }}>编辑联系人{i + 1}</button><button onClick={() => setRemoving(i)}>删除联系人{i + 1}</button></div></article>) : <Empty text="尚未添加联系人" />}
-    <button className="m-dashed-add" onClick={() => { setDraft({ id: crypto.randomUUID(), name: '', phone: '', email: '', department: '', job: '', wechat: '', note: '' }); setEditing(-1); }}>添加联系人</button>
+    <button className="m-dashed-add" onClick={() => { setDraft({ id: crypto.randomUUID(), name: '', phone: '', email: '', department: '', job: '', wechat: '', note: '' }); setEditing(-1); }}><UserRoundPlus aria-hidden="true" />添加联系人</button>
     {editing !== null && <div className="m-fullscreen-panel" role="dialog" aria-modal="true" aria-label="联系人编辑"><div className="m-picker-title"><button onClick={close}>取消</button><strong>{editing === -1 ? '新增联系人' : '编辑联系人'}</strong></div><div className="m-contact-form">{[['name', '姓名', true], ['phone', '电话', true], ['email', '邮箱', true], ['department', '部门'], ['job', '职位'], ['wechat', '微信'], ['note', '备注']].map(([key, label, required]) => <Field key={key} label={label} required={required} value={draft[key] || ''} type={key === 'email' ? 'email' : 'text'} multiline={key === 'note'} maxLength={['department', 'job'].includes(key) ? 50 : key === 'note' ? 400 : undefined} onChange={value => setDraft({ ...draft, [key]: value })} />)}</div><Actions items={[{ label: '取消', secondary: true, onClick: close }, { label: '保存联系人', onClick: () => {
       const error = !draft.name.trim() ? '请填写姓名' : !draft.phone.trim() ? '请填写电话' : !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(draft.email) ? '请输入正确的邮箱格式' : '';
       if (error) return window.dispatchEvent(new CustomEvent('mobile-validation', { detail: error }));
@@ -125,12 +125,13 @@ export function AddressForm({ initial = '', startRegion = false, onConfirm, onCa
   useEffect(() => { const close = () => guard.leave(onCancel); window.addEventListener('mobile-close-address', close); return () => window.removeEventListener('mobile-close-address', close); });
   const [open, setOpen] = useState(startRegion);
   const [stage, setStage] = useState(0);
+  const [regionSearch, setRegionSearch] = useState('');
   const [selected, setSelected] = useState(region.split('/'));
   const regionData = { '云南省': { '保山市': ['龙陵县'] }, '北京市': { '北京市': ['朝阳区', '海淀区'] }, '天津市': { '天津市': ['和平区'] }, '河北省': { '石家庄市': ['长安区'] } };
   const provinces = ['重庆', '四川省', '贵州省', '云南省', '西藏自治区', '陕西省', '甘肃省', '青海省', '宁夏回族自治区', '北京市', '天津市', '河北省'];
   const options = stage === 0 ? provinces : stage === 1 ? Object.keys(regionData[selected[0]] || {}) : regionData[selected[0]]?.[selected[1]] || [];
-  return <><Field label="选择地址" required value={region} onPick={() => { setOpen(true); setStage(0); }} /><Field label="详细地址" required value={detail} maxLength={50} onChange={setDetail} /><Actions flat items={[{ label: '确定', disabled: !region || !detail.trim(), onClick: () => { guard.accept(); onConfirm(`${region} ${detail}`); } }]} />
-    {open && <Overlay sheet label="省市区选择" onClose={() => setOpen(false)}><div className="m-region-head"><button aria-label="关闭地址选择" onClick={() => setOpen(false)}>关闭</button></div><div className="m-region-tabs">{[0, 1, 2].map(i => <button key={i} onClick={() => setStage(i)}>{selected[i] || ['省', '市', '区/县'][i]}</button>)}</div><div className="m-sheet-options">{options.length ? options.map(x => <button key={x} className={selected[stage] === x ? 'selected' : ''} onClick={() => { const next = [...selected.slice(0, stage), x]; setSelected(next); if (stage === 2) { setRegion(next.join('/')); setOpen(false); } else setStage(stage + 1); }}>{x}{selected[stage] === x && <Check />}</button>) : <Empty text="暂无相关数据" />}</div></Overlay>}
+  return <><Field label="选择地址" required value={region} onPick={() => { setOpen(true); setStage(0); setRegionSearch(''); }} /><Field label="详细地址" required value={detail} maxLength={50} onChange={setDetail} /><Actions flat items={[{ label: '取消', muted: true, onClick: () => guard.leave(onCancel) }, { label: '确定', disabled: !region || !detail.trim(), onClick: () => { guard.accept(); onConfirm(`${region} ${detail}`); } }]} />
+    {open && <Overlay sheet label="省市区选择" onClose={() => setOpen(false)}><div className="m-region-head"><button aria-label="关闭地址选择" onClick={() => setOpen(false)}>关闭</button></div><div className="m-region-tabs">{[0, 1, 2].map(i => <button key={i} disabled={i > selected.length} onClick={() => { setStage(i); setRegionSearch(''); }}>{selected[i] || ['省', '市', '区/县'][i]}</button>)}</div><SearchBox value={regionSearch} onChange={setRegionSearch} placeholder="搜索当前省市区" /><div className="m-sheet-options">{options.filter(x => x.includes(regionSearch.trim())).length ? options.filter(x => x.includes(regionSearch.trim())).map(x => <button key={x} className={selected[stage] === x ? 'selected' : ''} onClick={() => { const next = [...selected.slice(0, stage), x]; setSelected(next); if (stage === 2) { setRegion(next.join('/')); setOpen(false); } else { setStage(stage + 1); setRegionSearch(''); } }}>{x}{selected[stage] === x && <Check />}</button>) : <Empty text="暂无相关数据" />}</div></Overlay>}
   </>;
 }
 
