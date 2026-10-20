@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Check, ChevronRight, MoreHorizontal, Plus, Trash2, UserRoundPlus } from 'lucide-react';
 import { Actions, Confirm, DateSheet, Empty, Field, OptionSheet, Overlay, Row, SearchBox, Section, UploadField } from './mobile-ui.jsx';
-import { bankNames, branches, people, permissionGroups, supplierTypes } from './mobile-data.js';
+import { bankNames, branches, people, permissionGroups, supplierTypes, supplierIndustries } from './mobile-data.js';
 import { useDirtyForm, useBackLayer, attachmentFiles, attachmentName } from './mobile-interaction.jsx';
 
 export const blankBank = name => ({ accountType: '', bank: '', branch: '', country: '', province: '', city: '', name: name || '', number: '', currency: '', proof: '', note: '' });
@@ -56,7 +56,7 @@ export function PermissionForm({ initial = {}, onSave, onCancel, notify }) {
   const [data, setData] = useState({ group: '', category: '', note: '', ...initial });
   const guard = useDirtyForm(data);
   useEffect(() => { const close = () => guard.leave(onCancel); window.addEventListener('mobile-close-permission', close); return () => window.removeEventListener('mobile-close-permission', close); });
-  return <><Field label="所属权限" required options={Object.keys(permissionGroups)} value={data.group} onChange={group => setData({ ...data, group, category: '' })} /><Field label="权限分类" required options={permissionGroups[data.group] || []} value={data.category} onChange={category => setData({ ...data, category })} /><Field label="备注" multiline value={data.note} maxLength={100} onChange={note => setData({ ...data, note })} /><Actions items={[{ label: '取消', onClick: () => guard.leave(onCancel) }, { label: '保存此权限', onClick: () => data.group && data.category ? onSave(data) : notify('请选择所属权限和权限分类') }]} /></>;
+  return <><Field label="所属权限" searchable required options={Object.keys(permissionGroups)} value={data.group} onChange={group => setData({ ...data, group, category: '' })} /><Field label="权限分类" searchable={data.group === '媒体权限'} required options={permissionGroups[data.group] || []} value={data.category} onChange={category => setData({ ...data, category })} /><Field label="备注" multiline value={data.note} maxLength={100} onChange={note => setData({ ...data, note })} /><Actions items={[{ label: '取消', onClick: () => guard.leave(onCancel) }, { label: '保存此权限', onClick: () => data.group && data.category ? onSave(data) : notify('请选择所属权限和权限分类') }]} /></>;
 }
 
 const basicCompany = [
@@ -64,7 +64,7 @@ const basicCompany = [
   ['establishedAt', '成立日期', true, 'date'], ['licenseUntil', '证件有效期至', true, 'date'],
   ['legalRepresentative', '法人代表', true], ['companyPhone', '公司电话'],
   ['companyType', '企业类型', true, ['有限责任公司', '股份有限公司', '其他']],
-  ['industry', '所属行业', true, ['信息传输、计算机服务和软件业', '农林牧渔业', '制造业', '教育', '文化、体育、娱乐业', '其他']],
+  ['industry', '所属行业', true, supplierIndustries],
   ['capital', '注册资金', true], ['currency', '注册币种', true, ['人民币', '美元', '港币']],
   ['country', '国家', true, ['国内', '国外']], ['address', '注册地址', true, 'address'],
   ['invoiceAddress', '接收发票地址'], ['website', '公司网址'], ['taxpayer', '纳税人资格', false, ['一般纳税人', '小规模纳税人']],
@@ -91,7 +91,7 @@ export function BasicFields({ data, setData, shot = false, onAddress, initialDat
     {[supplierTypes[0], supplierTypes[3]].includes(data.type) && <UploadField label={data.type === supplierTypes[0] ? '营业执照' : '证书'} required value={data.proof} onChange={v => change('proof', v)} help="上传证照附件。" />}
     <div className="m-field-divider" />
     {fieldsFor(data.type).flatMap(([key, label, required, kind]) => {
-      const field = <Field key={key} label={label} required={required} value={data[key] || ''} onChange={v => change(key, v)} options={Array.isArray(kind) ? kind : undefined} type={kind === 'email' ? 'email' : 'text'} multiline={kind === 'textarea'} maxLength={kind === 'textarea' ? 500 : undefined} onPick={kind === 'date' ? () => setPicker({ key, title: label }) : kind === 'address' ? onAddress : undefined} />;
+      const field = <Field key={key} label={label} required={required} value={data[key] || ''} onChange={v => change(key, v)} options={Array.isArray(kind) ? kind : undefined} searchable={key === 'industry'} type={kind === 'email' ? 'email' : 'text'} multiline={kind === 'textarea'} maxLength={kind === 'textarea' ? 500 : undefined} onPick={kind === 'date' ? () => setPicker({ key, title: label }) : kind === 'address' ? onAddress : undefined} />;
       return key === 'supplierName' && !shot ? [field, <Field key="registerEmail" label="供应商注册邮箱" required type="email" value={data.registerEmail || ''} help="用于供应商登录协同门户及修改密码时接收验证码" onChange={v => change('registerEmail', v)} />] : [field];
     })}
     {nextType && <Confirm text="切换供应商类型会清除不适用的基本信息，是否继续？" onCancel={() => setNextType('')} onConfirm={() => { setData({ type: nextType, supplierName: data.supplierName || '', registerEmail: data.registerEmail || '' }); setNextType(''); }} />}

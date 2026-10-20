@@ -1,8 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Check, ClipboardList, Edit3, Filter, List, MoreHorizontal, Plus, X } from 'lucide-react';
+import { Check, ChevronDown, ClipboardList, Edit3, Filter, List, MoreHorizontal, Plus, X } from 'lucide-react';
 import { Actions, Empty, Field, OptionSheet, Overlay, Row, SearchBox, Section } from './mobile-ui.jsx';
 import { BankCard } from './mobile-forms.jsx';
-import { cooperation, supplierStates, supplierTypes } from './mobile-data.js';
+import { cooperation, supplierStates, supplierTypes, supplierIndustries } from './mobile-data.js';
 import { SwipeArea } from './mobile-interaction.jsx';
 import { ChangeComparison } from './mobile-changes.jsx';
 
@@ -11,7 +11,7 @@ export function Tabs({ active, onChange, items = mobileTabs }) {
   const ref = useRef(null);
   const [directory, setDirectory] = useState(false);
   useEffect(() => { let cancelled = false; const align = () => { const nav = ref.current; const node = nav?.querySelector('[aria-current="page"]'); if (!cancelled && node) nav.scrollLeft = active === items.length - 1 ? nav.scrollWidth - nav.clientWidth : Math.max(0, node.getBoundingClientRect().left - nav.getBoundingClientRect().left + nav.scrollLeft - (nav.clientWidth - node.clientWidth) / 2); }; align(); document.fonts.ready.then(align); return () => { cancelled = true; }; }, [active, items.length]);
-  return <div className="m-tab-bar"><nav ref={ref} className="m-tabs" aria-label="功能模块">{items.map((label, i) => <button className={active === i ? 'active' : ''} aria-current={active === i ? 'page' : undefined} key={label} onClick={() => onChange(i)}>{label}</button>)}</nav><button className="m-tab-directory" aria-label="全部标签" onClick={() => setDirectory(true)}><List /></button>{directory && <Overlay sheet label="全部标签" onClose={() => setDirectory(false)}><div className="m-picker-title"><strong>全部标签</strong><button onClick={() => setDirectory(false)}>关闭</button></div><div className="m-module-directory">{items.map((label, i) => <button key={label} aria-current={i === active ? "page" : undefined} onClick={() => { onChange(i); setDirectory(false); }}>{label}{i === active && <Check />}</button>)}</div></Overlay>}</div>;
+  return <div className="m-tab-bar"><nav ref={ref} className="m-tabs" aria-label="功能模块">{items.map((label, i) => <button className={active === i ? 'active' : ''} aria-current={active === i ? 'page' : undefined} key={label} onClick={() => onChange(i)}>{label}</button>)}</nav><button className="m-tab-directory" aria-label="全部标签" onClick={() => setDirectory(true)}><ChevronDown /></button>{directory && <Overlay sheet label="全部标签" onClose={() => setDirectory(false)}><div className="m-picker-title"><strong>全部标签</strong><button onClick={() => setDirectory(false)}>关闭</button></div><div className="m-module-directory">{items.map((label, i) => <button key={label} aria-current={i === active ? "page" : undefined} onClick={() => { onChange(i); setDirectory(false); }}>{label}{i === active && <Check />}</button>)}</div></Overlay>}</div>;
 }
 
 export function SupplierList({ suppliers, mine = false, batch = false, checked, setChecked, onDetail, onBank, onMore, onInviter, onReinvite, onEdit, onEditAll, onDelete, admin = false }) {
@@ -19,12 +19,12 @@ export function SupplierList({ suppliers, mine = false, batch = false, checked, 
 }
 function SupplierSummary({ s, mine, batch, checked, setChecked, onDetail, onBank, onMore, onInviter, onReinvite, onEdit, onEditAll, onDelete, admin }) {
   const [menu, setMenu] = useState(false);
-  const selectable = mine || s.status === '草稿';
+  const selectable = mine || !admin || s.status === '草稿';
   const fields = mine ? [['证件号码', s.code], ['联系人姓名', s.contact], ['联系人邮箱', s.email], ['联系人电话', s.phone], ['更新时间', s.updated]] : [['注册方式', s.mode], ['更新时间', s.updated]];
   return <article className="m-supplier-card">
     <h3>{batch && <label className="m-checkbox"><input type="checkbox" disabled={!selectable} aria-label={`选择${s.name}`} checked={checked.includes(s.id)} onChange={e => setChecked(e.target.checked ? [...checked, s.id] : checked.filter(x => x !== s.id))} /><span>{checked.includes(s.id) && <Check />}</span></label>}<i className="m-blue-mark" aria-hidden="true" />{s.name}</h3>
-    <dl>{[['供应商类型', s.type], ['审批状态', s.status], ['邀请人', s.inviter], ['邀请时间', s.date], ...(!mine ? [['评分', s.score]] : [])].map(([label, value]) => <div key={label}><dt>{label}：</dt><dd>{value || '—'}</dd></div>)}</dl>
-    <details className="m-card-extra"><summary>更多信息</summary><dl>{fields.map(([label, value]) => <div key={label}><dt>{label}：</dt><dd>{value || '—'}</dd></div>)}</dl></details>
+    <dl>{[['供应商类型', s.type], ['审批状态', s.status], ['邀请人', s.inviter], ['邀请时间', s.date], ...(!mine ? [['评分', s.score]] : []), ...fields].map(([label, value]) => <div key={label}><dt>{label}：</dt><dd>{value || '—'}</dd></div>)}</dl>
+
     {batch && !selectable && <p className="m-input-note">仅草稿可删除</p>}
     {!batch && <div className="m-supplier-buttons"><button onClick={() => onDetail(s)}>详情</button>{s.status === '草稿' ? <button onClick={() => onEdit(s)}>修改</button> : s.status === '已审批' ? mine ? <button onClick={() => onEditAll(s)}>修改全部信息</button> : <button onClick={() => onBank(s)}>修改银行</button> : null}<button onClick={() => setMenu(true)}>更多操作</button></div>}
     {menu && <Overlay sheet label={s.name + '操作'} onClose={() => setMenu(false)}><div className="m-action-sheet"><h2>{s.name}</h2>
@@ -42,8 +42,8 @@ export function FilterView({ rating = false, initial = {}, onApply, onCancel, in
   const [data, setData] = useState(initial);
   const [department, setDepartment] = useState(false);
   const update = (key, value) => setData({ ...data, [key]: value });
-  const fields = rating ? [['cooperationType', '合作类型', ['技术服务', '电子产品']], ['person', '业务线联系人'], ['department', '所属部门'], ['start', '评分开始时间', 'date'], ['end', '评分结束时间', 'date']] : [['type', '供应商类型', supplierTypes], ['status', '供应商状态', supplierStates], ['start', '邀请时间（起）', 'date'], ['end', '邀请时间（止）', 'date'], ['recommended', '供应商推荐', ['是', '否']], ['inviter', '邀请人']];
-  return <div className="m-filter-view">{fields.map(([key, label, kind]) => <Field key={key} label={label} value={data[key] || ''} type={kind === 'date' ? 'date' : 'text'} options={Array.isArray(kind) ? kind : undefined} onChange={v => update(key, v)} onPick={kind === 'department' ? () => setDepartment(true) : undefined} />)}<Actions flat items={[{ label: '取消', muted: true, onClick: onCancel }, { label: '重置', muted: true, onClick: () => setData({}) }, { label: '确定', onClick: () => onApply(data) }]} />{department && <OptionSheet title="所属部门" value={data.department} options={[]} onChange={v => update('department', v)} onClose={() => setDepartment(false)} />}</div>;
+  const fields = rating ? [['cooperationType', '合作类型', ['技术服务', '电子产品']], ['person', '业务线联系人'], ['department', '所属部门'], ['start', '评分开始时间', 'date'], ['end', '评分结束时间', 'date']] : [['type', '供应商类型', supplierTypes], ['status', '供应商状态', supplierStates], ['start', '邀请时间（起）', 'date'], ['end', '邀请时间（止）', 'date'], ['recommended', '供应商推荐', supplierIndustries], ['inviter', '邀请人']];
+  return <div className="m-filter-view">{fields.map(([key, label, kind]) => <Field key={key} label={label} layout={kind === 'date' ? 'inline' : undefined} selectionMode="immediate" searchable={key === 'recommended'} value={data[key] || ''} type={kind === 'date' ? 'date' : 'text'} options={Array.isArray(kind) ? kind : undefined} onChange={v => update(key, v)} onPick={kind === 'department' ? () => setDepartment(true) : undefined} />)}<Actions flat items={[{ label: '取消', muted: true, onClick: onCancel }, { label: '重置', muted: true, onClick: () => setData({}) }, { label: '确定', onClick: () => onApply(data) }]} />{department && <OptionSheet title="所属部门" value={data.department} options={[]} onChange={v => update('department', v)} onClose={() => setDepartment(false)} />}</div>;
 }
 
 export function Approval({ supplier, populated = true, history = false, showSupplier = true, number = 'SUP202610140004', type = '注册' }) {

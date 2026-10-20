@@ -1,5 +1,7 @@
 // 截图中的内容仅作为原型演示样本，不连接真实供应商、员工、银行或审批服务。
 export const supplierTypes = ['企业供应商', '个人供应商', '政府机构', '国外供应商'];
+// 原说明书“所属行业”21项；查询字段“供应商推荐”按用户确认采用此目录。
+export const supplierIndustries = ["信息传输、计算机服务和软件业","农林牧渔业","采矿业","制造业","电力、热力、燃气及水的生产和供应业","环节和公共设施管理业","建筑业","交通运输、仓储业和邮政业","批发和零售业","住宿、餐饮业","金融、保险业","房地产业","租赁和商务服务业","科学研究、技术服务和地址勘察业","水利、环境和公共设施管理业","居民服务和其他服务业","教育","卫生、社会保障和社会服务业","文化、体育、娱乐业","综合（含投资类、主业不明显）","其他"];
 export const supplierStates = ['草稿', '邀请中', '注册中', '审批中', '已审批', '注册驳回', '变更中'];
 export const permissionGroups = {
   '差旅权限': ['飞机', '火车', '酒店', '租车'],
@@ -23,8 +25,8 @@ export const people = [
 export const exampleBank = { id: '112297879', accountType: '基本账户', bank: bankNames[0], branch: branches[0].name, country: '中国', province: '北京市', city: '北京市', name: '牛来豹拉', number: '6214589503254174', currency: '人民币', proof: '开户证明.png', note: '', change: '' };
 export const companyName = '北京初然文化传媒有限公司733324';
 export const initialSuppliers = [
-  { id: '733324', name: companyName, type: supplierTypes[0], status: '已审批', mode: '代注册', inviter: '陈才慧', date: '2026-10-14 19:20:35', updated: '2026-10-14 19:23:23', score: '未评分', code: '93458847MACA1H2A43', email: 'caihuichen@sohu-lab.com', contact: '', phone: '', banks: [exampleBank], permissions: [{ id: 'p1', group: '差旅权限', category: '飞机', note: '', change: '' }] },
-  { id: '557348', name: '快速创建557348', type: supplierTypes[0], status: '已审批', mode: '快速注册', inviter: '陈才慧', date: '2026-10-14 19:22:50', updated: '2026-10-14 19:24:29', score: '未评分', code: 'M1HDARQPAJ4486AH4P', email: '', contact: '', phone: '', banks: [], permissions: [] },
+  { id: '733324', industry: supplierIndustries[0], name: companyName, type: supplierTypes[0], status: '已审批', mode: '代注册', inviter: '陈才慧', date: '2026-10-14 19:20:35', updated: '2026-10-14 19:23:23', score: '未评分', code: '93458847MACA1H2A43', email: 'caihuichen@sohu-lab.com', contact: '', phone: '', banks: [exampleBank], permissions: [{ id: 'p1', group: '差旅权限', category: '飞机', note: '', change: '' }] },
+  { id: '557348', industry: supplierIndustries[1], name: '快速创建557348', type: supplierTypes[0], status: '已审批', mode: '快速注册', inviter: '陈才慧', date: '2026-10-14 19:22:50', updated: '2026-10-14 19:24:29', score: '未评分', code: 'M1HDARQPAJ4486AH4P', email: '', contact: '', phone: '', banks: [], permissions: [] },
   { id: '000253', name: '邀请注册企业000253', type: supplierTypes[0], status: '邀请中', mode: '邀请注册', inviter: '陈才慧', date: '2026-10-14 19:34:49', updated: '2026-10-14 19:34:49', score: '未评分', code: '', email: 'caihuichen@sohu-lab.com', contact: '陈才慧', phone: '18810773091', banks: [], permissions: [] },
   { id: 'draft', name: '代注册草稿', type: supplierTypes[0], status: '草稿', mode: '代注册', inviter: '陈才慧', date: '2026-10-14 19:35:00', updated: '2026-10-14 19:35:00', score: '未评分', code: '', email: '', contact: '', phone: '', banks: [], permissions: [] },
   { id: 'old', name: '老六的公司', type: supplierTypes[0], status: '已审批', mode: '代注册', inviter: '陈才慧', date: '2023-07-04 11:31:59', updated: '2026-10-12 18:11:17', score: '55.24', code: '', email: '', contact: '', phone: '', banks: [], permissions: [] },
