@@ -16,6 +16,21 @@ export function Row({ label, children, required = false, compact = false }) {
   return <div className={`m-row ${compact ? 'm-row-compact' : ''}`}><span className="m-label">{required && <em>*</em>}{label}</span><span className="m-value">{children}</span></div>;
 }
 
+const statusTone = {
+  '草稿': 'neutral', '邀请中': 'info', '注册中': 'info',
+  '审批中': 'warning', '待审批': 'warning', '变更中': 'warning',
+  '已审批': 'success', '注册驳回': 'danger',
+};
+export function StatusTag({ value }) {
+  return value ? <span className="m-status" data-tone={statusTone[value] || 'neutral'}>{value}</span> : <span>—</span>;
+}
+
+export function AppliedFilters({ filters, query, count, onEdit, onClear }) {
+  const labels = { type: '供应商类型', status: '供应商状态', start: '邀请时间（起）', end: '邀请时间（止）', recommended: '供应商推荐', inviter: '邀请人' };
+  const entries = Object.entries(filters).filter(([key, value]) => labels[key] && value);
+  return <section className="m-applied-filters" aria-label="当前查询条件"><div className="m-filter-summary">{entries.length > 0 && <button onClick={onEdit}>已筛选 · {entries.length}项</button>}<span className="m-result-count" role="status">共 {count} 家供应商</span>{entries.length > 0 && <button onClick={onClear}>清除筛选</button>}</div><dl className="m-applied-conditions">{query && <div><dt>关键词</dt><dd>{query}</dd></div>}{entries.map(([key, value]) => <div key={key}><dt>{labels[key]}</dt><dd>{value}</dd></div>)}</dl></section>;
+}
+
 export function Field({ label, value = '', onChange, required = false, options, onPick, type = 'text', placeholder, maxLength, help, readOnly = false, multiline = false, error, inputMode, autoComplete, selectionMode = 'confirm', searchable = false, layout }) {
   const id = useId();
   const [validation, setValidation] = useState('');
@@ -53,7 +68,7 @@ export function UploadField({ label, required, value, onChange, help }) {
   const receiveFile = file => { if (file) { const entry = rememberAttachment(file); onChange(entry.key); setPreview(file.type.startsWith('image/') ? entry.url : ''); } };
   return <div data-field-label={label} className="m-field m-upload-field"><label htmlFor={id}>{required && <em>*</em>}{label}{help && <button type="button" className="m-help" aria-label={label + "填写说明"} onClick={() => setHelpOpen(true)}><HelpCircle /></button>}</label><div className="m-field-control">
     <label className={`m-upload ${value ? 'has-file' : ''}`} htmlFor={id}>{preview ? <img src={preview} alt={attachmentName(value)} /> : value === '营业执照.jpg' ? <span className="m-license-plate"><img src="/mobile-assets/license-source.jpg" alt="营业执照" /></span> : value === '开户证明.png' ? <span className="m-proof-plate"><img src="/mobile-assets/bank-proof-source.jpg" alt="开户证明" /></span> : value ? <span>{attachmentName(value)}</span> : <Camera aria-hidden="true" />}<input id={id} type="file" aria-invalid={!!error} aria-describedby={error ? id + "-error" : undefined} aria-label={label} onChange={e => { receiveFile(e.target.files[0]); e.target.value = '';  }} /></label>
-    <div className="m-upload-tools"><label htmlFor={id + '-camera'}>拍照<input id={id + '-camera'} type="file" accept="image/*" capture="environment" aria-label={'拍照上传' + label} onChange={e => { receiveFile(e.target.files[0]); e.target.value = ''; }} /></label><label htmlFor={id}>选择照片或文件</label>{preview && <button type="button" onClick={() => setPreviewOpen(true)}>预览</button>}</div>
+    {value && <p className="m-attachment-name"><span>文件名：</span>{attachmentName(value)}</p>}<div className="m-upload-tools"><label htmlFor={id + '-camera'}>拍照<input id={id + '-camera'} type="file" accept="image/*" capture="environment" aria-label={'拍照上传' + label} onChange={e => { receiveFile(e.target.files[0]); e.target.value = ''; }} /></label><label htmlFor={id}>选择照片或文件</label>{preview && <button type="button" onClick={() => setPreviewOpen(true)}>预览</button>}</div>
     {previewOpen && <Overlay label="附件预览" onClose={() => setPreviewOpen(false)}><h2>{attachmentName(value)}</h2><a href={preview} target="_blank" rel="noreferrer"><img className="m-attachment-full" src={preview} alt={attachmentName(value)} /></a><div className="m-dialog-actions"><button onClick={() => setPreviewOpen(false)}>关闭</button></div></Overlay>}
     {value && <button type="button" className="m-upload-remove" aria-label={`移除${label}`} onClick={() => setRemoving(true)}><X /></button>}
   </div>{error && <p id={id + "-error"} className="m-field-error" role="alert">{error}</p>}{helpOpen && <Overlay label={label + "填写说明"} onClose={() => setHelpOpen(false)}><h2>{label}</h2><p>{help}</p><div className="m-dialog-actions"><button onClick={() => setHelpOpen(false)}>知道了</button></div></Overlay>}{removing && <Confirm text={"确认移除" + label + "？"} onCancel={() => setRemoving(false)} onConfirm={() => { onChange(''); setPreview(''); setRemoving(false); }} />}</div>;
@@ -67,7 +82,7 @@ export function Actions({ items, flat = false }) {
   return <footer className={`m-actions ${flat ? 'm-actions-flat' : ''}`}>{items.map((item, i) => <button key={`${item.label}-${i}`} type={item.type || 'button'} className={item.secondary ? 'secondary' : item.muted ? 'muted' : ''} disabled={item.disabled} onClick={item.onClick}>{item.label}</button>)}</footer>;
 }
 
-export function Empty({ text = '没有查询到相关数据', illustration = false }) {
+export function Empty({ text = '暂无数据', illustration = false }) {
   return <div className={`m-empty ${illustration ? 'm-empty-illustrated' : ''}`}>{illustration && <span className="m-empty-plate"><img src="/mobile-assets/empty-application-source.jpg" alt="" /></span>}{text}</div>;
 }
 
@@ -94,8 +109,8 @@ export function Overlay({ children, label = '选择', onClose, sheet = false }) 
   return <div className="m-overlay" onClick={e => { if (e.target === e.currentTarget) onClose(); }}><div ref={ref} tabIndex={-1} className={sheet ? 'm-sheet' : 'm-dialog'} role="dialog" aria-modal="true" aria-label={label}>{children}</div></div>;
 }
 
-export function Confirm({ text, onCancel, onConfirm, cancelLabel = '取消', confirmLabel = '确认' }) {
-  return <Overlay label="提示" onClose={onCancel}><h2>提示</h2><p>{text}</p><div className="m-dialog-actions"><button onClick={onCancel}>{cancelLabel}</button><button onClick={onConfirm}>{confirmLabel}</button></div></Overlay>;
+export function Confirm({ text, onCancel, onConfirm, cancelLabel = '取消', confirmLabel = '确认', danger = false }) {
+  return <Overlay label="提示" onClose={onCancel}><h2>提示</h2><p>{text}</p><div className="m-dialog-actions"><button onClick={onCancel}>{cancelLabel}</button><button className={danger ? 'm-action-danger' : undefined} onClick={onConfirm}>{confirmLabel}</button></div></Overlay>;
 }
 
 export function ScreenshotTip({ onClose }) {
@@ -124,7 +139,7 @@ export function OptionSheet({ title, options = [], value, onChange, onClose, mod
   const [selected, setSelected] = useState(value || '');
   const [query, setQuery] = useState('');
   const matches = options.filter(x => x.includes(query.trim()));
-  return <Overlay label={title} onClose={onClose} sheet><div className={'m-picker-title ' + (mode === 'immediate' ? 'm-picker-immediate' : '')}><button onClick={onClose}>取消</button><strong>{title}</strong>{mode === 'confirm' && <button onClick={() => { onChange(selected); onClose(); }}>确认</button>}</div>{searchable && <SearchBox value={query} onChange={setQuery} placeholder={'搜索' + title} />}<div className="m-sheet-options">{matches.length ? matches.map(x => <button aria-pressed={x === selected} className={x === selected ? 'selected' : ''} key={x} onClick={() => { if (mode === 'immediate') { onChange(x); onClose(); } else setSelected(x); }}>{x}{x === selected && <Check />}</button>) : <Empty />}</div><button className="m-picker-clear" onClick={() => { if (mode === 'immediate') { onChange(''); onClose(); } else setSelected(''); }}>清空选择</button></Overlay>;
+  return <Overlay label={title} onClose={onClose} sheet><div className={'m-picker-title ' + (mode === 'immediate' ? 'm-picker-immediate' : '')}><button onClick={onClose}>取消</button><strong>{title}</strong>{mode === 'confirm' && <button onClick={() => { onChange(selected); onClose(); }}>确认</button>}</div>{searchable && <SearchBox value={query} onChange={setQuery} placeholder={'搜索' + title} />}<div className="m-sheet-options">{matches.length ? matches.map(x => <button aria-pressed={x === selected} className={x === selected ? 'selected' : ''} key={x} onClick={() => { if (mode === 'immediate') { onChange(x); onClose(); } else setSelected(x); }}>{x}{x === selected && <Check />}</button>) : <Empty text={query ? '暂无匹配选项' : '暂无可用选项'} />}</div><button className="m-picker-clear" onClick={() => { if (mode === 'immediate') { onChange(''); onClose(); } else setSelected(''); }}>清空选择</button></Overlay>;
 }
 
 export function Header({ onBack, title = '供应商管理平台', close }) {
@@ -147,3 +162,4 @@ export function RegistrationSteps({ personal, step }) {
     </li>)}</ol>
   </nav>;
 }
+

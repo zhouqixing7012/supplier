@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Home, ClipboardList, UserRound, ChevronRight, Landmark } from 'lucide-react';
-import { Actions, Confirm, Empty, Field, Overlay, Row, Section } from './mobile-ui.jsx';
+import { Actions, Confirm, Empty, StatusTag, Field, Overlay, Row, Section } from './mobile-ui.jsx';
 import { AddressForm, BankCard, BankFields, BasicFields, ContactFields, bankError, fieldsFor, filledBasic, blankBank } from './mobile-forms.jsx';
 import { exampleBank as sampleBank, supplierTypes } from './mobile-data.js';
 import { Tabs, Approval } from './mobile-views.jsx';
@@ -55,7 +55,7 @@ export function PortalWorkspace({ scene, go, notify, store, onPreview }) {
   };
   const beginBank = (entry, index) => { setBank(clone(entry)); setBankIndex(index); };
   return <div className="m-workspace">
-    {scene === 'workspace-home' && <><Section title="首页" collapsible={false}><h2 className="m-portal-supplier">{profile.name}</h2><Row label="资料状态">{pending ? '变更中' : profile.status}</Row></Section><div className="m-workspace-menu">{[['供应商信息管理', 'workspace-info'], ['报价与价税拆分', 'workspace-tasks'], ['账户信息', 'workspace-account']].map(([label, route]) => <button key={route} onClick={() => go(route)}>{label}<ChevronRight aria-hidden="true" /></button>)}</div>{store.portalDraft && !pending && <button className="m-preview-edit" onClick={() => go('workspace-changes')}>继续提交资料修改</button>}{pending && <button className="m-preview-edit" onClick={() => go('workspace-approval')}>查看资料变更审批</button>}</>}
+    {scene === 'workspace-home' && <><Section title="首页" collapsible={false}><h2 className="m-portal-supplier">{profile.name}</h2><Row label="资料状态"><StatusTag value={pending ? '变更中' : profile.status} /></Row></Section><div className="m-workspace-menu">{[['供应商信息管理', 'workspace-info'], ['报价与价税拆分', 'workspace-tasks'], ['账户信息', 'workspace-account']].map(([label, route]) => <button key={route} onClick={() => go(route)}>{label}<ChevronRight aria-hidden="true" /></button>)}</div>{store.portalDraft && !pending && <button className="m-preview-edit" onClick={() => go('workspace-changes')}>继续提交资料修改</button>}{pending && <button className="m-preview-edit" onClick={() => go('workspace-approval')}>查看资料变更审批</button>}</>}
     {scene === 'workspace-account' && <><Section title="账户信息" collapsible={false}><Row label="登录账号">{store.portalAccount?.account || '演示供应商账号'}</Row><Row label="供应商名称">{profile.name}</Row><Row label="注册邮箱">{profile.email}</Row></Section><div className="m-record-actions"><button onClick={() => setLogout(true)}>退出登录</button></div></>}
     {scene === 'workspace-info' && <>
       <Tabs items={['基本信息', '联系人信息', '银行信息']} active={tab} onChange={i => guard.leave(() => { setEditing(false); setDraft(clone(store.portalDraft || profile)); setInfoTab(i); })} />
@@ -75,3 +75,4 @@ export function PortalWorkspace({ scene, go, notify, store, onPreview }) {
     {!editing && ['workspace-home', 'workspace-tasks', 'workspace-account'].includes(scene) && <nav className="m-bottom-nav" aria-label="协同门户导航">{[[Home, '首页', 'workspace-home'], [ClipboardList, '业务任务', 'workspace-tasks'], [UserRound, '账户', 'workspace-account']].map(([Icon, label, route], i) => <button key={route} aria-current={current === i ? 'page' : undefined} onClick={() => go(route)}><Icon aria-hidden="true" /><span>{label}</span></button>)}</nav>}
   </div>;
 }
+

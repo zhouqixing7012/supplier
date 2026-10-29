@@ -281,6 +281,24 @@ try {
   await check('退出门户明确提示未提交修改，取消退出仍可继续提交', async () => {
     await goto('mobile/workspace-info'); await button('修改').click(); await field('法人代表').fill('退出后需提示的资料'); await button('保存修改').click(); await headerBack(); await button('返回首页').click(); await button('账户').click(); await button('退出登录').click(); assert.ok((await page.getByRole('dialog').innerText()).includes('退出将放弃')); await page.getByRole('dialog').getByRole('button', { name: '取消', exact: true }).click(); await button('首页').click(); await button('继续提交资料修改').click(); assert.ok((await page.locator('.m-change-comparison').innerText()).includes('退出后需提示的资料'));
   });
+  await check('规范吸收：状态语义在列表、详情和门户一致', async () => {
+    await goto('mobile'); const listTag = card('北京初然').locator('.m-status'); assert.equal(await listTag.innerText(), '已审批'); assert.equal(await listTag.getAttribute('data-tone'), 'success'); const appearance = await listTag.evaluate(n => [getComputedStyle(n).color, getComputedStyle(n).backgroundColor]); await card('北京初然').getByRole('button', { name: '详情', exact: true }).click(); const detailTag = page.locator('.m-detail-summary .m-status'); assert.deepEqual(await detailTag.evaluate(n => [getComputedStyle(n).color, getComputedStyle(n).backgroundColor]), appearance); await goto('mobile/workspace-home'); assert.equal(await page.locator('.m-workspace .m-status').getAttribute('data-tone'), 'success'); await page.screenshot({ path: path.join(output, 'adopt-home.png') });
+  });
+  await check('规范吸收：已应用条件值、结果数和取消保持一致', async () => {
+    await goto('mobile'); await button('筛选供应商').click(); await choose('供应商状态', '已审批'); await choose('供应商推荐', '信息传输、计算机服务和软件业'); await button('确定').click(); const summary = page.getByRole('region', { name: '当前查询条件' }); const text = await summary.innerText(); assert.ok(text.includes('已审批')); assert.ok(text.includes('信息传输、计算机服务和软件业')); assert.ok(text.includes('共 1 家供应商')); await button('已筛选 · 2项').click(); await choose('供应商状态', '草稿'); await button('取消').click(); assert.ok((await summary.innerText()).includes('已审批')); assert.equal(await page.locator('.m-supplier-card').count(), 1); await page.screenshot({ path: path.join(output, 'adopt-applied-filters.png') });
+  });
+  await check('规范吸收：搜索和应用筛选后清除旧批量选择', async () => {
+    await goto('mobile/mine'); await button('批量选择').click(); await page.getByRole('checkbox', { name: '选择北京初然文化传媒有限公司733324', exact: true }).check(); await field('搜索供应商名称或邀请人').fill('草稿'); await page.waitForFunction(() => document.querySelectorAll('.m-supplier-card input:checked').length === 0); assert.ok((await page.locator('.m-batch-actions').innerText()).includes('已选 0 项')); await button('清空搜索').click(); await page.getByRole('checkbox', { name: '选择北京初然文化传媒有限公司733324', exact: true }).check(); await button('筛选供应商').click(); await choose('供应商状态', '草稿'); await button('确定').click(); assert.equal(await page.locator('.m-supplier-card input:checked').count(), 0); assert.equal(await page.locator('.m-supplier-card').count(), 1);
+  });
+  await check('规范吸收：空列表与无匹配结果明确区分', async () => {
+    await goto('mobile/shot/200005'); await page.getByText('暂无供应商记录', { exact: true }).waitFor(); await goto('mobile'); await field('搜索供应商名称或邀请人').fill('没有这家供应商'); await page.getByText('暂无匹配结果，请调整搜索或筛选条件', { exact: true }).waitFor(); await button('清空搜索').click(); assert.ok(await page.locator('.m-supplier-card').count() > 0);
+  });
+  await check('规范吸收：长文件名可读，长选项层标题和动作可达', async () => {
+    await page.setViewportSize({ width: 320, height: 640 }); await goto('mobile/register'); const name = '供应商注册营业执照与补充证明长文件名称'.repeat(5) + '.png'; await page.getByLabel('营业执照', { exact: true }).setInputFiles({ ...upload, name }); const line = page.locator('.m-attachment-name'); assert.ok((await line.innerText()).includes(name)); assert.ok(await line.evaluate(n => n.scrollWidth <= n.clientWidth)); await page.getByRole('combobox', { name: '所属行业', exact: true }).click(); const sheet = page.getByRole('dialog'); await sheet.evaluate(n => { n.scrollTop = n.scrollHeight; }); for (const label of ['取消', '确认', '清空选择']) { const box = await sheet.getByRole('button', { name: label, exact: true }).boundingBox(); assert.ok(box.y >= 0 && box.y + box.height <= 640); } await page.screenshot({ path: path.join(output, 'adopt-long-picker.png') }); await page.setViewportSize({ width: 390, height: 845 });
+  });
+  await check('规范吸收：主操作与占位文字保持足够对比', async () => {
+    await goto('mobile/register'); const colors = await page.locator('.m-actions button').last().evaluate(n => [getComputedStyle(n).color, getComputedStyle(n).backgroundColor]); const luminance = rgb => rgb.match(/[\d.]+/g).slice(0,3).map(Number).map(v => { v /= 255; return v <= .04045 ? v / 12.92 : ((v + .055) / 1.055) ** 2.4; }).reduce((sum,v,i) => sum + v * [.2126,.7152,.0722][i],0); const contrast = (a,b) => (Math.max(luminance(a),luminance(b))+.05)/(Math.min(luminance(a),luminance(b))+.05); assert.ok(contrast(...colors) >= 4.5); const placeholder = await field('供应商名称').evaluate(n => getComputedStyle(n, '::placeholder').color); assert.ok(contrast(placeholder, 'rgb(255,255,255)') >= 4.5);
+  });
   for (const width of [320, 390, 430, 768]) await check('代表页面宽度 ' + width, async () => {
     await page.setViewportSize({ width, height: width === 768 ? 1024 : 845 });
     for (const route of ['mobile', 'mobile/bank-form-selected', 'mobile/register-contacts', 'mobile/permissions', 'mobile/my-ratings', 'mobile/rating-ops', 'mobile/bank-application-form', 'mobile/rating-edit', 'mobile/portal', 'mobile/workspace-home', 'mobile/workspace-info', 'mobile/workspace-tasks', 'mobile/workspace-tax-detail', 'mobile/workspace-account', 'mobile/mine-batch']) {
@@ -294,3 +312,4 @@ try {
   console.log(JSON.stringify({ passed, failed, failures: results.filter(x => !x.passed) }, null, 2));
   if (failed) process.exitCode = 1;
 } finally { await browser?.close(); await new Promise(resolve => server.close(resolve)); }
+
