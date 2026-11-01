@@ -39,7 +39,7 @@ export function AppliedFilters({ filters, query, count, onEdit, onClear }) {
   return <section className="m-applied-filters" aria-label="当前查询条件"><div className="m-filter-summary">{entries.length > 0 && <button onClick={onEdit}>已筛选 · {entries.length}项</button>}<span className="m-result-count" role="status">共 {count} 家供应商</span>{entries.length > 0 && <button onClick={onClear}>清除筛选</button>}</div><dl className="m-applied-conditions">{query && <div><dt>关键词</dt><dd>{query}</dd></div>}{entries.map(([key, value]) => <div key={key}><dt>{labels[key]}</dt><dd>{value}</dd></div>)}</dl></section>;
 }
 
-export function Field({ label, value = '', onChange, required = false, options, onPick, type = 'text', placeholder, maxLength, help, readOnly = false, multiline = false, error, inputMode, autoComplete, selectionMode = 'confirm', searchable = false, layout, allowClearDate = false }) {
+export function Field({ label, value = '', onChange, required = false, options, onPick, type = 'text', placeholder, maxLength, help, readOnly = false, multiline = false, error, inputMode, autoComplete, selectionMode = 'immediate', searchable = false, layout, allowClearDate = false }) {
   const id = useId();
   const [validation, setValidation] = useState('');
   useEffect(() => {
@@ -174,7 +174,7 @@ export function DateSheet({ title, value, onChange, onClose, allowLong = false, 
   return <Overlay label={title} onClose={onClose} sheet><div className="m-date-picker"><div className="m-picker-title"><button onClick={onClose}>取消</button><strong>{title}</strong><span /></div><p className="m-date-selection" aria-live="polite">{date[0]}年{date[1]}月{Math.min(date[2], days)}日</p><div className="m-date-columns" aria-hidden="true"><span>年</span><span>月</span><span>日</span></div><div ref={wheels} className="m-date-wheels" data-no-swipe>{values.map((items, i) => <DateWheel key={i} label={['年', '月', '日'][i]} values={items} value={Math.min(date[i], i === 2 ? days : date[i])} onChange={v => setDate(old => { const next = old.map((x, n) => n === i ? v : x); next[2] = Math.min(next[2], new Date(next[0], next[1], 0).getDate()); return next; })} />)}</div>{(allowLong || allowClear) && <div className="m-date-shortcuts">{allowLong && <button onClick={() => { onChange('长期'); onClose(); }}>长期</button>}{allowClear && <button onClick={() => { onChange(''); onClose(); }}>清空日期</button>}</div>}<div className="m-picker-actions"><button type="button" className="primary" onClick={confirm}>确认</button></div></div></Overlay>;
 }
 
-export function OptionSheet({ title, options = [], value, onChange, onClose, mode = 'confirm', searchable = false }) {
+export function OptionSheet({ title, options = [], value, onChange, onClose, mode = 'immediate', searchable = false }) {
   const [selected, setSelected] = useState(value || '');
   const [query, setQuery] = useState('');
   const matches = options.filter(x => x.includes(query.trim()));
