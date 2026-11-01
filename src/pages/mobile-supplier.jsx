@@ -1,11 +1,11 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Check, ClipboardPlus, Landmark, Download, Filter, ListChecks, Plus, Search, Signal, Wifi, Battery, X, MoreHorizontal } from 'lucide-react';
-import { Actions, AppliedFilters, Confirm, Empty, Field, FilterButton, Header, PendingChanges, RegistrationSteps, Overlay, Row, ScreenshotTip, SearchBox, Section } from './mobile-ui.jsx';
+import { Actions, AttachmentViewer, AppliedFilters, Confirm, Empty, Field, FilterButton, Header, PendingChanges, RegistrationSteps, Overlay, Row, ScreenshotTip, SearchBox, Section } from './mobile-ui.jsx';
 import { AddressForm, BankCard, BankFields, BasicFields, ContactFields, InviteForm, PermissionForm, ReferenceList, bankError, blankBank, fieldsFor, filledBasic } from './mobile-forms.jsx';
 import { Approval, BankApplication, FilterView, PermissionCard, RatingList, SupplierDetail, SupplierList, Tabs } from './mobile-views.jsx';
 import { bankNames, cooperation, exampleBank, initialSuppliers, screenshotScenes, supplierTypes } from './mobile-data.js';
 import { BankApplicationForm, RatingEditor, RatingOperations, RatingWorkspace, initialRatings } from './mobile-workflows.jsx';
-import { InteractionProvider, SwipeArea, useInteraction, useDirtyForm, useBackLayer, usePageIsolation, attachmentFiles, attachmentName } from './mobile-interaction.jsx';
+import { InteractionProvider, SwipeArea, useInteraction, useDirtyForm, useBackLayer, usePageIsolation, attachmentName } from './mobile-interaction.jsx';
 import { SupplierExport } from './mobile-export.jsx';
 import { PortalWorkspace } from './mobile-portal.jsx';
 import { ChangeComparison } from './mobile-changes.jsx';
@@ -326,7 +326,7 @@ function MobileSurface({ scene, shot, ratings, setRatings, activeRating, setActi
     </SwipeArea>
     {exportOpen && <SupplierExport suppliers={matching} initial={filters} notify={notify} onClose={() => { setExportOpen(false); if (scene === 'export') go('mine'); }} />}
     {sheet === 'more' && <Overlay sheet label="更多操作" onClose={() => setSheet(null)}><div className="m-action-sheet">{['分配权限', '变更邀请人', '审批记录'].map((label, i) => <button key={label} onClick={() => { setSheet(null); go(['permissions', 'inviter', 'approval'][i]); }}>{label}</button>)}<button className="cancel" onClick={() => setSheet(null)}>取消</button></div></Overlay>}
-    {sheet?.kind === 'attachment' && <Overlay label="查看附件" onClose={() => setSheet(null)}><h2>查看附件</h2><p>{attachmentName(sheet.name)}</p>{attachmentFiles.has(sheet.name) ? attachmentFiles.get(sheet.name).type.startsWith('image/') ? <a href={attachmentFiles.get(sheet.name).url} target="_blank" rel="noreferrer"><img className="m-attachment-full" src={attachmentFiles.get(sheet.name).url} alt={attachmentName(sheet.name)} /></a> : <a href={attachmentFiles.get(sheet.name).url} target="_blank" rel="noreferrer">打开附件</a> : sheet.name === '开户证明.png' ? <span className="m-proof-large"><img src="/mobile-assets/bank-proof-source.jpg" alt="开户证明" /></span> : <p>该演示样本没有附件原件</p>}<div className="m-dialog-actions"><button onClick={() => setSheet(null)}>关闭</button></div></Overlay>}
+    {sheet?.kind === 'attachment' && <AttachmentViewer value={sheet.name} onClose={() => setSheet(null)} />}
     {confirm && <Confirm danger={confirm.type.startsWith('delete')} text={confirm.text} onCancel={() => setConfirm(null)} onConfirm={runConfirmation} />}
     {tip && <ScreenshotTip onClose={() => setTip(false)} />}
     {shot && <button className={'m-vconsole m-vconsole-' + scene} onClick={() => setDebug(!debug)}>vConsole</button>}
