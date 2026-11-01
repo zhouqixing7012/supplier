@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Check, ChevronDown, ClipboardList, Edit3, Filter, List, MoreHorizontal, Plus, X } from 'lucide-react';
-import { Actions, Empty, Field, StatusTag, OptionSheet, Overlay, Row, SearchBox, Section } from './mobile-ui.jsx';
+import { Actions, ChangeTag, Empty, Field, StatusTag, OptionSheet, Overlay, Row, SearchBox, Section } from './mobile-ui.jsx';
 import { BankCard } from './mobile-forms.jsx';
 import { cooperation, supplierStates, supplierTypes, supplierIndustries } from './mobile-data.js';
 import { SwipeArea } from './mobile-interaction.jsx';
@@ -49,7 +49,7 @@ export function FilterView({ rating = false, initial = {}, onApply, onCancel, in
 }
 
 export function Approval({ supplier, populated = true, history = false, showSupplier = true, number = 'SUP202610140004', type = '注册' }) {
-  return <div className="m-approval">{supplier.pendingInformation && supplier.status === '变更中' && <ChangeComparison before={supplier} after={supplier.pendingInformation} />}{showSupplier && <Row label="供应商名称">{supplier.name}</Row>}<Section title="当前审批进度"><Row label="审批类型">{type}</Row><div className="m-field-divider" /><Row label="审批单号">{populated ? number : ''}</Row>{populated ? <ol className="m-approval-timeline">{[['陈才慧(208660)', '开始'], ['陈才慧(208660)', '业务审批'], ['史小曼(110933)', '部门领导审批'], ['许丽(111505)', '财务审批']].map(([person, node], i) => <li key={node}><h3>{node}<StatusTag value={i === 3 ? '待审批' : '已审批'} /></h3><Row label="审批人">{person}</Row><Row label="代理人">—</Row><Row label="审批时间">2026-10-14</Row><details><summary>审批意见</summary><p>—</p></details></li>)}</ol> : <Empty text="暂无审批节点" />}<details className="m-approval-table"><summary>查看完整表格</summary><div className="m-table-scroll" data-no-swipe><table><colgroup>{[65, 87, 87, 87, 100, 100, 100].map((width, i) => <col key={i} style={{ width }} />)}</colgroup><thead><tr>{['序号', '审批人', '代理人', '审批节点', '审批时间', '审批意见', '审批状态'].map(x => <th key={x}>{x}</th>)}</tr></thead><tbody>{populated ? [['陈才慧(208660)', '开始'], ['陈才慧(208660)', '业务审批'], ['史小曼(110933)', '部门领导审批'], ['许丽(111505)', '财务审批']].map(([person, node], i) => <tr key={node}><td>{i + 1}</td><td>{person}</td><td /><td>{node}</td><td>2026-10-14</td><td /><td>{i === 3 ? '待审批' : '已审批'}</td></tr>) : <tr><td colSpan={7}>暂无数据</td></tr>}</tbody></table></div></details></Section><Section title="审批历史">{history ? ['审批单号', '审批类型', '审批状态', '发起时间', '发起人'].map(x => <Row key={x} label={x} />) : <Empty text="无数据" />}</Section></div>;
+  return <div className="m-approval">{supplier.pendingInformation && supplier.status === '变更中' && <ChangeComparison before={supplier} after={supplier.pendingInformation} />}{showSupplier && <Row label="供应商名称">{supplier.name}</Row>}<Section title="当前审批进度" collapsible={false}><Row label="审批类型">{type}</Row><div className="m-field-divider" /><Row label="审批单号">{populated ? number : ''}</Row>{populated ? <ol className="m-approval-timeline">{[['陈才慧(208660)', '开始'], ['陈才慧(208660)', '业务审批'], ['史小曼(110933)', '部门领导审批'], ['许丽(111505)', '财务审批']].map(([person, node], i) => <li key={node}><h3>{node}<StatusTag value={i === 3 ? '待审批' : '已审批'} /></h3><Row label="审批人">{person}</Row><Row label="代理人">—</Row><Row label="审批时间">2026-10-14</Row><Row label="审批意见">—</Row></li>)}</ol> : <Empty text="暂无审批节点" />}</Section><Section title="审批历史" collapsible={false}>{history ? ['审批单号', '审批类型', '审批状态', '发起时间', '发起人'].map(x => <Row key={x} label={x} />) : <Empty text="无数据" />}</Section></div>;
 }
 
 export function SupplierDetail({ supplier, initialTab = 0, approvalEmpty = false, onPreview, ratings = [], onScore, onRatingOpen }) {
@@ -72,7 +72,7 @@ export function RatingList({ entries = cooperation, onOpen, onEdit }) {
 
 export function PermissionCard({ data, onEdit, onDelete }) {
   const [menu, setMenu] = useState(false);
-  return <article className="m-bank-card"><div className="m-card-body"><Row compact label="所属权限">{data.group}</Row><Row compact label="权限分类">{data.category}</Row><Row compact label="备注">{data.note}</Row><Row compact label="状态">{data.change && <span className="m-change">{data.change}</span>}</Row>{(onEdit || onDelete) && <div className="m-record-actions">{onEdit && <button onClick={onEdit}>修改</button>}{onDelete && <button className="m-action-danger" onClick={onDelete}>删除</button>}</div>}</div></article>;
+  return <article className="m-bank-card" data-change={data.change || undefined}><div className="m-record-heading"><h3>{data.group || '供应商权限'}</h3><ChangeTag value={data.change} /></div><div className="m-card-body"><Row compact label="所属权限">{data.group}</Row><Row compact label="权限分类">{data.category}</Row><Row compact label="备注">{data.note}</Row>{(onEdit || onDelete) && <div className="m-record-actions">{onEdit && <button onClick={onEdit}>修改</button>}{onDelete && <button className="m-action-danger" onClick={onDelete}>删除</button>}</div>}</div></article>;
 }
 
 export function BankApplication({ onApply }) {

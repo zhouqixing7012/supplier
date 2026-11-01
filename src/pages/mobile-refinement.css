@@ -146,15 +146,7 @@
 .mobile-page:not(.m-shot) .m-reference-content { padding-inline: 16px; }
 .mobile-page:not(.m-shot) .m-reference-list .m-search-row { position: sticky; top: 0; z-index: 2; }
 .mobile-page:not(.m-shot) .m-upload-preview { width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; }
-.m-basic-navigation { display: flex; flex-wrap: wrap; gap: 4px 12px; padding: 8px 16px; background: var(--m-surface); }
-.m-basic-navigation button { color: var(--m-action); min-height: 44px; font-size: 14px; }
-.m-basic-group { scroll-margin-top: 112px; background: var(--m-surface); margin-bottom: 12px; }
-.m-basic-group > h3 { margin: 0; padding: 14px 16px 8px; font-size: 16px; color: var(--m-text); }
 .m-bank-location-note { padding: 8px 16px; margin: 0; font-size: 14px; color: var(--m-text-secondary); }
-.m-rating-precision { width: 100%; }
-.m-rating-precision summary { color: var(--m-action); min-height: 44px; display: list-item; padding-block: 10px; cursor: pointer; font-size: 14px; }
-.m-rating-precision input { display: inline-block; margin-right: 10px; }
-.m-rating-precision .m-score-stepper { display: inline-flex; vertical-align: middle; gap: 8px; }
 .m-rating-value { font-size: 16px; font-variant-numeric: tabular-nums; color: var(--m-text); }
 .mobile-page:not(.m-shot) .m-star-control > span:first-child { gap: 0; }
 .mobile-page:not(.m-shot) .m-star-control svg:not(.filled) { color: #697181; }
@@ -167,19 +159,16 @@
 
 /* 分组导航采用胶囊，独立业务卡片承载对应内容。 */
 .mobile-page:not(.m-shot) { --m-space-page: 16px; --m-space-group: 12px; --m-card-radius: 12px; }
-.mobile-page:not(.m-shot) .m-tab-bar-pill { padding: 8px 0 8px 16px; background: #f4f7fa; border-bottom: 0; gap: 8px; }
-.mobile-page:not(.m-shot) .m-tab-bar-pill .m-tabs { background: transparent; gap: 8px; align-items: center; height: 44px; }
-.mobile-page:not(.m-shot) .m-tab-bar-pill .m-tabs button { flex: 0 0 auto; min-height: 44px; min-width: auto; padding: 0 14px; border-radius: 24px; background: var(--m-surface); color: var(--m-text); white-space: nowrap; }
-.mobile-page:not(.m-shot) .m-tab-bar-pill .m-tabs button.active { background: var(--m-action); color: var(--m-surface); }
+.mobile-page:not(.m-shot) .m-tab-bar-pill { padding: 0 0 0 16px; background: #f4f7fa; border-bottom: 0; gap: 8px; }
+.mobile-page:not(.m-shot) .m-tab-bar-pill .m-tabs { background: transparent; gap: 8px; align-items: center; height: 44px; margin-top: 0; }
+.mobile-page:not(.m-shot) .m-tab-bar-pill .m-tabs button { flex: 0 0 auto; min-height: 44px; min-width: auto; padding: 0 14px; border-radius: 24px; background: transparent; color: var(--m-text); white-space: nowrap; position: relative; isolation: isolate; }
+.mobile-page:not(.m-shot) .m-tab-bar-pill .m-tabs button.active { background: transparent; color: var(--m-surface); }
 .mobile-page:not(.m-shot) .m-tab-bar-pill .m-tabs button.active::after { display: none; }
 .mobile-page:not(.m-shot) .m-tab-bar-pill .m-tab-directory { border: 0 !important; background: #f4f7fa; }
 .mobile-page:not(.m-shot) .m-detail-summary { margin-bottom: 8px; }
 .mobile-page:not(.m-shot) .m-detail > .m-swipe-area > .m-section:first-child { margin-top: 8px; }
 .mobile-page:not(.m-shot) .m-section > h2, .mobile-page:not(.m-shot) .m-section-heading { font-size: 16px; }
-.mobile-page:not(.m-shot) .m-row .m-value { text-align: right; min-width: 0; overflow-wrap: anywhere; }
-.mobile-page:not(.m-shot) .m-row-stacked { display: block; }
-.mobile-page:not(.m-shot) .m-row-stacked .m-label { display: block; width: auto; margin-bottom: 6px; }
-.mobile-page:not(.m-shot) .m-row-stacked .m-value { display: block; width: 100%; text-align: left; }
+.mobile-page:not(.m-shot) .m-row .m-value { text-align: left; min-width: 0; overflow-wrap: anywhere; }
 .mobile-page:not(.m-shot) .m-reference-card .m-value { text-align: left; }
 .mobile-page:not(.m-shot) .m-record-heading { display: flex; align-items: flex-start; gap: 12px; padding: 14px 16px; border-bottom: 1px solid var(--m-border-subtle); }
 .mobile-page:not(.m-shot) .m-record-heading > h3, .mobile-page:not(.m-shot) .m-record-heading > h2 { flex: 1; min-width: 0; margin: 0; padding: 0; font-size: 16px; line-height: 1.6; overflow-wrap: anywhere; }
@@ -187,9 +176,9 @@
 .mobile-page:not(.m-shot) .m-detail-summary .m-summary-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
 .mobile-page:not(.m-shot) .m-supplier-buttons button:not(:first-child), .mobile-page:not(.m-shot) .m-record-actions > button { color: var(--m-action); font-weight: 500; }
 .mobile-page:not(.m-shot) .m-record-actions { border-top: 1px solid var(--m-border-subtle); padding-bottom: 4px; }
-.mobile-page:not(.m-shot) .m-status-tabs { border: 0; gap: 8px; padding: 8px 16px; }
-.mobile-page:not(.m-shot) .m-status-tabs button { min-height: 44px; padding: 0 16px; border: 0; border-radius: 24px; background: var(--m-surface); }
-.mobile-page:not(.m-shot) .m-status-tabs button.active { background: var(--m-action); color: var(--m-surface); border: 0; }
+.mobile-page:not(.m-shot) .m-status-tabs { border: 0; gap: 8px; padding: 0 16px; }
+.mobile-page:not(.m-shot) .m-status-tabs button { min-height: 44px; padding: 0 16px; border: 0; border-radius: 24px; background: transparent; position: relative; isolation: isolate; }
+.mobile-page:not(.m-shot) .m-status-tabs button.active { background: transparent; color: var(--m-surface); border: 0; }
 .mobile-page:not(.m-shot) .m-filter-view { background: #f4f7fa; padding: 8px 16px 0; }
 .mobile-page:not(.m-shot) .m-filter-view .m-field { margin-bottom: 12px; padding: 10px 12px; border: 0; border-radius: 8px; background: var(--m-surface); }
 .mobile-page:not(.m-shot) .m-filter-view .m-field.m-field-force-inline { padding-inline: 12px; }
@@ -203,3 +192,30 @@
 
 .mobile-page:not(.m-shot) .m-actions > button.primary:active:not(:disabled) { background: var(--m-action-pressed); }
 .mobile-page:not(.m-shot) .m-actions > button.secondary:active:not(:disabled), .mobile-page:not(.m-shot) .m-actions > button.muted:active:not(:disabled) { background: var(--m-info-surface); }
+
+/* 胶囊视觉高度32px，保留44px点击范围；字段优先保持标签与值同行。 */
+.mobile-page:not(.m-shot) .m-tab-bar-pill .m-tabs button::before,
+.mobile-page:not(.m-shot) .m-status-tabs button::before { content: ''; position: absolute; inset: 6px 0; border-radius: 16px; background: var(--m-surface); z-index: -1; }
+.mobile-page:not(.m-shot) .m-tab-bar-pill .m-tabs button.active::before,
+.mobile-page:not(.m-shot) .m-status-tabs button.active::before { background: var(--m-action); }
+.mobile-page:not(.m-shot) .m-field.m-field-inline { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.mobile-page:not(.m-shot) .m-field.m-field-inline > label { width: 112px; max-width: 40%; flex-shrink: 0; margin-bottom: 0; }
+.mobile-page:not(.m-shot) .m-field.m-field-inline > .m-field-control { width: auto; flex: 1; min-width: 0; }
+.mobile-page:not(.m-shot) .m-field.m-field-inline > .m-field-error { flex-basis: 100%; }
+.mobile-page:not(.m-shot) .m-field input[readonly] { background: transparent; border: 0; padding: 0; color: var(--m-text); }
+.mobile-page:not(.m-shot) .m-field-inline .m-counter { position: static; display: block; width: auto; text-align: right; }
+.mobile-page:not(.m-shot) .m-field-inline .m-field-control:has(.m-counter) input { padding-right: 0; }
+.mobile-page:not(.m-shot) .m-field-inline .m-field-control:has(.m-field-clear) input { padding-right: 44px; }
+.mobile-page:not(.m-shot) .m-row .m-label { width: 112px; max-width: 44%; }
+.mobile-page:not(.m-shot) .m-row .m-value { flex: 1; min-width: 0; white-space: normal; overflow-wrap: anywhere; }
+.mobile-page .m-star-control > span[role=slider]:focus-visible { outline: 2px solid var(--m-action); outline-offset: 3px; border-radius: 4px; }
+.m-pending-changes { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin: 12px 16px; padding: 12px; border: 1px solid var(--m-border); border-radius: 8px; background: var(--m-surface); font-size: 14px; }
+.m-pending-changes.has-changes { position: sticky; top: 56px; z-index: 24; border-color: #e4ad40; background: #fff8e6; color: #783b08; box-shadow: 0 2px 6px #0000000d; }
+.m-pending-changes strong { font-size: 16px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.m-pending-breakdown { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 4px; }
+.m-pending-changes button { min-width: 80px; min-height: 44px; padding: 4px 8px; color: var(--m-action); flex-shrink: 0; font-size: 14px; }
+/* 删除图标小巧，扩展透明命中区，不用大色块遮挡图片。 */
+.mobile-page .m-upload-remove { left: 76px; top: -6px; width: 28px; height: 28px; min-width: 28px; min-height: 28px; background: transparent !important; color: var(--m-text-secondary) !important; border-radius: 0; isolation: isolate; }
+.mobile-page .m-upload-remove::before { content: ''; position: absolute; inset: 4px; border-radius: 50%; border: 1px solid var(--m-border); background: var(--m-surface); z-index: -1; }
+.mobile-page .m-upload-remove::after { content: ''; position: absolute; inset: -8px; }
+.mobile-page .m-upload-remove svg { width: 14px; height: 14px; }

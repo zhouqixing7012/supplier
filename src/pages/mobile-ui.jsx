@@ -1,5 +1,5 @@
 import React, { useEffect, useId, useRef, useState } from 'react';
-import { CalendarDays, Camera, Check, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, HelpCircle, Search, X } from 'lucide-react';
+import { CalendarDays, Camera, Check, Filter, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, HelpCircle, Search, X } from 'lucide-react';
 import { useBackLayer, rememberAttachment, attachmentFiles, attachmentName } from './mobile-interaction.jsx';
 
 export function Section({ title, children, className = '', collapsible = true, defaultOpen = true }) {
@@ -13,9 +13,20 @@ export function Section({ title, children, className = '', collapsible = true, d
 }
 
 export function Row({ label, children, required = false, compact = false }) {
-  const text = typeof children === 'string' ? children : '';
-  const stacked = text.length > 20 || (text.length > 12 && /地址|事项|内容|备注|部门|范围|意见|银行|账户|账号|证件|邮箱|名称/.test(label));
-  return <div className={`m-row ${compact ? 'm-row-compact' : ''} ${stacked ? 'm-row-stacked' : ''}`}><span className="m-label">{required && <em>*</em>}{label}</span><span className="m-value">{children}</span></div>;
+  return <div className={`m-row ${compact ? 'm-row-compact' : ''}`}><span className="m-label">{required && <em>*</em>}{label}</span><span className="m-value">{children}</span></div>;
+}
+
+export function FilterButton({ onClick, label = '筛选' }) {
+  return <button type="button" className="m-icon-button" aria-label={label} title={label} onClick={onClick}><Filter aria-hidden="true" /></button>;
+}
+
+export function ChangeTag({ value }) {
+  return value ? <span className="m-status" data-tone={value === '删除' ? 'danger' : value === '修改' ? 'warning' : 'info'} aria-label={'变更状态：' + value}>{value}</span> : null;
+}
+
+export function PendingChanges({ items, only, onToggle }) {
+  const changed = items.filter(item => item.change);
+  return <aside className={'m-pending-changes ' + (changed.length ? 'has-changes' : '')} aria-label="待提交变更"><div><strong>待提交变更：{changed.length} 项</strong>{changed.length > 0 && <span className="m-pending-breakdown">{['新增', '修改', '删除'].map(state => { const count = changed.filter(item => item.change === state).length; return count ? <span key={state}>{state} {count}</span> : null; })}</span>}</div>{changed.length > 0 && <button type="button" aria-pressed={only} onClick={onToggle}>{only ? '显示全部' : '只看变更'}</button>}</aside>;
 }
 
 const statusTone = {
@@ -49,7 +60,7 @@ export function Field({ label, value = '', onChange, required = false, options, 
   const [visiblePassword, setVisiblePassword] = useState(false);
   const numeric = /邮箱验证码|注册资金|QQ/.test(label);
   const attrs = { 'aria-invalid': !!error, 'aria-describedby': error ? id + '-error' : undefined, inputMode: inputMode || (numeric ? 'numeric' : /电话|手机/.test(label) ? 'tel' : /邮箱/.test(label) ? 'email' : undefined), autoComplete: autoComplete || (type === 'password' ? (/新/.test(label) ? 'new-password' : 'current-password') : /邮箱/.test(label) ? 'email' : /邮箱验证码/.test(label) ? 'one-time-code' : /账号/.test(label) ? 'username' : /电话|手机/.test(label) ? 'tel' : 'off'), enterKeyHint: 'next' };
-  return <><div data-field-label={label} className={`m-field ${layout === 'inline' ? 'm-field-force-inline' : ''} ${multiline || label.length > 6 || /邮箱|账号|账户|银行|供应商名称|详细地址|合作事项/.test(label) ? 'm-field-stacked' : 'm-field-inline'} ${error ? 'has-error' : ''} ${multiline ? 'm-field-block' : ''}`}>
+  return <><div data-field-label={label} className={`m-field ${layout === 'inline' ? 'm-field-force-inline' : ''} ${multiline ? 'm-field-stacked' : 'm-field-inline'} ${error ? 'has-error' : ''} ${multiline ? 'm-field-block' : ''}`}>
     <label htmlFor={id}>{required && <em>*</em>}{label}{help && <button type="button" className="m-help" aria-label={label + "填写说明"} onClick={() => setHelpOpen(true)}><HelpCircle /></button>}</label>
     <div className="m-field-control">
       {onPick ? <button aria-invalid={!!error} aria-describedby={error ? id + "-error" : undefined} id={id} aria-label={label} type="button" className="m-select-field" onClick={onPick}><span className={!value ? 'm-placeholder' : ''}>{value || placeholder || `请选择${label}`}</span><ChevronRight /></button> : options ? <button aria-invalid={!!error} aria-describedby={error ? id + "-error" : undefined} id={id} role="combobox" aria-label={label} aria-expanded={choosing} aria-haspopup="dialog" type="button" className="m-select-field" onClick={() => setChoosing(true)}><span className={!value ? 'm-placeholder' : ''}>{value || placeholder || `请选择${label}`}</span><ChevronRight /></button> : type === 'date' ? <button aria-invalid={!!error} aria-describedby={error ? id + "-error" : undefined} id={id} aria-label={label} className="m-select-field" type="button" onClick={() => setDateOpen(true)}><span className={!value ? 'm-placeholder' : ''}>{value || '请选择日期'}</span><CalendarDays /></button> : multiline ? <textarea {...attrs} id={id} aria-label={label} value={value} onChange={e => onChange(e.target.value)} maxLength={maxLength} placeholder={placeholder || `请输入${label}`} required={required} readOnly={readOnly} /> : <input {...attrs} id={id} aria-label={label} value={value} onChange={e => onChange?.(e.target.value)} type={type === 'password' && visiblePassword ? 'text' : type} maxLength={maxLength} placeholder={readOnly ? '' : placeholder || `请输入${label}`} required={required} readOnly={readOnly} />}

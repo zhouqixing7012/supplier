@@ -1,6 +1,6 @@
-import React, { useEffect, useId, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Check, ChevronRight, MoreHorizontal, Plus, Trash2, UserRoundPlus } from 'lucide-react';
-import { Actions, Confirm, DateSheet, Empty, Field, OptionSheet, Overlay, Row, SearchBox, Section, UploadField } from './mobile-ui.jsx';
+import { Actions, ChangeTag, Confirm, DateSheet, Empty, Field, OptionSheet, Overlay, Row, SearchBox, Section, UploadField } from './mobile-ui.jsx';
 import { bankNames, branches, people, permissionGroups, supplierTypes, supplierIndustries } from './mobile-data.js';
 import { useDirtyForm, useBackLayer, attachmentFiles, attachmentName } from './mobile-interaction.jsx';
 
@@ -46,8 +46,8 @@ export function ReferenceList({ kind, selected = '', bank = bankNames[0], onCanc
 }
 
 export function BankCard({ bank, onEdit, onDelete, onPreview }) {
-  return <article className="m-bank-card"><h3>{bank.accountType || '银行账户'} · {bank.bank || '未选择银行'}{bank.number ? ' · 尾号' + bank.number.slice(-4) : ''}</h3><div className="m-card-body">
-    {bank.accountType && <Row label="账户类型" compact>{bank.accountType}</Row>}<Row label="开户银行" compact>{bank.bank}</Row><Row label="银行分行" compact>{bank.branch}</Row><Row label="开户行所在国家/地区" compact>{bank.country}</Row><Row label="开户所在省" compact>{bank.province}</Row><Row label="开户所在市" compact>{bank.city}</Row><Row label="账户名称" compact>{bank.name}</Row><Row label="银行账号" compact>{bank.number}</Row><Row label="币种" compact>{bank.currency}</Row><Row label="开户证明" compact>{bank.proof && <button className="m-proof-thumb" onClick={onPreview}>{bank.proof === '开户证明.png' ? <span className="m-proof-plate"><img src="/mobile-assets/bank-proof-source.jpg" alt="开户证明" /></span> : attachmentName(bank.proof)}</button>}</Row><Row label="备注" compact>{bank.note}</Row><Row label="状态" compact>{bank.change && <span className={`m-change m-change-${bank.change}`}>{bank.change}</span>}</Row>
+  return <article className="m-bank-card" data-change={bank.change || undefined}><div className="m-record-heading"><h3>{bank.accountType || '银行账户'} · {bank.bank || '未选择银行'}{bank.number ? ' · 尾号' + bank.number.slice(-4) : ''}</h3><ChangeTag value={bank.change} /></div><div className="m-card-body">
+    {bank.accountType && <Row label="账户类型" compact>{bank.accountType}</Row>}<Row label="开户银行" compact>{bank.bank}</Row><Row label="银行分行" compact>{bank.branch}</Row><Row label="开户行所在国家/地区" compact>{bank.country}</Row><Row label="开户所在省" compact>{bank.province}</Row><Row label="开户所在市" compact>{bank.city}</Row><Row label="账户名称" compact>{bank.name}</Row><Row label="银行账号" compact>{bank.number}</Row><Row label="币种" compact>{bank.currency}</Row><Row label="开户证明" compact>{bank.proof && <button className="m-proof-thumb" onClick={onPreview}>{bank.proof === '开户证明.png' ? <span className="m-proof-plate"><img src="/mobile-assets/bank-proof-source.jpg" alt="开户证明" /></span> : attachmentName(bank.proof)}</button>}</Row><Row label="备注" compact>{bank.note}</Row>
     {(onEdit || onDelete) && <div className="m-record-actions">{onEdit && <button onClick={onEdit}>修改</button>}{onDelete && <button className="m-action-danger" onClick={onDelete}>删除</button>}</div>}
   </div></article>;
 }
@@ -83,7 +83,6 @@ export const fieldsFor = type => type === supplierTypes[1] ? personalFields : ty
 export const filledBasic = { type: supplierTypes[0], proof: '营业执照.jpg', supplierName: '北京初然文化传媒有限公司483920', creditCode: '73652184MACA1H2A43', establishedAt: '2023-03-07', licenseUntil: '2053-03-06', legalRepresentative: '王嵩涵', companyPhone: '010-52867111', companyType: '有限责任公司', industry: '文化、体育、娱乐业', capital: '100', currency: '人民币', country: '国内', address: '', invoiceAddress: '', website: '', taxpayer: '', listed: '', branchOffice: '', businessScope: '', cooperation: '', remark: '' };
 
 export function BasicFields({ data, setData, shot = false, onAddress, initialDate = false }) {
-  const groupId = useId();
   const [nextType, setNextType] = useState('');
   const [picker, setPicker] = useState(initialDate ? { key: 'licenseUntil', title: '证件有效期至' } : null);
   const change = (key, value) => setData({ ...data, [key]: value });
@@ -92,11 +91,9 @@ export function BasicFields({ data, setData, shot = false, onAddress, initialDat
       return key === 'supplierName' && !shot ? [field, <Field key="registerEmail" label="供应商注册邮箱" required type="email" value={data.registerEmail || ''} help="用于供应商登录协同门户及修改密码时接收验证码" onChange={v => change('registerEmail', v)} />] : [field];
   };
   const proof = <>{[supplierTypes[0], supplierTypes[3]].includes(data.type) && <UploadField label={data.type === supplierTypes[0] ? '营业执照' : '证书'} required value={data.proof} onChange={v => change('proof', v)} help="上传证照附件。" />}</>;
-  const groupFor = key => ['creditCode', 'establishedAt', 'licenseUntil'].includes(key) ? '证照资料' : ['companyPhone', 'country', 'address', 'invoiceAddress', 'website', 'email', 'mobile', 'qq', 'wechat'].includes(key) ? '联系与地址' : ['businessScope', 'cooperation', 'remark'].includes(key) ? '业务资料' : '主体资料';
-  const groups = ['主体资料', '证照资料', '联系与地址', '业务资料'].map(name => [name, fieldsFor(data.type).filter(([key]) => groupFor(key) === name)]).filter(([name, fields]) => fields.length || (name === '证照资料' && [supplierTypes[0], supplierTypes[3]].includes(data.type)));
   return <>
     <Field label="供应商类型" required options={supplierTypes} value={data.type} onChange={type => { if (type === data.type) return; if (Object.entries(data).some(([key, value]) => !['type', 'supplierName', 'registerEmail'].includes(key) && value)) setNextType(type); else setData({ type, supplierName: data.supplierName || '', registerEmail: data.registerEmail || '' }); }} />
-    {shot ? <>{proof}{fieldsFor(data.type).flatMap(renderField)}</> : <><nav className="m-basic-navigation" aria-label="基本信息分组">{groups.map(([name], i) => <button key={name} type="button" onClick={() => document.getElementById(groupId + i)?.scrollIntoView({ block: 'start' })}>{name}</button>)}</nav>{groups.map(([name, fields], i) => <section className="m-basic-group" key={name} id={groupId + i}><h3>{name}</h3>{name === '证照资料' && proof}{fields.flatMap(renderField)}</section>)}</>}
+    {proof}{fieldsFor(data.type).flatMap(renderField)}
     {nextType && <Confirm text="切换供应商类型会清除不适用的基本信息，是否继续？" onCancel={() => setNextType('')} onConfirm={() => { setData({ type: nextType, supplierName: data.supplierName || '', registerEmail: data.registerEmail || '' }); setNextType(''); }} />}
     {picker && <DateSheet title={picker.title} value={data[picker.key]} onChange={v => change(picker.key, v)} onClose={() => setPicker(null)} allowLong={picker.key === 'licenseUntil'} />}
   </>;
