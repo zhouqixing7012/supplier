@@ -197,8 +197,6 @@ body { font-family: "Microsoft YaHei", "Supplier Noto SC", "PingFang SC", Arial,
 .m-capture-plate { display: block; width: 260px; max-width: 100%; height: 185px; overflow: hidden; position: relative; margin: auto; }
 .m-capture-plate img { position: absolute; width: 435px; max-width: none; left: -83px; top: -336px; height: auto; }
 .m-date-wheels { display: flex; justify-content: space-around; gap: 10px; min-height: 235px; align-items: center; padding: 15px 25px; }
-.m-date-wheels select { flex: 1; min-width: 0; background: var(--m-surface); border: 0; text-align: center; appearance: none; scrollbar-width: none; color: var(--m-text); }
-.m-date-wheels option { font-size: 21px; padding: 8px 0; }
 .m-inviter-note { color: #b0b1b5; margin: 18px 6px 12px; font-size: 15px; line-height: 1.9; }
 .m-approval > .m-row { padding: 14px 17px; }
 .m-approval .m-table-scroll { margin-top: 22px; overflow-x: auto; scrollbar-width: thin; scrollbar-color: #d4d8df #f8f8f8; }
@@ -581,9 +579,6 @@ body { font-family: "Microsoft YaHei", "Supplier Noto SC", "PingFang SC", Arial,
 .m-date-picker .m-picker-title { background: var(--m-surface); border-bottom: 1px solid var(--m-border); }
 .m-date-selection { margin: 16px 18px 0; font-size: 17px; text-align: center; color: var(--m-action); font-variant-numeric: tabular-nums; }
 .m-date-picker .m-date-wheels { padding: 12px 18px 24px; min-height: 220px; gap: 12px; }
-.m-date-picker .m-date-wheels select { font-size: 16px; color: var(--m-text-secondary); border-radius: 4px; }
-.m-date-picker .m-date-wheels option { font-size: 17px; line-height: 1.7; padding: 8px 0; }
-.m-date-picker .m-date-wheels option:checked { color: var(--m-action); background: var(--m-info-surface); font-weight: 600; }
 
 .m-filter-view .m-actions button.muted { background: var(--m-surface); color: var(--m-text-secondary); }
 .m-picker-title.m-picker-immediate { display: grid; grid-template-columns: 60px minmax(0, 1fr) 60px; }
@@ -621,3 +616,13 @@ body { font-family: "Microsoft YaHei", "Supplier Noto SC", "PingFang SC", Arial,
 .m-actions button:active:not(:disabled), .m-fab-blue:active { background: var(--m-action-pressed); }
 .m-actions button.secondary:active:not(:disabled) { background: var(--m-info-surface); }
 .mobile-page button:focus-visible, .mobile-page input:focus-visible, .mobile-page select:focus-visible, .mobile-page textarea:focus-visible { outline-color: var(--m-focus); }
+
+
+/* 五行窗口的中间一行固定为当前日期，滚动与键盘选择共用同一数值。 */
+.m-date-picker .m-date-wheels { align-items: stretch; }
+.m-date-wheel { flex: 1; min-width: 0; height: 220px; overflow-y: auto; padding-block: 88px; scroll-snap-type: y mandatory; scrollbar-width: none; overscroll-behavior: contain; }
+.m-date-wheel::-webkit-scrollbar { display: none; }
+.m-date-wheel > button { display: block; width: 100%; height: 44px; min-height: 44px; padding: 0; scroll-snap-align: center; color: var(--m-text-secondary); font-size: 16px; white-space: nowrap; }
+.m-date-wheel > button[aria-selected=true] { color: var(--m-action); background: var(--m-info-surface); font-weight: 600; }
+.m-date-shortcuts { border-top: 1px solid var(--m-border); display: flex; }
+.m-date-shortcuts button { flex: 1; min-height: 48px; color: var(--m-action); font-size: 16px; }

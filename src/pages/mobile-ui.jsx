@@ -31,7 +31,7 @@ export function AppliedFilters({ filters, query, count, onEdit, onClear }) {
   return <section className="m-applied-filters" aria-label="当前查询条件"><div className="m-filter-summary">{entries.length > 0 && <button onClick={onEdit}>已筛选 · {entries.length}项</button>}<span className="m-result-count" role="status">共 {count} 家供应商</span>{entries.length > 0 && <button onClick={onClear}>清除筛选</button>}</div><dl className="m-applied-conditions">{query && <div><dt>关键词</dt><dd>{query}</dd></div>}{entries.map(([key, value]) => <div key={key}><dt>{labels[key]}</dt><dd>{value}</dd></div>)}</dl></section>;
 }
 
-export function Field({ label, value = '', onChange, required = false, options, onPick, type = 'text', placeholder, maxLength, help, readOnly = false, multiline = false, error, inputMode, autoComplete, selectionMode = 'confirm', searchable = false, layout }) {
+export function Field({ label, value = '', onChange, required = false, options, onPick, type = 'text', placeholder, maxLength, help, readOnly = false, multiline = false, error, inputMode, autoComplete, selectionMode = 'confirm', searchable = false, layout, allowClearDate = false }) {
   const id = useId();
   const [validation, setValidation] = useState('');
   useEffect(() => {
@@ -53,7 +53,7 @@ export function Field({ label, value = '', onChange, required = false, options, 
       {onPick ? <button aria-invalid={!!error} aria-describedby={error ? id + "-error" : undefined} id={id} aria-label={label} type="button" className="m-select-field" onClick={onPick}><span className={!value ? 'm-placeholder' : ''}>{value || placeholder || `请选择${label}`}</span><ChevronRight /></button> : options ? <button aria-invalid={!!error} aria-describedby={error ? id + "-error" : undefined} id={id} role="combobox" aria-label={label} aria-expanded={choosing} aria-haspopup="dialog" type="button" className="m-select-field" onClick={() => setChoosing(true)}><span className={!value ? 'm-placeholder' : ''}>{value || placeholder || `请选择${label}`}</span><ChevronRight /></button> : type === 'date' ? <button aria-invalid={!!error} aria-describedby={error ? id + "-error" : undefined} id={id} aria-label={label} className="m-select-field" type="button" onClick={() => setDateOpen(true)}><span className={!value ? 'm-placeholder' : ''}>{value || '请选择日期'}</span><CalendarDays /></button> : multiline ? <textarea {...attrs} id={id} aria-label={label} value={value} onChange={e => onChange(e.target.value)} maxLength={maxLength} placeholder={placeholder || `请输入${label}`} required={required} readOnly={readOnly} /> : <input {...attrs} id={id} aria-label={label} value={value} onChange={e => onChange?.(e.target.value)} type={type === 'password' && visiblePassword ? 'text' : type} maxLength={maxLength} placeholder={readOnly ? '' : placeholder || `请输入${label}`} required={required} readOnly={readOnly} />}
       {onChange && value && !readOnly && !options && !onPick && type !== 'date' && type !== 'password' && <button type="button" className="m-field-clear" aria-label={'清空' + label} onClick={() => { onChange(''); document.getElementById(id)?.focus(); }}><X /></button>}{type === 'password' && <button type="button" className="m-password-toggle" aria-label={visiblePassword ? "隐藏密码" : "显示密码"} onClick={() => setVisiblePassword(!visiblePassword)}>{visiblePassword ? "隐藏" : "显示"}</button>}{maxLength && !options && !onPick && <small className="m-counter">{value.length}/{maxLength}</small>}
     </div>{error && <p id={id + "-error"} className="m-field-error" role="alert">{error}</p>}
-  </div>{helpOpen && <Overlay label={label + "填写说明"} onClose={() => setHelpOpen(false)}><h2>{label}</h2><p>{help}</p><div className="m-dialog-actions"><button onClick={() => setHelpOpen(false)}>知道了</button></div></Overlay>}{choosing && <OptionSheet title={label} options={options} value={value} onChange={onChange} onClose={() => setChoosing(false)} mode={selectionMode} searchable={searchable} />}{dateOpen && <DateSheet title={label} value={value} onChange={onChange} onClose={() => setDateOpen(false)} />}</>;
+  </div>{helpOpen && <Overlay label={label + "填写说明"} onClose={() => setHelpOpen(false)}><h2>{label}</h2><p>{help}</p><div className="m-dialog-actions"><button onClick={() => setHelpOpen(false)}>知道了</button></div></Overlay>}{choosing && <OptionSheet title={label} options={options} value={value} onChange={onChange} onClose={() => setChoosing(false)} mode={selectionMode} searchable={searchable} />}{dateOpen && <DateSheet allowClear={allowClearDate} title={label} value={value} onChange={onChange} onClose={() => setDateOpen(false)} />}</>;
 }
 
 export function UploadField({ label, required, value, onChange, help }) {
@@ -67,9 +67,9 @@ export function UploadField({ label, required, value, onChange, help }) {
   const [previewOpen, setPreviewOpen] = useState(false);
   const receiveFile = file => { if (file) { const entry = rememberAttachment(file); onChange(entry.key); setPreview(file.type.startsWith('image/') ? entry.url : ''); } };
   return <div data-field-label={label} className="m-field m-upload-field"><label htmlFor={id}>{required && <em>*</em>}{label}{help && <button type="button" className="m-help" aria-label={label + "填写说明"} onClick={() => setHelpOpen(true)}><HelpCircle /></button>}</label><div className="m-field-control">
-    <label className={`m-upload ${value ? 'has-file' : ''}`} htmlFor={id}>{preview ? <img src={preview} alt={attachmentName(value)} /> : value === '营业执照.jpg' ? <span className="m-license-plate"><img src="/mobile-assets/license-source.jpg" alt="营业执照" /></span> : value === '开户证明.png' ? <span className="m-proof-plate"><img src="/mobile-assets/bank-proof-source.jpg" alt="开户证明" /></span> : value ? <span>{attachmentName(value)}</span> : <Camera aria-hidden="true" />}<input id={id} type="file" aria-invalid={!!error} aria-describedby={error ? id + "-error" : undefined} aria-label={label} onChange={e => { receiveFile(e.target.files[0]); e.target.value = '';  }} /></label>
-    {value && <p className="m-attachment-name"><span>文件名：</span>{attachmentName(value)}</p>}<div className="m-upload-tools"><label htmlFor={id + '-camera'}>拍照<input id={id + '-camera'} type="file" accept="image/*" capture="environment" aria-label={'拍照上传' + label} onChange={e => { receiveFile(e.target.files[0]); e.target.value = ''; }} /></label><label htmlFor={id}>选择照片或文件</label>{preview && <button type="button" onClick={() => setPreviewOpen(true)}>预览</button>}</div>
-    {previewOpen && <Overlay label="附件预览" onClose={() => setPreviewOpen(false)}><h2>{attachmentName(value)}</h2><a href={preview} target="_blank" rel="noreferrer"><img className="m-attachment-full" src={preview} alt={attachmentName(value)} /></a><div className="m-dialog-actions"><button onClick={() => setPreviewOpen(false)}>关闭</button></div></Overlay>}
+    <div className={`m-upload ${value ? 'has-file' : ''}`}><button type="button" className="m-upload-preview" aria-label={value ? '查看' + label : '选择' + label} onClick={() => value ? setPreviewOpen(true) : document.getElementById(id)?.click()}>{preview ? <img src={preview} alt={attachmentName(value)} /> : value === '营业执照.jpg' ? <span className="m-license-plate"><img src="/mobile-assets/license-source.jpg" alt="营业执照示例" /></span> : value === '开户证明.png' ? <span className="m-proof-plate"><img src="/mobile-assets/bank-proof-source.jpg" alt="开户证明示例" /></span> : value ? <span>{attachmentName(value)}</span> : <Camera aria-hidden="true" />}</button><input tabIndex={-1} id={id} type="file" aria-invalid={!!error} aria-describedby={error ? id + '-error' : undefined} aria-label={label} onChange={e => { receiveFile(e.target.files[0]); e.target.value = ''; }} /></div>
+    {value && <p className="m-attachment-name"><span>文件名：</span>{attachmentName(value)}</p>}<div className="m-upload-tools"><label htmlFor={id + '-camera'}>拍照<input id={id + '-camera'} type="file" accept="image/*" capture="environment" aria-label={'拍照上传' + label} onChange={e => { receiveFile(e.target.files[0]); e.target.value = ''; }} /></label><button type="button" onClick={() => document.getElementById(id)?.click()}>{value ? "替换照片或文件" : "选择照片或文件"}</button>{preview && <button type="button" onClick={() => setPreviewOpen(true)}>预览</button>}</div>
+    {previewOpen && <Overlay label="附件预览" onClose={() => setPreviewOpen(false)}><h2>{attachmentName(value)}</h2><>{preview ? <a href={preview} target="_blank" rel="noreferrer"><img className="m-attachment-full" src={preview} alt={attachmentName(value)} /></a> : attachmentFiles.has(value) ? <p>此文件不支持图片预览。<a href={attachmentFiles.get(value).url} target="_blank" rel="noreferrer">打开文件</a></p> : <p>此附件仅有截图示例，未提供原件，暂不可预览原图。</p>}</><div className="m-dialog-actions"><button onClick={() => setPreviewOpen(false)}>关闭</button></div></Overlay>}
     {value && <button type="button" className="m-upload-remove" aria-label={`移除${label}`} onClick={() => setRemoving(true)}><X /></button>}
   </div>{error && <p id={id + "-error"} className="m-field-error" role="alert">{error}</p>}{helpOpen && <Overlay label={label + "填写说明"} onClose={() => setHelpOpen(false)}><h2>{label}</h2><p>{help}</p><div className="m-dialog-actions"><button onClick={() => setHelpOpen(false)}>知道了</button></div></Overlay>}{removing && <Confirm text={"确认移除" + label + "？"} onCancel={() => setRemoving(false)} onConfirm={() => { onChange(''); setPreview(''); setRemoving(false); }} />}</div>;
 }
@@ -95,7 +95,7 @@ export function Overlay({ children, label = '选择', onClose, sheet = false }) 
     const previous = document.activeElement;
     const oldOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
-    const targets = () => [...ref.current.querySelectorAll('button,input,select,textarea,[tabindex="0"]')].filter(x => !x.disabled);
+    const targets = () => [...ref.current.querySelectorAll('button,input,select,textarea,a[href],[tabindex="0"]')].filter(x => !x.disabled && x.tabIndex >= 0 && x.getClientRects().length > 0);
     const first = targets()[0];
     (first || ref.current).focus({ preventScroll: true });
     const onKey = e => {
@@ -117,22 +117,38 @@ export function ScreenshotTip({ onClose }) {
   return <Overlay label="截屏提示" onClose={onClose}><div className="m-capture-tip"><span className="m-capture-plate"><img src="/mobile-assets/capture-notice-source.jpg" alt="截屏分享提醒" /></span><p>截屏已生效，分享需谨慎</p><button onClick={onClose}>知道了</button></div></Overlay>;
 }
 
-export function DateSheet({ title, value, onChange, onClose, allowLong = false }) {
+function DateWheel({ label, values, value, onChange }) {
+  const ref = useRef(null);
+  const timer = useRef(null);
+  const id = useId();
+  useEffect(() => {
+    const node = ref.current;
+    const top = Math.max(0, values.indexOf(value)) * 44;
+    if (Math.abs(node.scrollTop - top) > 1) node.scrollTop = top;
+  }, [value, values.length]);
+  useEffect(() => () => clearTimeout(timer.current), []);
+  const chooseAt = index => onChange(values[Math.max(0, Math.min(values.length - 1, index))]);
+  return <div ref={ref} className="m-date-wheel" role="listbox" aria-label={label} aria-activedescendant={id + '-' + value} tabIndex={0}
+    onScroll={e => { const index = Math.round(e.currentTarget.scrollTop / 44); clearTimeout(timer.current); timer.current = setTimeout(() => chooseAt(index), 100); }}
+    onKeyDown={e => { const index = values.indexOf(value); if (['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(e.key)) { e.preventDefault(); chooseAt(e.key === 'Home' ? 0 : e.key === 'End' ? values.length - 1 : index + (e.key === 'ArrowDown' ? 1 : -1)); } }}>
+    {values.map(x => <button type="button" role="option" id={id + '-' + x} key={x} tabIndex={-1} aria-selected={x === value} onClick={() => { clearTimeout(timer.current); onChange(x); }}>{x}{label}</button>)}
+  </div>;
+}
+
+export function DateSheet({ title, value, onChange, onClose, allowLong = false, allowClear = false }) {
   const today = new Date();
   const parts = /^\d{4}-\d{2}-\d{2}$/.test(value) ? value.split('-').map(Number) : [today.getFullYear(), today.getMonth() + 1, today.getDate()];
   const [date, setDate] = useState(parts);
   const days = new Date(date[0], date[1], 0).getDate();
   const wheels = useRef(null);
-  useEffect(() => {
-    const frame = requestAnimationFrame(() => {
-      wheels.current?.querySelectorAll('select').forEach(select => {
-        const height = select.options[select.selectedIndex]?.getBoundingClientRect().height;
-        if (height) select.scrollTop = Math.max(0, (select.selectedIndex - 2) * height);
-      });
-    });
-    return () => cancelAnimationFrame(frame);
-  }, [date.join('-')]);
-  return <Overlay label={title} onClose={onClose} sheet><div className="m-date-picker"><div className="m-picker-title"><button onClick={onClose}>取消</button><strong>{title}</strong><div>{allowLong && <button onClick={() => { onChange('长期'); onClose(); }}>长期</button>}<button onClick={() => { onChange(`${date[0]}-${String(date[1]).padStart(2, '0')}-${String(Math.min(date[2], days)).padStart(2, '0')}`); onClose(); }}>确认</button></div></div><p className="m-date-selection" aria-live="polite">{date[0]}年{date[1]}月{Math.min(date[2], days)}日</p><div ref={wheels} className="m-date-wheels">{[Array.from({ length: 91 }, (_, i) => 1970 + i), Array.from({ length: 12 }, (_, i) => i + 1), Array.from({ length: days }, (_, i) => i + 1)].map((values, i) => <select key={i} aria-label={['年', '月', '日'][i]} size={5} value={Math.min(date[i], i === 2 ? days : date[i])} onChange={e => setDate(date.map((x, n) => n === i ? Number(e.target.value) : x))}><option disabled value="spacer-start-a" aria-hidden="true"> </option><option disabled value="spacer-start-b" aria-hidden="true"> </option>{values.map(x => <option key={x} value={x}>{x}{['年', '月', '日'][i]}</option>)}<option disabled value="spacer-end-a" aria-hidden="true"> </option><option disabled value="spacer-end-b" aria-hidden="true"> </option></select>)}</div></div></Overlay>;
+  const values = [Array.from({ length: 91 }, (_, i) => 1970 + i), Array.from({ length: 12 }, (_, i) => i + 1), Array.from({ length: days }, (_, i) => i + 1)];
+  const confirm = () => {
+    // 确认时读取可见滚动位置，避免快速滚动后立即确认取到上一次日期。
+    const current = [...wheels.current.querySelectorAll('.m-date-wheel')].map((node, i) => values[i][Math.max(0, Math.min(values[i].length - 1, Math.round(node.scrollTop / 44)))]);
+    current[2] = Math.min(current[2], new Date(current[0], current[1], 0).getDate());
+    onChange(`${current[0]}-${String(current[1]).padStart(2, '0')}-${String(current[2]).padStart(2, '0')}`); onClose();
+  };
+  return <Overlay label={title} onClose={onClose} sheet><div className="m-date-picker"><div className="m-picker-title"><button onClick={onClose}>取消</button><strong>{title}</strong><button onClick={confirm}>确认</button></div><p className="m-date-selection" aria-live="polite">{date[0]}年{date[1]}月{Math.min(date[2], days)}日</p><div ref={wheels} className="m-date-wheels" data-no-swipe>{values.map((items, i) => <DateWheel key={i} label={['年', '月', '日'][i]} values={items} value={Math.min(date[i], i === 2 ? days : date[i])} onChange={v => setDate(old => { const next = old.map((x, n) => n === i ? v : x); next[2] = Math.min(next[2], new Date(next[0], next[1], 0).getDate()); return next; })} />)}</div>{(allowLong || allowClear) && <div className="m-date-shortcuts">{allowLong && <button onClick={() => { onChange('长期'); onClose(); }}>长期</button>}{allowClear && <button onClick={() => { onChange(''); onClose(); }}>清空日期</button>}</div>}</div></Overlay>;
 }
 
 export function OptionSheet({ title, options = [], value, onChange, onClose, mode = 'confirm', searchable = false }) {
@@ -162,4 +178,5 @@ export function RegistrationSteps({ personal, step }) {
     </li>)}</ol>
   </nav>;
 }
+
 
