@@ -13,7 +13,9 @@ export function Section({ title, children, className = '', collapsible = true, d
 }
 
 export function Row({ label, children, required = false, compact = false }) {
-  return <div className={`m-row ${compact ? 'm-row-compact' : ''}`}><span className="m-label">{required && <em>*</em>}{label}</span><span className="m-value">{children}</span></div>;
+  const text = typeof children === 'string' ? children : '';
+  const stacked = text.length > 20 || (text.length > 12 && /地址|事项|内容|备注|部门|范围|意见|银行|账户|账号|证件|邮箱|名称/.test(label));
+  return <div className={`m-row ${compact ? 'm-row-compact' : ''} ${stacked ? 'm-row-stacked' : ''}`}><span className="m-label">{required && <em>*</em>}{label}</span><span className="m-value">{children}</span></div>;
 }
 
 const statusTone = {
@@ -79,7 +81,8 @@ export function SearchBox({ value, onChange, placeholder = '搜索供应商名�
 }
 
 export function Actions({ items, flat = false }) {
-  return <footer className={`m-actions ${flat ? 'm-actions-flat' : ''}`}>{items.map((item, i) => <button key={`${item.label}-${i}`} type={item.type || 'button'} className={item.secondary ? 'secondary' : item.muted ? 'muted' : ''} disabled={item.disabled} onClick={item.onClick}>{item.label}</button>)}</footer>;
+  const primary = items.reduce((index, item, i) => !item.secondary && !item.muted && (items.length === 1 || !/^(取消|返回|关闭|上一步|重置|保存草稿|继续修改)/.test(item.label)) ? i : index, -1);
+  return <footer className={`m-actions ${flat ? 'm-actions-flat' : ''}`}>{items.map((item, i) => <button key={`${item.label}-${i}`} type={item.type || 'button'} className={item.secondary ? 'secondary' : item.muted ? 'muted' : i === primary ? 'primary' : 'secondary'} disabled={item.disabled} onClick={item.onClick}>{item.label}</button>)}</footer>;
 }
 
 export function Empty({ text = '暂无数据', illustration = false }) {
