@@ -75,11 +75,6 @@ export function PermissionCard({ data, onEdit, onDelete }) {
   return <article className="m-bank-card" data-change={data.change || undefined}><div className="m-record-heading"><h3>{data.group || '供应商权限'}</h3><ChangeTag value={data.change} /></div><div className="m-card-body"><Row compact label="所属权限">{data.group}</Row><Row compact label="权限分类">{data.category}</Row><Row compact label="备注">{data.note}</Row>{(onEdit || onDelete) && <div className="m-record-actions">{onEdit && <button onClick={onEdit}>修改</button>}{onDelete && <button className="m-action-danger" onClick={onDelete}>删除</button>}</div>}</div></article>;
 }
 
-export function BankApplication({ onApply, initialOpen = true }) {
-  const [noticeOpen, setNoticeOpen] = useState(initialOpen);
-  return <><Section title="银行信息申请" collapsible={false}><button className="m-dashed-add" onClick={() => setNoticeOpen(true)}>发起申请</button></Section>{noticeOpen && <Overlay label="申请须知" onClose={() => setNoticeOpen(false)}><h2>申请须知</h2><p>若邀请注册供应商反馈添加银行信息时，未查询到目标开户银行或分行，可通过本功能补充未收录银行。</p><div className="m-dialog-actions"><button onClick={() => setNoticeOpen(false)}>取消</button><button onClick={onApply}>确认申请</button></div></Overlay>}</>;
+export function BankApplication({ onApply }) {
+  return <div className="m-bank-application"><h2>申请须知</h2><p>若邀请注册供应商反馈添加银行信息时，未查询到目标开户银行或分行，可通过本功能补充未收录银行。</p><button onClick={onApply}>确认申请</button></div>;
 }
-
-
-
-
