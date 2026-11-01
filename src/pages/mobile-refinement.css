@@ -165,3 +165,11 @@
 .mobile-page .m-picker-title:has(> button:first-child):has(> strong:last-child) { display: grid; grid-template-columns: 64px minmax(0, 1fr) 64px; }
 .mobile-page .m-picker-title:has(> button:first-child):has(> strong:last-child) > strong { grid-column: 2; text-align: center; }
 .m-shot:has(.m-batch-actions) .m-vconsole { bottom: calc(130px + env(safe-area-inset-bottom, 0px)); }
+
+/* 详情页签与内容共用连续白底，摘要卡独立保留。 */
+.mobile-page:not(.m-shot) .m-detail > .m-swipe-area { background: var(--m-surface); padding: 0 16px 16px; min-height: calc(100dvh - 100px); }
+.mobile-page:not(.m-shot) .m-detail > .m-swipe-area .m-section { margin: 0; padding: 0 0 12px; border: 0; border-radius: 0; background: transparent; }
+.mobile-page:not(.m-shot) .m-detail > .m-swipe-area .m-section > h2 { margin: 0; padding: 12px 0; }
+.mobile-page:not(.m-shot) .m-detail > .m-swipe-area .m-section > h2:has(.m-section-heading) { padding: 0; }
+.mobile-page:not(.m-shot) .m-detail > .m-swipe-area .m-section-heading { padding-inline: 0 !important; }
+.mobile-page:not(.m-shot) .m-detail > .m-swipe-area > .m-rating-list { padding-inline: 0; }
