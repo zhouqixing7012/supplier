@@ -209,11 +209,6 @@
 .mobile-page:not(.m-shot) .m-row .m-label { width: 112px; max-width: 44%; }
 .mobile-page:not(.m-shot) .m-row .m-value { flex: 1; min-width: 0; white-space: normal; overflow-wrap: anywhere; }
 .mobile-page .m-star-control > span[role=slider]:focus-visible { outline: 2px solid var(--m-action); outline-offset: 3px; border-radius: 4px; }
-.m-pending-changes { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin: 12px 16px; padding: 12px; border: 1px solid var(--m-border); border-radius: 8px; background: var(--m-surface); font-size: 14px; }
-.m-pending-changes.has-changes { position: sticky; top: 56px; z-index: 24; border-color: #e4ad40; background: #fff8e6; color: #783b08; box-shadow: 0 2px 6px #0000000d; }
-.m-pending-changes strong { font-size: 16px; font-weight: 600; font-variant-numeric: tabular-nums; }
-.m-pending-breakdown { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 4px; }
-.m-pending-changes button { min-width: 80px; min-height: 44px; padding: 4px 8px; color: var(--m-action); flex-shrink: 0; font-size: 14px; }
 /* 删除图标小巧，扩展透明命中区，不用大色块遮挡图片。 */
 .mobile-page .m-upload-remove { left: 76px; top: -6px; width: 28px; height: 28px; min-width: 28px; min-height: 28px; background: transparent !important; color: var(--m-text-secondary) !important; border-radius: 0; isolation: isolate; }
 .mobile-page .m-upload-remove::before { content: ''; position: absolute; inset: 4px; border-radius: 50%; border: 1px solid var(--m-border); background: var(--m-surface); z-index: -1; }
@@ -283,14 +278,14 @@
 .mobile-page .m-approval-timeline > li::before { content: ''; position: absolute; left: -4px; top: 6px; width: 8px; height: 8px; border: 1px solid var(--m-control-border); border-radius: 50%; background: var(--m-surface); z-index: 1; }
 .mobile-page .m-approval-timeline > li.is-complete::before { background: var(--m-action); border-color: var(--m-action); }
 .mobile-page .m-approval-timeline > li:not(:last-child)::after { content: ''; position: absolute; left: -.5px; top: 18px; bottom: -2px; width: 1px; background: var(--m-border); }
-.m-approval-date { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; margin-bottom: 4px; font-size: 14px; }
-.m-approval-date time { order: -1; font-weight: 500; }
-.m-approval-date > span { margin-left: auto; color: var(--m-text-secondary); }
 .m-approval-node { border-radius: 8px; background: #f2f5fa; padding: 12px; }
-.mobile-page .m-approval-node h3 { margin: 0 0 8px; font-size: 14px; line-height: 1.6; align-items: flex-start; }
 .mobile-page .m-approval-node .m-row { padding: 4px 0; min-height: 0; border: 0; font-size: 14px; }
 .mobile-page .m-approval-node .m-label { width: 76px; max-width: 40%; }
 
 .mobile-page .m-search input:focus-visible, .mobile-page .m-field input:focus-visible, .mobile-page .m-field textarea:focus-visible { outline: none; }
 .m-search > img { display: block; flex: none; }
 .m-search > button > img { display: block; }
+
+.mobile-page .m-approval-timeline .m-approval-heading { margin: 0 0 8px; font-size: 14px; line-height: 1.6; align-items: flex-start; }
+.m-delete-reason { margin: 4px 0 0; font-size: 14px; color: var(--m-text-secondary); }
+.mobile-page .m-record-actions > button:disabled { color: var(--m-text-secondary) !important; opacity: .65; cursor: default; }

@@ -24,11 +24,6 @@ export function ChangeTag({ value }) {
   return value ? <span className="m-status" data-tone={value === '删除' ? 'danger' : value === '修改' ? 'warning' : 'info'} aria-label={'变更状态：' + value}>{value}</span> : null;
 }
 
-export function PendingChanges({ items, only, onToggle }) {
-  const changed = items.filter(item => item.change);
-  return <aside className={'m-pending-changes ' + (changed.length ? 'has-changes' : '')} aria-label="待提交变更"><div><strong>待提交变更：{changed.length} 项</strong>{changed.length > 0 && <span className="m-pending-breakdown">{['新增', '修改', '删除'].map(state => { const count = changed.filter(item => item.change === state).length; return count ? <span key={state}>{state} {count}</span> : null; })}</span>}</div>{changed.length > 0 && <button type="button" aria-pressed={only} onClick={onToggle}>{only ? '显示全部' : '只看变更'}</button>}</aside>;
-}
-
 const statusTone = {
   '草稿': 'neutral', '邀请中': 'info', '注册中': 'info',
   '审批中': 'warning', '待审批': 'warning', '变更中': 'warning',
