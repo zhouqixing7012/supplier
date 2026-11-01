@@ -22,7 +22,7 @@ function SupplierSummary({ s, mine, batch, checked, setChecked, onDetail, onBank
   const historical = window.location.hash.startsWith('#/mobile/shot/');
   const selectable = mine || !admin || s.status === '草稿';
   const fields = mine ? [['证件号码', s.code], ['联系人姓名', s.contact], ['联系人邮箱', s.email], ['联系人电话', s.phone], ['更新时间', s.updated]] : [['注册方式', s.mode], ['更新时间', s.updated]];
-  return <article className="m-supplier-card">
+  return <article className={'m-supplier-card' + (mine ? ' m-supplier-card-mine' : '')}>
     <div className="m-supplier-heading"><h3>{batch && <label className="m-checkbox"><input type="checkbox" disabled={!selectable} aria-label={`选择${s.name}`} checked={checked.includes(s.id)} onChange={e => setChecked(e.target.checked ? [...checked, s.id] : checked.filter(x => x !== s.id))} /><span>{checked.includes(s.id) && <Check />}</span></label>}<i className="m-blue-mark" aria-hidden="true" /><span>{s.name}</span></h3>{!historical && <StatusTag value={s.status} />}</div>
     {!historical && <p className="m-supplier-kind">{s.type}<span>·</span>{s.mode}</p>}
     <dl>{(historical ? [['供应商类型', s.type], ['审批状态', s.status], ['邀请人', s.inviter], ['邀请时间', s.date], ...(!mine ? [['评分', s.score]] : []), ...fields] : [['邀请人', s.inviter], ...(!mine ? [['评分', s.score]] : []), ['邀请时间', s.date], ...fields.filter(([label]) => label !== '注册方式')]).map(([label, value]) => <div className={/时间|邮箱|证件/.test(label) ? 'm-supplier-wide' : ''} key={label}><dt>{label}{historical ? '：' : ''}</dt><dd>{label === '审批状态' ? <StatusTag value={value} /> : value || '—'}</dd></div>)}</dl>
@@ -75,8 +75,9 @@ export function PermissionCard({ data, onEdit, onDelete }) {
   return <article className="m-bank-card" data-change={data.change || undefined}><div className="m-record-heading"><h3>{data.group || '供应商权限'}</h3><ChangeTag value={data.change} /></div><div className="m-card-body"><Row compact label="所属权限">{data.group}</Row><Row compact label="权限分类">{data.category}</Row><Row compact label="备注">{data.note}</Row>{(onEdit || onDelete) && <div className="m-record-actions">{onEdit && <button onClick={onEdit}>修改</button>}{onDelete && <button className="m-action-danger" onClick={onDelete}>删除</button>}</div>}</div></article>;
 }
 
-export function BankApplication({ onApply }) {
-  return <div className="m-bank-application"><h2>申请须知</h2><p>若邀请注册供应商反馈添加银行信息时，未查询到目标开户银行或分行，可通过本功能补充未收录银行。</p><button onClick={onApply}>确认申请</button></div>;
+export function BankApplication({ onApply, initialOpen = true }) {
+  const [noticeOpen, setNoticeOpen] = useState(initialOpen);
+  return <><Section title="银行信息申请" collapsible={false}><button className="m-dashed-add" onClick={() => setNoticeOpen(true)}>发起申请</button></Section>{noticeOpen && <Overlay label="申请须知" onClose={() => setNoticeOpen(false)}><h2>申请须知</h2><p>若邀请注册供应商反馈添加银行信息时，未查询到目标开户银行或分行，可通过本功能补充未收录银行。</p><div className="m-dialog-actions"><button onClick={() => setNoticeOpen(false)}>取消</button><button onClick={onApply}>确认申请</button></div></Overlay>}</>;
 }
 
 
