@@ -1,9 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Check, ChevronDown, ClipboardList, Edit3, Filter, List, MoreHorizontal, Plus, X } from 'lucide-react';
 import { Actions, ChangeTag, Empty, Field, StatusTag, OptionSheet, Overlay, Row, SearchBox, Section } from './mobile-ui.jsx';
-import { BankCard } from './mobile-forms.jsx';
+import { BankCard, fieldsFor } from './mobile-forms.jsx';
 import { cooperation, supplierStates, supplierTypes, supplierIndustries } from './mobile-data.js';
-import { SwipeArea } from './mobile-interaction.jsx';
+import { SwipeArea, attachmentName } from './mobile-interaction.jsx';
 import { ChangeComparison } from './mobile-changes.jsx';
 
 export const mobileTabs = ['供应商查询', '我的邀请', '我的评分', '供应商评分', '供应商运维-评分查询', '银行信息申请'];
@@ -20,12 +20,12 @@ export function SupplierList({ suppliers, mine = false, batch = false, checked, 
 function SupplierSummary({ s, mine, batch, checked, setChecked, onDetail, onBank, onMore, onInviter, onReinvite, onEdit, onEditAll, onDelete, admin }) {
   const [menu, setMenu] = useState(false);
   const historical = window.location.hash.startsWith('#/mobile/shot/');
-  const selectable = mine || !admin || s.status === '草稿';
+  const selectable = mine || s.status === '草稿';
   const fields = mine ? [['证件号码', s.code], ['联系人姓名', s.contact], ['联系人邮箱', s.email], ['联系人电话', s.phone], ['更新时间', s.updated]] : [['注册方式', s.mode], ['更新时间', s.updated]];
   return <article className={'m-supplier-card' + (mine ? ' m-supplier-card-mine' : '')}>
     <div className="m-supplier-heading"><h3>{batch && <label className="m-checkbox"><input type="checkbox" disabled={!selectable} aria-label={`选择${s.name}`} checked={checked.includes(s.id)} onChange={e => setChecked(e.target.checked ? [...checked, s.id] : checked.filter(x => x !== s.id))} /><span>{checked.includes(s.id) && <Check />}</span></label>}<i className="m-blue-mark" aria-hidden="true" /><span>{s.name}</span></h3>{!historical && <StatusTag value={s.status} />}</div>
     {!historical && <p className="m-supplier-kind">{s.type}<span>·</span>{s.mode}</p>}
-    <dl>{(historical ? [['供应商类型', s.type], ['审批状态', s.status], ['邀请人', s.inviter], ['邀请时间', s.date], ...(!mine ? [['评分', s.score]] : []), ...fields] : [['邀请人', s.inviter], ...(!mine ? [['评分', s.score]] : []), ['邀请时间', s.date], ...fields.filter(([label]) => label !== '注册方式')]).map(([label, value]) => <div className={/时间|邮箱|证件/.test(label) ? 'm-supplier-wide' : ''} key={label}><dt>{label}{historical ? '：' : ''}</dt><dd>{label === '审批状态' ? <StatusTag value={value} /> : value || '—'}</dd></div>)}</dl>
+    <dl>{(historical ? [['供应商类型', s.type], ['审批状态', s.status], ['邀请人', s.inviter], ['邀请时间', s.date], ...fields, ...(!mine ? [['评分', s.score]] : [])] : [['邀请人', s.inviter], ['邀请时间', s.date], ...fields.filter(([label]) => label !== '注册方式'), ...(!mine ? [['评分', s.score]] : [])]).map(([label, value]) => <div className={/时间|邮箱|证件|评分/.test(label) ? 'm-supplier-wide' : ''} key={label}><dt>{label}{historical ? '：' : ''}</dt><dd>{label === '审批状态' ? <StatusTag value={value} /> : value || '—'}</dd></div>)}</dl>
 
     {batch && !selectable && <p className="m-input-note">仅草稿可删除</p>}
     {!batch && <div className="m-supplier-buttons"><button onClick={() => onDetail(s)}>详情</button>{s.status === '草稿' ? <button onClick={() => onEdit(s)}>修改</button> : s.status === '已审批' ? mine ? <button onClick={() => onEditAll(s)}>修改全部信息</button> : <button onClick={() => onBank(s)}>修改银行</button> : null}<button onClick={() => setMenu(true)}>更多操作</button></div>}
@@ -54,15 +54,18 @@ export function Approval({ supplier, populated = true, history = false, showSupp
 
 export function SupplierDetail({ supplier, initialTab = 0, approvalEmpty = false, onPreview, ratings = [], onScore, onRatingOpen }) {
   const [tab, setTab] = useState(initialTab);
-  const basic = [['供应商名称', supplier.name], ['供应商类型', supplier.type], ['供应商编码', supplier.id], ['证件类型', supplier.type === supplierTypes[1] ? '身份证' : '三证合一'], ['证件号码', supplier.type === supplierTypes[1] ? '12******34' : supplier.code], ...(supplier.type === supplierTypes[1] ? [['姓名', supplier.name], ['性别', '男']] : [['邀请人', supplier.inviter], ['邀请时间', supplier.date], ['注册方式', supplier.mode], ['曾用名', ''], ['注册邮箱', supplier.email]])];
-  return <div className="m-detail"><div className="m-detail-summary"><h2>{supplier.name}</h2><p className="m-summary-meta"><span>{supplier.type}</span><StatusTag value={supplier.status} /></p></div><Tabs variant="pill" items={['基本信息', '联系人信息', '银行信息', '分配权限', '财务OU', '黑名单操作记录', '审批记录', '合作信息及评分']} active={tab} onChange={setTab} /><SwipeArea active={tab} count={8} onChange={setTab}>
-    {tab === 0 && <Section title="基本信息" collapsible={false}>{basic.map(([label, value]) => <Row key={label} label={label}>{value}</Row>)}</Section>}
-    {tab === 1 && <Section title="联系人信息" collapsible={false}>{supplier.contact ? <><Row label="姓名">{supplier.contact}</Row><Row label="电话">{supplier.phone}</Row><Row label="邮箱">{supplier.email}</Row></> : <Empty text="无数据" />}</Section>}
-    {tab === 2 && <Section title="银行信息" collapsible={false}>{supplier.banks.length ? supplier.banks.map(b => <div key={b.id}><h3 className="m-account-heading">{b.accountType} · {b.bank} · 尾号{b.number?.slice(-4)}</h3>{[['账户类型', b.accountType], ['开户银行', b.bank], ['银行分行', b.branch], ['账户名称', b.name], ['银行账户', b.number], ['开户行所在国家（地区）', b.country], ['所在省', b.province], ['所在市', b.city], ['币种', b.currency], ['备注', b.note]].map(([label, value]) => <Row key={label} label={label}>{value}</Row>)}</div>) : <Empty text="无数据" />}</Section>}
-    {tab === 3 && <Section title="分配权限" collapsible={false}>{supplier.permissions.length ? supplier.permissions.map(p => <div key={p.id}><Row label="所属权限">{p.group}</Row><Row label="权限分类">{p.category}</Row><Row label="备注">{p.note}</Row></div>) : <Empty text="无数据" />}</Section>}
-    {[4, 5].includes(tab) && <Section title={tab === 4 ? '财务OU' : '黑名单操作记录'} collapsible={false}><Empty text="无数据" /></Section>}
-    {tab === 6 && <Approval supplier={supplier} populated={!approvalEmpty} showSupplier={false} />}
-    {tab === 7 && <><div className="m-record-actions"><button onClick={onScore}>新增评分</button></div><RatingList entries={ratings.filter(x => x.name === supplier.name)} onOpen={record => onRatingOpen(record, true)} onEdit={record => onRatingOpen(record, false)} /></>}
+  const registration = [['供应商账号', supplier.supplierAccount || supplier.userCode || supplier.account], ['邀请人', supplier.inviter], ['邀请时间', supplier.date], ['注册方式', supplier.mode], ['曾用名', supplier.supplierFormerName || supplier.formerName], ['注册邮箱', supplier.email]];
+  const basic = { ...supplier.basic, type: supplier.type, supplierName: supplier.name, creditCode: supplier.basic?.creditCode || supplier.code };
+  const basicRows = fieldsFor(supplier.type).filter(([key]) => key !== 'supplierName' || supplier.type === supplierTypes[1]);
+  return <div className="m-detail"><div className="m-detail-summary"><h2>{supplier.name}</h2><p className="m-summary-meta"><span>{supplier.type}</span><StatusTag value={supplier.status} /></p></div><Tabs variant="pill" items={['注册信息', '基本信息', '联系人信息', '银行信息', '分配权限', '财务OU', '黑名单操作记录', '审批记录', '合作信息及评分']} active={tab} onChange={setTab} /><SwipeArea active={tab} count={9} onChange={setTab}>
+    {tab === 0 && <Section title="注册信息" collapsible={false}>{registration.map(([label, value]) => <Row key={label} label={label}>{value || '—'}</Row>)}</Section>}
+    {tab === 1 && <Section title="基本信息" collapsible={false}>{basicRows.map(([key, label]) => <Row key={key} label={label}>{basic[key] === '' ? '—' : basic[key] ?? '—'}</Row>)}<Row label="证照附件">{basic.proof ? <button onClick={() => onPreview(basic.proof)}>{attachmentName(basic.proof)}</button> : '—'}</Row><Row label="经营优势及业务优势">{basic.businessAdvantage || supplier.businessAdvantage || '—'}</Row></Section>}
+    {tab === 2 && <Section title="联系人信息" collapsible={false}>{supplier.contact ? <><Row label="姓名">{supplier.contact}</Row><Row label="电话">{supplier.phone}</Row><Row label="邮箱">{supplier.email}</Row></> : <Empty text="无数据" />}</Section>}
+    {tab === 3 && <Section title="银行信息" collapsible={false}>{supplier.banks.length ? supplier.banks.map(b => <div key={b.id}><h3 className="m-account-heading">{b.accountType} · {b.bank} · 尾号{b.number?.slice(-4)}</h3>{[['账户类型', b.accountType], ['开户银行', b.bank], ['银行分行', b.branch], ['账户名称', b.name], ['银行账户', b.number], ['开户行所在国家（地区）', b.country], ['所在省', b.province], ['所在市', b.city], ['币种', b.currency], ['备注', b.note]].map(([label, value]) => <Row key={label} label={label}>{value}</Row>)}</div>) : <Empty text="无数据" />}</Section>}
+    {tab === 4 && <Section title="分配权限" collapsible={false}>{supplier.permissions.length ? supplier.permissions.map(p => <div key={p.id}><Row label="所属权限">{p.group}</Row><Row label="权限分类">{p.category}</Row><Row label="备注">{p.note}</Row></div>) : <Empty text="无数据" />}</Section>}
+    {[5, 6].includes(tab) && <Section title={tab === 5 ? '财务OU' : '黑名单操作记录'} collapsible={false}><Empty text="无数据" /></Section>}
+    {tab === 7 && <Approval supplier={supplier} populated={!approvalEmpty} showSupplier={false} />}
+    {tab === 8 && <><div className="m-record-actions"><button onClick={onScore}>新增评分</button></div><RatingList entries={ratings.filter(x => x.name === supplier.name)} onOpen={record => onRatingOpen(record, true)} onEdit={record => onRatingOpen(record, false)} /></>}
   </SwipeArea></div>;
 }
 
