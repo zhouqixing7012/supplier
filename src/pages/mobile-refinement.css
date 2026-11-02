@@ -302,3 +302,10 @@
 .m-history-chevron { width: 18px; height: 22px; flex: none; color: var(--m-text-secondary); }
 .m-approval-history-card[open] .m-history-chevron { transform: rotate(180deg); }
 .m-history-content { padding: 0 12px 12px; border-top: 1px solid var(--m-border-subtle); }
+
+.m-batch-mode { display: flex; gap: 8px; padding: 8px 16px; }
+.mobile-page .m-batch-mode button { flex: 1; min-height: 44px; padding: 6px 10px; border: 1px solid var(--m-control-border); border-radius: 8px; color: var(--m-text); }
+.mobile-page .m-batch-mode button[aria-pressed=true] { border-color: var(--m-action); background: var(--m-info-surface); color: var(--m-action); }
+.m-batch-targets { padding: 0 16px; max-height: 24dvh; overflow: auto; }
+
+.mobile-page .m-checkbox input:disabled + span { border-color: var(--m-control-border); background: var(--m-neutral-surface); opacity: .6; }

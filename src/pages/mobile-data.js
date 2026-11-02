@@ -31,7 +31,35 @@ export const initialSuppliers = [
   { id: 'draft', name: '代注册草稿', type: supplierTypes[0], status: '草稿', mode: '代注册', inviter: '陈才慧', date: '2026-10-14 19:35:00', updated: '2026-10-14 19:35:00', score: '未评分', code: '', email: '', contact: '', phone: '', banks: [], permissions: [] },
   { id: 'old', name: '老六的公司', type: supplierTypes[0], status: '已审批', mode: '代注册', inviter: '陈才慧', date: '2023-07-04 11:31:59', updated: '2026-10-12 18:11:17', score: '55.24', code: '', email: '', contact: '', phone: '', banks: [], permissions: [] },
   { id: 'person', name: '哈哈人', type: supplierTypes[1], status: '审批中', mode: '邀请注册', inviter: '周琦星', date: '2026-10-12 16:09:55', updated: '2026-10-12 16:12:38', score: '未评分', code: '12******34', email: '', contact: '', phone: '', banks: [], permissions: [] },
-];
+].map(supplier => {
+  // 用户授权的会话演示资料，不连接真实账号、审批或联系人服务。
+  if (!['733324', '557348', 'old', 'person'].includes(supplier.id)) return supplier;
+  const personal = supplier.type === supplierTypes[1];
+  const basic = personal ? { supplierName: supplier.name, certificateType: '身份证', gender: '男', creditCode: supplier.code, establishedAt: '2020-01-01', licenseUntil: '2040-01-01', country: '国内', address: '北京市/朝阳区 演示地址1号', email: 'person@example.invalid', mobile: '13800000001', qq: '100001', wechat: 'mock_person', cooperation: '内容创作', remark: '会话样例' } : { supplierName: supplier.name, creditCode: supplier.code, establishedAt: '2018-06-15', licenseUntil: '2038-06-14', legalRepresentative: '林晓', companyPhone: '010-55550001', companyType: '有限责任公司', industry: supplier.industry || supplierIndustries[0], capital: '500', currency: '人民币', country: '国内', address: '北京市/朝阳区 演示园区1号', invoiceAddress: '北京市朝阳区演示园区财务室', website: 'https://supplier.example.invalid', taxpayer: '一般纳税人', listed: '否', branchOffice: '否', businessScope: '软件开发、信息系统集成、技术咨询与维护服务', cooperation: '供应商平台开发与运维', remark: '支持分阶段验收与交付', businessAdvantage: '具备需求分析、研发、测试和运维交付团队，支持多地区项目协作。' };
+  const detail = { ...supplier, supplierAccount: 'MOCK_' + supplier.id, supplierFormerName: personal ? '' : '演示企业曾用名', basic, contact: supplier.id === '733324' ? '林晓' : supplier.contact, phone: supplier.id === '733324' ? '13800000001' : supplier.phone };
+  if (supplier.id === '557348') { basic.businessScope = '农林产品供应与种植技术咨询'; basic.cooperation = '园区绿化材料及农产品供应'; }
+  if (supplier.id === '733324') {
+    detail.updated = '2026-10-18 14:31:00';
+    detail.banks = supplier.banks.map(bank => ({ ...bank, name: supplier.name }));
+    detail.approvalNumber = 'MOCK-SUP202610180003';
+    detail.currentApprovalType = '资料变更';
+    const nodes = (date, opinion) => [
+      { id: date + '-start', name: '开始', person: '陈才慧(208660)', status: '已审批', time: date + ' 09:00', opinion: '发起申请', agent: '' },
+      { id: date + '-business', name: '业务审批', person: '史小曼(110933)', status: '已审批', time: date + ' 10:20', opinion, agent: '' },
+      { id: date + '-finance', name: '财务审批', person: '许丽(111505)', status: '已审批', time: date + ' 14:30', opinion: '资料核对完成，同意。', agent: '' },
+    ];
+    detail.approvalHistory = [
+      { number: 'MOCK-SUP202610160002', type: '银行信息变更', status: '已审批', startedAt: '2026-10-16 09:00', initiator: '陈才慧(208660)', nodes: nodes('2026-10-16', '账户资料与开户证明一致，同意变更。') },
+      { number: 'MOCK-SUP202610140001', type: '注册', status: '已审批', startedAt: '2026-10-14 09:00', initiator: '陈才慧(208660)', nodes: nodes('2026-10-14', '注册资料完整，经营范围符合合作需求，同意。') },
+    ];
+    detail.approvalNodes = [
+      ...nodes('2026-10-18', '本次资料更新已完成核对，同意。'),
+      { id: 'mock-complete', name: '结束', person: '系统', status: '已审批', time: '2026-10-18 14:31', opinion: '流程结束', agent: '' },
+    ];
+  }
+  return detail;
+});
+
 export const cooperation = [
   { id: '2099345533281612001', name: '滴滴出行科技有限公司', type: '技术服务', content: '测试PR授权行', person: '陈才慧', department: '集团总部_ERP部_平台技术部_门户技术', date: '2026-08-14', rated: '2026-09-20 15:06:41', score: '未评分' },
   { id: '2099345533281612000', name: '滴滴出行科技有限公司', type: '技术服务', content: '测试PR授权行', person: '李雨思', department: '搜狐媒体_广告营销部_华东区域_华东服务', date: '2026-08-14', rated: '2026-09-20 12:52:32', score: '未评分' },
@@ -65,3 +93,4 @@ export const screenshotScenes = [
   ['202934', '注册银行删除后', 'register-banks-deleted'], ['203223', '移动协同门户登录', 'portal'],
   ['203723', '移动协同门户邮箱验证', 'portal-email'],
 ].map(([time, title, scene], index) => ({ index: index + 1, time, title, scene, sourceWidth: 1080, sourceHeight: ({ '194652': 2459, '195913': 3110, '200506': 3812, '200800': 3105 })[time] || 2340, filename: `Screenshot_20261014_${time}_com.sohu.ehr.jpg`, href: `#/mobile/shot/${time}` }));
+

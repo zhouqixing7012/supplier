@@ -109,7 +109,11 @@ function MobileSurface({ scene, shot, ratings, setRatings, activeRating, setActi
   const [expanded, setExpanded] = useState(['query-add', 'query-export'].includes(scene));
   const [batch, setBatch] = useState(['query-batch', 'mine-batch'].includes(scene));
   const [checked, setChecked] = useState([]);
-  useEffect(() => { setChecked([]); }, [search, filters]);
+  const [batchKind, setBatchKind] = useState(scene.startsWith('mine') ? 'inviter' : 'delete');
+  const [batchInviterOpen, setBatchInviterOpen] = useState(false);
+  const [batchInviter, setBatchInviter] = useState('');
+  const [batchPeople, setBatchPeople] = useState(false);
+  useEffect(() => { setChecked([]); }, [search, filters, batchKind]);
   const [sheet, setSheet] = useState(scene === 'query-more' ? 'more' : null);
   const [confirm, setConfirm] = useState(null);
   const [exportOpen, setExportOpen] = useState(scene === 'export');
@@ -191,12 +195,20 @@ function MobileSurface({ scene, shot, ratings, setRatings, activeRating, setActi
   }, [suppliers, shot, scene, mine]);
   const matching = fixtureList.filter(s => (!search || [s.name, s.inviter].some(x => x.includes(search))) && (!filters.type || s.type === filters.type) && (!filters.status || s.status === filters.status) && (!filters.recommended || (s.basic?.industry || s.industry) === filters.recommended) && (!filters.inviter || s.inviter.includes(filters.inviter)));
   const list = matching.filter(s => (!filters.start || s.date.slice(0, 10) >= filters.start) && (!filters.end || s.date.slice(0, 10) <= filters.end));
-  const selectableList = !mine ? list.filter(x => x.status === '草稿') : list;
+  const selectableList = batchKind === 'delete' ? list.filter(x => x.status === '草稿') : list.filter(x => x.status === '已审批' && !x.blacklisted && x.blackFlag !== 1);
   const pick = (s, next) => { listReturn.current = mine ? 'mine' : 'query'; select(s.id); go(next); };
   const back = () => scene.startsWith('workspace-tax') ? go('workspace-tasks') : scene === 'workspace-approval' || scene === 'workspace-changes' ? go('workspace-info') : scene.startsWith('workspace') ? go('workspace-home') : scene.startsWith('portal') && portalEmail && !passwordScreen ? setPortalEmail(false) : ['rating-edit', 'rating-detail'].includes(scene) ? go(ratingReturn) : isRegistration && step > 0 ? setStep(step - 1) : go(listReturn.current);
   const preview = name => setSheet({ kind: 'attachment', name });
   function runConfirmation() {
     const action = confirm; setConfirm(null);
+    if (action.type === 'batch-inviter') {
+      if (!action.inviter?.trim()) return notify('请选择新邀请人');
+      const targets = suppliers.filter(s => action.ids.includes(s.id));
+      if (!targets.length || targets.length !== action.ids.length || targets.some(s => s.status !== '已审批' || s.blacklisted || s.blackFlag === 1)) return notify('所选供应商状态已变化，请重新选择已审批且未拉黑的供应商');
+      if (targets.some(s => s.inviter === action.inviter)) return notify('新邀请人不能与所选供应商的原邀请人相同');
+      setSuppliers(suppliers.map(s => action.ids.includes(s.id) ? { ...s, inviter: action.inviter, updated: now() } : s));
+      setBatchInviterOpen(false); setBatchPeople(false); setBatch(false); setChecked([]); notify('已更新' + targets.length + '家供应商的邀请人');
+    }
     if (action.type === 'delete') {
       if (!action.ids.length) return notify('请选择草稿供应商');
       if (suppliers.some(s => action.ids.includes(s.id) && s.status !== '草稿')) return notify('仅草稿供应商可以删除');
@@ -269,13 +281,14 @@ function MobileSurface({ scene, shot, ratings, setRatings, activeRating, setActi
     {(listScene || ['ratings', 'my-ratings', 'rating-ops', 'bank-application'].includes(scene)) && <Tabs active={tab} onChange={i => go(['query', 'mine', 'my-ratings', 'ratings', 'rating-ops', 'bank-application'][i])} />}
     <SwipeArea active={tab} count={6} onChange={i => { if (listScene || ['ratings', 'my-ratings', 'rating-ops', 'bank-application'].includes(scene)) go(['query', 'mine', 'my-ratings', 'ratings', 'rating-ops', 'bank-application'][i]); }}>
     {listScene && <>
-      <SearchBox value={search} onChange={setSearch}><FilterButton label="筛选供应商" onClick={() => setFiltering(true)} /><button className="m-icon-button" aria-label={batch ? '退出批量选择' : '批量选择'} onClick={() => { if (!batch && mine && !shot) return notify('批量变更邀请人暂未接通，请使用单条变更邀请人'); setBatch(!batch); setChecked([]); }}>{batch ? <X /> : <ListChecks />}</button></SearchBox>
+      <SearchBox value={search} onChange={setSearch}><FilterButton label="筛选供应商" onClick={() => setFiltering(true)} /><button className="m-icon-button" aria-label={batch ? '退出批量选择' : '批量选择'} onClick={() => { setBatch(!batch); setChecked([]); }}>{batch ? <X /> : <ListChecks />}</button></SearchBox>
       <AppliedFilters filters={filters} query={search} count={list.length} onEdit={() => setFiltering(true)} onClear={() => setFilters({})} />
       {(adminScene || scene === 'query-export') && <div className="m-list-tools"><button onClick={() => setExportOpen(true)}><Download aria-hidden="true" />导出供应商</button></div>}
-      {batch && !mine && !selectableList.length && <p className="m-input-note">当前结果没有可删除的草稿供应商</p>}
-      <SupplierList filtered={!!search || Object.values(filters).some(Boolean)} suppliers={list} mine={mine} batch={batch} checked={checked} setChecked={setChecked} admin={adminScene} onDetail={s => pick(s, 'detail')} onBank={s => pick(s, 'bank')} onMore={(s, approval) => { listReturn.current = mine ? 'mine' : 'query'; select(s.id); approval === 'permissions' ? go('permissions') : approval ? go('approval') : setSheet('more'); }} onInviter={s => pick(s, 'inviter')} onReinvite={s => setConfirm({ type: 'reinvite', id: s.id, text: '重新邀请将清除已填写信息，是否继续？' })} onEdit={s => pick(s, 'register-edit')} onEditAll={s => pick(s, 'register-edit-all')} onDelete={s => setConfirm({ type: 'delete', ids: [s.id], text: '确认删除草稿供应商「' + s.name + '」？删除后原有信息全部作废。' })} />
+      {batch && batchKind === 'delete' && !selectableList.length && <p className="m-input-note">当前结果没有可删除的草稿供应商</p>}
+      {batch && mine && <div className="m-batch-mode" aria-label="批量操作类型">{[['delete', '批量删除'], ['inviter', '批量变更邀请人']].map(([kind, label]) => <button type="button" key={kind} aria-pressed={batchKind === kind} onClick={() => { setBatchKind(kind); setChecked([]); }}>{label}</button>)}</div>}
+      <SupplierList filtered={!!search || Object.values(filters).some(Boolean)} suppliers={list} mine={mine} batch={batch} checked={checked} setChecked={setChecked} admin={adminScene} batchKind={batchKind} onDetail={s => pick(s, 'detail')} onBank={s => pick(s, 'bank')} onMore={(s, approval) => { listReturn.current = mine ? 'mine' : 'query'; select(s.id); approval === 'permissions' ? go('permissions') : approval ? go('approval') : setSheet('more'); }} onInviter={s => pick(s, 'inviter')} onReinvite={s => setConfirm({ type: 'reinvite', id: s.id, text: '重新邀请将清除已填写信息，是否继续？' })} onEdit={s => pick(s, 'register-edit')} onEditAll={s => pick(s, 'register-edit-all')} onDelete={s => setConfirm({ type: 'delete', ids: [s.id], text: '确认删除草稿供应商「' + s.name + '」？删除后原有信息全部作废。' })} />
       {!batch && <div className="m-fab-group">{expanded && <div className="m-fab-menu"><button onClick={() => go('invite')}><span><ClipboardPlus /></span>邀请注册</button><button onClick={() => go('register')}><span><ClipboardPlus /></span>代注册</button>{(scene === 'query-export' || (adminScene && mine)) && <button onClick={() => setExportOpen(true)}><span><ClipboardPlus /></span>导出</button>}</div>}<button className="m-fab m-fab-blue" aria-label={expanded ? '收起新增入口' : '新增供应商'} onClick={() => setExpanded(!expanded)}>{expanded ? <X /> : <Plus />}</button></div>}
-      {batch && <footer className="m-batch-actions"><label className="m-checkbox"><input type="checkbox" aria-label="全选当前结果" disabled={!selectableList.length} checked={selectableList.length > 0 && checked.length === selectableList.length} onChange={e => setChecked(e.target.checked ? selectableList.map(x => x.id) : [])} /><span>{checked.length === selectableList.length && !!list.length && <Check />}</span>全选当前结果</label><span>已选 {checked.length} 项</span><button disabled={!mine && !checked.length} className={!mine ? 'm-action-danger' : undefined} onClick={() => { if (!checked.length) return notify('请选择供应商'); if (mine) notify('批量变更规则待确认，当前可逐条变更邀请人'); else setConfirm({ type: 'delete', ids: checked, text: '仅删除选中的草稿供应商，确认继续？' }); }}>{mine ? '邀请人批量变更' : '删除'}</button></footer>}
+      {batch && <footer className="m-batch-actions"><label className="m-checkbox"><input type="checkbox" aria-label="全选当前结果" disabled={!selectableList.length} checked={selectableList.length > 0 && checked.length === selectableList.length} onChange={e => setChecked(e.target.checked ? selectableList.map(x => x.id) : [])} /><span>{checked.length === selectableList.length && !!list.length && <Check />}</span>全选当前结果</label><span>已选 {checked.length} 项</span><button disabled={!checked.length} className={batchKind === 'delete' ? 'm-action-danger' : undefined} onClick={() => { if (!checked.length) return notify('请选择供应商'); if (batchKind === 'inviter') { setBatchInviter(''); setBatchInviterOpen(true); } else setConfirm({ type: 'delete', ids: checked, text: '仅删除选中的草稿供应商，确认继续？' }); }}>{batchKind === 'inviter' ? '邀请人批量变更' : '删除'}</button></footer>}
     </>}
     {(scene === 'filter' || filtering) && <div className={filtering ? 'm-fullscreen-panel' : ''}>{filtering && <Header title="筛选供应商" onBack={() => setFiltering(false)} />}<FilterView initial={filters} onApply={v => { if (v.start && v.end && v.start > v.end) return notify('开始时间不能晚于结束时间'); setFilters(v); filtering ? setFiltering(false) : go(listReturn.current); }} onCancel={() => filtering ? setFiltering(false) : go('query')} /></div>}
     {scene === 'information-change' && supplier.pendingInformation && supplier.status === '变更中' && <><ChangeComparison before={supplier} after={supplier.pendingInformation} /><Actions items={[{ label: '返回列表', secondary: true, onClick: () => go(listReturn.current) }, { label: '查看审批', onClick: () => go('approval') }]} /></>}
@@ -322,6 +335,8 @@ function MobileSurface({ scene, shot, ratings, setRatings, activeRating, setActi
     {exportOpen && <SupplierExport suppliers={matching} initial={filters} notify={notify} onClose={() => { setExportOpen(false); if (scene === 'export') go('mine'); }} />}
     {sheet === 'more' && <Overlay sheet label="更多操作" onClose={() => setSheet(null)}><div className="m-action-sheet">{['分配权限', '变更邀请人', '审批记录'].map((label, i) => <button key={label} onClick={() => { setSheet(null); go(['permissions', 'inviter', 'approval'][i]); }}>{label}</button>)}<button className="cancel" onClick={() => setSheet(null)}>取消</button></div></Overlay>}
     {sheet?.kind === 'attachment' && <AttachmentViewer value={sheet.name} onClose={() => setSheet(null)} />}
+    {batchInviterOpen && <Overlay sheet label="批量变更邀请人" onClose={() => setBatchInviterOpen(false)}><div className="m-picker-title"><strong>批量变更邀请人</strong><button onClick={() => setBatchInviterOpen(false)}>取消</button></div><p className="m-input-note">已选 {checked.length} 家供应商</p><div className="m-batch-targets">{suppliers.filter(s => checked.includes(s.id)).map(s => <Row key={s.id} label={s.name}>{s.inviter}</Row>)}</div><Field label="新邀请人" value={batchInviter} required onPick={() => setBatchPeople(true)} /><div className="m-picker-actions"><button onClick={() => setBatchInviterOpen(false)}>取消变更</button><button className="primary" disabled={!batchInviter} onClick={() => setConfirm({ type: 'batch-inviter', ids: [...checked], inviter: batchInviter, text: '确认将所选' + checked.length + '家供应商的邀请人变更为「' + batchInviter + '」？' })}>确认变更</button></div></Overlay>}
+    {batchPeople && <Overlay sheet label="选择新邀请人" onClose={() => setBatchPeople(false)}><div className="m-picker-title"><strong>选择新邀请人</strong></div><ReferenceList kind="people" selected={batchInviter} onCancel={() => setBatchPeople(false)} onConfirm={name => { setBatchInviter(name); setBatchPeople(false); }} /></Overlay>}
     {confirm && <Confirm danger={confirm.type.startsWith('delete')} text={confirm.text} onCancel={() => setConfirm(null)} onConfirm={runConfirmation} />}
     {tip && <ScreenshotTip onClose={() => setTip(false)} />}
     {shot && <button className={'m-vconsole m-vconsole-' + scene} onClick={() => setDebug(!debug)}>vConsole</button>}
