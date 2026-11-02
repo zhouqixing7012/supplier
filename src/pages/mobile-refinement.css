@@ -294,3 +294,11 @@
 .mobile-page:not(.m-shot) .m-supplier-card-mine dl > div { grid-column: 1 / -1; min-width: 0; }
 .mobile-page:not(.m-shot) .m-supplier-card-mine dt { width: 84px; flex-basis: 84px; white-space: normal; overflow-wrap: anywhere; }
 .mobile-page:not(.m-shot) .m-supplier-card-mine dd { min-width: 0; overflow-wrap: anywhere; }
+
+.m-approval-history-card { margin-top: 12px; border: 1px solid var(--m-border); border-radius: 8px; overflow: hidden; }
+.m-approval-history-card > summary { display: flex; align-items: flex-start; gap: 8px; min-height: 48px; padding: 12px; cursor: pointer; list-style: none; }
+.m-approval-history-card > summary::-webkit-details-marker { display: none; }
+.m-history-number { flex: 1; min-width: 0; overflow-wrap: anywhere; font-weight: 600; }
+.m-history-chevron { width: 18px; height: 22px; flex: none; color: var(--m-text-secondary); }
+.m-approval-history-card[open] .m-history-chevron { transform: rotate(180deg); }
+.m-history-content { padding: 0 12px 12px; border-top: 1px solid var(--m-border-subtle); }

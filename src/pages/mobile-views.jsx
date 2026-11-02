@@ -48,8 +48,26 @@ export function FilterView({ rating = false, initial = {}, onApply, onCancel, in
   return <div className="m-filter-view">{fields.map(([key, label, kind]) => <Field key={key} label={label} allowClearDate={kind === 'date'} layout={kind === 'date' ? 'inline' : undefined} selectionMode="immediate" searchable={key === 'recommended'} value={data[key] || ''} type={kind === 'date' ? 'date' : 'text'} options={Array.isArray(kind) ? kind : undefined} onChange={v => update(key, v)} onPick={kind === 'department' ? () => setDepartment(true) : undefined} />)}<Actions flat items={[{ label: '取消', muted: true, onClick: onCancel }, { label: '重置', muted: true, onClick: () => setData({}) }, { label: '应用筛选', onClick: () => onApply(data) }]} />{department && <OptionSheet title="所属部门" value={data.department} options={[]} onChange={v => update('department', v)} onClose={() => setDepartment(false)} />}</div>;
 }
 
+function ApprovalTimeline({ nodes = [] }) {
+  return nodes.length ? <ol className="m-approval-timeline">{nodes.map((entry, i) => <li key={entry.id || i} className={entry.status === '已审批' ? 'is-complete' : 'is-pending'}><h3 className="m-approval-heading">{entry.name || '—'}<StatusTag value={entry.status} /></h3><div className="m-approval-node"><Row label="审批时间">{entry.time ? <time dateTime={entry.time}>{entry.time}</time> : '—'}</Row><Row label="审批人">{entry.person || '—'}</Row><Row label="代理人">{entry.agent || '—'}</Row><Row label="审批意见">{entry.opinion || '—'}</Row></div></li>)}</ol> : <Empty text="暂无审批节点" />;
+}
+
+function ApprovalHistory({ records }) {
+  // 同一审批单号归为一张卡片；缺少单号的占位记录彼此独立。
+  const groups = new Map();
+  records.forEach((record, i) => {
+    const key = record.number || 'missing-' + i;
+    const existing = groups.get(key);
+    if (existing) existing.nodes.push(...(record.nodes || []));
+    else groups.set(key, { ...record, key, nodes: [...(record.nodes || [])] });
+  });
+  return groups.size ? <div className="m-approval-history">{[...groups.values()].map(record => <details className="m-approval-history-card" key={record.key}><summary><span className="m-history-number">审批单号：{record.number || '—'}</span><StatusTag value={record.status} /><ChevronDown className="m-history-chevron" aria-hidden="true" /></summary><div className="m-history-content"><Row label="审批类型">{record.type || '—'}</Row><Row label="发起时间">{record.startedAt || '—'}</Row><Row label="发起人">{record.initiator || '—'}</Row><ApprovalTimeline nodes={record.nodes} /></div></details>)}</div> : <Empty text="无数据" />;
+}
+
 export function Approval({ supplier, populated = true, history = false, showSupplier = true, number = 'SUP202610140004', type = '注册' }) {
-  return <div className="m-approval">{supplier.pendingInformation && supplier.status === '变更中' && <ChangeComparison before={supplier} after={supplier.pendingInformation} />}{showSupplier && <Row label="供应商名称">{supplier.name}</Row>}<Section title="当前审批进度" collapsible={false}><Row label="审批类型">{type}</Row><div className="m-field-divider" /><Row label="审批单号">{populated ? number : ''}</Row>{populated ? <ol className="m-approval-timeline">{[['陈才慧(208660)', '开始'], ['陈才慧(208660)', '业务审批'], ['史小曼(110933)', '部门领导审批'], ['许丽(111505)', '财务审批']].map(([person, node], i) => <li key={node} className={i === 3 ? 'is-pending' : 'is-complete'}><h3 className="m-approval-heading">{node}<StatusTag value={i === 3 ? '待审批' : '已审批'} /></h3><div className="m-approval-node"><Row label="审批时间"><time dateTime="2026-10-14">2026-10-14</time></Row><Row label="审批人">{person}</Row><Row label="代理人">—</Row><Row label="审批意见">—</Row></div></li>)}</ol> : <Empty text="暂无审批节点" />}</Section><Section title="审批历史" collapsible={false}>{history ? ['审批单号', '审批类型', '审批状态', '发起时间', '发起人'].map(x => <Row key={x} label={x} />) : <Empty text="无数据" />}</Section></div>;
+  const currentNodes = populated ? [['陈才慧(208660)', '开始'], ['陈才慧(208660)', '业务审批'], ['史小曼(110933)', '部门领导审批'], ['许丽(111505)', '财务审批']].map(([person, name], i) => ({ person, name, status: i === 3 ? '待审批' : '已审批', time: '2026-10-14' })) : [];
+  const records = supplier.approvalHistory || (history ? [{ number: '', nodes: [] }] : []);
+  return <div className="m-approval">{supplier.pendingInformation && supplier.status === '变更中' && <ChangeComparison before={supplier} after={supplier.pendingInformation} />}{showSupplier && <Row label="供应商名称">{supplier.name}</Row>}<Section title="当前审批进度" collapsible={false}><Row label="审批类型">{type}</Row><div className="m-field-divider" /><Row label="审批单号">{populated ? number : ''}</Row><ApprovalTimeline nodes={currentNodes} /></Section><Section title="审批历史" collapsible={false}><ApprovalHistory records={records} /></Section></div>;
 }
 
 export function SupplierDetail({ supplier, initialTab = 0, approvalEmpty = false, onPreview, ratings = [], onScore, onRatingOpen }) {
