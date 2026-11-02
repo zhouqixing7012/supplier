@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Check, ClipboardPlus, Landmark, Download, Filter, ListChecks, Plus, Search, Signal, Wifi, Battery, X, MoreHorizontal } from 'lucide-react';
+import { Check, ClipboardPlus, Landmark, Download, Filter, ListChecks, Plus, Search, Signal, Wifi, Battery, X, MoreHorizontal, LogIn, ChevronRight } from 'lucide-react';
 import { Actions, AttachmentViewer, AppliedFilters, Confirm, Empty, Field, FilterButton, Header, RegistrationSteps, Overlay, Row, ScreenshotTip, SearchBox, Section } from './mobile-ui.jsx';
 import { AddressForm, BankCard, BankFields, BasicFields, ContactFields, InviteForm, PermissionForm, ReferenceList, bankError, blankBank, fieldsFor, filledBasic } from './mobile-forms.jsx';
 import { Approval, BankApplication, FilterView, PermissionCard, RatingList, SupplierDetail, SupplierList, Tabs } from './mobile-views.jsx';
@@ -278,6 +278,7 @@ function MobileSurface({ scene, shot, ratings, setRatings, activeRating, setActi
     {shot && <div className="m-watermark" aria-hidden="true">{Array.from({ length: 60 }, (_, i) => <span key={i}>{shot.index < 25 ? '孙志强213852' : '陈才慧208660'}</span>)}</div>}
     {shot && <div className="m-status-bar"><span>{shot.time.slice(0, 2)}:{shot.time.slice(2, 4)}</span><div><Signal /><Wifi /><Battery /><small>67</small></div></div>}
     <Header onBack={back} title={shot ? (scene.startsWith('portal') ? '协同门户-登录' : '供应商管理平台') : mobileTitle(scene)} close={scene.startsWith('portal') ? () => go('query') : undefined} />
+    {scene === 'query' && !shot && <button type="button" className="m-portal-entry" onClick={() => go('portal')}><LogIn aria-hidden="true" /><span>协同门户登录</span><ChevronRight aria-hidden="true" /></button>}
     {(listScene || ['ratings', 'my-ratings', 'rating-ops', 'bank-application'].includes(scene)) && <Tabs active={tab} onChange={i => go(['query', 'mine', 'my-ratings', 'ratings', 'rating-ops', 'bank-application'][i])} />}
     <SwipeArea active={tab} count={6} onChange={i => { if (listScene || ['ratings', 'my-ratings', 'rating-ops', 'bank-application'].includes(scene)) go(['query', 'mine', 'my-ratings', 'ratings', 'rating-ops', 'bank-application'][i]); }}>
     {listScene && <>
