@@ -79,3 +79,8 @@
 - `mobile-changes.jsx`复用字段定义生成修改前后对比，管理端全部信息和门户资料共同使用；不模拟审批完成或覆盖正式数据。
 - `mobile-export.jsx`集中管理邀请日期、条件内选中记录和演示CSV生成。Object URL在导出页卸载时释放；不是跨设备下载服务，不调用真实exportSupplierInfo。
 - 门户价税条目来自附件演示字段，只提供阅读、直达和返回；现行PC数值及计算规则提供前不启用录入或提交。
+
+## 门户任务阅读与账单准备
+
+`PortalWorkspace`通过`workspace-quote-detail`读取会话询价样本，内部`PortalQuotes`负责待处理/已处理列表与搜索；`workspace-travel`使用公共字段/附件组件和未保存保护准备账期及文件，草稿存入`portalBillDraft`。首页快捷卡片设置任务页签后进入`workspace-tasks`。这些路由的标题返回由`mobile-supplier.jsx`统一回到业务任务。未接入报价/价税提交及真实账单上传服务。
+
