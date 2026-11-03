@@ -19,7 +19,7 @@ export function InteractionProvider({ children }) {
     window.addEventListener('beforeunload', handler);
     return () => { window.removeEventListener('beforeunload', handler); for (const file of attachmentFiles.values()) URL.revokeObjectURL(file.url); attachmentFiles.clear(); };
   }, []);
-  return <InteractionContext.Provider value={value}>{children}{pending && <Confirm text="内容尚未保存，是否放弃本次修改？" cancelLabel="继续编辑" confirmLabel="放弃修改" onCancel={() => setPending(null)} onConfirm={() => { clean(pending.id); const action = pending.action; setPending(null); action(); }} />}</InteractionContext.Provider>;
+  return <InteractionContext.Provider value={value}>{children}{pending && <Confirm unsaved text="本次修改尚未保存，离开后将丢失。" cancelLabel="继续编辑" confirmLabel="放弃修改" onCancel={() => setPending(null)} onConfirm={() => { clean(pending.id); const action = pending.action; setPending(null); action(); }} />}</InteractionContext.Provider>;
 }
 export const useInteraction = () => useContext(InteractionContext);
 export function useDirtyForm(data, active = true) {
@@ -104,3 +104,4 @@ export function usePageIsolation() {
     return () => { observer.disconnect(); restore(); window.removeEventListener('keydown', onKey); };
   }, []);
 }
+

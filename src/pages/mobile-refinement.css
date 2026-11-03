@@ -367,3 +367,19 @@
 .m-batch-buttons { width: 100%; min-width: 0; }
 .mobile-page .m-batch-buttons > button { flex: 1; min-width: 0; }
 .mobile-page .m-batch-actions-mine .m-batch-buttons > .m-action-danger { flex: 0 0 64px; }
+
+.m-rating-card-state { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 6px; flex-shrink: 0; }
+.m-rating-card-state strong { font-size: 16px; color: var(--m-action); }
+.m-rating-supplier-meta { border-top: 1px solid var(--m-border-subtle); margin-top: 12px; padding-top: 6px; }
+.m-rating-supplier-meta .m-row { padding-inline: 0; }
+.m-unsaved-confirm { text-align: left; font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif; padding: 8px 20px max(20px, env(safe-area-inset-bottom, 0px)); }
+.m-sheet-handle { display: block; width: 36px; height: 4px; border-radius: 4px; background: #d4dce5; margin: 0 auto 24px; }
+.m-unsaved-confirm h2 { margin: 0 0 10px; font-size: 20px; color: var(--m-text); }
+.m-unsaved-confirm p { margin: 0 0 24px; color: var(--m-text-secondary); font-size: 16px; line-height: 1.6; }
+.m-unsaved-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.m-unsaved-actions button { border: 0; cursor: pointer; font-family: inherit; height: 48px; border-radius: 8px; font-size: 16px; font-weight: 500; }
+.m-unsaved-actions .m-discard-button { background: var(--m-surface); border: 1px solid var(--m-border); color: var(--m-text-secondary); }
+.m-unsaved-actions .m-continue-button { background: var(--m-action); color: #fff; }
+/* 未保存保护由页面外层承载，独立设置底部定位。 */
+.m-overlay:has(.m-unsaved-confirm) { align-items: flex-end; padding: 0; }
+.m-sheet:has(.m-unsaved-confirm) { width: min(100%, 430px); max-height: 90dvh; overflow-y: auto; border-radius: 16px 16px 0 0; }

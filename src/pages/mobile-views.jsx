@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Check, ChevronDown, ClipboardList, Edit3, Filter, List, MoreHorizontal, Plus, X } from 'lucide-react';
-import { Actions, ChangeTag, Empty, Field, StatusTag, OptionSheet, Overlay, Row, SearchBox, Section } from './mobile-ui.jsx';
+import { Actions, ChangeTag, Empty, Field, StatusTag, OptionSheet, Overlay, Row, SearchBox, Section, SupplierIdentityCard } from './mobile-ui.jsx';
 import { BankCard, fieldsFor } from './mobile-forms.jsx';
 import { cooperation, supplierStates, supplierTypes, supplierIndustries } from './mobile-data.js';
 import { SwipeArea, attachmentName } from './mobile-interaction.jsx';
@@ -62,7 +62,7 @@ function ApprovalHistory({ records }) {
     if (existing) existing.nodes.push(...(record.nodes || []));
     else groups.set(key, { ...record, key, nodes: [...(record.nodes || [])] });
   });
-  return groups.size ? <div className="m-approval-history">{[...groups.values()].map(record => <details className="m-approval-history-card" key={record.key}><summary><span className="m-history-title"><strong>{record.type || '—'}</strong><span className="m-history-number">审批单号：{record.number || '—'}</span></span><StatusTag value={record.status} /><ChevronDown className="m-history-chevron" aria-hidden="true" /></summary><div className="m-history-content"><Row label="发起时间">{record.startedAt || '—'}</Row><Row label="发起人">{record.initiator || '—'}</Row><ApprovalTimeline nodes={record.nodes} /></div></details>)}</div> : <Empty text="无数据" />;
+  return groups.size ? <div className="m-approval-history">{[...groups.values()].map(record => <details className="m-approval-history-card" key={record.key}><summary><span className="m-history-title"><strong>{record.type || '—'}</strong><span className="m-history-number">审批单号：{record.number || '—'}</span></span><StatusTag value={record.status} /><ChevronDown className="m-history-chevron" aria-hidden="true" /></summary><div className="m-history-content"><Row label="发起时间">{record.startedAt || '—'}</Row><Row label="发起人">{record.initiator || '—'}</Row></div></details>)}</div> : <Empty text="无数据" />;
 }
 
 export function Approval({ supplier, populated = true, history = false, showSupplier = true, number = 'SUP202610140004', type = '注册' }) {
@@ -76,7 +76,7 @@ export function SupplierDetail({ supplier, initialTab = 0, approvalEmpty = false
   const registration = [['供应商账号', supplier.supplierAccount || supplier.userCode || supplier.account], ['邀请人', supplier.inviter], ['邀请时间', supplier.date], ['曾用名', supplier.supplierFormerName || supplier.formerName], ['注册邮箱', supplier.email]];
   const basic = { ...supplier.basic, type: supplier.type, supplierName: supplier.name, creditCode: supplier.basic?.creditCode || supplier.code };
   const basicRows = fieldsFor(supplier.type).filter(([key]) => key !== 'supplierName' || supplier.type === supplierTypes[1]);
-  return <div className="m-detail"><div className="m-detail-summary"><div className="m-supplier-heading"><h2>{supplier.name}</h2><StatusTag value={supplier.status} /></div><p className="m-summary-meta"><span>{supplier.type} · {supplier.mode || '—'}</span></p></div><Tabs variant="pill" items={['注册信息', '基本信息', '联系人信息', '银行信息', '分配权限', '财务OU', '黑名单操作记录', '审批记录', '合作信息及评分']} active={tab} onChange={setTab} /><SwipeArea active={tab} count={9} onChange={setTab}>
+  return <div className="m-detail"><SupplierIdentityCard supplier={supplier} /><Tabs variant="pill" items={['注册信息', '基本信息', '联系人信息', '银行信息', '分配权限', '财务OU', '黑名单操作记录', '审批记录', '合作信息及评分']} active={tab} onChange={setTab} /><SwipeArea active={tab} count={9} onChange={setTab}>
     {tab === 0 && <Section title="注册信息" collapsible={false}>{registration.map(([label, value]) => <Row key={label} label={label}>{value || '—'}</Row>)}</Section>}
     {tab === 1 && <Section title="基本信息" collapsible={false}>{basicRows.map(([key, label]) => <Row key={key} label={label}>{basic[key] === '' ? '—' : basic[key] ?? '—'}</Row>)}<Row label="证照附件">{basic.proof ? <button onClick={() => onPreview(basic.proof)}>{attachmentName(basic.proof)}</button> : '—'}</Row><Row label="经营优势及业务优势">{basic.businessAdvantage || supplier.businessAdvantage || '—'}</Row></Section>}
     {tab === 2 && <Section title="联系人信息" collapsible={false}>{supplier.contact ? <><Row label="姓名">{supplier.contact}</Row><Row label="电话">{supplier.phone}</Row><Row label="邮箱">{supplier.email}</Row></> : <Empty text="无数据" />}</Section>}

@@ -119,7 +119,7 @@ export function Overlay({ children, label = '选择', onClose, sheet = false }) 
     const oldOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     const targets = () => [...ref.current.querySelectorAll('button,input,select,textarea,a[href],[tabindex="0"]')].filter(x => !x.disabled && x.tabIndex >= 0 && x.getClientRects().length > 0);
-    const first = targets()[0];
+    const first = ref.current.querySelector('[data-initial-focus]') || targets()[0];
     (first || ref.current).focus({ preventScroll: true });
     const onKey = e => {
       if (ref.current.closest('[inert]')) return;
@@ -132,8 +132,12 @@ export function Overlay({ children, label = '选择', onClose, sheet = false }) 
   return <div className="m-overlay" onClick={e => { if (e.target === e.currentTarget) onClose(); }}><div ref={ref} tabIndex={-1} className={sheet ? 'm-sheet' : 'm-dialog'} role="dialog" aria-modal="true" aria-label={label}>{children}</div></div>;
 }
 
-export function Confirm({ text, onCancel, onConfirm, cancelLabel = '取消', confirmLabel = '确认', danger = false }) {
-  return <Overlay label="提示" onClose={onCancel}><h2>提示</h2><p>{text}</p><div className="m-dialog-actions"><button onClick={onCancel}>{cancelLabel}</button><button className={danger ? 'm-action-danger' : undefined} onClick={onConfirm}>{confirmLabel}</button></div></Overlay>;
+export function SupplierIdentityCard({ supplier, children }) {
+  return <div className="m-detail-summary"><div className="m-supplier-heading"><h2>{supplier.name}</h2><StatusTag value={supplier.status} /></div><p className="m-summary-meta"><span>{supplier.type || '—'} · {supplier.mode || '—'}</span></p>{children}</div>;
+}
+
+export function Confirm({ text, onCancel, onConfirm, cancelLabel = '取消', confirmLabel = '确认', danger = false, unsaved = false }) {
+  return <Overlay label={unsaved ? '离开编辑' : '提示'} sheet={unsaved} onClose={onCancel}>{unsaved ? <div className="m-unsaved-confirm"><span className="m-sheet-handle" aria-hidden="true" /><h2>离开编辑？</h2><p>{text}</p><div className="m-unsaved-actions"><button type="button" className="m-discard-button" onClick={onConfirm}>{confirmLabel}</button><button type="button" className="m-continue-button" data-initial-focus onClick={onCancel}>{cancelLabel}</button></div></div> : <><h2>提示</h2><p>{text}</p><div className="m-dialog-actions"><button onClick={onCancel}>{cancelLabel}</button><button className={danger ? 'm-action-danger' : undefined} onClick={onConfirm}>{confirmLabel}</button></div></>}</Overlay>;
 }
 
 export function ScreenshotTip({ onClose }) {
