@@ -315,6 +315,29 @@
 .m-portal-task-grid strong { display: block; font-size: 24px; color: var(--m-action); }
 .m-portal-task-grid span { display: block; margin-top: 4px; font-size: 14px; }
 
-.mobile-page .m-portal-entry { display: flex; align-items: center; gap: 10px; width: calc(100% - 32px); min-height: 48px; margin: 12px 16px; padding: 10px 14px; border: 1px solid var(--m-border); border-radius: 12px; background: var(--m-surface); color: var(--m-action); text-align: left; font-size: 16px; font-weight: 600; }
-.m-portal-entry span { flex: 1; }
-.m-portal-entry svg { width: 20px; height: 20px; flex: none; }
+/* 登录复用移动端语义色与输入组件，表单状态共用同一卡片。 */
+.m-portal-login { padding: 28px 16px 40px; min-height: calc(100dvh - 56px); background: #0347c4 url('/mobile-assets/portal-city.png') center top / 100% auto no-repeat; }
+.m-portal-brand { display: flex; align-items: center; gap: 10px; margin: 0 4px 24px; color: #fff; font-size: 16px; font-weight: 600; }
+.m-portal-brand-mark { display: inline-flex; align-items: center; justify-content: center; width: 52px; height: 32px; border-radius: 6px; background: #ffd400; color: #1d2126; font-weight: 700; }
+.m-portal-login-card { padding: 24px 20px; border: 1px solid var(--m-border); border-radius: 12px; background: var(--m-surface); }
+.m-portal-login-card h2 { margin: 0; color: var(--m-text); font-size: 20px; line-height: 1.5; }
+.m-portal-intro { margin: 8px 0 24px; color: var(--m-text-secondary); font-size: 14px; line-height: 1.6; }
+.m-portal-login .m-portal-form { padding: 0; background: transparent; }
+.m-portal-login .m-field { min-height: 0; margin: 0 0 20px; padding: 0; }
+.m-portal-login .m-field > label { margin: 0 0 8px; font-size: 14px; line-height: 22px; color: var(--m-text-secondary); }
+.m-portal-login .m-field input { height: 48px; padding: 0 12px; border: 1px solid var(--m-control-border); border-radius: 8px; font-size: 16px; color: var(--m-input-text); }
+.m-portal-login .m-field input:focus { outline: 2px solid var(--m-action); outline-offset: 1px; }
+.m-portal-login .m-field input[aria-invalid=true] { border-color: var(--m-danger-text); }
+.m-portal-login .m-field:has(.m-password-toggle) input { padding-right: 56px; }
+.m-portal-login .m-field:has(.m-field-clear) input { padding-right: 44px; }
+.m-portal-login .m-captcha-field { grid-template-columns: minmax(0, 1fr) 76px; align-items: end; gap: 10px; margin: 0 0 8px; }
+.m-portal-login .m-captcha-field .m-field { grid-row: 1 / 3; margin: 0; }
+.m-portal-login .m-captcha-field .m-captcha { width: 76px; height: 44px; line-height: 44px; border: 1px solid var(--m-border); border-radius: 6px; background: #f3f5f9; color: #34445b; letter-spacing: 2px; font-size: 22px; transform: none; }
+.mobile-page .m-portal-login .m-captcha-field > button { width: 76px; min-height: 44px; padding: 0; font-size: 14px; text-decoration: none; }
+.mobile-page .m-portal-login .m-send-code { margin: -12px 0 16px; padding: 0; font-size: 14px !important; }
+.mobile-page .m-portal-login .m-forgot-link { min-height: 44px; margin: 4px 0 16px; padding: 0; font-size: 14px !important; }
+.mobile-page .m-portal-login .m-login-button { height: 48px; border-radius: 8px; background: var(--m-action) !important; color: #fff !important; font-size: 16px !important; font-weight: 600; }
+@media (max-width: 359px) { .m-portal-login-card { padding: 20px 16px; } }
+.mobile-page .m-portal-login .m-portal-form .m-field { display: block; min-height: 0; padding: 0; }
+.mobile-page .m-portal-login .m-portal-form .m-field > label,
+.mobile-page .m-portal-login .m-portal-form .m-field > .m-field-control { width: 100%; }
