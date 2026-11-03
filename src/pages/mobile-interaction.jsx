@@ -105,3 +105,9 @@ export function usePageIsolation() {
   }, []);
 }
 
+
+// 会话样本标识也支持本地HTTP预览，仍使用浏览器随机源。
+export function createSessionId() {
+  if (crypto.randomUUID) return crypto.randomUUID();
+  return Array.from(crypto.getRandomValues(new Uint8Array(16)), value => value.toString(16).padStart(2, '0')).join('');
+}

@@ -5,6 +5,7 @@ import { BankCard, fieldsFor } from './mobile-forms.jsx';
 import { cooperation, supplierStates, supplierTypes, supplierIndustries } from './mobile-data.js';
 import { SwipeArea, attachmentName } from './mobile-interaction.jsx';
 import { ChangeComparison } from './mobile-changes.jsx';
+import { canChangeSupplier, canRateSupplier, canReinviteSupplier, canDeleteSupplier } from './mobile-rules.js';
 
 export const mobileTabs = ['供应商查询', '我的邀请', '我的评分', '供应商评分', '供应商运维-评分查询', '银行信息申请'];
 export function Tabs({ active, onChange, items = mobileTabs, variant = 'line' }) {
@@ -14,27 +15,28 @@ export function Tabs({ active, onChange, items = mobileTabs, variant = 'line' })
   return <><div className={'m-tab-bar ' + (variant === 'pill' ? 'm-tab-bar-pill' : '')}><nav ref={ref} className="m-tabs" aria-label="功能模块">{items.map((label, i) => <button className={active === i ? 'active' : ''} aria-current={active === i ? 'page' : undefined} key={label} onClick={() => onChange(i)}>{label}</button>)}</nav><button className="m-tab-directory" aria-label="全部标签" onClick={() => setDirectory(true)}><ChevronDown /></button></div>{directory && <OptionSheet title="全部标签" options={items} value={items[active]} clearable={false} onClose={() => setDirectory(false)} onChange={label => { const index = items.indexOf(label); if (index >= 0) onChange(index); }} />}</>;
 }
 
-export function SupplierList({ suppliers, mine = false, batch = false, checked, setChecked, onDetail, onBank, onMore, onInviter, onReinvite, onEdit, onEditAll, onDelete, admin = false, filtered = false, batchKind = 'delete' }) {
-  return <div className="m-supplier-list">{suppliers.length ? suppliers.map(s => <SupplierSummary key={s.id} {...{ s, mine, batch, checked, setChecked, onDetail, onBank, onMore, onInviter, onReinvite, onEdit, onEditAll, onDelete, admin, batchKind }} />) : <Empty search={filtered} text={filtered ? '暂无匹配结果，请调整搜索或筛选条件' : '暂无供应商记录'} />}</div>;
+export function SupplierList({ suppliers, mine = false, batch = false, checked, setChecked, onDetail, onBank, onMore, onInviter, onReinvite, onEdit, onEditAll, onDelete, onScore, admin = false, filtered = false, batchKind = 'delete' }) {
+  return <div className="m-supplier-list">{suppliers.length ? suppliers.map(s => <SupplierSummary key={s.id} {...{ s, mine, batch, checked, setChecked, onDetail, onBank, onMore, onInviter, onReinvite, onEdit, onEditAll, onDelete, onScore, admin, batchKind }} />) : <Empty search={filtered} text={filtered ? '暂无匹配结果，请调整搜索或筛选条件' : '暂无供应商记录'} />}</div>;
 }
-function SupplierSummary({ s, mine, batch, checked, setChecked, onDetail, onBank, onMore, onInviter, onReinvite, onEdit, onEditAll, onDelete, admin, batchKind }) {
+function SupplierSummary({ s, mine, batch, checked, setChecked, onDetail, onBank, onMore, onInviter, onReinvite, onEdit, onEditAll, onDelete, onScore, admin, batchKind }) {
   const [menu, setMenu] = useState(false);
   const historical = window.location.hash.startsWith('#/mobile/shot/');
-  const canChangeInviter = s.status === '已审批' && !s.blacklisted && s.blackFlag !== 1;
-  const selectable = batchKind === 'all' ? true : batchKind === 'delete' ? s.status === '草稿' : canChangeInviter;
+  const canChangeInviter = canChangeSupplier(s);
+  const hasMore = canChangeSupplier(s) || (!mine && canRateSupplier(s)) || canReinviteSupplier(s) || canDeleteSupplier(s, mine) || !['草稿', '邀请中', '注册中', '注册驳回'].includes(s.status);
+  const selectable = batchKind === 'all' ? true : batchKind === 'delete' ? canDeleteSupplier(s, mine) : canChangeInviter;
   const fields = mine ? [['证件号码', s.code], ['联系人姓名', s.contact], ['联系人邮箱', s.email], ['联系人电话', s.phone], ['邀请时间', s.date], ['更新时间', s.updated]] : [['注册方式', s.mode], ['更新时间', s.updated]];
   return <article className={'m-supplier-card' + (mine ? ' m-supplier-card-mine' : '')}>
     <div className="m-supplier-heading"><h3>{batch && <label className="m-checkbox"><input type="checkbox" disabled={!selectable} aria-label={`选择${s.name}`} checked={checked.includes(s.id)} onChange={e => setChecked(e.target.checked ? [...checked, s.id] : checked.filter(x => x !== s.id))} /><span>{checked.includes(s.id) && <Check />}</span></label>}<i className="m-blue-mark" aria-hidden="true" /><span>{s.name}</span></h3>{!historical && <StatusTag value={s.status} />}</div>
     {!historical && <p className="m-supplier-kind">{s.type}<span>·</span>{s.mode}</p>}
     <dl>{(historical ? [['供应商类型', s.type], ['审批状态', s.status], ...(!mine ? [['邀请人', s.inviter], ['邀请时间', s.date]] : []), ...fields, ...(!mine ? [['评分', s.score]] : [])] : [...(!mine ? [['邀请人', s.inviter], ['邀请时间', s.date]] : []), ...fields.filter(([label]) => label !== '注册方式'), ...(!mine ? [['评分', s.score]] : [])]).map(([label, value]) => <div className={/时间|邮箱|证件|评分/.test(label) ? 'm-supplier-wide' : ''} key={label}><dt>{label}{historical ? '：' : ''}</dt><dd>{label === '审批状态' ? <StatusTag value={value} /> : value || '—'}</dd></div>)}</dl>
 
-    {batch && !selectable && <p className="m-input-note">{batchKind === 'all' ? '当前状态无可用批量操作' : batchKind === 'delete' ? '仅草稿可删除' : '仅已审批且未拉黑的供应商可变更邀请人'}</p>}
-    {!batch && <div className="m-supplier-buttons"><button onClick={() => onDetail(s)}>详情</button>{s.status === '草稿' ? <button onClick={() => onEdit(s)}>修改</button> : s.status === '已审批' ? mine ? <button onClick={() => onEditAll(s)}>修改全部信息</button> : <button onClick={() => onBank(s)}>修改银行</button> : null}<button onClick={() => setMenu(true)}>更多操作</button></div>}
+    {!batch && <div className="m-supplier-buttons"><button onClick={() => onDetail(s)}>详情</button>{s.status === '草稿' ? <button onClick={() => onEdit(s)}>修改</button> : canChangeSupplier(s) ? mine ? <button onClick={() => onEditAll(s)}>修改全部信息</button> : <button onClick={() => onBank(s)}>修改银行</button> : null}{hasMore && <button onClick={() => setMenu(true)}>更多操作</button>}</div>}
     {menu && <Overlay sheet label={s.name + '操作'} onClose={() => setMenu(false)}><div className="m-action-sheet"><h2>{s.name}</h2>
-      {s.status === '已审批' && <>{mine ? <><button onClick={() => { setMenu(false); onInviter(s); }}>变更邀请人</button><button onClick={() => { setMenu(false); onEditAll(s); }}>修改全部信息</button></> : <><button onClick={() => { setMenu(false); onBank(s); }}>修改银行</button><button onClick={() => { setMenu(false); onMore(s, 'permissions'); }}>分配权限</button><button onClick={() => { setMenu(false); onInviter(s); }}>变更邀请人</button></>}</>}
-      {mine && ['草稿', '邀请中'].includes(s.status) && <button onClick={() => { setMenu(false); onReinvite(s); }}>重新邀请</button>}
+      {canChangeSupplier(s) && <>{mine ? <><button onClick={() => { setMenu(false); onInviter(s); }}>变更邀请人</button><button onClick={() => { setMenu(false); onEditAll(s); }}>修改全部信息</button></> : <><button onClick={() => { setMenu(false); onBank(s); }}>修改银行</button><button onClick={() => { setMenu(false); onMore(s, 'permissions'); }}>分配权限</button><button onClick={() => { setMenu(false); onInviter(s); }}>变更邀请人</button></>}</>}
+      {!mine && canRateSupplier(s) && <button onClick={() => { setMenu(false); onScore(s); }}>评分</button>}
+      {canReinviteSupplier(s) && <button onClick={() => { setMenu(false); onReinvite(s); }}>重新邀请</button>}
       {s.status === '草稿' && <button onClick={() => { setMenu(false); onEdit(s); }}>修改</button>}
-      {s.status === '草稿' && (mine || admin) && <button className="m-action-danger" onClick={() => { setMenu(false); onDelete(s); }}>删除</button>}
+      {canDeleteSupplier(s, mine) && <button className="m-action-danger" onClick={() => { setMenu(false); onDelete(s); }}>删除</button>}
       {!['草稿', '邀请中', '注册中', '注册驳回'].includes(s.status) && <button onClick={() => { setMenu(false); onMore(s, true); }}>审批记录</button>}
       <button className="cancel" onClick={() => setMenu(false)}>取消</button>
     </div></Overlay>}
@@ -85,7 +87,7 @@ export function SupplierDetail({ supplier, initialTab = 0, approvalEmpty = false
     {tab === 5 && <div className="m-detail-records">{supplier.financeOus?.length ? supplier.financeOus.map((record, index) => <article className="m-bank-card" key={record.id}><div className="m-record-heading"><h3>{record.orgName || '—'}</h3></div><div className="m-card-body">{[['负债账户', record.liabilityAccount], ['预付款账户', record.prepayAccount], ['地址', record.address]].map(([label, value]) => <Row key={label} label={label}><span className="m-finance-value">{value || '—'}</span></Row>)}</div></article>) : <Section title="财务OU" collapsible={false}><Empty text="无数据" /></Section>}</div>}
     {tab === 6 && <div className="m-detail-records">{supplier.blacklistRecords?.length ? supplier.blacklistRecords.map((record, index) => <article className="m-bank-card" key={record.id}><div className="m-record-heading"><h3>黑名单记录 {index + 1}</h3><StatusTag value={record.status} /></div><div className="m-card-body">{[['拉黑操作人', record.applyUser], ['拉黑操作时间', record.applyTime], ['拉黑原因', record.applyReason], ['移除操作人', record.removeUser], ['移除操作时间', record.removeTime], ['移除原因', record.removeReason]].map(([label, value]) => <Row key={label} label={label}>{value || '—'}</Row>)}</div></article>) : <Section title="黑名单操作记录" collapsible={false}><Empty text="无数据" /></Section>}</div>}
     {tab === 7 && <Approval supplier={supplier} populated={!approvalEmpty} showSupplier={false} />}
-    {tab === 8 && <><div className="m-record-actions"><button onClick={onScore}>新增评分</button></div><RatingList entries={ratings.filter(x => x.name === supplier.name)} onOpen={record => onRatingOpen(record, true)} onEdit={record => onRatingOpen(record, false)} /></>}
+    {tab === 8 && <>{canRateSupplier(supplier) && <div className="m-record-actions"><button onClick={onScore}>新增评分</button></div>}<RatingList entries={ratings.filter(x => x.name === supplier.name)} onOpen={record => onRatingOpen(record, true)} onEdit={record => onRatingOpen(record, false)} /></>}
   </SwipeArea></div>;
 }
 

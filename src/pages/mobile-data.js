@@ -17,10 +17,10 @@ export const branches = [
   { name: '中国农业发展银行河北省分行', bank: bankNames[0], country: '中国', province: '河北省', city: '石家庄市' },
 ];
 export const people = [
-  { name: '周秋珍', phone: '021-23081605', email: 'qiuzhenzhou@sohu-lab.com', job: '总经理（销售）', department: '广告营销部_华东区域' },
-  { name: '周辉', phone: '020-85109344', email: 'huizhou115554@sohu-lab.com', job: '高级总监（产品）', department: '56业务中心_产品部' },
-  { name: '周蓉', phone: '010-62726320', email: 'rongzhou@sohu-lab.com', job: '高级经理（媒体内容）', department: '编委会_要闻运营中心_策划报道' },
-  { name: '周晶盈', phone: '010-62757525', email: '', job: '', department: '' },
+  { name: '周秋珍', userCode: 'MOCK-001', phone: '021-23081605', email: 'qiuzhenzhou@sohu-lab.com', job: '总经理（销售）', department: '广告营销部_华东区域' },
+  { name: '周辉', userCode: 'MOCK-002', phone: '020-85109344', email: 'huizhou115554@sohu-lab.com', job: '高级总监（产品）', department: '56业务中心_产品部' },
+  { name: '周蓉', userCode: 'MOCK-003', phone: '010-62726320', email: 'rongzhou@sohu-lab.com', job: '高级经理（媒体内容）', department: '编委会_要闻运营中心_策划报道' },
+  { name: '周晶盈', userCode: 'MOCK-004', phone: '010-62757525', email: '', job: '', department: '' },
 ];
 export const exampleBank = { id: '112297879', accountType: '基本账户', bank: bankNames[0], branch: branches[0].name, country: '中国', province: '北京市', city: '北京市', name: '牛来豹拉', number: '6214589503254174', currency: '人民币', proof: '开户证明.png', note: '', change: '' };
 export const companyName = '北京初然文化传媒有限公司733324';
@@ -31,6 +31,8 @@ export const initialSuppliers = [
   { id: 'draft', name: '代注册草稿', type: supplierTypes[0], status: '草稿', mode: '代注册', inviter: '陈才慧', date: '2026-10-14 19:35:00', updated: '2026-10-14 19:35:00', score: '未评分', code: '', email: '', contact: '', phone: '', banks: [], permissions: [] },
   { id: 'old', name: '老六的公司', type: supplierTypes[0], status: '已审批', mode: '代注册', inviter: '陈才慧', date: '2023-07-04 11:31:59', updated: '2026-10-12 18:11:17', score: '55.24', code: '', email: '', contact: '', phone: '', banks: [], permissions: [] },
   { id: 'person', name: '哈哈人', type: supplierTypes[1], status: '审批中', mode: '邀请注册', inviter: '周琦星', date: '2026-10-12 16:09:55', updated: '2026-10-12 16:12:38', score: '未评分', code: '12******34', email: '', contact: '', phone: '', banks: [], permissions: [] },
+  // 用于演示已确认的列表操作状态与拉黑限制。
+  ...[['mock-rejected', '注册驳回', false], ['mock-registering', '注册中', false], ['mock-changing', '变更中', false], ['mock-blacklisted', '已审批', true]].map(([id, status, blacklisted]) => ({ id, name: '演示供应商·' + status + (blacklisted ? '·已拉黑' : ''), type: supplierTypes[0], status, blacklisted, mode: '邀请注册', inviter: '陈才慧', date: '2026-10-13 09:00:00', updated: '2026-10-13 10:00:00', score: '未评分', code: '', email: 'supplier@example.invalid', contact: '演示联系人', phone: '13800000001', banks: [], permissions: [] })),
 ].map(supplier => {
   // 用户授权的会话演示资料，不连接真实账号、审批或联系人服务。
   if (!['733324', '557348', 'old', 'person'].includes(supplier.id)) return supplier;
