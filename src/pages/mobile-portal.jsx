@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { Home, ClipboardList, UserRound, Building2, FileClock, FileCheck2, Calculator, ClipboardCheck, Plane, Plus } from 'lucide-react';
+import { Home, ClipboardList, UserRound, Building2, FileClock, FileCheck2, Calculator, ClipboardCheck, Plane, Plus, Mail, KeyRound, ChevronRight } from 'lucide-react';
 import { Actions, Confirm, Empty, StatusTag, Field, Overlay, Row, Section, SearchBox, UploadField } from './mobile-ui.jsx';
 import { AddressForm, BankCard, BankFields, BasicFields, ContactFields, bankError, fieldsFor, filledBasic, blankBank } from './mobile-forms.jsx';
 import { exampleBank as sampleBank, supplierTypes } from './mobile-data.js';
 import { Tabs, Approval } from './mobile-views.jsx';
 import { SwipeArea, useBackLayer, useDirtyForm, attachmentName } from './mobile-interaction.jsx';
 import { ChangeComparison } from './mobile-changes.jsx';
+import { AccountSecurityForm } from './mobile-account.jsx';
 
 const clone = value => structuredClone(value);
 const homeGroups = [
@@ -23,7 +24,7 @@ const homeGroups = [
 const taskTabs = ['报价管理待处理', '报价管理已处理', '价税拆分待处理', '价税拆分已处理'];
 const taxFields = [['material', '物料编码'], ['name', '物料名称'], ['category', '物料类别'], ['quantity', '数量'], ['grossUnit', '含税单价'], ['netUnit', '不含税单价'], ['rate', '税率(%)'], ['tax', '税额'], ['net', '不含税金额'], ['gross', '含税金额']];
 // 文档样本只用于阅读流程；金额填写及提交等待用户提供现行PC校验与计算规则。
-const order = { number: 'DEMO-ORDER-001', material: 'DEMO-MATERIAL-001', name: 'Dell.R740', category: '电子产品', quantity: '2', grossUnit: '38682', netUnit: '', rate: '', tax: '', net: '', gross: '77364' };
+const order = { number: 'DEMO-ORDER-001', material: 'DEMO-MATERIAL-001', name: 'Dell.R740', category: '电子产品', quantity: '2', grossUnit: '38682', netUnit: '', rate: '', tax: '', net: '', gross: '77364', status: '待处理' };
 // 会话询价样本，字段取自询价DTO；不推断报价计算与提交规则。
 const inquiries = [
   { number: 'MOCK-INQ-001', title: '技术服务询价', unit: '演示采购公司', buyer: '采购员甲', type: '技术服务', start: '2026-11-01', end: '2026-11-20', status: '待处理', material: '平台运维服务', quantity: '1', measure: '项', config: '按询价说明提供服务方案', remark: '请核对服务范围与交付要求' },
@@ -77,16 +78,26 @@ export function PortalWorkspace({ scene, go, notify, store, onPreview }) {
     if (JSON.stringify(next) === JSON.stringify(profile)) return notify('请先修改信息');
     store.portalDraft = next; guard.accept(); go('workspace-changes');
   };
+  const pendingCount = task => task === 0 ? inquiries.filter(record => record.status === '待处理').length : task === 2 ? Number(order.status === '待处理') : 0;
   const beginBank = (entry, index) => { setBank(clone(entry)); setBankIndex(index); };
   return <div className="m-workspace">
     {scene === 'workspace-home' && <div className="m-portal-home">
       <section className="m-portal-home-identity" aria-label="当前供应商"><Building2 aria-hidden="true" /><h2>{profile.name}</h2><StatusTag value={pending ? '变更中' : profile.status} /></section>
       {store.portalDraft && !pending && <button className="m-preview-edit" onClick={() => go('workspace-changes')}>继续提交资料修改</button>}
       {pending && <button className="m-preview-edit" onClick={() => go('workspace-approval')}>查看资料变更审批</button>}
-      {homeGroups.map(group => <section className="m-portal-home-group" key={group.title} aria-label={group.title}><h2>{group.title}</h2><div className="m-portal-entry-grid">{group.entries.map(({ label, lines, icon: Icon, color, route, task }) => <button key={label} aria-label={label} onClick={() => { if (task !== undefined) store.portalTaskTab = task; if (route === 'workspace-travel') store.portalTravelReturn = 'workspace-home'; go(route); }}><span className={'m-portal-entry-icon is-' + color}><Icon aria-hidden="true" /></span><span className="m-portal-entry-label">{lines.map(line => <span key={line}>{line}</span>)}</span></button>)}</div></section>)}
+      {homeGroups.map(group => <section className="m-portal-home-group" key={group.title} aria-label={group.title}><h2>{group.title}</h2><div className="m-portal-entry-grid">{group.entries.map(({ label, lines, icon: Icon, color, route, task }) => <button key={label} aria-label={label} onClick={() => { if (task !== undefined) store.portalTaskTab = task; if (route === 'workspace-travel') store.portalTravelReturn = 'workspace-home'; go(route); }}><span className={'m-portal-entry-icon is-' + color}><Icon aria-hidden="true" />{pendingCount(task) > 0 && <span className="m-portal-pending-count" aria-label={pendingCount(task) + '项待处理'}>{pendingCount(task)}</span>}</span><span className="m-portal-entry-label">{lines.map(line => <span key={line}>{line}</span>)}</span></button>)}</div></section>)}
     </div>}
 
-    {scene === 'workspace-account' && <><Section title="账户信息" collapsible={false}><Row label="登录账号">{store.portalAccount?.account || '演示供应商账号'}</Row><Row label="供应商名称">{profile.name}</Row><Row label="注册邮箱">{profile.email}</Row></Section><div className="m-record-actions"><button onClick={() => setLogout(true)}>退出登录</button></div></>}
+    {scene === 'workspace-account' && <><Section title="账户信息" collapsible={false}><Row label="登录账号">{store.portalAccount?.account || '演示供应商账号'}</Row><Row label="供应商名称">{profile.name}</Row><Row label="绑定邮箱">{profile.email}</Row></Section><div className="m-workspace-menu m-account-security-menu">{[[Mail, '修改绑定邮箱', 'workspace-account-email'], [KeyRound, '修改密码', 'workspace-account-password']].map(([Icon, label, route]) => <button key={route} onClick={() => go(route)}><Icon aria-hidden="true" /><span>{label}</span><ChevronRight aria-hidden="true" /></button>)}</div><div className="m-record-actions"><button onClick={() => setLogout(true)}>退出登录</button></div></>}
+    {['workspace-account-email', 'workspace-account-password'].includes(scene) && <AccountSecurityForm kind={scene.endsWith('email') ? 'email' : 'password'} email={profile.email} onCancel={() => go('workspace-account')} onComplete={value => {
+      if (scene.endsWith('email')) {
+        const sync = record => record ? { ...record, email: value, basic: { ...record.basic, registerEmail: value } } : record;
+        store.portalProfile = sync(profile); store.portalDraft = sync(store.portalDraft); store.portalPending = sync(store.portalPending);
+        if (store.portalAccount) store.portalAccount = { ...store.portalAccount, email: value };
+        notify('绑定邮箱已更新');
+      } else { store.portalPasswordChangedAt = new Date().toISOString(); notify('密码已修改'); }
+      go('workspace-account');
+    }} />}
     {scene === 'workspace-info' && <>
       <Tabs variant="pill" items={['基本信息', '联系人信息', '银行信息']} active={tab} onChange={i => guard.leave(() => { setEditing(false); setDraft(clone(store.portalDraft || profile)); setInfoTab(i); })} />
       <SwipeArea active={tab} count={3} onChange={i => guard.leave(() => { setEditing(false); setDraft(clone(store.portalDraft || profile)); setInfoTab(i); })}>

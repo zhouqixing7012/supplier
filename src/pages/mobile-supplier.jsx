@@ -19,6 +19,8 @@ const readRoute = () => decodeURIComponent(window.location.hash.replace(/^#\/mob
 const now = () => new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Shanghai' });
 const validEmail = value => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value || '');
 const mobileTitle = scene => {
+  if (scene === 'workspace-account-email') return '修改绑定邮箱';
+  if (scene === 'workspace-account-password') return '修改密码';
   if (scene.startsWith('workspace')) return '供应商协同门户';
   if (scene.startsWith('portal')) return '协同门户登录';
   if (scene.startsWith('detail')) return '供应商详情';
@@ -230,7 +232,7 @@ function MobileSurface({ scene, shot, ratings, setRatings, activeRating, setActi
     setActiveRating(null); setRatingReturn(mine ? 'mine' : 'query'); pick(s, 'rating-edit');
   };
   const pick = (s, next) => { listReturn.current = mine ? 'mine' : 'query'; select(s.id); go(next); };
-  const back = () => ['rating-filter', 'department'].includes(scene) ? go(filters.return || 'ratings') : scene === 'workspace-travel' ? go(views.portalTravelReturn || 'workspace-tasks') : (scene.startsWith('workspace-tax') || scene.startsWith('workspace-quote')) ? go('workspace-tasks') : scene === 'workspace-approval' || scene === 'workspace-changes' ? go('workspace-info') : scene.startsWith('workspace') ? go('workspace-home') : scene.startsWith('portal') && portalEmail && !passwordScreen ? setPortalEmail(false) : ['rating-edit', 'rating-detail'].includes(scene) ? go(ratingReturn) : isRegistration && step > 0 ? setStep(step - 1) : go(listReturn.current);
+  const back = () => scene.startsWith('workspace-account-') ? go('workspace-account') : ['rating-filter', 'department'].includes(scene) ? go(filters.return || 'ratings') : scene === 'workspace-travel' ? go(views.portalTravelReturn || 'workspace-tasks') : (scene.startsWith('workspace-tax') || scene.startsWith('workspace-quote')) ? go('workspace-tasks') : scene === 'workspace-approval' || scene === 'workspace-changes' ? go('workspace-info') : scene.startsWith('workspace') ? go('workspace-home') : scene.startsWith('portal') && portalEmail && !passwordScreen ? setPortalEmail(false) : ['rating-edit', 'rating-detail'].includes(scene) ? go(ratingReturn) : isRegistration && step > 0 ? setStep(step - 1) : go(listReturn.current);
   const preview = name => setSheet({ kind: 'attachment', name });
   function runConfirmation() {
     const action = confirm; setConfirm(null);
