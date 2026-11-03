@@ -69,7 +69,6 @@ const basicCompany = [
   ['capital', '注册资金', true], ['currency', '注册币种', true, ['人民币', '美元', '港币']],
   ['country', '国家', true, ['国内', '国外']], ['address', '注册地址', true, 'address'],
   ['invoiceAddress', '接收发票地址'], ['website', '公司网址'], ['taxpayer', '纳税人资格', false, ['一般纳税人', '小规模纳税人']],
-  ['listed', '是否上市公司', false, ['是', '否']], ['branchOffice', '是否分支机构', false, ['是', '否']],
   ['businessScope', '经营范围', true, 'textarea'], ['cooperation', '与搜狐合作事项', false, 'textarea'], ['remark', '备注', false, 'textarea'],
 ];
 const personalFields = [
@@ -81,7 +80,7 @@ const governmentFields = [['supplierName', '供应商名称', true], ['country',
 const foreignFields = [['supplierName', '供应商名称', true], ['creditCode', '证件号码', true], ['establishedAt', '成立日期', true, 'date'], ['licenseUntil', '证件有效期至', true, 'date'], ['legalRepresentative', '法人代表', true], ['companyPhone', '公司电话'], ['capital', '注册资金', true], ['currency', '注册币种', true, ['人民币', '美元', '港币']], ['country', '国家', true, ['国内', '国外']], ['address', '注册地址', true], ['cooperation', '与搜狐合作事项', true, 'textarea'], ['remark', '备注', false, 'textarea']];
 export const fieldsFor = type => type === supplierTypes[1] ? personalFields : type === supplierTypes[2] ? governmentFields : type === supplierTypes[3] ? foreignFields : basicCompany;
 
-export const filledBasic = { type: supplierTypes[0], proof: '营业执照.jpg', supplierName: '北京初然文化传媒有限公司483920', creditCode: '73652184MACA1H2A43', establishedAt: '2023-03-07', licenseUntil: '2053-03-06', legalRepresentative: '王嵩涵', companyPhone: '010-52867111', companyType: '有限责任公司', industry: '文化、体育、娱乐业', capital: '100', currency: '人民币', country: '国内', address: '', invoiceAddress: '', website: '', taxpayer: '', listed: '', branchOffice: '', businessScope: '', cooperation: '', remark: '' };
+export const filledBasic = { type: supplierTypes[0], proof: '营业执照.jpg', supplierName: '北京初然文化传媒有限公司483920', creditCode: '73652184MACA1H2A43', establishedAt: '2023-03-07', licenseUntil: '2053-03-06', legalRepresentative: '王嵩涵', companyPhone: '010-52867111', companyType: '有限责任公司', industry: '文化、体育、娱乐业', capital: '100', currency: '人民币', country: '国内', address: '', invoiceAddress: '', website: '', taxpayer: '', businessScope: '', cooperation: '', remark: '' };
 
 export function BasicFields({ data, setData, shot = false, onAddress, initialDate = false }) {
   const [nextType, setNextType] = useState('');

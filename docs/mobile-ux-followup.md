@@ -139,6 +139,8 @@ PRD维护交互要求，DESIGN.md移除参考目录保留确认的冲突规则�
 
 地区选择曾展示12个省级选项，但仅云南、北京、天津、河北配置了下级，造成其他省份选入空列表；现由已配置目录生成可选项。
 
-用户提供的后端代码中，supplier-center-api/.../SupplierBasicInfoExtendDto.java定义listFlag（是否上市公司）和branchFlag（注释为是否分支结构），均为0否、1是；历史/暂存DTO亦有对应字段。原型企业基本信息的listed、branchOffice据此映射。该证据只确认数据字段存在，未证明原PC代注册页的显隐要求；保留字段，不新增必填，展示范围待原版页面或业务口径确认。
+用户提供的后端代码中，supplier-center-api/.../SupplierBasicInfoExtendDto.java定义listFlag（是否上市公司）和branchFlag（注释为是否分支结构），均为0否、1是；历史/暂存DTO亦有对应字段。原型企业基本信息的listed、branchOffice据此映射。该证据只确认数据字段存在，未证明原PC代注册页的显隐要求；用户本轮明确要求移除，原型已清理相关字段与Mock值。
 
 字号复核覆盖管理与门户32个普通路由页面、详情9个页签，并复核列表及门户代表视图；实际标题18px、卡片/分组16px、正文14px、输入/主操作16px。联系人17px继承已修正。四条地区链路及回填后进入联系人步骤通过。未覆盖真机、系统字体放大和软键盘。
+
+财务OU及黑名单截图核对：按用户确认截图补只读记录字段及完整Mock阅读样例，财务OU对应orgName、liaConcatenatedSegments、prepayConcatenatedSegments、addressOuName；黑名单展示人员、时间、原因和状态。末列无名图标缺少前端实现与文字说明，尚未推断操作。

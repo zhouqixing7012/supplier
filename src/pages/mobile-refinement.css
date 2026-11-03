@@ -365,7 +365,7 @@
 .mobile-page .m-portal-login .m-captcha-field > button { grid-column: 3; grid-row: 1; width: 44px; min-height: 48px; }
 .m-batch-buttons { width: 100%; min-width: 0; }
 .mobile-page .m-batch-buttons > button { flex: 1; min-width: 0; }
-.mobile-page .m-batch-actions-mine .m-batch-buttons > .m-action-danger { flex: 0 0 64px; }
+.mobile-page .m-batch-actions-mine .m-batch-buttons > .m-action-danger { flex: 0 0 80px; }
 
 .m-rating-card-state { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 6px; flex-shrink: 0; }
 .m-rating-card-state strong { font-size: 16px; color: var(--m-action); }
@@ -418,3 +418,11 @@
 .mobile-page:not(.m-shot) .m-contact-summary h3,
 .mobile-page:not(.m-shot) .m-approval-heading,
 .mobile-page:not(.m-shot) .m-reference-card h3 { font-size: var(--m-font-card-title); line-height: 1.6; }
+
+/* 同行可编辑字段标签与输入值同字号，详情字段维持紧凑正文。 */
+.mobile-page:not(.m-shot) .m-field > label { font-size: var(--m-font-control); }
+.mobile-page:not(.m-shot) .m-field.m-field-inline > label { width: 128px; max-width: 44%; }
+.m-detail-records { margin: 12px 16px; }
+.m-detail-records .m-bank-card { margin: 0 0 12px; }
+.m-finance-value { overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+@media (max-width: 359px) { .mobile-page:not(.m-shot) .m-field.m-field-inline > label { width: 112px; } }

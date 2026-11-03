@@ -24,7 +24,7 @@ export function ChangeTag({ value }) {
   return value ? <span className="m-status" data-tone={value === '删除' ? 'danger' : value === '修改' ? 'warning' : 'info'} aria-label={'变更状态：' + value}>{value}</span> : null;
 }
 
-const statusTone = {
+const statusTone = { '已拉黑': 'danger', '已移除': 'neutral',
   '草稿': 'neutral', '邀请中': 'info', '注册中': 'info',
   '审批中': 'warning', '待审批': 'warning', '变更中': 'warning',
   '已审批': 'success', '注册驳回': 'danger',

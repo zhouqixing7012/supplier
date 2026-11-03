@@ -35,8 +35,20 @@ export const initialSuppliers = [
   // 用户授权的会话演示资料，不连接真实账号、审批或联系人服务。
   if (!['733324', '557348', 'old', 'person'].includes(supplier.id)) return supplier;
   const personal = supplier.type === supplierTypes[1];
-  const basic = personal ? { supplierName: supplier.name, certificateType: '身份证', gender: '男', creditCode: supplier.code, establishedAt: '2020-01-01', licenseUntil: '2040-01-01', country: '国内', address: '北京市/朝阳区 演示地址1号', email: 'person@example.invalid', mobile: '13800000001', qq: '100001', wechat: 'mock_person', cooperation: '内容创作', remark: '会话样例' } : { supplierName: supplier.name, creditCode: supplier.code, establishedAt: '2018-06-15', licenseUntil: '2038-06-14', legalRepresentative: '林晓', companyPhone: '010-55550001', companyType: '有限责任公司', industry: supplier.industry || supplierIndustries[0], capital: '500', currency: '人民币', country: '国内', address: '北京市/朝阳区 演示园区1号', invoiceAddress: '北京市朝阳区演示园区财务室', website: 'https://supplier.example.invalid', taxpayer: '一般纳税人', listed: '否', branchOffice: '否', businessScope: '软件开发、信息系统集成、技术咨询与维护服务', cooperation: '供应商平台开发与运维', remark: '支持分阶段验收与交付', businessAdvantage: '具备需求分析、研发、测试和运维交付团队，支持多地区项目协作。' };
+  const basic = personal ? { supplierName: supplier.name, certificateType: '身份证', gender: '男', creditCode: supplier.code, establishedAt: '2020-01-01', licenseUntil: '2040-01-01', country: '国内', address: '北京市/朝阳区 演示地址1号', email: 'person@example.invalid', mobile: '13800000001', qq: '100001', wechat: 'mock_person', cooperation: '内容创作', remark: '会话样例' } : { supplierName: supplier.name, creditCode: supplier.code, establishedAt: '2018-06-15', licenseUntil: '2038-06-14', legalRepresentative: '林晓', companyPhone: '010-55550001', companyType: '有限责任公司', industry: supplier.industry || supplierIndustries[0], capital: '500', currency: '人民币', country: '国内', address: '北京市/朝阳区 演示园区1号', invoiceAddress: '北京市朝阳区演示园区财务室', website: 'https://supplier.example.invalid', taxpayer: '一般纳税人', businessScope: '软件开发、信息系统集成、技术咨询与维护服务', cooperation: '供应商平台开发与运维', remark: '支持分阶段验收与交付', businessAdvantage: '具备需求分析、研发、测试和运维交付团队，支持多地区项目协作。' };
   const detail = { ...supplier, supplierAccount: 'MOCK_' + supplier.id, supplierFormerName: personal ? '' : '演示企业曾用名', basic, contact: supplier.id === '733324' ? '林晓' : supplier.contact, phone: supplier.id === '733324' ? '13800000001' : supplier.phone };
+  // 财务OU与黑名单记录均为会话演示样本，字段按用户截图组织。
+  if (supplier.id === '733324') {
+    detail.financeOus = [{ id: 'MOCK-OU-001', orgName: 'OU_Corporate Sohu.com Limited_US', liabilityAccount: '502.17.0.21101.0.0.0.0.0', prepayAccount: '502.17.0.13101.C302.0.0.0.0', address: '待定' }];
+    detail.blacklistRecords = [
+      { id: 'MOCK-BL-002', status: '已移除', applyUser: '陈才慧(208660)', applyTime: '2026-10-23 09:57:22', applyReason: '演示拉黑原因', removeUser: '陈才慧(208660)', removeTime: '2026-10-26 15:39:43', removeReason: '演示移除原因' },
+      { id: 'MOCK-BL-001', status: '已移除', applyUser: '陈才慧(208660)', applyTime: '2026-10-22 23:28:45', applyReason: '演示拉黑原因：资料待补充核验', removeUser: '陈才慧(208660)', removeTime: '2026-10-23 09:57:15', removeReason: '演示移除原因：资料已补充并完成核验' },
+    ];
+  }
+  if (personal) {
+    detail.blacklisted = true;
+    detail.blacklistRecords = [{ id: 'MOCK-BL-003', status: '已拉黑', applyUser: '陈才慧(208660)', applyTime: '2026-10-26 15:39:51', applyReason: '演示拉黑原因', removeUser: '', removeTime: '', removeReason: '' }];
+  }
   if (supplier.id === '557348') { basic.businessScope = '农林产品供应与种植技术咨询'; basic.cooperation = '园区绿化材料及农产品供应'; }
   if (supplier.id === '733324') {
     detail.updated = '2026-10-18 14:31:00';
