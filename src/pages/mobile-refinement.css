@@ -394,7 +394,7 @@
 .mobile-page .m-add-icon { border: 0 !important; background: transparent; }
 
 /* 管理平台与协同门户共享字号层级，历史截图模式保留原密度。 */
-:root { --m-font-page-title: 18px; --m-font-card-title: 16px; --m-font-body: 14px; --m-font-control: 16px; --m-font-caption: 13px; }
+:root { --m-font-page-title: 18px; --m-font-card-title: 16px; --m-font-body: 14px; --m-font-control: 16px; --m-font-field: 14px; --m-font-caption: 13px; }
 .mobile-page:not(.m-shot) .m-header h1 { font-size: var(--m-font-page-title); line-height: 1.5; }
 .mobile-page:not(.m-shot) .m-detail-summary h2,
 .mobile-page:not(.m-shot) .m-section > h2,
@@ -420,7 +420,7 @@
 .mobile-page:not(.m-shot) .m-reference-card h3 { font-size: var(--m-font-card-title); line-height: 1.6; }
 
 /* 同行可编辑字段标签与输入值同字号，详情字段维持紧凑正文。 */
-.mobile-page:not(.m-shot) .m-field > label { font-size: var(--m-font-control); }
+.mobile-page:not(.m-shot) .m-field > label { font-size: var(--m-font-field); }
 .mobile-page:not(.m-shot) .m-field.m-field-inline > label { width: 128px; max-width: 44%; }
 .m-detail-records { margin: 12px 16px; }
 .m-detail-records .m-bank-card { margin: 0 0 12px; }
@@ -443,3 +443,13 @@
 .m-export-panel { max-height: 82dvh; overflow-y: auto; }
 .m-export-conditions { padding: 0 16px; }
 .m-export-panel .m-actions { position: sticky; bottom: 0; left: auto; right: auto; width: 100%; max-width: none; transform: none; box-sizing: border-box; }
+
+/* 编辑字段统一14px，主操作按钮和标题继续保留各自层级。 */
+.mobile-page:not(.m-shot) .m-field input,
+.mobile-page:not(.m-shot) .m-field textarea,
+.mobile-page:not(.m-shot) .m-field .m-select-field,
+.mobile-page:not(.m-shot) .m-field-control,
+.mobile-page:not(.m-shot) .m-rating-dimension > label { font-size: var(--m-font-field) !important; }
+.m-batch-supplier-list { padding: 0 16px; }
+.m-batch-supplier + .m-batch-supplier { border-top: 1px solid var(--m-border-subtle); }
+.m-batch-supplier h3 { margin: 0; padding: 12px 0 0; font-size: 16px; line-height: 1.6; overflow-wrap: anywhere; }
