@@ -47,10 +47,11 @@ export function ReferenceList({ kind, selected = '', bank = bankNames[0], onCanc
 }
 
 export function BankCard({ bank, onEdit, onDelete, onPreview, deleteDisabledReason = '' }) {
-  return <article className="m-bank-card" data-change={bank.change || undefined}><div className="m-record-heading"><h3>{bank.accountType || '银行账户'} · {bank.bank || '未选择银行'}{bank.number ? ' · 尾号' + bank.number.slice(-4) : ''}</h3><ChangeTag value={bank.change} /></div><div className="m-card-body">
+  const [blockedDelete, setBlockedDelete] = useState(false);
+  return <><article className="m-bank-card" data-change={bank.change || undefined}><div className="m-record-heading"><h3>{bank.accountType || '银行账户'} · {bank.bank || '未选择银行'}{bank.number ? ' · 尾号' + bank.number.slice(-4) : ''}</h3><ChangeTag value={bank.change} /></div><div className="m-card-body">
     {bank.accountType && <Row label="账户类型" compact>{bank.accountType}</Row>}<Row label="开户银行" compact>{bank.bank}</Row><Row label="银行分行" compact>{bank.branch}</Row><Row label="开户行所在国家/地区" compact>{bank.country}</Row><Row label="开户所在省" compact>{bank.province}</Row><Row label="开户所在市" compact>{bank.city}</Row><Row label="账户名称" compact>{bank.name}</Row><Row label="银行账号" compact>{bank.number}</Row><Row label="币种" compact>{bank.currency}</Row><Row label="开户证明" compact>{bank.proof && <button className="m-proof-thumb" onClick={onPreview}>{bank.proof === '开户证明.png' ? <span className="m-proof-plate"><img src="/mobile-assets/bank-proof-source.jpg" alt="开户证明" /></span> : attachmentName(bank.proof)}</button>}</Row><Row label="备注" compact>{bank.note}</Row>
-    {(onEdit || onDelete || deleteDisabledReason) && <div className="m-record-actions">{onEdit && <button onClick={onEdit}>修改</button>}{(onDelete || deleteDisabledReason) && <button className="m-action-danger" disabled={!!deleteDisabledReason} title={deleteDisabledReason || undefined} onClick={onDelete}>删除</button>}</div>}{deleteDisabledReason && <p className="m-delete-reason">{deleteDisabledReason}</p>}
-  </div></article>;
+    {(onEdit || onDelete || deleteDisabledReason) && <div className="m-record-actions">{onEdit && <button onClick={onEdit}>修改</button>}{(onDelete || deleteDisabledReason) && <button className="m-action-danger" onClick={() => deleteDisabledReason ? setBlockedDelete(true) : onDelete?.()}>删除</button>}</div>}
+  </div></article>{blockedDelete && <Overlay label="银行删除校验" onClose={() => setBlockedDelete(false)}><h2>无法删除</h2><p>{deleteDisabledReason}</p><div className="m-dialog-actions"><button type="button" onClick={() => setBlockedDelete(false)}>知道了</button></div></Overlay>}</>;
 }
 
 export function PermissionForm({ initial = {}, onSave, onCancel, notify }) {

@@ -301,7 +301,7 @@
 .m-history-number { flex: 1; min-width: 0; overflow-wrap: anywhere; font-weight: 600; }
 .m-history-chevron { width: 18px; height: 22px; flex: none; color: var(--m-text-secondary); }
 .m-approval-history-card[open] .m-history-chevron { transform: rotate(180deg); }
-.m-history-content { padding: 0 12px 12px; border-top: 1px solid var(--m-border-subtle); }
+.m-history-content { padding: 0 12px; border-top: 1px solid var(--m-border-subtle); }
 
 .m-batch-targets { padding: 0 16px; max-height: 24dvh; overflow: auto; }
 
@@ -426,3 +426,14 @@
 .m-detail-records .m-bank-card { margin: 0 0 12px; }
 .m-finance-value { overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
 @media (max-width: 359px) { .mobile-page:not(.m-shot) .m-field.m-field-inline > label { width: 112px; } }
+
+/* 星号独立占位，必填与选填字段从同一文字起点对齐。 */
+.mobile-page:not(.m-shot) .m-field > label { position: relative; padding-left: 12px; box-sizing: border-box; }
+.mobile-page:not(.m-shot) .m-field > label > em { position: absolute; left: 0; top: 0; width: 10px; margin: 0; text-align: left; }
+.mobile-page:not(.m-shot) .m-field-name { min-width: 0; overflow-wrap: anywhere; }
+.mobile-page:is([data-scene^="inviter"], [data-scene="bank"], [data-scene^="permissions"], [data-scene="bank-application-form"]) .m-row > .m-label { position: relative; padding-left: 12px; box-sizing: border-box; }
+.m-inviter-note > p { margin: 0 0 6px; font-weight: 600; }
+.m-inviter-note ol { margin: 0; padding-left: 20px; }
+.m-inviter-note li + li { margin-top: 6px; }
+
+.mobile-page:is([data-scene^="inviter"], [data-scene="bank"], [data-scene^="permissions"], [data-scene="bank-application-form"]) .m-row > .m-label > em { position: absolute; left: 0; top: 0; margin: 0; }
