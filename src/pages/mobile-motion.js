@@ -17,7 +17,8 @@ export function swipeTarget(active, count, dx, dy, elapsed) {
 
 // 嵌套操作中，页面方向优先于关闭弹层和记录反馈。
 export function resolveMotion(current, next) {
-  const navigation = kind => ['forward', 'back', 'tab-next', 'tab-prev'].includes(kind);
+  if (current.startsWith('swipe-') && next === current.replace('swipe-', 'tab-')) return current;
+  const navigation = kind => ['forward', 'back', 'tab-next', 'tab-prev', 'swipe-next', 'swipe-prev'].includes(kind);
   return navigation(current) && !navigation(next) ? current : next;
 }
 export function captureScrollPositions(source, copy) {

@@ -14,7 +14,7 @@ import { ChangeComparison } from './mobile-changes.jsx';
 import './mobile-supplier.css';
 import './mobile-refinement.css';
 import './mobile-motion.css';
-import { runMotion, useMotionStructure } from './mobile-motion.jsx';
+import { runMotion, useMotionStructure, usePanelState, MotionPresence } from './mobile-motion.jsx';
 import { routeMotion } from './mobile-motion.js';
 
 const clone = value => structuredClone(value);
@@ -111,7 +111,7 @@ function MobileApp() {
     }
   };
   const update = patch => setSuppliers(list => list.map(s => s.id === selected ? { ...s, ...patch, updated: patch.status ? now() : s.updated } : s));
-  return <>{scene === 'scenes' ? <SceneGallery /> : <><aside className="m-preview-nav" aria-label="原型导航"><a href="#/mobile/scenes">47 张截图</a><span>演示数据</span><a href="#/login">电脑端</a></aside>{result && <aside className="m-result-banner" role="status"><strong>操作结果</strong><p>{result.text}</p><button aria-label="关闭操作结果" onClick={() => setResult(null)}>关闭</button></aside>}<MobileSurface key={route} scene={scene} shot={shot} ratings={ratings} setRatings={setRatings} activeRating={activeRating} setActiveRating={setActiveRating} ratingReturn={ratingReturn} setRatingReturn={setRatingReturn} views={views.current} listReturn={listReturn} suppliers={suppliers} setSuppliers={setSuppliers} selectedId={selected} select={setSelected} update={update} go={go} notify={notify} /></>}{message && <div className="m-toast" role="status">{message}</div>}</>;
+  return <>{scene === 'scenes' ? <SceneGallery /> : <><aside className="m-preview-nav" aria-label="原型导航"><a href="#/mobile/scenes">47 张截图</a><span>演示数据</span><a href="#/login">电脑端</a></aside><MotionPresence show={!!result} as="aside" className="m-result-banner" role="status">{result && <><strong>操作结果</strong><p>{result.text}</p><button aria-label="关闭操作结果" onClick={() => setResult(null)}>关闭</button></>}</MotionPresence><MobileSurface key={route} scene={scene} shot={shot} ratings={ratings} setRatings={setRatings} activeRating={activeRating} setActiveRating={setActiveRating} ratingReturn={ratingReturn} setRatingReturn={setRatingReturn} views={views.current} listReturn={listReturn} suppliers={suppliers} setSuppliers={setSuppliers} selectedId={selected} select={setSelected} update={update} go={go} notify={notify} /></>}<MotionPresence show={!!message} as="div" className="m-toast" role="status">{message}</MotionPresence></>;
 }
 
 function MobileSurface({ scene, shot, ratings, setRatings, activeRating, setActiveRating, ratingReturn, setRatingReturn, views, listReturn, suppliers, setSuppliers, selectedId, select, update, go, notify }) {
@@ -135,21 +135,24 @@ function MobileSurface({ scene, shot, ratings, setRatings, activeRating, setActi
   const [banks, setBanks] = useState(() => clone(supplier.pendingBanks || supplier.banks));
   const [editingBank, setEditingBank] = useState(-1);
   const [bankForm, setBankForm] = useState(() => scene === 'bank-form-selected' ? { ...clone(exampleBank), name: '', number: '', currency: '', proof: '' } : { ...blankBank(''), accountType: '基本账户' });
-  const [showBankForm, setShowBankForm] = useState(false);
+  const [showBankForm, setShowBankForm] = usePanelState(false);
   const [permissions, setPermissions] = useState(() => scene === 'permissions-added' ? [{ id: 'p2', group: '集团权限', category: '集团其他业务', note: '', change: '新增' }, ...clone(supplier.permissions)] : clone(supplier.permissions));
-  const [permissionForm, setPermissionForm] = useState(false);
+  const [permissionForm, setPermissionForm] = usePanelState(false);
   const [newInviter, setNewInviter] = useState(scene === 'inviter-selected' ? '周辉' : '');
-  const [peoplePicker, setPeoplePicker] = useState(false);
+  const [peoplePicker, setPeoplePicker] = usePanelState(false);
   const editingRegistration = ['register-edit', 'register-edit-all'].includes(scene);
   const editingAll = scene === 'register-edit-all';
   const isRegistration = scene.startsWith('register') || ['expiry', 'address', 'region'].includes(scene);
   const [returnPreview, setReturnPreview] = useState(false);
   const [step, setStep] = useState(scene.includes('contacts') ? 1 : scene.includes('banks') ? 2 : 0);
+  const stepScroll = useRef({});
+  const changeStep = next => { stepScroll.current[step] = window.scrollY; runMotion(() => setStep(next), next < step ? 'back' : 'forward'); };
+  useLayoutEffect(() => { if (isRegistration) window.scrollTo(0, stepScroll.current[step] || 0); }, [step, isRegistration]);
   const [basic, setBasic] = useState(() => scene === 'expiry' ? { ...clone(filledBasic), supplierName: 'Gys', creditCode: 'qqq', establishedAt: '2026-10-14', licenseUntil: '2036-12-31', legalRepresentative: '', companyPhone: '', proof: '' } : shot ? clone(filledBasic) : editingRegistration ? { ...(supplier.basic || {}), type: supplier.type, supplierName: supplier.name, registerEmail: supplier.email, creditCode: supplier.code } : { type: supplierTypes[0], supplierName: '', registerEmail: '' });
   const [contacts, setContacts] = useState(() => scene === 'register-contacts' ? [{ id: 'c1', name: '', phone: '', email: '' }, { id: 'c2', name: '', phone: '', email: '' }] : editingRegistration ? clone(supplier.contacts || []) : []);
   const [registerBanks, setRegisterBanks] = useState(() => scene === 'register-banks' ? [{ ...clone(exampleBank), accountType: '一般账户', name: '1', number: '1', country: '', province: '', city: '', proof: '开户证明.png' }] : editingRegistration ? clone(supplier.banks) : []);
   const [addressOpen, setAddressOpen] = useState(false);
-  const [registerBankPicker, setRegisterBankPicker] = useState(false);
+  const [registerBankPicker, setRegisterBankPicker] = usePanelState(false);
   const [registerBankForm, setRegisterBankForm] = useState(blankBank(basic.supplierName));
   const [saving, setSaving] = useState(false);
   const [portalEmail, setPortalEmail] = useState(scene === 'portal-email');
@@ -239,7 +242,7 @@ function MobileSurface({ scene, shot, ratings, setRatings, activeRating, setActi
     setActiveRating(null); setRatingReturn(mine ? 'mine' : 'query'); pick(s, 'rating-edit');
   };
   const pick = (s, next) => { listReturn.current = mine ? 'mine' : 'query'; select(s.id); go(next); };
-  const back = () => scene.startsWith('workspace-account-') ? go(views.portalSecurityReturn || 'workspace-account') : ['rating-filter', 'department'].includes(scene) ? go(filters.return || 'ratings') : scene === 'workspace-travel' ? go(views.portalTravelReturn || 'workspace-tasks') : (scene.startsWith('workspace-tax') || scene.startsWith('workspace-quote')) ? go('workspace-tasks') : scene === 'workspace-approval' || scene === 'workspace-changes' ? go('workspace-info') : scene.startsWith('workspace') ? go('workspace-home') : scene.startsWith('portal') && portalEmail && !passwordScreen ? setPortalEmail(false) : ['rating-edit', 'rating-detail'].includes(scene) ? go(ratingReturn) : isRegistration && step > 0 ? setStep(step - 1) : go(listReturn.current);
+  const back = () => scene.startsWith('workspace-account-') ? go(views.portalSecurityReturn || 'workspace-account') : ['rating-filter', 'department'].includes(scene) ? go(filters.return || 'ratings') : scene === 'workspace-travel' ? go(views.portalTravelReturn || 'workspace-tasks') : (scene.startsWith('workspace-tax') || scene.startsWith('workspace-quote')) ? go('workspace-tasks') : scene === 'workspace-approval' || scene === 'workspace-changes' ? go('workspace-info') : scene.startsWith('workspace') ? go('workspace-home') : scene.startsWith('portal') && portalEmail && !passwordScreen ? setPortalEmail(false) : ['rating-edit', 'rating-detail'].includes(scene) ? go(ratingReturn) : isRegistration && step > 0 ? changeStep(step - 1) : go(listReturn.current);
   const preview = name => setSheet({ kind: 'attachment', name });
   function runConfirmation() {
     const action = confirm; setConfirm(null);
@@ -282,7 +285,7 @@ function MobileSurface({ scene, shot, ratings, setRatings, activeRating, setActi
       if (basic.type === supplierTypes[0] && registerBanks.filter(b => b.accountType === '基本账户').length !== 1) return notify('企业供应商必须有且只有一个基本账户');
       for (const b of registerBanks) { const error = bankError(b, basic.type === supplierTypes[0]); if (error) return notify(error); }
     }
-    if (returnPreview) { setReturnPreview(false); setStep(3); } else setStep(step === 0 && basic.type === supplierTypes[1] ? 2 : step + 1); window.scrollTo(0, 0);
+    if (returnPreview) { setReturnPreview(false); changeStep(3); } else changeStep(step === 0 && basic.type === supplierTypes[1] ? 2 : step + 1);
   }
   function submitRegister() {
     if (saving) return; setSaving(true);
@@ -354,8 +357,8 @@ function MobileSurface({ scene, shot, ratings, setRatings, activeRating, setActi
       {step === 0 && <BasicFields data={basic} setData={setBasic} shot={!!shot} onAddress={() => setAddressOpen(true)} initialDate={scene === 'expiry'} />}
       {step === 1 && <ContactFields contacts={contacts} setContacts={setContacts} />}
       {step === 2 && <div className="m-register-banks">{registerBanks.map((b, i) => <BankCard key={b.id} bank={b} onPreview={() => preview(b.proof)} onEdit={() => { setEditingBank(i); setRegisterBankForm(clone(b)); setRegisterBankPicker(true); }} onDelete={() => setConfirm({ type: 'delete-register-bank', index: i, text: '确认删除银行信息' + (i + 1) + '？' })} />)}<button aria-label="添加银行" title="添加银行" className="m-dashed-add m-add-icon" onClick={() => { setEditingBank(-1); setRegisterBankForm(blankBank(basic.supplierName)); setRegisterBankPicker(true); }}><Plus aria-hidden="true" /></button></div>}
-      {step === 3 && <div className="m-register-preview">{editingAll && <ChangeComparison before={supplier} after={{ basic, name: basic.supplierName, email: basic.registerEmail, type: basic.type, contacts, banks: registerBanks }} />}<button className="m-preview-edit" onClick={() => { setReturnPreview(true); setStep(0); }}>修改基本信息</button><Section title="基本信息">{fieldsFor(basic.type).map(([key, label]) => <Row key={key} label={label}>{basic[key]}</Row>)}<Row label="供应商注册邮箱">{basic.registerEmail}</Row>{basic.proof && <Row label="证照附件"><button onClick={() => preview(basic.proof)}>{attachmentName(basic.proof)}</button></Row>}</Section>{basic.type !== supplierTypes[1] && <><button className="m-preview-edit" onClick={() => { setReturnPreview(true); setStep(1); }}>修改联系人</button><Section title="联系人信息">{contacts.map(c => <div key={c.id}>{[['name', '姓名'], ['phone', '电话'], ['email', '邮箱'], ['department', '部门'], ['job', '职位'], ['wechat', '微信'], ['note', '备注']].map(([key, label]) => <Row key={key} label={label}>{c[key]}</Row>)}</div>)}</Section></>}<button className="m-preview-edit" onClick={() => { setReturnPreview(true); setStep(2); }}>修改银行信息</button><Section title="银行信息">{registerBanks.map(b => <BankCard key={b.id} bank={b} onPreview={() => preview(b.proof)} />)}</Section></div>}
-      <Actions items={[{ label: '取消', secondary: true, onClick: () => go(listReturn.current) }, ...(!editingAll ? [{ label: '保存草稿', secondary: true, onClick: saveDraft }] : []), ...(step > 0 ? [{ label: '上一步', secondary: true, onClick: () => { setStep(step === 2 && basic.type === supplierTypes[1] ? 0 : step - 1); window.scrollTo(0, 0); } }] : []), { label: step === 3 ? '提交' : returnPreview ? '保存并返回预览' : '下一步 (' + (basic.type === supplierTypes[1] ? step === 0 ? 1 : 2 : step + 1) + ' / ' + (basic.type === supplierTypes[1] ? 3 : 4) + ')', disabled: saving, onClick: step === 3 ? submitRegister : nextStep }]} />
+      {step === 3 && <div className="m-register-preview">{editingAll && <ChangeComparison before={supplier} after={{ basic, name: basic.supplierName, email: basic.registerEmail, type: basic.type, contacts, banks: registerBanks }} />}<button className="m-preview-edit" onClick={() => { setReturnPreview(true); changeStep(0); }}>修改基本信息</button><Section title="基本信息">{fieldsFor(basic.type).map(([key, label]) => <Row key={key} label={label}>{basic[key]}</Row>)}<Row label="供应商注册邮箱">{basic.registerEmail}</Row>{basic.proof && <Row label="证照附件"><button onClick={() => preview(basic.proof)}>{attachmentName(basic.proof)}</button></Row>}</Section>{basic.type !== supplierTypes[1] && <><button className="m-preview-edit" onClick={() => { setReturnPreview(true); changeStep(1); }}>修改联系人</button><Section title="联系人信息">{contacts.map(c => <div key={c.id}>{[['name', '姓名'], ['phone', '电话'], ['email', '邮箱'], ['department', '部门'], ['job', '职位'], ['wechat', '微信'], ['note', '备注']].map(([key, label]) => <Row key={key} label={label}>{c[key]}</Row>)}</div>)}</Section></>}<button className="m-preview-edit" onClick={() => { setReturnPreview(true); changeStep(2); }}>修改银行信息</button><Section title="银行信息">{registerBanks.map(b => <BankCard key={b.id} bank={b} onPreview={() => preview(b.proof)} />)}</Section></div>}
+      <Actions items={[{ label: '取消', secondary: true, onClick: () => go(listReturn.current) }, ...(!editingAll ? [{ label: '保存草稿', secondary: true, onClick: saveDraft }] : []), ...(step > 0 ? [{ label: '上一步', secondary: true, onClick: () => { changeStep(step === 2 && basic.type === supplierTypes[1] ? 0 : step - 1); } }] : []), { label: step === 3 ? '提交' : returnPreview ? '保存并返回预览' : '下一步 (' + (basic.type === supplierTypes[1] ? step === 0 ? 1 : 2 : step + 1) + ' / ' + (basic.type === supplierTypes[1] ? 3 : 4) + ')', disabled: saving, onClick: step === 3 ? submitRegister : nextStep }]} />
     </>}
     {addressOpen && <Overlay sheet label="编辑注册地址" onClose={() => window.dispatchEvent(new CustomEvent('mobile-close-address'))}><div className="m-address-editor"><div className="m-picker-title"><strong>编辑注册地址</strong><button onClick={() => window.dispatchEvent(new CustomEvent('mobile-close-address'))}>关闭</button></div><AddressForm initial={basic.address} onConfirm={v => { setBasic({ ...basic, address: v }); setAddressOpen(false); }} onCancel={() => setAddressOpen(false)} /></div></Overlay>}
     {['address', 'region'].includes(scene) && <AddressForm initial={shot ? '云南省/保山市/龙陵县 个哈哈哈哈' : basic.address} startRegion={scene === 'region'} onConfirm={v => { setBasic({ ...basic, address: v }); go('register'); }} onCancel={() => go('register')} />}
@@ -385,6 +388,7 @@ function MobileSurface({ scene, shot, ratings, setRatings, activeRating, setActi
     {shot && <div className="m-android-nav"><span /><i /><b /></div>}
   </div>;
 }
+
 
 
 

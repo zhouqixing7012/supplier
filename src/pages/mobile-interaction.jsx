@@ -96,7 +96,7 @@ export function SwipeArea({ active, count, onChange, children, className = '' })
       const point = event.changedTouches[0];
       const { active, count, onChange } = config.current;
       const next = point ? swipeTarget(active, count, point.clientX - origin.x, point.clientY - origin.y, Date.now() - origin.time) : active;
-      if (next !== active) { event.stopPropagation(); restore(); runMotion(() => onChange(next), next > active ? 'tab-next' : 'tab-prev'); }
+      if (next !== active) { event.stopPropagation(); restore(); runMotion(() => onChange(next), next > active ? 'swipe-next' : 'swipe-prev'); }
       else if (visual && !reducedMotion() && visual.animate) { const current = visual; bounce = current.animate([{ transform: current.style.transform }, { transform: 'translateX(0)' }], { duration: 180, easing: 'ease-out' }); bounce.onfinish = () => { if (visual === current) restore(); }; }
       else restore();
     };

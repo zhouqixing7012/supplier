@@ -53,8 +53,12 @@
 .mobile-page:not(.m-shot) .m-tab-motion.m-tab-bar-pill .m-tabs button::before { z-index: -1 !important; }
 .m-tab-label { position: relative; z-index: 1; }
 .m-shot .m-tab-indicator { display: none; }
-.mobile-page:not(.m-shot) .m-fullscreen-panel { animation: m-fade-in 150ms ease-out both; }
+.mobile-page:not(.m-shot) .m-fullscreen-panel { animation: none; }
 .m-star-control svg { transition: fill 100ms ease-out, color 100ms ease-out; }
 .m-star-control .m-half-star { animation: m-fade-in 100ms ease-out; }
 .m-motion-ghost, .m-motion-ghost * { pointer-events: none !important; }
 .m-swipe-visual, .m-swipe-visual * { pointer-events: none !important; }
+
+
+.m-checkbox-presence { display: inline-flex; flex: 0 0 auto; overflow: hidden; vertical-align: middle; }
+.m-checkbox-presence .m-checkbox { animation: none !important; }

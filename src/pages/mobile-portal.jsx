@@ -1,10 +1,11 @@
+import { usePanelState } from './mobile-motion.jsx';
 import React, { useState } from 'react';
 import { Home, ClipboardList, UserRound, Building2, FileClock, FileCheck2, Calculator, ClipboardCheck, Plane, Plus, Mail, KeyRound, ChevronRight } from 'lucide-react';
 import { Actions, Confirm, Empty, StatusTag, Field, Overlay, Row, Section, SearchBox } from './mobile-ui.jsx';
 import { AddressForm, BankCard, BankFields, BasicFields, ContactFields, bankError, fieldsFor, filledBasic, blankBank } from './mobile-forms.jsx';
 import { exampleBank as sampleBank, supplierTypes } from './mobile-data.js';
 import { Tabs, Approval } from './mobile-views.jsx';
-import { SwipeArea, useBackLayer, useDirtyForm, attachmentName } from './mobile-interaction.jsx';
+import { createSessionId, SwipeArea, useBackLayer, useDirtyForm, attachmentName } from './mobile-interaction.jsx';
 import { ChangeComparison } from './mobile-changes.jsx';
 import { AccountSecurityForm } from './mobile-account.jsx';
 import { PortalTaskList } from './mobile-portal-tasks.jsx';
@@ -44,7 +45,7 @@ export function PortalWorkspace({ scene, go, notify, store, onPreview }) {
   const [tab, setTab] = useState(store.portalInfoTab || 0);
   const [taskTab, setTaskTab] = useState(store.portalTaskTab ?? 2);
   const [address, setAddress] = useState(false);
-  const [bankIndex, setBankIndex] = useState(null);
+  const [bankIndex, setBankIndex] = usePanelState(null);
   const [bank, setBank] = useState(null);
   const [removeBank, setRemoveBank] = useState(null);
   const [logout, setLogout] = useState(false);
@@ -111,11 +112,12 @@ export function PortalWorkspace({ scene, go, notify, store, onPreview }) {
     {scene === 'workspace-travel' && <><Section title="差旅账单" collapsible={false}><Field label="账期" placeholder="例如2026-11" value={bill.period} onChange={period => setBill({ ...bill, period })} /><SpreadsheetUploadField label="账单文件" value={bill.attachment} onChange={attachment => setBill({ ...bill, attachment })} /></Section><Actions items={[{ label: store.portalTravelReturn === 'workspace-home' ? '返回工作台' : '返回业务任务', secondary: true, onClick: () => go(store.portalTravelReturn || 'workspace-tasks') }, { label: '保存草稿', onClick: () => { if (bill.attachment && !isSpreadsheetName(attachmentName(bill.attachment))) return notify('账单文件仅支持xls或xlsx格式'); store.portalBillDraft = { ...bill }; billGuard.accept(); notify('账单草稿已保存'); } }]} /></>}
     {['workspace-tax-detail', 'workspace-tax-split'].includes(scene) && <PortalPricingDetail records={orders} store={store} go={go} notify={notify} onPreview={onPreview} />}
     {address && <Overlay sheet label="编辑注册地址" onClose={() => window.dispatchEvent(new CustomEvent('mobile-close-address'))}><div className="m-address-editor"><div className="m-picker-title"><strong>编辑注册地址</strong><button onClick={() => window.dispatchEvent(new CustomEvent('mobile-close-address'))}>关闭</button></div><AddressForm initial={draft.basic.address} onCancel={() => setAddress(false)} onConfirm={value => { setDraft({ ...draft, basic: { ...draft.basic, address: value } }); setAddress(false); }} /></div></Overlay>}
-    {bankIndex !== null && <div className="m-fullscreen-panel" role="dialog" aria-modal="true" aria-label="门户银行编辑"><div className="m-picker-title"><button onClick={closeBank}>取消</button><strong>{bankIndex < 0 ? '新增银行' : '修改银行'}</strong></div><BankFields bank={bank} setBank={setBank} company={profile.type === supplierTypes[0]} /><Actions items={[{ label: '取消', secondary: true, onClick: closeBank }, { label: '保存此账户', onClick: () => { const error = bankError(bank, profile.type === supplierTypes[0]); if (error) return notify(error); if (draft.banks.some((b, i) => i !== bankIndex && b.accountType === '基本账户' && bank.accountType === '基本账户')) return notify('基本账户只能有一个'); const entry = { ...bank, id: bankIndex < 0 ? crypto.randomUUID() : draft.banks[bankIndex].id }; setDraft({ ...draft, banks: bankIndex < 0 ? [...draft.banks, entry] : draft.banks.map((b, i) => i === bankIndex ? entry : b) }); bankGuard.accept(); setBankIndex(null); } }]} /></div>}
+    {bankIndex !== null && <div className="m-fullscreen-panel" role="dialog" aria-modal="true" aria-label="门户银行编辑"><div className="m-picker-title"><button onClick={closeBank}>取消</button><strong>{bankIndex < 0 ? '新增银行' : '修改银行'}</strong></div><BankFields bank={bank} setBank={setBank} company={profile.type === supplierTypes[0]} /><Actions items={[{ label: '取消', secondary: true, onClick: closeBank }, { label: '保存此账户', onClick: () => { const error = bankError(bank, profile.type === supplierTypes[0]); if (error) return notify(error); if (draft.banks.some((b, i) => i !== bankIndex && b.accountType === '基本账户' && bank.accountType === '基本账户')) return notify('基本账户只能有一个'); const entry = { ...bank, id: bankIndex < 0 ? createSessionId() : draft.banks[bankIndex].id }; setDraft({ ...draft, banks: bankIndex < 0 ? [...draft.banks, entry] : draft.banks.map((b, i) => i === bankIndex ? entry : b) }); bankGuard.accept(); setBankIndex(null); } }]} /></div>}
     {removeBank !== null && <Confirm text="确认删除此银行账户？" onCancel={() => setRemoveBank(null)} onConfirm={() => { setDraft({ ...draft, banks: draft.banks.filter((_, i) => i !== removeBank) }); setRemoveBank(null); }} />}
     {logout && <Confirm text={store.portalDraft ? '还有尚未提交的资料修改，退出将放弃这些修改。确认退出？' : '确认退出协同门户？'} onCancel={() => setLogout(false)} onConfirm={() => { store.portalDraft = null; store.portalAccount = null; notify('已退出演示登录'); go('portal'); }} />}
     {!editing && ['workspace-home', 'workspace-tasks', 'workspace-account'].includes(scene) && <nav className="m-bottom-nav" aria-label="协同门户导航">{[[Home, '工作台', 'workspace-home'], [ClipboardList, '业务任务', 'workspace-tasks'], [UserRound, '我的', 'workspace-account']].map(([Icon, label, route], i) => <button key={route} aria-current={current === i ? 'page' : undefined} onClick={() => go(route)}><Icon aria-hidden="true" /><span>{label}</span></button>)}</nav>}
   </div>;
 }
+
 
 

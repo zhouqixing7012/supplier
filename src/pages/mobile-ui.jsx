@@ -2,7 +2,7 @@ import React, { useEffect, useId, useRef, useState } from 'react';
 import { Camera, Check, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, HelpCircle, Eye, EyeOff, X } from 'lucide-react';
 import { useBackLayer, rememberAttachment, attachmentFiles, attachmentName } from './mobile-interaction.jsx';
 
-import { runMotion } from './mobile-motion.jsx';
+import { useOverlayExit, runMotion } from './mobile-motion.jsx';
 
 export function Section({ title, children, className = '', collapsible = true, defaultOpen = true }) {
   const [open, setOpen] = useState(defaultOpen);
@@ -114,6 +114,7 @@ export function AttachmentViewer({ value, title = '查看附件', onClose }) {
 export function Overlay({ children, label = '选择', onClose: closeOriginal, sheet = false }) {
   const onClose = () => runMotion(closeOriginal, 'sheet-close');
   const ref = useRef(null);
+  useOverlayExit(ref);
   useBackLayer(true, onClose);
   const closeRef = useRef(onClose);
   closeRef.current = onClose;
@@ -215,6 +216,7 @@ export function RegistrationSteps({ personal, step }) {
     </li>)}</ol>
   </nav>;
 }
+
 
 
 

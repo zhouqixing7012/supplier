@@ -34,6 +34,10 @@ test('关闭弹层保留页面方向，同级请求采用最后一次方向', ()
   assert.equal(resolveMotion('back', 'sheet-close'), 'back');
   assert.equal(resolveMotion('tab-next', 'fade'), 'tab-next');
   assert.equal(resolveMotion('forward', 'back'), 'back');
+  assert.equal(resolveMotion('swipe-next', 'fade'), 'swipe-next');
+  assert.equal(resolveMotion('swipe-next', 'tab-next'), 'swipe-next');
+  assert.equal(resolveMotion('swipe-prev', 'tab-prev'), 'swipe-prev');
+  assert.equal(resolveMotion('sheet-close', 'swipe-prev'), 'swipe-prev');
 });
 test('视觉副本恢复根节点和嵌套纵横滚动', () => {
   const child = { children: [], scrollTop: 240, scrollLeft: 16 };
