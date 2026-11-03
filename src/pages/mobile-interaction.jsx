@@ -64,7 +64,7 @@ export function SwipeArea({ active, count, onChange, children, className = '' })
 export const attachmentFiles = new Map();
 export const attachmentName = key => attachmentFiles.get(key)?.name || key;
 export function rememberAttachment(file) {
-  const key = 'attachment:' + crypto.randomUUID();
+  const key = 'attachment:' + createSessionId();
   const entry = { key, url: URL.createObjectURL(file), type: file.type, name: file.name };
   attachmentFiles.set(key, entry);
   return entry;

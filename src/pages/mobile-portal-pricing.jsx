@@ -61,7 +61,7 @@ export function PortalPricingDetail({ quote, records, store, go, notify, onPrevi
       const invalid = draft.lines.findIndex(line => taxFields.slice(5).some(([key]) => !isDecimal(line[key])));
       if (invalid >= 0) return notify(`请填写第${invalid + 1}项完整、有效的价税信息`);
     }
-    const next = { ...structuredClone(draft), status: '已处理' };
+    const next = { ...structuredClone(draft), status: '已处理', ...(quote ? { inquiryStatus: '定价完成' } : {}) };
     const key = quote ? 'portalInquiries' : 'portalOrders';
     store[key] = records.map(item => item.number === number || item === record ? next : item);
     guard.accept(); notify(quote ? '报价已提交' : '价税拆分已提交'); go('workspace-tasks');
