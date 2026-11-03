@@ -8,6 +8,8 @@ import { SwipeArea, useBackLayer, useDirtyForm, attachmentName } from './mobile-
 import { ChangeComparison } from './mobile-changes.jsx';
 import { AccountSecurityForm } from './mobile-account.jsx';
 import { PortalTaskList } from './mobile-portal-tasks.jsx';
+import { PortalPricingDetail } from './mobile-portal-pricing.jsx';
+import { createPortalInquiries, createPortalOrders } from './mobile-portal-records.js';
 
 const clone = value => structuredClone(value);
 const homeGroups = [
@@ -23,19 +25,13 @@ const homeGroups = [
   { title: '差旅服务', entries: [{ label: '差旅账单录入', lines: ['差旅账单', '录入'], icon: Plane, color: 'orange', route: 'workspace-travel' }] },
 ];
 const taskTabs = ['报价管理待处理', '报价管理已处理', '价税拆分待处理', '价税拆分已处理'];
-const taxFields = [['material', '物料编码'], ['name', '物料名称'], ['category', '物料类别'], ['quantity', '数量'], ['grossUnit', '含税单价'], ['netUnit', '不含税单价'], ['rate', '税率(%)'], ['tax', '税额'], ['net', '不含税金额'], ['gross', '含税金额']];
-// 文档样本只用于阅读流程；金额填写及提交等待用户提供现行PC校验与计算规则。
-const order = { number: 'DEMO-ORDER-001', material: 'DEMO-MATERIAL-001', name: 'Dell.R740', category: '电子产品', quantity: '2', grossUnit: '38682', netUnit: '', rate: '', tax: '', net: '', gross: '77364', status: '待处理', unit: '演示采购公司', type: '服务器', created: '2026-11-01 09:00:00', end: '2026-11-15 18:00:00' };
-// 会话询价样本，字段取自询价DTO；不推断报价计算与提交规则。
-const inquiries = [
-  { number: 'MOCK-INQ-001', title: '服务器采购询价', unit: '演示采购公司', buyer: '采购员甲', type: '服务器', category: '电子产品', created: '2026-11-01 09:00:00', start: '2026-11-01', end: '2026-11-20', status: '待处理', material: 'Dell.R740', quantity: '2', measure: '台', config: '按询价要求配置服务器', remark: '请核对配置与交付要求' },
-  { number: 'MOCK-INQ-002', title: '办公设备询价', unit: '演示采购公司', buyer: '采购员乙', type: '电子设备', category: '电子产品', created: '2026-10-01 09:00:00', start: '2026-10-01', end: '2026-10-20', status: '已处理', material: '办公显示器', quantity: '10', measure: '台', config: '27英寸', remark: '报价已处理样例' },
-];
 function initialProfile() {
   const basic = { ...clone(filledBasic), supplierName: '协同门户演示供应商', registerEmail: 'supplier@example.com', address: '北京市/北京市/朝阳区 演示地址', businessScope: '技术与电子产品服务' };
   return { name: basic.supplierName, type: basic.type, email: basic.registerEmail, basic, status: '已审批', contacts: [{ id: 'portal-contact', name: '演示联系人', phone: '13800000000', email: 'supplier@example.com', department: '', job: '', wechat: '', note: '' }], banks: [{ ...clone(sampleBank), name: basic.supplierName }] };
 }
 export function PortalWorkspace({ scene, go, notify, store, onPreview }) {
+  const inquiries = store.portalInquiries ||= createPortalInquiries();
+  const orders = store.portalOrders ||= createPortalOrders();
   const [profile] = useState(() => store.portalProfile ||= initialProfile());
   const [draft, setDraft] = useState(() => clone(store.portalDraft || profile));
   const [editing, setEditing] = useState(scene === 'workspace-info' && window.location.hash.endsWith('?edit=1'));
@@ -74,7 +70,7 @@ export function PortalWorkspace({ scene, go, notify, store, onPreview }) {
     if (JSON.stringify(next) === JSON.stringify(profile)) return notify('请先修改信息');
     store.portalDraft = next; guard.accept(); go('workspace-changes');
   };
-  const pendingCount = task => task === 0 ? inquiries.filter(record => record.status === '待处理').length : task === 2 ? Number(order.status === '待处理') : 0;
+  const pendingCount = task => task === 0 ? inquiries.filter(record => record.status === '待处理').length : task === 2 ? orders.filter(record => record.status === '待处理').length : 0;
   const beginBank = (entry, index) => { setBank(clone(entry)); setBankIndex(index); };
   return <div className="m-workspace">
     {scene === 'workspace-home' && <div className="m-portal-home">
@@ -103,11 +99,11 @@ export function PortalWorkspace({ scene, go, notify, store, onPreview }) {
     </>}
     {scene === 'workspace-changes' && <>{store.portalDraft ? <><ChangeComparison before={profile} after={store.portalDraft} /><Actions items={[{ label: '继续修改', secondary: true, onClick: () => go('workspace-info?edit=1') }, { label: '取消本次修改', secondary: true, onClick: () => { store.portalDraft = null; go('workspace-info'); } }, { label: '提交变更', onClick: () => { store.portalPending = clone(store.portalDraft); store.portalDraft = null; notify('原型演示：资料变更已提交，等待审批'); go('workspace-approval'); } }]} /></> : <><Empty text="没有待提交的修改" /><Actions items={[{ label: '返回供应商信息', onClick: () => go('workspace-info') }]} /></>}</>}
     {scene === 'workspace-approval' && <>{pending ? <><ChangeComparison before={profile} after={pending} /><Row label="审批状态">待审批</Row><Approval supplier={profile} populated={false} type="资料变更" number="" /></> : <Empty text="暂无进行中的资料变更" />}<Actions items={[{ label: '返回供应商信息', onClick: () => go('workspace-info') }]} /></>}
-    {scene === 'workspace-tasks' && <><Tabs variant="pill" items={taskTabs} active={taskTab} onChange={setTasks} /><SwipeArea active={taskTab} count={4} onChange={setTasks}><PortalTaskList key={taskTab} tab={taskTab} inquiries={inquiries} order={order} store={store} go={go} /></SwipeArea></>}
+    {scene === 'workspace-tasks' && <><Tabs variant="pill" items={taskTabs} active={taskTab} onChange={setTasks} /><SwipeArea active={taskTab} count={4} onChange={setTasks}><PortalTaskList key={taskTab} tab={taskTab} inquiries={inquiries} orders={orders} store={store} go={go} /></SwipeArea></>}
 
-    {scene === 'workspace-quote-detail' && (() => { const item = inquiries.find(x => x.number === new URLSearchParams(window.location.hash.split('?')[1]).get('record')); return item ? <><Section title={item.title} collapsible={false}>{[['询价单号', item.number], ['询价状态', item.status], ['询价单位', item.unit], ['采购类型', item.type], ['采购员', item.buyer], ['开始日期', item.start], ['结束日期', item.end], ['说明', item.remark]].map(([label, value]) => <Row key={label} label={label}>{value}</Row>)}</Section><Section title="询价明细" collapsible={false}>{[['物料名称', item.material], ['物料类别', item.category], ['数量', item.quantity], ['单位', item.measure], ['配置', item.config], ['税率', '—'], ['含税单价', '—'], ['说明', item.remark]].map(([label, value]) => <Row key={label} label={label}>{value}</Row>)}<Row label="附件">—</Row></Section><Actions items={[{ label: '返回报价列表', onClick: () => go('workspace-tasks') }]} /></> : <><Empty text="未找到询价单" /><Actions items={[{ label: '返回业务任务', onClick: () => go('workspace-tasks') }]} /></>; })()}
+    {scene === 'workspace-quote-detail' && <PortalPricingDetail quote records={inquiries} store={store} go={go} notify={notify} onPreview={onPreview} />}
     {scene === 'workspace-travel' && <><Section title="差旅账单" collapsible={false}><Field label="账期" placeholder="例如2026-11" value={bill.period} onChange={period => setBill({ ...bill, period })} /><UploadField label="账单文件" value={bill.attachment} onChange={attachment => setBill({ ...bill, attachment })} /></Section><Actions items={[{ label: store.portalTravelReturn === 'workspace-home' ? '返回首页' : '返回业务任务', secondary: true, onClick: () => go(store.portalTravelReturn || 'workspace-tasks') }, { label: '保存草稿', onClick: () => { store.portalBillDraft = { ...bill }; billGuard.accept(); notify('账单草稿已保存'); } }]} /></>}
-    {['workspace-tax-detail', 'workspace-tax-split'].includes(scene) && <><Section title={scene === 'workspace-tax-split' ? '价税拆分' : '订单明细'} collapsible={false}><Row label="订单号">{order.number}</Row>{taxFields.map(([key, label]) => <Row key={key} label={label}>{order[key] || '—'}</Row>)}</Section>{scene === 'workspace-tax-split' && <p className="m-input-note">金额填写与提交暂未开放，待确认现行价税拆分规则。</p>}<Actions items={[{ label: '返回待处理任务', onClick: () => go('workspace-tasks') }]} /></>}
+    {['workspace-tax-detail', 'workspace-tax-split'].includes(scene) && <PortalPricingDetail records={orders} store={store} go={go} notify={notify} onPreview={onPreview} />}
     {address && <Overlay sheet label="编辑注册地址" onClose={() => window.dispatchEvent(new CustomEvent('mobile-close-address'))}><div className="m-address-editor"><div className="m-picker-title"><strong>编辑注册地址</strong><button onClick={() => window.dispatchEvent(new CustomEvent('mobile-close-address'))}>关闭</button></div><AddressForm initial={draft.basic.address} onCancel={() => setAddress(false)} onConfirm={value => { setDraft({ ...draft, basic: { ...draft.basic, address: value } }); setAddress(false); }} /></div></Overlay>}
     {bankIndex !== null && <div className="m-fullscreen-panel" role="dialog" aria-modal="true" aria-label="门户银行编辑"><div className="m-picker-title"><button onClick={closeBank}>取消</button><strong>{bankIndex < 0 ? '新增银行' : '修改银行'}</strong></div><BankFields bank={bank} setBank={setBank} company={profile.type === supplierTypes[0]} /><Actions items={[{ label: '取消', secondary: true, onClick: closeBank }, { label: '保存此账户', onClick: () => { const error = bankError(bank, profile.type === supplierTypes[0]); if (error) return notify(error); if (draft.banks.some((b, i) => i !== bankIndex && b.accountType === '基本账户' && bank.accountType === '基本账户')) return notify('基本账户只能有一个'); const entry = { ...bank, id: bankIndex < 0 ? crypto.randomUUID() : draft.banks[bankIndex].id }; setDraft({ ...draft, banks: bankIndex < 0 ? [...draft.banks, entry] : draft.banks.map((b, i) => i === bankIndex ? entry : b) }); bankGuard.accept(); setBankIndex(null); } }]} /></div>}
     {removeBank !== null && <Confirm text="确认删除此银行账户？" onCancel={() => setRemoveBank(null)} onConfirm={() => { setDraft({ ...draft, banks: draft.banks.filter((_, i) => i !== removeBank) }); setRemoveBank(null); }} />}

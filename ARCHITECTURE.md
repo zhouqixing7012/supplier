@@ -7,6 +7,10 @@
 - `src/pages/mobile-supplier.jsx`：移动端页面状态、会话演示数据、暂存与提交路径。
 - `src/pages/mobile-data.js`：截图样本、演示参考目录和 47 张截图的独立路由映射。
 - `src/pages/mobile-interaction.jsx`：移动交互上下文、未保存保护、系统返回层级、滑动识别、焦点隔离和会话附件预览。
+- `src/pages/mobile-portal.jsx`：门户资料、首页、账户与任务容器；会话单据从mobile-portal-records.js初始化。
+- `src/pages/mobile-portal-tasks.jsx`：报价及价税四页签列表、共享筛选及按页签条件保存。
+- `src/pages/mobile-portal-pricing.jsx`：报价与价税详情、全屏行编辑、整单提交和只读结果；复用公共字段、附件与未保存保护。
+- `src/pages/mobile-portal-pricing.js`：十进制分数价税计算、数值检查及剩余时间展示；计算规则由mobile-prd.md维护。
 - `src/pages/mobile-ui.jsx`：移动端字段、上传、弹层、选择器、固定操作栏和空状态。
 - `src/pages/mobile-forms.jsx`：银行、联系人、地址、权限、邀请及注册字段。
 - `src/pages/mobile-views.jsx`：列表、筛选、详情、审批记录、评分与银行信息申请。

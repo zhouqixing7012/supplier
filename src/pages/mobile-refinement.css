@@ -493,3 +493,8 @@
 .mobile-page .m-dialog-actions > .m-action-danger { color: #fff !important; background: var(--m-danger-fill) !important; border-color: var(--m-danger-fill) !important; }
 .m-portal-pending-count { min-width: 20px; height: 20px; padding: 0 4px; box-sizing: border-box; border-radius: 999px; color: #fff; background: var(--m-danger-fill); font-size: 12px; line-height: 16px; }
 .m-portal-task-filter .m-filter-view { padding-bottom: 84px; }
+
+/* 明细编辑独立占满移动画布，固定操作栏与画布左右边界一致。 */
+.m-pricing-editor .m-actions { left: max(0px, calc((100vw - 430px) / 2)); transform: none; width: min(100%, 430px); z-index: 49; }
+.m-pricing-editor .m-row .m-label { padding-left: 12px; }
+.m-portal-pricing .m-record-actions svg { width: 18px; height: 18px; }
