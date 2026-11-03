@@ -485,3 +485,11 @@
 .mobile-page .m-account-code-action button { min-height: 44px; color: var(--m-action); font-size: 14px; }
 .mobile-page .m-account-code-action button:disabled { color: var(--m-text-secondary); }
 .mobile-page[data-scene^="workspace-account-"] .m-row > .m-label { position: relative; padding-left: 12px; box-sizing: border-box; }
+
+/* 填充删除动作与消息角标使用确认后的红色。 */
+:root { --m-danger-fill: #ec221f; }
+.mobile-page .m-action-danger { color: var(--m-danger-fill) !important; }
+.mobile-page .m-batch-buttons > .m-action-danger,
+.mobile-page .m-dialog-actions > .m-action-danger { color: #fff !important; background: var(--m-danger-fill) !important; border-color: var(--m-danger-fill) !important; }
+.m-portal-pending-count { min-width: 20px; height: 20px; padding: 0 4px; box-sizing: border-box; border-radius: 999px; color: #fff; background: var(--m-danger-fill); font-size: 12px; line-height: 16px; }
+.m-portal-task-filter .m-filter-view { padding-bottom: 84px; }
