@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Check, ChevronDown, ClipboardList, Edit3, Filter, List, MoreHorizontal, Plus, X } from 'lucide-react';
+import { Check, ChevronDown, ClipboardList, Edit3, Filter, List, MoreHorizontal, Pencil, Plus, X } from 'lucide-react';
 import { Actions, ChangeTag, Empty, Field, StatusTag, OptionSheet, Overlay, Row, SearchBox, Section, SupplierIdentityCard } from './mobile-ui.jsx';
 import { BankCard, fieldsFor } from './mobile-forms.jsx';
 import { cooperation, supplierStates, supplierTypes, supplierIndustries } from './mobile-data.js';
@@ -21,7 +21,7 @@ function SupplierSummary({ s, mine, batch, checked, setChecked, onDetail, onBank
   const [menu, setMenu] = useState(false);
   const historical = window.location.hash.startsWith('#/mobile/shot/');
   const canChangeInviter = s.status === '已审批' && !s.blacklisted && s.blackFlag !== 1;
-  const selectable = batchKind === 'all' ? s.status === '草稿' || canChangeInviter : batchKind === 'delete' ? s.status === '草稿' : canChangeInviter;
+  const selectable = batchKind === 'all' ? true : batchKind === 'delete' ? s.status === '草稿' : canChangeInviter;
   const fields = mine ? [['证件号码', s.code], ['联系人姓名', s.contact], ['联系人邮箱', s.email], ['联系人电话', s.phone], ['邀请时间', s.date], ['更新时间', s.updated]] : [['注册方式', s.mode], ['更新时间', s.updated]];
   return <article className={'m-supplier-card' + (mine ? ' m-supplier-card-mine' : '')}>
     <div className="m-supplier-heading"><h3>{batch && <label className="m-checkbox"><input type="checkbox" disabled={!selectable} aria-label={`选择${s.name}`} checked={checked.includes(s.id)} onChange={e => setChecked(e.target.checked ? [...checked, s.id] : checked.filter(x => x !== s.id))} /><span>{checked.includes(s.id) && <Check />}</span></label>}<i className="m-blue-mark" aria-hidden="true" /><span>{s.name}</span></h3>{!historical && <StatusTag value={s.status} />}</div>
@@ -94,7 +94,7 @@ export function RatingList({ entries = cooperation, onOpen, onEdit }) {
 
 export function PermissionCard({ data, onEdit, onDelete }) {
   const [menu, setMenu] = useState(false);
-  return <article className="m-bank-card" data-change={data.change || undefined}><div className="m-record-heading"><h3>{data.group || '供应商权限'}</h3><ChangeTag value={data.change} /></div><div className="m-card-body"><Row compact label="所属权限">{data.group}</Row><Row compact label="权限分类">{data.category}</Row><Row compact label="备注">{data.note}</Row>{(onEdit || onDelete) && <div className="m-record-actions">{onEdit && <button onClick={onEdit}>修改</button>}{onDelete && <button className="m-action-danger" onClick={onDelete}>删除</button>}</div>}</div></article>;
+  return <article className="m-bank-card" data-change={data.change || undefined}><div className="m-record-heading"><h3>{data.group || '供应商权限'}</h3><ChangeTag value={data.change} /></div><div className="m-card-body"><Row compact label="所属权限">{data.group}</Row><Row compact label="权限分类">{data.category}</Row><Row compact label="备注">{data.note}</Row>{(onEdit || onDelete) && <div className="m-record-actions">{onEdit && <button type="button" aria-label="修改权限" title="修改权限" className="m-edit-icon" onClick={onEdit}><Pencil aria-hidden="true" /></button>}{onDelete && <button className="m-action-danger" onClick={onDelete}>删除</button>}</div>}</div></article>;
 }
 
 export function BankApplication({ onApply }) {
