@@ -6,6 +6,9 @@
 - `src/mobile-entry.jsx`：移动端独立入口，避免电脑端 CSS 污染移动端样式。
 - `src/pages/mobile-supplier.jsx`：移动端页面状态、会话演示数据、暂存与提交路径。
 - `src/pages/mobile-data.js`：截图样本、演示参考目录和 47 张截图的独立路由映射。
+- `src/pages/mobile-context.js`：独立交互上下文身份，避免表单/弹层循环引用在热更新后产生不同上下文。
+- `src/pages/mobile-motion.js`：导航方向与滑动阈值纯逻辑。
+- `src/pages/mobile-motion.jsx`：即时状态更新、不可交互的动效副本、卡片位置过渡及历史折叠；与mobile-motion.css共同实现现行动效规范。
 - `src/pages/mobile-interaction.jsx`：移动交互上下文、未保存保护、系统返回层级、滑动识别、焦点隔离和会话附件预览。
 - `src/pages/mobile-portal.jsx`：门户资料、首页、账户与任务容器；会话单据从mobile-portal-records.js初始化。
 - `src/pages/mobile-portal-tasks.jsx`：报价及价税四页签列表、共享筛选及按页签条件保存。
@@ -88,4 +91,5 @@
 ## 门户任务阅读与账单准备
 
 `PortalWorkspace`通过`workspace-quote-detail`读取会话询价样本，内部`PortalQuotes`负责待处理/已处理列表与搜索；`workspace-travel`使用公共字段/附件组件和未保存保护准备账期及文件，草稿存入`portalBillDraft`。首页快捷卡片设置任务页签后进入`workspace-tasks`。这些路由的标题返回由`mobile-supplier.jsx`统一回到业务任务。未接入报价/价税提交及真实账单上传服务。
+
 

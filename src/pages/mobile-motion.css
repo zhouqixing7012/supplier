@@ -1,0 +1,60 @@
+/* 动效独立于截图复刻样式；固定控件有独立快照，不跟随内容横移。 */
+:root { --m-motion-ease: cubic-bezier(.2,.8,.2,1); }
+.mobile-page:not(.m-shot) button, .mobile-page:not(.m-shot) .m-checkbox span { transition: background-color 100ms ease, color 100ms ease, border-color 100ms ease; }
+.mobile-page:not(.m-shot) .m-status, .mobile-page:not(.m-shot) .m-star { transition: color 100ms ease, background-color 100ms ease; }
+.mobile-page:not(.m-shot) .m-overlay { animation: m-shade-in 180ms ease-out both; }
+.mobile-page:not(.m-shot) .m-overlay > .m-sheet { animation: m-sheet-in 220ms var(--m-motion-ease) both; }
+.mobile-page:not(.m-shot) .m-overlay > .m-dialog { animation: m-dialog-in 180ms var(--m-motion-ease) both; }
+.mobile-page:not(.m-shot) .m-fullscreen-panel { animation: m-panel-in 240ms var(--m-motion-ease) both; }
+.mobile-page:not(.m-shot) .m-batch-actions { animation: m-bar-in 180ms var(--m-motion-ease) both; }
+.mobile-page:not(.m-shot) .m-checkbox { animation: m-fade-in 150ms ease-out both; }
+.m-toast, .m-field-error, .m-result-banner { animation: m-fade-in 150ms ease-out both; }
+.m-tab-motion .m-tabs { position: relative; }
+.mobile-page:not(.m-shot) .m-tab-motion .m-tabs button.active::after { display: none; }
+.m-tab-indicator { position: absolute; pointer-events: none; height: 3px; bottom: 0; left: 0; width: 24px; background: var(--m-action); border-radius: 3px; transform: translateX(calc(var(--m-indicator-x,0px) + (var(--m-indicator-width,24px) - 24px)/2)); transition: transform 200ms var(--m-motion-ease), width 200ms var(--m-motion-ease); }
+.mobile-page:not(.m-shot) .m-tab-motion.m-tab-bar-pill .m-tabs button.active::before { background: var(--m-surface); }
+.m-tab-motion.m-tab-bar-pill .m-tabs button { z-index: 1; isolation: auto; }
+.m-tab-motion.m-tab-bar-pill .m-tab-indicator { height: 32px; bottom: 6px; border-radius: 16px; width: var(--m-indicator-width,24px); transform: translateX(var(--m-indicator-x,0px)); z-index: 0; }
+.m-tab-motion.m-tab-bar-pill .m-tabs button::before { z-index: -2 !important; }
+.m-gesture-tabs .m-tab-indicator { transition: none; transform: translateX(calc(var(--m-gesture-x,0px) + (var(--m-gesture-width,24px) - 24px)/2)); }
+.m-tab-bar-pill .m-gesture-tabs .m-tab-indicator { width: var(--m-gesture-width,24px); transform: translateX(var(--m-gesture-x,0px)); }
+.m-swipe-dragging { visibility: hidden; }
+.m-swipe-dragging .m-actions, .m-swipe-dragging .m-bottom-nav, .m-swipe-dragging .m-fab-group, .m-swipe-dragging .m-tab-bar { visibility: visible; }
+.m-swipe-visual { background: var(--m-bg,#f4f7fa); pointer-events: none; will-change: transform; }
+.m-section-reveal { display: grid; grid-template-rows: 1fr; opacity: 1; transition: grid-template-rows 180ms var(--m-motion-ease), opacity 150ms ease-out; }
+.m-section-reveal[data-open='false'] { grid-template-rows: 0fr; opacity: 0; visibility: hidden; transition: grid-template-rows 180ms var(--m-motion-ease), opacity 150ms ease-out, visibility 0s 180ms; }
+.m-section-reveal > .m-section-content { min-height: 0; overflow: hidden; }
+.m-approval-history-card .m-history-chevron { transition: transform 180ms var(--m-motion-ease); }
+.m-approval-history-card[data-expanded='true'] .m-history-chevron { transform: rotate(180deg); }
+.m-approval-history-card[data-expanded='false'] .m-history-chevron { transform: rotate(0); }
+@keyframes m-fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes m-shade-in { from { background-color: transparent; } }
+@keyframes m-sheet-in { from { translate: 0 100%; } to { translate: 0 0; } }
+@keyframes m-dialog-in { from { opacity: 0; scale: .97; } to { opacity: 1; scale: 1; } }
+@keyframes m-panel-in { from { translate: 32px 0; opacity: .6; } to { translate: 0 0; opacity: 1; } }
+@keyframes m-bar-in { from { translate: 0 100%; opacity: 0; } to { translate: 0 0; opacity: 1; } }
+@keyframes m-forward-in { from { transform: translateX(min(430px,100vw)); } }
+@keyframes m-forward-out { to { transform: translateX(max(-77px,-18vw)); opacity: .75; } }
+@keyframes m-back-in { from { transform: translateX(max(-77px,-18vw)); opacity: .75; } }
+@keyframes m-back-out { to { transform: translateX(min(430px,100vw)); } }
+@keyframes m-tab-next-in { from { transform: translateX(32px); opacity: 0; } }
+@keyframes m-tab-next-out { to { transform: translateX(-32px); opacity: 0; } }
+@keyframes m-tab-prev-in { from { transform: translateX(-32px); opacity: 0; } }
+@keyframes m-tab-prev-out { to { transform: translateX(32px); opacity: 0; } }
+@keyframes m-fade-out { to { opacity: 0; } }
+@keyframes m-sheet-out { to { transform: translateY(100%); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .mobile-page *, .mobile-page *::before, .mobile-page *::after, .m-toast, .m-result-banner { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+}
+
+/* 动态指示块在原生快照过渡中独立移动，静态截图页仍使用原样式。 */
+.m-tab-motion .m-tabs { isolation: isolate; }
+.mobile-page:not(.m-shot) .m-tab-motion.m-tab-bar-pill .m-tabs button { z-index: auto; isolation: auto; }
+.mobile-page:not(.m-shot) .m-tab-motion.m-tab-bar-pill .m-tabs button::before { z-index: -1 !important; }
+.m-tab-label { position: relative; z-index: 1; }
+.m-shot .m-tab-indicator { display: none; }
+.mobile-page:not(.m-shot) .m-fullscreen-panel { animation: m-fade-in 150ms ease-out both; }
+.m-star-control svg { transition: fill 100ms ease-out, color 100ms ease-out; }
+.m-star-control .m-half-star { animation: m-fade-in 100ms ease-out; }
+.m-motion-ghost, .m-motion-ghost * { pointer-events: none !important; }
+.m-swipe-visual, .m-swipe-visual * { pointer-events: none !important; }

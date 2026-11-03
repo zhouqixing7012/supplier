@@ -1,7 +1,10 @@
-import React, { createContext, useContext, useEffect, useId, useRef, useState } from 'react';
+import React, { useContext, useEffect, useId, useRef, useState } from 'react';
 import { Confirm } from './mobile-ui.jsx';
 
-const InteractionContext = createContext(null);
+import { runMotion, reducedMotion } from './mobile-motion.jsx';
+import { swipeTarget } from './mobile-motion.js';
+
+import { InteractionContext } from './mobile-context.js';
 export function InteractionProvider({ children }) {
   const forms = useRef(new Map());
   const layers = useRef([]);
@@ -45,21 +48,61 @@ export function useBackLayer(active, close) {
 
 // 在内容区判断滑动方向；控件、横向滚动区和屏幕边缘保留原手势。
 export function SwipeArea({ active, count, onChange, children, className = '' }) {
-  const start = useRef(null);
-  const onStart = e => {
-    const t = e.touches[0];
-    const target = e.target;
-    if (e.touches.length !== 1 || t.clientX < 24 || t.clientX > innerWidth - 24 || target.closest('input,textarea,select,button,a,label,[role="dialog"],.m-tabs,.m-table-scroll,[data-no-swipe]')) { start.current = null; return; }
-    start.current = { x: t.clientX, y: t.clientY, time: Date.now() };
-  };
-  return <div className={'m-swipe-area ' + className} onTouchStart={onStart} onTouchEnd={e => {
-    if (!start.current || e.changedTouches.length !== 1) return;
-    const { x, y, time } = start.current; start.current = null;
-    const dx = e.changedTouches[0].clientX - x, dy = e.changedTouches[0].clientY - y;
-    if (Date.now() - time > 900 || Math.abs(dx) < 65 || Math.abs(dx) < Math.abs(dy) * 1.6) return;
-    const next = active + (dx < 0 ? 1 : -1);
-    if (next >= 0 && next < count) { e.stopPropagation(); onChange(next); }
-  }} onTouchCancel={() => { start.current = null; }}>{children}</div>;
+  const ref = useRef(null);
+  const config = useRef({ active, count, onChange });
+  config.current = { active, count, onChange };
+  useEffect(() => {
+    const node = ref.current;
+    let start = null, visual = null, dragNode = null, nav = null;
+    const restore = () => { visual?.remove(); visual = null; dragNode?.classList.remove('m-swipe-dragging'); dragNode = null; if (nav) { nav.style.removeProperty('--m-gesture-x'); nav.style.removeProperty('--m-gesture-width'); nav.classList.remove('m-gesture-tabs'); nav = null; } };
+    const begin = event => {
+      restore(); start = null;
+      const point = event.touches[0], box = node.closest('.mobile-page').getBoundingClientRect();
+      if (event.touches.length !== 1 || point.clientX < box.left + 24 || point.clientX > box.right - 24 || event.target.closest('input,textarea,select,button,a,label,[role="dialog"],.m-tabs,.m-table-scroll,[data-no-swipe]')) return;
+      if (event.target.closest('.m-swipe-area') !== node) return;
+      start = { x: point.clientX, y: point.clientY, time: Date.now(), horizontal: false };
+    };
+    const move = event => {
+      if (!start || event.touches.length !== 1) return;
+      const dx = event.touches[0].clientX - start.x, dy = event.touches[0].clientY - start.y;
+      if (!start.horizontal && Math.abs(dy) > 10 && Math.abs(dy) > Math.abs(dx)) { start = null; restore(); return; }
+      if (Math.abs(dx) < 10 || Math.abs(dx) < Math.abs(dy) * 1.6) return;
+      start.horizontal = true; event.preventDefault();
+      if (reducedMotion()) return;
+      if (!visual) {
+        const box = node.getBoundingClientRect();
+        visual = node.cloneNode(true); visual.classList.add('m-swipe-visual'); visual.setAttribute('aria-hidden', 'true'); visual.inert = true;
+        visual.querySelectorAll('[id]').forEach(n => n.removeAttribute('id'));
+        visual.querySelectorAll('[data-motion-named]').forEach(n => { n.style.viewTransitionName = 'none'; n.removeAttribute('data-motion-named'); });
+        visual.querySelectorAll('.m-actions,.m-batch-actions,.m-bottom-nav,.m-fab-group,.m-overlay,.m-fullscreen-panel').forEach(n => n.remove());
+        visual.querySelectorAll('.m-tab-bar').forEach(n => { n.style.visibility = 'hidden'; });
+        Object.assign(visual.style, { position: 'fixed', left: box.left + 'px', top: box.top + 'px', width: box.width + 'px', margin: '0', pointerEvents: 'none', zIndex: '40' });
+        node.closest('.mobile-page').appendChild(visual); dragNode = node; node.classList.add('m-swipe-dragging');
+        nav = [...node.closest('.mobile-page').querySelectorAll('.m-tabs')].at(-1);
+      }
+      const { active, count } = config.current;
+      const edge = (dx > 0 && active === 0) || (dx < 0 && active === count - 1);
+      visual.style.transform = `translateX(${Math.max(-node.clientWidth * .6, Math.min(node.clientWidth * .6, dx * (edge ? .18 : 1)))}px)`;
+      if (nav) {
+        const buttons = [...nav.querySelectorAll('button')], current = buttons[active], next = buttons[active + (dx < 0 ? 1 : -1)];
+        if (current && next) { const progress = Math.min(Math.abs(dx) / node.clientWidth, 1); nav.classList.add('m-gesture-tabs'); nav.style.setProperty('--m-gesture-x', current.offsetLeft + (next.offsetLeft - current.offsetLeft) * progress + 'px'); nav.style.setProperty('--m-gesture-width', current.offsetWidth + (next.offsetWidth - current.offsetWidth) * progress + 'px'); }
+      }
+    };
+    const end = event => {
+      if (!start) return;
+      const origin = start; start = null;
+      const point = event.changedTouches[0];
+      const { active, count, onChange } = config.current;
+      const next = point ? swipeTarget(active, count, point.clientX - origin.x, point.clientY - origin.y, Date.now() - origin.time) : active;
+      if (next !== active) { event.stopPropagation(); restore(); runMotion(() => onChange(next), next > active ? 'tab-next' : 'tab-prev'); }
+      else if (visual && !reducedMotion() && visual.animate) { const current = visual; current.animate([{ transform: current.style.transform }, { transform: 'translateX(0)' }], { duration: 180, easing: 'ease-out' }).onfinish = restore; }
+      else restore();
+    };
+    const cancel = () => { start = null; restore(); };
+    node.addEventListener('touchstart', begin, { passive: true }); node.addEventListener('touchmove', move, { passive: false }); node.addEventListener('touchend', end); node.addEventListener('touchcancel', cancel);
+    return () => { cancel(); node.removeEventListener('touchstart', begin); node.removeEventListener('touchmove', move); node.removeEventListener('touchend', end); node.removeEventListener('touchcancel', cancel); };
+  }, [active]);
+  return <div ref={ref} className={'m-swipe-area ' + className}>{children}</div>;
 }
 export const attachmentFiles = new Map();
 export const attachmentName = key => attachmentFiles.get(key)?.name || key;
@@ -111,3 +154,4 @@ export function createSessionId() {
   if (crypto.randomUUID) return crypto.randomUUID();
   return Array.from(crypto.getRandomValues(new Uint8Array(16)), value => value.toString(16).padStart(2, '0')).join('');
 }
+

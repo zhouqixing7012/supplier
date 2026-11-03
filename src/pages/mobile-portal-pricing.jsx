@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Pencil } from 'lucide-react';
 import { Actions, Empty, Field, Header, Row, Section, StatusTag, UploadField } from './mobile-ui.jsx';
 import { attachmentName, useBackLayer, useDirtyForm } from './mobile-interaction.jsx';
+import { runMotion } from './mobile-motion.jsx';
 import { calculateTax, isDecimal, quoteError, remainingTime } from './mobile-portal-pricing.js';
 
 const taxFields = [['material', '物料编码'], ['name', '物料名称'], ['category', '物料类别'], ['quantity', '数量'], ['grossUnit', '含税单价'], ['rate', '税率（%）'], ['netUnit', '不含税单价'], ['tax', '税额'], ['net', '不含税金额'], ['gross', '含税金额']];
@@ -77,9 +78,10 @@ export function PortalPricingDetail({ quote, records, store, go, notify, onPrevi
     {draft.lines.map((line, index) => <Section key={index} title={`${index + 1}. ${quote ? line.material : line.name}`} collapsible={false}>
       {(quote ? quoteFields.slice(1) : taxFields.filter(([key]) => key !== 'name')).map(([key, label]) => <Row key={key} label={label}>{line[key] || '—'}</Row>)}
       {quote && <><FileRow label="报价附件" value={line.attachment} onPreview={onPreview} /><Row label="报价说明">{line.note || '—'}</Row></>}
-      {editable && <div className="m-record-actions"><button aria-label={'编辑第' + (index + 1) + '项' + (quote ? '报价' : '价税')} onClick={() => setEditor(index)}><Pencil aria-hidden="true" /></button></div>}
+      {editable && <div className="m-record-actions"><button aria-label={'编辑第' + (index + 1) + '项' + (quote ? '报价' : '价税')} onClick={() => runMotion(() => setEditor(index), 'forward')}><Pencil aria-hidden="true" /></button></div>}
     </Section>)}
     <Actions items={[{ label: '返回列表', secondary: editable, onClick: back }, ...(editable ? [{ label: '提交', onClick: submit }] : [])]} />
-    {editor !== null && <LineEditor key={editor} index={editor} quote={quote} line={draft.lines[editor]} notify={notify} onCancel={() => setEditor(null)} onSave={line => { setDraft({ ...draft, lines: draft.lines.map((entry, index) => index === editor ? line : entry) }); setEditor(null); }} />}
+    {editor !== null && <LineEditor key={editor} index={editor} quote={quote} line={draft.lines[editor]} notify={notify} onCancel={() => runMotion(() => setEditor(null), 'back')} onSave={line => { setDraft({ ...draft, lines: draft.lines.map((entry, index) => index === editor ? line : entry) }); runMotion(() => setEditor(null), 'back'); }} />}
   </div>;
 }
+

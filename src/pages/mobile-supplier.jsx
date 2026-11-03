@@ -1,5 +1,5 @@
 import { createSessionId } from './mobile-interaction.jsx';
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Check, MailPlus, FilePenLine, Landmark, Download, Filter, ListChecks, Plus, Search, Signal, Wifi, Battery, X, MoreHorizontal } from 'lucide-react';
 import { Actions, AttachmentViewer, AppliedFilters, Confirm, Empty, Field, FilterButton, Header, RegistrationSteps, Overlay, Row, ScreenshotTip, SearchBox, Section } from './mobile-ui.jsx';
 import { AddressForm, BankCard, BankFields, BasicFields, ContactFields, InviteForm, PermissionForm, ReferenceList, bankError, blankBank, fieldsFor, filledBasic } from './mobile-forms.jsx';
@@ -13,6 +13,9 @@ import { PortalWorkspace } from './mobile-portal.jsx';
 import { ChangeComparison } from './mobile-changes.jsx';
 import './mobile-supplier.css';
 import './mobile-refinement.css';
+import './mobile-motion.css';
+import { runMotion, useMotionStructure } from './mobile-motion.jsx';
+import { routeMotion } from './mobile-motion.js';
 
 const clone = value => structuredClone(value);
 const readRoute = () => decodeURIComponent(window.location.hash.replace(/^#\/mobile\/?/, '')) || 'query';
@@ -45,6 +48,8 @@ function SceneGallery() {
 
 export default function MobileSupplier() { return <InteractionProvider><MobileApp /></InteractionProvider>; }
 function MobileApp() {
+  const motionRoot = useRef(document.getElementById('root'));
+  useMotionStructure(motionRoot);
   const interaction = useInteraction();
   usePageIsolation();
   const views = useRef({});
@@ -79,7 +84,8 @@ function MobileApp() {
       approvedBack.current = false;
       historyIndex.current = nextIndex;
       history.replaceState({ ...history.state, mobileIndex: nextIndex }, '', location.href);
-      currentRoute.current = next; setRoute(next);
+      const previous = currentRoute.current;
+      runMotion(() => { currentRoute.current = next; setRoute(next); }, routeMotion(previous, next, delta < 0));
     };
     window.addEventListener('popstate', change);
     return () => window.removeEventListener('popstate', change);
@@ -87,7 +93,7 @@ function MobileApp() {
   useEffect(() => { if (!message) return; const timer = setTimeout(() => setMessage(''), 4500); return () => clearTimeout(timer); }, [message]);
   const shot = route.startsWith('shot/') ? screenshotScenes.find(s => s.time === route.split('/')[1]) : null;
   const scene = shot?.scene || route.split('?')[0];
-  const go = next => interaction.request(() => { if (next === currentRoute.current) return; historyIndex.current += 1; history.pushState({ mobileIndex: historyIndex.current }, '', '#/mobile/' + next); currentRoute.current = next; setRoute(next); });
+  const go = next => interaction.request(() => { if (next === currentRoute.current) return; const previous = currentRoute.current; runMotion(() => { historyIndex.current += 1; history.pushState({ mobileIndex: historyIndex.current }, '', '#/mobile/' + next); currentRoute.current = next; setRoute(next); }, routeMotion(previous, next)); });
   const notify = text => {
     setMessage(text);
     if (text && /^请|错误|不能|只能|必须|已存在|须为/.test(text)) window.dispatchEvent(new CustomEvent('mobile-validation', { detail: text }));
@@ -165,7 +171,7 @@ function MobileSurface({ scene, shot, ratings, setRatings, activeRating, setActi
   useBackLayer(peoplePicker, () => setPeoplePicker(false));
   useBackLayer(addressOpen, () => window.dispatchEvent(new CustomEvent('mobile-close-address')));
   useBackLayer(registerBankPicker, () => window.dispatchEvent(new CustomEvent('mobile-close-register-bank')));
-  useBackLayer(filtering, () => setFiltering(false));
+  useBackLayer(filtering, () => runMotion(() => setFiltering(false), 'back'));
   views[scene] = { ...views[scene], search, filters, batch, checked };
   useEffect(() => {
     const remember = () => { views[scene] = { ...views[scene], scroll: window.scrollY }; };
@@ -175,7 +181,7 @@ function MobileSurface({ scene, shot, ratings, setRatings, activeRating, setActi
 
 
   useEffect(() => { if (!countdown) return; const timer = setTimeout(() => setCountdown(countdown - 1), 1000); return () => clearTimeout(timer); }, [countdown]);
-  useEffect(() => {
+  useLayoutEffect(() => {
     window.scrollTo(0, views[scene]?.scroll || 0);
     if (shot && ['detail-bank', 'detail-approval-empty', 'mine', 'expiry'].includes(scene)) {
       const timer = setTimeout(() => {
@@ -313,13 +319,13 @@ function MobileSurface({ scene, shot, ratings, setRatings, activeRating, setActi
     {(listScene || ['ratings', 'my-ratings', 'rating-ops', 'bank-application'].includes(scene)) && <Tabs active={tab} onChange={i => go(['query', 'mine', 'my-ratings', 'ratings', 'rating-ops', 'bank-application'][i])} />}
     <SwipeArea active={tab} count={6} onChange={i => { if (listScene || ['ratings', 'my-ratings', 'rating-ops', 'bank-application'].includes(scene)) go(['query', 'mine', 'my-ratings', 'ratings', 'rating-ops', 'bank-application'][i]); }}>
     {listScene && <>
-      <SearchBox value={search} onChange={setSearch} placeholder={mine ? "搜索供应商名称" : "搜索供应商名称或邀请人"}><button className="m-icon-button" aria-label={exportBusy ? '导出中' : '导出供应商'} disabled={exportBusy} onClick={startExport}><Download /></button><FilterButton label="筛选供应商" onClick={() => setFiltering(true)} /><button className="m-icon-button" aria-label={batch ? '退出批量选择' : '批量选择'} onClick={() => { setBatch(!batch); setChecked([]); }}>{batch ? <X /> : <ListChecks />}</button></SearchBox>
-      <AppliedFilters filters={filters} query={search} count={list.length} onEdit={() => setFiltering(true)} onClear={() => setFilters({})} />
+      <SearchBox value={search} onChange={setSearch} placeholder={mine ? "搜索供应商名称" : "搜索供应商名称或邀请人"}><button className="m-icon-button" aria-label={exportBusy ? '导出中' : '导出供应商'} disabled={exportBusy} onClick={startExport}><Download /></button><FilterButton label="筛选供应商" onClick={() => runMotion(() => setFiltering(true), 'forward')} /><button className="m-icon-button" aria-label={batch ? '退出批量选择' : '批量选择'} onClick={() => { runMotion(() => { setBatch(!batch); setChecked([]); }, 'record'); }}>{batch ? <X /> : <ListChecks />}</button></SearchBox>
+      <AppliedFilters filters={filters} query={search} count={list.length} onEdit={() => runMotion(() => setFiltering(true), 'forward')} onClear={() => setFilters({})} />
       <SupplierList filtered={!!search || Object.values(filters).some(Boolean)} suppliers={list} mine={mine} batch={batch} checked={checked} setChecked={setChecked} admin={adminScene} batchKind={batchKind} onDetail={s => pick(s, 'detail')} onBank={s => pick(s, 'bank')} onMore={(s, approval) => { listReturn.current = mine ? 'mine' : 'query'; select(s.id); approval === 'permissions' ? go('permissions') : approval ? go('detail-approval') : setSheet('more'); }} onInviter={s => pick(s, 'inviter')} onScore={startScore} onReinvite={s => { if (canReinviteSupplier(s)) pick(s, 'invite-again'); }} onEdit={s => pick(s, 'register-edit')} onEditAll={s => pick(s, 'register-edit-all')} onDelete={s => setConfirm({ type: 'delete', ids: [s.id], text: '确认删除供应商「' + s.name + '」？删除后原有信息全部作废。' })} />
       {!batch && <div className="m-fab-group">{expanded && <div className="m-fab-menu"><button onClick={() => go('invite')}><span><MailPlus /></span>邀请注册</button><button onClick={() => go('register')}><span><FilePenLine /></span>代注册</button></div>}<button className="m-fab m-fab-blue" aria-label={expanded ? '收起新增入口' : '新增供应商'} onClick={() => setExpanded(!expanded)}>{expanded ? <X /> : <Plus />}</button></div>}
       {batch && <footer className={'m-batch-actions' + (mine ? ' m-batch-actions-mine' : '')}><label className="m-checkbox"><input type="checkbox" aria-label="全选当前结果" disabled={!selectableList.length} checked={selectableList.length > 0 && checked.length === selectableList.length} onChange={e => setChecked(e.target.checked ? selectableList.map(x => x.id) : [])} /><span>{checked.length === selectableList.length && !!selectableList.length && <Check />}</span>全选</label><span>已选 {checked.length} 项</span><div className="m-batch-buttons"><button disabled={!checked.length} className="m-action-danger" onClick={() => { if (!canBatchDelete) return setBatchError({ title: '无法删除', text: '所选记录包含不可删除的状态，仅' + deleteStatuses(mine).join('、') + '可删除，请重新选择。' }); setConfirm({ type: 'delete', ids: [...checked], text: '确认删除所选供应商？' }); }}>删除</button>{mine && <button disabled={!checked.length} onClick={() => { if (!canBatchInviter) return setBatchError({ title: '无法变更邀请人', text: '所选记录包含未审批或已拉黑的供应商，请重新选择已审批且未拉黑的供应商。' }); views.batchInviterIds = [...checked]; listReturn.current = 'mine'; go('inviter-batch'); }}>批量变更邀请人</button>}</div></footer>}
     </>}
-    {(scene === 'filter' || filtering) && <div className={filtering ? 'm-fullscreen-panel' : ''}>{filtering && <Header title="筛选供应商" onBack={() => setFiltering(false)} />}<FilterView initial={filters} onApply={v => { if (v.start && v.end && v.start > v.end) return notify('开始时间不能晚于结束时间'); setFilters(v); filtering ? setFiltering(false) : go(listReturn.current); }} onCancel={() => filtering ? setFiltering(false) : go('query')} /></div>}
+    {(scene === 'filter' || filtering) && <div className={filtering ? 'm-fullscreen-panel' : ''}>{filtering && <Header title="筛选供应商" onBack={() => runMotion(() => setFiltering(false), 'back')} />}<FilterView initial={filters} onApply={v => { if (v.start && v.end && v.start > v.end) return notify('开始时间不能晚于结束时间'); setFilters(v); filtering ? runMotion(() => setFiltering(false), 'back') : go(listReturn.current); }} onCancel={() => filtering ? runMotion(() => setFiltering(false), 'back') : go('query')} /></div>}
     {scene === 'information-change' && supplier.pendingInformation && supplier.status === '变更中' && <><ChangeComparison before={supplier} after={supplier.pendingInformation} /><Actions items={[{ label: '返回列表', secondary: true, onClick: () => go(listReturn.current) }, { label: '查看审批', onClick: () => go('approval') }]} /></>}
     {scene.startsWith('detail') && <SupplierDetail supplier={supplier} initialTab={scene === 'detail-bank' ? 3 : ['detail-approval', 'detail-approval-empty'].includes(scene) ? 7 : scene === 'detail-ratings' ? 8 : 0} approvalEmpty={scene === 'detail-approval-empty'} onPreview={preview} ratings={ratings} onScore={() => { setActiveRating(null); setRatingReturn('detail-ratings'); go('rating-edit'); }} onRatingOpen={(record, readOnly) => { setActiveRating(record); setRatingReturn('detail-ratings'); go(readOnly ? 'rating-detail' : 'rating-edit'); }} />}
     {scene.startsWith('approval') && <Approval type={supplier.pendingInformation ? '资料变更' : '注册'} supplier={shot ? { ...supplier, name: '北京初然文化传媒有限公司827583' } : supplier} history={scene === 'approval-history'} number={shot?.time === '194516' ? 'SUP202610140006' : 'SUP202610140004'} showSupplier={!shot || shot.time !== '194516'} />}
@@ -379,6 +385,7 @@ function MobileSurface({ scene, shot, ratings, setRatings, activeRating, setActi
     {shot && <div className="m-android-nav"><span /><i /><b /></div>}
   </div>;
 }
+
 
 
 

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Check, ChevronDown, ClipboardList, Edit3, Filter, List, MoreHorizontal, Pencil, Plus, X } from 'lucide-react';
 import { Actions, ChangeTag, Empty, Field, StatusTag, OptionSheet, Overlay, Row, SearchBox, Section, SupplierIdentityCard } from './mobile-ui.jsx';
 import { BankCard, fieldsFor } from './mobile-forms.jsx';
@@ -7,12 +7,20 @@ import { SwipeArea, attachmentName } from './mobile-interaction.jsx';
 import { ChangeComparison } from './mobile-changes.jsx';
 import { canChangeSupplier, canRateSupplier, canReinviteSupplier, canDeleteSupplier } from './mobile-rules.js';
 
+import { MotionDetails, runMotion } from './mobile-motion.jsx';
+
 export const mobileTabs = ['供应商查询', '我的邀请', '我的评分', '供应商评分', '供应商运维-评分查询', '银行信息申请'];
 export function Tabs({ active, onChange, items = mobileTabs, variant = 'line' }) {
   const ref = useRef(null);
   const [directory, setDirectory] = useState(false);
   useEffect(() => { let cancelled = false; const align = () => { const nav = ref.current; const node = nav?.querySelector('[aria-current="page"]'); if (!cancelled && node) nav.scrollLeft = active === items.length - 1 ? nav.scrollWidth - nav.clientWidth : Math.max(0, node.getBoundingClientRect().left - nav.getBoundingClientRect().left + nav.scrollLeft - (nav.clientWidth - node.clientWidth) / 2); }; align(); document.fonts.ready.then(align); return () => { cancelled = true; }; }, [active, items.length]);
-  return <><div className={'m-tab-bar ' + (variant === 'pill' ? 'm-tab-bar-pill' : '')}><nav ref={ref} className="m-tabs" aria-label="功能模块">{items.map((label, i) => <button className={active === i ? 'active' : ''} aria-current={active === i ? 'page' : undefined} key={label} onClick={() => onChange(i)}>{label}</button>)}</nav><button className="m-tab-directory" aria-label="全部标签" onClick={() => setDirectory(true)}><ChevronDown /></button></div>{directory && <OptionSheet title="全部标签" options={items} value={items[active]} clearable={false} onClose={() => setDirectory(false)} onChange={label => { const index = items.indexOf(label); if (index >= 0) onChange(index); }} />}</>;
+  const choose = i => { if (i !== active) runMotion(() => onChange(i), i > active ? 'tab-next' : 'tab-prev'); };
+  useLayoutEffect(() => {
+    const nav = ref.current;
+    const align = () => { const button = nav?.querySelector('[aria-current="page"]'); if (!button) return; nav.style.setProperty('--m-indicator-x', button.offsetLeft + 'px'); nav.style.setProperty('--m-indicator-width', button.offsetWidth + 'px'); };
+    align(); const observer = new ResizeObserver(align); observer.observe(nav); return () => observer.disconnect();
+  }, [active, items.length]);
+  return <><div className={'m-tab-bar m-tab-motion ' + (variant === 'pill' ? 'm-tab-bar-pill' : '')}><nav ref={ref} className="m-tabs" data-active={active} aria-label="功能模块">{items.map((label, i) => <button className={active === i ? 'active' : ''} aria-current={active === i ? 'page' : undefined} key={label} onClick={() => choose(i)}><span className="m-tab-label">{label}</span></button>)}<span className="m-tab-indicator" aria-hidden="true" /></nav><button className="m-tab-directory" aria-label="全部标签" onClick={() => setDirectory(true)}><ChevronDown /></button></div>{directory && <OptionSheet title="全部标签" options={items} value={items[active]} clearable={false} onClose={() => setDirectory(false)} onChange={label => { const index = items.indexOf(label); if (index >= 0) choose(index); }} />}</>;
 }
 
 export function SupplierList({ suppliers, mine = false, batch = false, checked, setChecked, onDetail, onBank, onMore, onInviter, onReinvite, onEdit, onEditAll, onDelete, onScore, admin = false, filtered = false, batchKind = 'delete' }) {
@@ -25,7 +33,7 @@ function SupplierSummary({ s, mine, batch, checked, setChecked, onDetail, onBank
   const hasMore = canChangeSupplier(s) || (!mine && canRateSupplier(s)) || canReinviteSupplier(s) || canDeleteSupplier(s, mine) || !['草稿', '邀请中', '注册中', '注册驳回'].includes(s.status);
   const selectable = batchKind === 'all' ? true : batchKind === 'delete' ? canDeleteSupplier(s, mine) : canChangeInviter;
   const fields = mine ? [['证件号码', s.code], ['联系人姓名', s.contact], ['联系人邮箱', s.email], ['联系人电话', s.phone], ['邀请时间', s.date], ['更新时间', s.updated]] : [['注册方式', s.mode], ['更新时间', s.updated]];
-  return <article className={'m-supplier-card' + (mine ? ' m-supplier-card-mine' : '')}>
+  return <article data-motion-key={"supplier-" + s.id} className={'m-supplier-card' + (mine ? ' m-supplier-card-mine' : '')}>
     <div className="m-supplier-heading"><h3>{batch && <label className="m-checkbox"><input type="checkbox" disabled={!selectable} aria-label={`选择${s.name}`} checked={checked.includes(s.id)} onChange={e => setChecked(e.target.checked ? [...checked, s.id] : checked.filter(x => x !== s.id))} /><span>{checked.includes(s.id) && <Check />}</span></label>}<i className="m-blue-mark" aria-hidden="true" /><span>{s.name}</span></h3>{!historical && <StatusTag value={s.status} />}</div>
     {!historical && <p className="m-supplier-kind">{s.type}<span>·</span>{s.mode}</p>}
     <dl>{(historical ? [['供应商类型', s.type], ['审批状态', s.status], ...(!mine ? [['邀请人', s.inviter], ['邀请时间', s.date]] : []), ...fields, ...(!mine ? [['评分', s.score]] : [])] : [...(!mine ? [['邀请人', s.inviter], ['邀请时间', s.date]] : []), ...fields.filter(([label]) => label !== '注册方式'), ...(!mine ? [['评分', s.score]] : [])]).map(([label, value]) => <div className={/时间|邮箱|证件|评分/.test(label) ? 'm-supplier-wide' : ''} key={label}><dt>{label}{historical ? '：' : ''}</dt><dd>{label === '审批状态' ? <StatusTag value={value} /> : value || '—'}</dd></div>)}</dl>
@@ -64,7 +72,7 @@ function ApprovalHistory({ records }) {
     if (existing) existing.nodes.push(...(record.nodes || []));
     else groups.set(key, { ...record, key, nodes: [...(record.nodes || [])] });
   });
-  return groups.size ? <div className="m-approval-history">{[...groups.values()].map(record => <details className="m-approval-history-card" key={record.key}><summary><span className="m-history-title"><strong>{record.type || '—'}</strong><span className="m-history-number">审批单号：{record.number || '—'}</span></span><StatusTag value={record.status} /><ChevronDown className="m-history-chevron" aria-hidden="true" /></summary><div className="m-history-content"><Row label="发起时间">{record.startedAt || '—'}</Row><Row label="发起人">{record.initiator || '—'}</Row></div></details>)}</div> : <Empty text="无数据" />;
+  return groups.size ? <div className="m-approval-history">{[...groups.values()].map(record => <MotionDetails className="m-approval-history-card" key={record.key}><summary><span className="m-history-title"><strong>{record.type || '—'}</strong><span className="m-history-number">审批单号：{record.number || '—'}</span></span><StatusTag value={record.status} /><ChevronDown className="m-history-chevron" aria-hidden="true" /></summary><div className="m-history-content"><Row label="发起时间">{record.startedAt || '—'}</Row><Row label="发起人">{record.initiator || '—'}</Row></div></MotionDetails>)}</div> : <Empty text="无数据" />;
 }
 
 export function Approval({ supplier, populated = true, history = false, showSupplier = true, number = 'SUP202610140004', type = '注册' }) {
@@ -103,3 +111,4 @@ export function PermissionCard({ data, onEdit, onDelete }) {
 export function BankApplication({ onApply }) {
   return <div className="m-bank-application"><h2>申请须知</h2><p>若邀请注册供应商反馈添加银行信息时，未查询到目标开户银行或分行，可通过本功能补充未收录银行。</p><button onClick={onApply}>确认申请</button></div>;
 }
+

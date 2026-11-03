@@ -2,13 +2,15 @@ import React, { useEffect, useId, useRef, useState } from 'react';
 import { Camera, Check, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, HelpCircle, Eye, EyeOff, X } from 'lucide-react';
 import { useBackLayer, rememberAttachment, attachmentFiles, attachmentName } from './mobile-interaction.jsx';
 
+import { runMotion } from './mobile-motion.jsx';
+
 export function Section({ title, children, className = '', collapsible = true, defaultOpen = true }) {
   const [open, setOpen] = useState(defaultOpen);
   const ref = useRef(null);
   useEffect(() => { const reveal = e => { if ([...ref.current.querySelectorAll('[data-field-label]')].some(n => e.detail.includes(n.dataset.fieldLabel))) setOpen(true); }; window.addEventListener('mobile-validation', reveal); return () => window.removeEventListener('mobile-validation', reveal); }, []);
   return <section ref={ref} className={`m-section ${className}`}>
     {title && <h2>{collapsible ? <button type="button" className="m-section-heading" onClick={() => setOpen(!open)} aria-expanded={open}><span className="m-collapse">{open ? <ChevronUp /> : <ChevronDown />}</span>{title}</button> : title}</h2>}
-    <div className="m-section-content" hidden={!open}>{children}</div>
+    {collapsible ? <div className="m-section-reveal" data-open={open} inert={!open ? true : undefined}><div className="m-section-content">{children}</div></div> : <div className="m-section-content">{children}</div>}
   </section>;
 }
 
@@ -109,7 +111,8 @@ export function AttachmentViewer({ value, title = '查看附件', onClose }) {
   return <Overlay label="查看附件" onClose={onClose} sheet><div className="m-attachment-viewer"><div className="m-picker-title"><strong>{opened ? name : title}</strong><button type="button" aria-label="关闭附件" onClick={onClose}><X /></button></div>{!opened ? <><p className="m-attachment-count">共 1 个附件</p><div className="m-attachment-list"><button type="button" className="m-attachment-file selected" aria-label={'预览' + name} disabled={!file} onClick={() => setOpened(true)}><span className="m-file-icon"><img src="/mobile-assets/workbench/file.svg" alt="" /></span><span><strong>{name}</strong><small>{file ? isImage ? '图片附件' : '文件附件' : '演示样本 · 未提供原件'}</small></span></button></div>{!file && <p className="m-attachment-unavailable">此附件仅有截图示例，未提供原件，暂不可预览原图。</p>}<div className="m-picker-actions"><button type="button" onClick={onClose}>返回</button><button type="button" className="primary" disabled={!file} onClick={() => setOpened(true)}>打开附件</button></div></> : <><div className="m-attachment-content">{isImage ? <a href={file.url} target="_blank" rel="noreferrer" aria-label="打开原图"><img className="m-attachment-full" src={file.url} alt={name} /></a> : <p>此文件不支持图片预览。<a href={file.url} target="_blank" rel="noreferrer">打开文件</a></p>}</div><div className="m-picker-actions"><button type="button" onClick={() => setOpened(false)}>返回附件列表</button><button type="button" className="primary" onClick={onClose}>关闭</button></div></>}</div></Overlay>;
 }
 
-export function Overlay({ children, label = '选择', onClose, sheet = false }) {
+export function Overlay({ children, label = '选择', onClose: closeOriginal, sheet = false }) {
+  const onClose = () => runMotion(closeOriginal, 'sheet-close');
   const ref = useRef(null);
   useBackLayer(true, onClose);
   const closeRef = useRef(onClose);
@@ -136,7 +139,9 @@ export function SupplierIdentityCard({ supplier, children }) {
   return <div className="m-detail-summary"><div className="m-supplier-heading"><h2>{supplier.name}</h2><StatusTag value={supplier.status} /></div><p className="m-summary-meta"><span>{supplier.type || '—'} · {supplier.mode || '—'}</span></p>{children}</div>;
 }
 
-export function Confirm({ text, onCancel, onConfirm, cancelLabel = '取消', confirmLabel = '确认', danger = false, unsaved = false }) {
+export function Confirm({ text, onCancel: cancelOriginal, onConfirm: confirmOriginal, cancelLabel = '取消', confirmLabel = '确认', danger = false, unsaved = false }) {
+  const onCancel = () => runMotion(cancelOriginal, 'sheet-close');
+  const onConfirm = () => runMotion(confirmOriginal, 'record');
   return <Overlay label={unsaved ? '离开编辑' : '提示'} sheet={unsaved} onClose={onCancel}>{unsaved ? <div className="m-unsaved-confirm"><span className="m-sheet-handle" aria-hidden="true" /><h2>离开编辑？</h2><p>{text}</p><div className="m-unsaved-actions"><button type="button" className="m-discard-button" onClick={onConfirm}>{confirmLabel}</button><button type="button" className="m-continue-button" data-initial-focus onClick={onCancel}>{cancelLabel}</button></div></div> : <><h2>提示</h2><p>{text}</p><div className="m-dialog-actions"><button onClick={onCancel}>{cancelLabel}</button><button className={danger ? 'm-action-danger' : undefined} onClick={onConfirm}>{confirmLabel}</button></div></>}</Overlay>;
 }
 
@@ -162,7 +167,9 @@ function DateWheel({ label, values, value, onChange }) {
   </div>;
 }
 
-export function DateSheet({ title, value, onChange, onClose, allowLong = false, allowClear = false }) {
+export function DateSheet({ title, value, onChange: changeOriginal, onClose: closeOriginal, allowLong = false, allowClear = false }) {
+  const onClose = () => runMotion(closeOriginal, 'sheet-close');
+  const onChange = value => changeOriginal(value);
   const today = new Date();
   const parts = /^\d{4}-\d{2}-\d{2}$/.test(value) ? value.split('-').map(Number) : [today.getFullYear(), today.getMonth() + 1, today.getDate()];
   const [date, setDate] = useState(parts);
@@ -173,17 +180,19 @@ export function DateSheet({ title, value, onChange, onClose, allowLong = false, 
     // 确认时读取可见滚动位置，避免快速滚动后立即确认取到上一次日期。
     const current = [...wheels.current.querySelectorAll('.m-date-wheel')].map((node, i) => values[i][Math.max(0, Math.min(values[i].length - 1, Math.round(node.scrollTop / 44)))]);
     current[2] = Math.min(current[2], new Date(current[0], current[1], 0).getDate());
-    onChange(`${current[0]}-${String(current[1]).padStart(2, '0')}-${String(current[2]).padStart(2, '0')}`); onClose();
+    runMotion(() => { onChange(`${current[0]}-${String(current[1]).padStart(2, '0')}-${String(current[2]).padStart(2, '0')}`); closeOriginal(); }, 'sheet-close');
   };
   return <Overlay label={title} onClose={onClose} sheet><div className="m-date-picker"><div className="m-picker-title"><button onClick={onClose}>取消</button><strong>{title}</strong><span /></div><p className="m-date-selection" aria-live="polite">{date[0]}年{date[1]}月{Math.min(date[2], days)}日</p><div className="m-date-columns" aria-hidden="true"><span>年</span><span>月</span><span>日</span></div><div ref={wheels} className="m-date-wheels" data-no-swipe>{values.map((items, i) => <DateWheel key={i} label={['年', '月', '日'][i]} values={items} value={Math.min(date[i], i === 2 ? days : date[i])} onChange={v => setDate(old => { const next = old.map((x, n) => n === i ? v : x); next[2] = Math.min(next[2], new Date(next[0], next[1], 0).getDate()); return next; })} />)}</div>{(allowLong || allowClear) && <div className="m-date-shortcuts">{allowLong && <button onClick={() => { onChange('长期'); onClose(); }}>长期</button>}{allowClear && <button onClick={() => { onChange(''); onClose(); }}>清空日期</button>}</div>}<div className="m-picker-actions"><button type="button" className="primary" onClick={confirm}>确认</button></div></div></Overlay>;
 }
 
-export function OptionSheet({ title, options = [], value, onChange, onClose, mode = 'immediate', searchable = false, clearable = true }) {
+export function OptionSheet({ title, options = [], value, onChange, onClose: closeOriginal, mode = 'immediate', searchable = false, clearable = true }) {
+  const onClose = () => runMotion(closeOriginal, 'sheet-close');
+  const choose = value => runMotion(() => { onChange(value); closeOriginal(); }, 'sheet-close');
   const [selected, setSelected] = useState(value || '');
   const [query, setQuery] = useState('');
   const matches = options.filter(x => x.includes(query.trim()));
-  const clear = () => { if (mode === 'immediate') { onChange(''); onClose(); } else setSelected(''); };
-  return <Overlay label={title} onClose={onClose} sheet><div className={'m-option-picker ' + (searchable ? 'is-searchable' : 'is-simple')}><div className="m-picker-title"><strong>{title}</strong></div>{searchable && <SearchBox value={query} onChange={setQuery} placeholder={'搜索' + title} />}<div className="m-sheet-options">{matches.length ? matches.map(x => <button type="button" aria-pressed={x === selected} className={x === selected ? 'selected' : ''} key={x} onClick={() => { if (mode === 'immediate') { onChange(x); onClose(); } else setSelected(x); }}><span>{x}</span>{searchable && <span className="m-option-radio" aria-hidden="true">{x === selected && <Check />}</span>}</button>) : <Empty search={!!query} text={query ? '暂无匹配选项' : '暂无可用选项'} />}</div><div className="m-picker-actions">{clearable && <button type="button" onClick={clear}>清空选择</button>}<button type="button" onClick={onClose}>取消</button>{mode === 'confirm' && <button type="button" className="primary" onClick={() => { onChange(selected); onClose(); }}>确认</button>}</div></div></Overlay>;
+  const clear = () => { if (mode === 'immediate') { choose(''); } else setSelected(''); };
+  return <Overlay label={title} onClose={onClose} sheet><div className={'m-option-picker ' + (searchable ? 'is-searchable' : 'is-simple')}><div className="m-picker-title"><strong>{title}</strong></div>{searchable && <SearchBox value={query} onChange={setQuery} placeholder={'搜索' + title} />}<div className="m-sheet-options">{matches.length ? matches.map(x => <button type="button" aria-pressed={x === selected} className={x === selected ? 'selected' : ''} key={x} onClick={() => { if (mode === 'immediate') { choose(x); } else setSelected(x); }}><span>{x}</span>{searchable && <span className="m-option-radio" aria-hidden="true">{x === selected && <Check />}</span>}</button>) : <Empty search={!!query} text={query ? '暂无匹配选项' : '暂无可用选项'} />}</div><div className="m-picker-actions">{clearable && <button type="button" onClick={clear}>清空选择</button>}<button type="button" onClick={onClose}>取消</button>{mode === 'confirm' && <button type="button" className="primary" onClick={() => choose(selected)}>确认</button>}</div></div></Overlay>;
 }
 
 export function Header({ onBack, title = '供应商管理平台', close }) {
@@ -206,5 +215,6 @@ export function RegistrationSteps({ personal, step }) {
     </li>)}</ol>
   </nav>;
 }
+
 
 
