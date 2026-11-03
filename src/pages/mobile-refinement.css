@@ -388,3 +388,7 @@
 
 .m-reference-confirm { padding-bottom: 80px; }
 .m-reference-confirm .m-actions.m-actions-flat { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: min(100%, 430px); z-index: 55; padding-bottom: max(8px, env(safe-area-inset-bottom, 0px)); }
+
+.mobile-page:not(.m-shot) .m-rating-score-action button:first-child { margin-left: auto; margin-right: 0; }
+.mobile-page:not(.m-shot) .m-record-actions > button { border: 0 !important; border-radius: 0; background: transparent; padding: 6px 9px !important; }
+.mobile-page .m-add-icon { border: 0 !important; background: transparent; }
