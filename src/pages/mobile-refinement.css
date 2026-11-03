@@ -453,3 +453,24 @@
 .m-batch-supplier-list { padding: 0 16px; }
 .m-batch-supplier + .m-batch-supplier { border-top: 1px solid var(--m-border-subtle); }
 .m-batch-supplier h3 { margin: 0; padding: 12px 0 0; font-size: 16px; line-height: 1.6; overflow-wrap: anywhere; }
+
+/* 门户首页以实际业务模块组织图标入口，颜色只用于区分功能。 */
+.m-portal-home { padding: 12px 16px 20px; }
+.m-portal-home-identity { display: flex; align-items: center; gap: 10px; padding: 14px 16px; margin-bottom: 12px; background: var(--m-surface); border: 1px solid var(--m-border); border-radius: 12px; }
+.m-portal-home-identity > svg { width: 22px; height: 22px; flex-shrink: 0; color: var(--m-action); }
+.m-portal-home-identity h2 { flex: 1; min-width: 0; margin: 0; font-size: 16px; line-height: 1.5; overflow-wrap: anywhere; }
+.m-portal-home-group { margin-bottom: 12px; background: var(--m-surface); border: 1px solid var(--m-border); border-radius: 12px; overflow: hidden; }
+.m-portal-home-group h2 { display: flex; align-items: center; gap: 8px; margin: 0; padding: 12px 16px 8px; font-size: 16px; font-weight: 600; line-height: 1.5; }
+.m-portal-home-group h2::before { content: ''; width: 3px; height: 14px; flex-shrink: 0; border-radius: 2px; background: var(--m-action); }
+.m-portal-entry-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; padding: 4px 12px 14px; }
+.mobile-page .m-portal-entry-grid button { display: flex; flex-direction: column; align-items: center; gap: 8px; min-width: 0; min-height: 96px; padding: 8px 0 0; border: 0; background: transparent; color: var(--m-text); cursor: pointer; }
+.m-portal-entry-icon { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 10px; color: #fff; }
+.m-portal-entry-icon.is-blue { background: #3287ed; }
+.m-portal-entry-icon.is-orange { background: #ee931c; }
+.m-portal-entry-icon.is-teal { background: #0eaaa6; }
+.m-portal-entry-icon svg { width: 25px; height: 25px; stroke-width: 1.8; }
+.m-portal-entry-label { display: block; font-size: 14px; line-height: 1.5; text-align: center; }
+.m-portal-entry-label > span { display: block; }
+.m-portal-entry-grid button:focus-visible { outline: 2px solid var(--m-action); outline-offset: -2px; border-radius: 8px; }
+.m-portal-entry-grid button:active .m-portal-entry-icon { filter: brightness(.93); }
+@media (max-width: 359px) { .m-portal-home { padding-right: 12px; padding-left: 12px; } .m-portal-entry-grid { gap: 4px; padding-right: 8px; padding-left: 8px; } }
