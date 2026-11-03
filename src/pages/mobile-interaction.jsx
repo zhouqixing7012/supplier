@@ -2,7 +2,7 @@ import React, { useContext, useEffect, useId, useRef, useState } from 'react';
 import { Confirm } from './mobile-ui.jsx';
 
 import { runMotion, reducedMotion } from './mobile-motion.jsx';
-import { swipeTarget } from './mobile-motion.js';
+import { swipeTarget, captureScrollPositions, restoreScrollPositions } from './mobile-motion.js';
 
 import { InteractionContext } from './mobile-context.js';
 export function InteractionProvider({ children }) {
@@ -53,8 +53,8 @@ export function SwipeArea({ active, count, onChange, children, className = '' })
   config.current = { active, count, onChange };
   useEffect(() => {
     const node = ref.current;
-    let start = null, visual = null, dragNode = null, nav = null;
-    const restore = () => { visual?.remove(); visual = null; dragNode?.classList.remove('m-swipe-dragging'); dragNode = null; if (nav) { nav.style.removeProperty('--m-gesture-x'); nav.style.removeProperty('--m-gesture-width'); nav.classList.remove('m-gesture-tabs'); nav = null; } };
+    let start = null, visual = null, dragNode = null, nav = null, bounce = null;
+    const restore = () => { if (bounce) { bounce.onfinish = null; bounce.cancel(); bounce = null; } visual?.remove(); visual = null; dragNode?.classList.remove('m-swipe-dragging'); dragNode = null; if (nav) { nav.style.removeProperty('--m-gesture-x'); nav.style.removeProperty('--m-gesture-width'); nav.classList.remove('m-gesture-tabs'); nav = null; } };
     const begin = event => {
       restore(); start = null;
       const point = event.touches[0], box = node.closest('.mobile-page').getBoundingClientRect();
@@ -63,7 +63,8 @@ export function SwipeArea({ active, count, onChange, children, className = '' })
       start = { x: point.clientX, y: point.clientY, time: Date.now(), horizontal: false };
     };
     const move = event => {
-      if (!start || event.touches.length !== 1) return;
+      if (event.touches.length !== 1) { start = null; restore(); return; }
+      if (!start) return;
       const dx = event.touches[0].clientX - start.x, dy = event.touches[0].clientY - start.y;
       if (!start.horizontal && Math.abs(dy) > 10 && Math.abs(dy) > Math.abs(dx)) { start = null; restore(); return; }
       if (Math.abs(dx) < 10 || Math.abs(dx) < Math.abs(dy) * 1.6) return;
@@ -72,12 +73,13 @@ export function SwipeArea({ active, count, onChange, children, className = '' })
       if (!visual) {
         const box = node.getBoundingClientRect();
         visual = node.cloneNode(true); visual.classList.add('m-swipe-visual'); visual.setAttribute('aria-hidden', 'true'); visual.inert = true;
+        const scrollPositions = captureScrollPositions(node, visual);
         visual.querySelectorAll('[id]').forEach(n => n.removeAttribute('id'));
         visual.querySelectorAll('[data-motion-named]').forEach(n => { n.style.viewTransitionName = 'none'; n.removeAttribute('data-motion-named'); });
         visual.querySelectorAll('.m-actions,.m-batch-actions,.m-bottom-nav,.m-fab-group,.m-overlay,.m-fullscreen-panel').forEach(n => n.remove());
         visual.querySelectorAll('.m-tab-bar').forEach(n => { n.style.visibility = 'hidden'; });
         Object.assign(visual.style, { position: 'fixed', left: box.left + 'px', top: box.top + 'px', width: box.width + 'px', margin: '0', pointerEvents: 'none', zIndex: '40' });
-        node.closest('.mobile-page').appendChild(visual); dragNode = node; node.classList.add('m-swipe-dragging');
+        node.closest('.mobile-page').appendChild(visual); restoreScrollPositions(scrollPositions); dragNode = node; node.classList.add('m-swipe-dragging');
         nav = [...node.closest('.mobile-page').querySelectorAll('.m-tabs')].at(-1);
       }
       const { active, count } = config.current;
@@ -95,12 +97,15 @@ export function SwipeArea({ active, count, onChange, children, className = '' })
       const { active, count, onChange } = config.current;
       const next = point ? swipeTarget(active, count, point.clientX - origin.x, point.clientY - origin.y, Date.now() - origin.time) : active;
       if (next !== active) { event.stopPropagation(); restore(); runMotion(() => onChange(next), next > active ? 'tab-next' : 'tab-prev'); }
-      else if (visual && !reducedMotion() && visual.animate) { const current = visual; current.animate([{ transform: current.style.transform }, { transform: 'translateX(0)' }], { duration: 180, easing: 'ease-out' }).onfinish = restore; }
+      else if (visual && !reducedMotion() && visual.animate) { const current = visual; bounce = current.animate([{ transform: current.style.transform }, { transform: 'translateX(0)' }], { duration: 180, easing: 'ease-out' }); bounce.onfinish = () => { if (visual === current) restore(); }; }
       else restore();
     };
     const cancel = () => { start = null; restore(); };
+    const preference = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const stopMotion = () => { if (preference.matches) cancel(); };
+    preference.addEventListener('change', stopMotion);
     node.addEventListener('touchstart', begin, { passive: true }); node.addEventListener('touchmove', move, { passive: false }); node.addEventListener('touchend', end); node.addEventListener('touchcancel', cancel);
-    return () => { cancel(); node.removeEventListener('touchstart', begin); node.removeEventListener('touchmove', move); node.removeEventListener('touchend', end); node.removeEventListener('touchcancel', cancel); };
+    return () => { cancel(); preference.removeEventListener('change', stopMotion); node.removeEventListener('touchstart', begin); node.removeEventListener('touchmove', move); node.removeEventListener('touchend', end); node.removeEventListener('touchcancel', cancel); };
   }, [active]);
   return <div ref={ref} className={'m-swipe-area ' + className}>{children}</div>;
 }
@@ -154,4 +159,5 @@ export function createSessionId() {
   if (crypto.randomUUID) return crypto.randomUUID();
   return Array.from(crypto.getRandomValues(new Uint8Array(16)), value => value.toString(16).padStart(2, '0')).join('');
 }
+
 

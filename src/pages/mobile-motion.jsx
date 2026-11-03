@@ -1,7 +1,9 @@
 import React, { useEffect, useRef } from 'react';
 import { flushSync } from 'react-dom';
+import { resolveMotion, captureScrollPositions, restoreScrollPositions } from './mobile-motion.js';
 
-let committing = false;
+let transaction = null;
+const scrollCopies = new WeakMap();
 const running = new Set();
 export const reducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 function play(node, frames, duration, cleanup = () => {}) {
@@ -22,7 +24,7 @@ function ghost(node) {
   frame.style.clipPath = `inset(${top}px 0 ${bottom}px 0)`;
   const copy = node.cloneNode(true);
   frame.dataset.motionHeight = String(bounds.height);
-  frame.dataset.motionScroll = String(node.scrollTop);
+  scrollCopies.set(frame, captureScrollPositions(node, copy));
   copy.classList.remove('m-fullscreen-panel', 'm-overlay');
   copy.removeAttribute('role'); copy.removeAttribute('aria-modal');
   copy.querySelectorAll('[id]').forEach(n => n.removeAttribute('id'));
@@ -39,7 +41,12 @@ const scope = () => [...document.querySelectorAll('.m-fullscreen-panel')].filter
 const records = () => [...document.querySelectorAll('[data-motion-key]')].filter(node => !node.closest('.m-motion-ghost')).map(node => ({ node, key: node.dataset.motionKey, box: node.getBoundingClientRect() }));
 // 先同步更新真实界面，视觉副本仅负责过渡；副本不接受点击、焦点或业务事件。
 export function runMotion(update, kind = 'fade') {
-  if (committing) return update();
+  if (transaction) {
+    const resolved = resolveMotion(transaction.kind, kind);
+    if (resolved !== transaction.kind && !transaction.page) transaction.page = transaction.enabled ? ghost(transaction.scope) : null;
+    transaction.kind = resolved;
+    return update();
+  }
   for (const stop of [...running]) stop();
   document.documentElement.dataset.mobileMotion = kind;
   const enabled = !reducedMotion() && !!Element.prototype.animate && !document.querySelector('.m-shot');
@@ -52,10 +59,14 @@ export function runMotion(update, kind = 'fade') {
   const old = enabled && kind !== 'record' ? ghost(kind === 'sheet-close' ? oldPanel : oldScope) : null;
   const removedPanels = enabled && kind === 'record' ? ghost(oldPanel) : null;
   const oldBatch = enabled && kind === 'record' ? ghost(document.querySelector('.m-batch-actions')) : null;
-  committing = true;
-  try { flushSync(update); } finally { committing = false; }
+  const current = { kind, enabled, scope: oldScope, page: null };
+  transaction = current;
+  try { flushSync(update); } finally { transaction = null; }
+  const originalKind = kind;
+  kind = current.kind;
+  document.documentElement.dataset.mobileMotion = kind;
   if (!enabled) return;
-  const show = (node, frames, duration) => { if (node) { document.body.appendChild(node); if (node.firstElementChild?.firstElementChild) node.firstElementChild.firstElementChild.scrollTop = Number(node.dataset.motionScroll || 0); play(node.firstElementChild || node, frames, duration, () => node.remove()); } };
+  const show = (node, frames, duration) => { if (node) { document.body.appendChild(node); restoreScrollPositions(scrollCopies.get(node) || []); play(node.firstElementChild || node, frames, duration, () => node.remove()); } };
   if (shade) show(shade, [{ opacity: 1 }, { opacity: 0 }], 180);
   if (kind === 'sheet-close') {
     show(old, [{ opacity: 1, transform: 'translateY(0)' }, { opacity: 0, transform: `translateY(${old?.dataset.motionHeight || 0}px)` }], 180); return;
@@ -83,29 +94,43 @@ export function runMotion(update, kind = 'fade') {
   // 标题、页签、固定按钮保留真实显示；其余内容的透明度过渡不改变固定定位参照。
   const blocks = [...(nextScope?.querySelectorAll('.m-section,.m-supplier-card,.m-detail-summary,.m-search-row,.m-applied-filters,.m-portal-home-group,.m-portal-home-identity') || [])];
   blocks.filter(n => !n.parentElement.closest('.m-section,.m-supplier-card,.m-detail-summary,.m-portal-home-group')).forEach(node => play(node, [{ opacity: .1 }, { opacity: 1 }], duration));
-  show(old, [{ opacity: 1, transform: 'translateX(0)' }, { opacity: 0, transform: `translateX(${backwards ? distance : -distance * .18}px)` }], duration);
+  if (originalKind === 'sheet-close' || originalKind === 'record') show(originalKind === 'sheet-close' ? old : removedPanels, [{ opacity: 1 }, { opacity: 0, transform: 'translateY(24px)' }], 180);
+  show(current.page || old, [{ opacity: 1, transform: 'translateX(0)' }, { opacity: 0, transform: `translateX(${backwards ? distance : -distance * .18}px)` }], duration);
   show(next, [{ opacity: kind === 'fade' ? 0 : .7, transform: `translateX(${backwards ? -distance * .18 : distance}px)` }, { opacity: 1, transform: 'translateX(0)' }], duration);
 }
 export function useMotionStructure(ref) {
   useEffect(() => {
     const root = ref.current;
     if (!root) return;
-    const observer = new MutationObserver(records => {
-      if (reducedMotion() || !Element.prototype.animate || running.size) return;
-      const hasAdded = records.some(record => [...record.addedNodes].some(n => n.nodeType === 1 && n.matches?.('.m-bank-card,.m-contact-summary')));
-      if (hasAdded) root.querySelectorAll('.m-bank-card,.m-contact-summary').forEach(node => {
-        if (!node.dataset.motionSeen) { node.dataset.motionSeen = ''; node.animate([{ opacity: 0, transform: 'translateY(8px)' }, { opacity: 1, transform: 'translateY(0)' }], { duration: 200, easing: 'cubic-bezier(.2,.8,.2,1)' }); }
+    const preference = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const stopMotion = () => { if (preference.matches) for (const stop of [...running]) stop(); };
+    preference.addEventListener('change', stopMotion);
+    const observer = new MutationObserver(() => {
+      const animate = !preference.matches && Element.prototype.animate && !running.size;
+      root.querySelectorAll('.m-bank-card,.m-contact-summary').forEach(node => {
+        if (node.hasAttribute('data-motion-seen')) return;
+        node.dataset.motionSeen = '';
+        if (animate) play(node, [{ opacity: 0, transform: 'translateY(8px)' }, { opacity: 1, transform: 'translateY(0)' }], 200);
       });
     });
     root.querySelectorAll('.m-bank-card,.m-contact-summary').forEach(node => { node.dataset.motionSeen = ''; });
     observer.observe(root, { childList: true, subtree: true });
-    return () => { observer.disconnect(); for (const stop of [...running]) stop(); };
+    return () => { observer.disconnect(); preference.removeEventListener('change', stopMotion); for (const stop of [...running]) stop(); };
   }, [ref]);
 }
 export function MotionDetails({ children, className = '' }) {
   const ref = useRef(null);
   const animation = useRef(null);
-  useEffect(() => () => animation.current?.cancel(), []);
+  useEffect(() => {
+    const preference = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const stop = () => {
+      if (!preference.matches || !ref.current) return;
+      animation.current?.cancel(); animation.current = null;
+      ref.current.open = ref.current.dataset.expanded === 'true'; ref.current.style.overflow = '';
+    };
+    preference.addEventListener('change', stop);
+    return () => { preference.removeEventListener('change', stop); animation.current?.cancel(); };
+  }, []);
   const toggle = event => {
     event.preventDefault();
     const node = ref.current;
@@ -113,7 +138,7 @@ export function MotionDetails({ children, className = '' }) {
     const closing = node.dataset.expanded === 'true';
     animation.current?.cancel();
     node.dataset.expanded = String(!closing);
-    if (reducedMotion() || !node.animate) { node.open = !closing; return; }
+    if (reducedMotion() || !node.animate) { node.open = !closing; node.style.overflow = ''; animation.current = null; return; }
     node.open = true;
     const style = getComputedStyle(node);
     const border = parseFloat(style.borderTopWidth) + parseFloat(style.borderBottomWidth);
@@ -125,3 +150,4 @@ export function MotionDetails({ children, className = '' }) {
   const [summary, ...body] = React.Children.toArray(children);
   return <details ref={ref} className={className} data-expanded="false">{React.cloneElement(summary, { onClick: toggle })}{body}</details>;
 }
+
