@@ -21,11 +21,11 @@ colors:
 typography:
   mobile-body:
     fontFamily: '"Microsoft YaHei", "Supplier Noto SC", "PingFang SC", Arial, sans-serif'
-    fontSize: "16px"
-    lineHeight: 1.55
+    fontSize: "14px"
+    lineHeight: 1.6
   mobile-title:
     fontFamily: '"Microsoft YaHei", "Supplier Noto SC", "PingFang SC", Arial, sans-serif'
-    fontSize: "20px"
+    fontSize: "18px"
     fontWeight: 700
   mobile-label-compact:
     fontSize: "14px"
@@ -297,7 +297,7 @@ components:
 
 当前可操作原型 `#/mobile` 采用 `src/pages/mobile-refinement.css`，在历史复刻样式之后加载。本节优先于前文基于现状截图记录的普通移动端视觉尺寸；`#/mobile/shot/*` 保留历史截图的密度与排版。
 
-参照资产项目 `mmp` 的 `assetInventoryMobile.css` 与 `moveMobilePrototype.css`：页面底色 `#f4f7fa`、白色业务容器、轻边界、蓝色主操作；导航标题16px、分组标题16px、字段与辅助信息至少14px；输入文字与底部主操作16px。标题栏56px，Tab44px，主操作至少46px，卡片圆角 10–12px，正文侧边距 16px。
+参照资产项目 `mmp` 的 `assetInventoryMobile.css` 与 `moveMobilePrototype.css`：页面底色 `#f4f7fa`、白色业务容器、轻边界、蓝色主操作；导航标题18px、分组标题16px、字段与辅助信息至少14px；输入文字与底部主操作16px。标题栏56px，Tab44px，主操作至少46px，卡片圆角 10–12px，正文侧边距 16px。
 
 供应商列表将名称、状态与辅助信息分层：状态靠近名称，类型与注册方式放在次级摘要；评分在卡片字段列表最后一行显示；供应商查询保留邀请人，我的邀请不展示邀请人，邀请时间位于更新时间前；时间、证件号码、邮箱独占行。字段和可用操作仍由原有业务数据与状态控制。详情、银行、权限、评分、表单及选择弹层共用同一套尺寸，禁止在后续页面重新引入 18–20px 普通按钮和大号图标。
 
@@ -387,3 +387,5 @@ components:
 变更邀请人只对新邀请人标必填，其他只读文本不加红星，原/新邀请人之间不加分组灰条。新邀请人目录保留底部取消和确认，其余单选规则不变。权限新增与银行新增复用44px加号按钮，修改权限使用18px铅笔图标和44px热区。
 
 我的评分单个评分动作右对齐；已评分卡片不再额外展示“已评分”标签，缺少得分以空值标记展示。银行、权限等记录尾部操作及新增图标采用无框样式，保持44px热区；主提交按钮和输入框保留各自边界。邀请注册使用邮件加号图标，代注册使用表单铅笔图标；邀请注册短表单不插入灰色分组横条。
+
+两个移动端统一字号层级：页面及弹层标题18px，卡片与分组标题16px，字段标签、正文与次级操作14px，输入及主操作16px，辅助说明12–13px；正文行高1.6。验证码与统计数字按识别任务保留独立字号。普通路径统一适用，历史截图模式保留原密度。

@@ -392,3 +392,29 @@
 .mobile-page:not(.m-shot) .m-rating-score-action button:first-child { margin-left: auto; margin-right: 0; }
 .mobile-page:not(.m-shot) .m-record-actions > button { border: 0 !important; border-radius: 0; background: transparent; padding: 6px 9px !important; }
 .mobile-page .m-add-icon { border: 0 !important; background: transparent; }
+
+/* 管理平台与协同门户共享字号层级，历史截图模式保留原密度。 */
+:root { --m-font-page-title: 18px; --m-font-card-title: 16px; --m-font-body: 14px; --m-font-control: 16px; --m-font-caption: 13px; }
+.mobile-page:not(.m-shot) .m-header h1 { font-size: var(--m-font-page-title); line-height: 1.5; }
+.mobile-page:not(.m-shot) .m-detail-summary h2,
+.mobile-page:not(.m-shot) .m-section > h2,
+.mobile-page:not(.m-shot) .m-section-heading,
+.mobile-page:not(.m-shot) .m-bank-card > h3,
+.mobile-page:not(.m-shot) .m-record-heading h3,
+.mobile-page:not(.m-shot) .m-account-heading,
+.mobile-page:not(.m-shot) .m-workspace > h2 { font-size: var(--m-font-card-title); line-height: 1.6; }
+.mobile-page:not(.m-shot) .m-status-tabs button,
+.mobile-page:not(.m-shot) .m-workspace-menu button,
+.mobile-page:not(.m-shot) .m-bottom-nav button { font-size: var(--m-font-body); }
+.mobile-page:not(.m-shot) .m-portal-login-card h2,
+.m-unsaved-confirm h2 { font-size: var(--m-font-page-title); }
+.mobile-page:not(.m-shot) .m-bank-application > button { font-size: var(--m-font-control); }
+.m-overlay .m-picker-title strong,
+.m-overlay .m-dialog > h2,
+.mobile-page:not(.m-shot) .m-picker-title strong { font-size: var(--m-font-page-title); line-height: 1.5; }
+.m-overlay .m-dialog > p { font-size: var(--m-font-body); }
+.m-overlay .m-dialog-actions button,
+.m-overlay .m-picker-actions button { font-size: var(--m-font-control); }
+.mobile-page:not(.m-shot) .m-contact-summary h3,
+.mobile-page:not(.m-shot) .m-approval-heading,
+.mobile-page:not(.m-shot) .m-reference-card h3 { font-size: var(--m-font-card-title); line-height: 1.6; }
