@@ -605,3 +605,5 @@
 .m-supplier-account-registration .m-captcha-field { margin-bottom: 20px; }
 .m-supplier-account-registration .m-captcha-field .m-field-error { position: absolute; top: 100%; left: 0; right: 0; margin: 4px 0 0; }
 .m-supplier-account-registration .m-captcha-field:has(.m-field-error) { margin-bottom: 48px; }
+
+.m-supplier-account-registration .m-password-requirement { margin: -12px 0 20px; color: var(--m-text-secondary); font-size: 12px; line-height: 1.6; }

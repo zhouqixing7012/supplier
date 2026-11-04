@@ -286,10 +286,12 @@ npm run test:mobile
 |supplier-user-service/src/main/java/com/sohu/supplier/user/server/api/UserApi.java · checkUserCode/registerUserAccount|账号验重入口，注册时调用图形验证码校验|
 |supplier-user-service/src/main/java/com/sohu/supplier/user/server/biz/UserBiz.java · checkRegLink/registerUserAccount|供应商类型、名称等由邀请参数取得；注册后供应商状态为注册中，并返回令牌|
 
-该包主要是Java后端及构建报告，没有PC业务前端。以上证据不能证明PC前端没有额外密码强度限制；本轮不添加未经证实的限制。确认密码一致性按用户截图补齐。
+该包主要是Java后端及构建报告，没有PC业务前端。以上源码未给出PC前端密码强度限制。后续用户已明确注册密码规则，正式口径见mobile-prd.md“协同门户新供应商注册”；确认密码一致性按用户截图补齐。
 
 原型仍从站点首页独立“新供应商注册（移动端）”进入，先账号注册再进入原有资料步骤；门户登录页不加注册入口。账号页复用城市背景、白色表单卡、搜狐橙按钮和公共Field，支持字段错误、密码显隐、验证码换图与未保存保护。
 
 邀请信息取已有邀请中样本；账号验重对照当前会话账号。成功后同步已有供应商记录为注册中，最终资料提交同步为审批中，结果展示账号。会话仅保存账号元数据，不保存密码，不创建真实账号或令牌。刷新或切换到其他模块后，前端演示会话可能重置。
 
 验证：浏览器10通过、0失败；核对邀请信息、必填、两次密码、验证码错误/换图、离开/继续、账号提交至资料、草稿续填及注册中状态同步。账号重复分支、证照实际上传、完整企业资料提交、真机及窄屏本轮未实测。
+
+注册密码校验已按用户确认补齐，校验函数位于mobile-registration-password.js。10项边界测试及2项浏览器检查，共12通过、0失败；真机及窄屏未实测。
