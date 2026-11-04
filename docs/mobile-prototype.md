@@ -274,4 +274,22 @@ npm run test:mobile
 
 管理平台与门户共用Field：空值与有值均显示白底细边框，选择、日期和文本统一44px最小高度；只读无框，空值占位为“—”。聚焦蓝框及轻外圈，错误红框并保留字段原因；编辑容器、验证码同行组合只画一层边框。规范见DESIGN.md“可编辑与只读控件识别”。浏览器检查12通过、0失败；完整业务提交、真机及窄屏本轮未重测。
 
-新供应商注册待补账号页：用户确认自行填写账号，账号注册在完整资料之前；截图含供应商类型、名称、账号、密码、确认密码、验证码。账号格式、密码复杂度规则待提供，本轮未将该环节标为完成。
+新供应商注册账号页已补，规则与源码核对记录见下文。
+
+## 新供应商账号注册与源码核对（2026-11-04）
+
+原代码包：Google Drive文件 `1bv0kCdZ_PxmyAP5dWL3yYRCfrSNw18iE`，文件名《供应商系统现代码.zip》。源码来源保留原包，不提交日志、配置、凭据或整个后端副本到原型仓库。
+
+|源码位置（包内）|已核实内容|
+|---|---|
+|supplier-user-api/src/main/java/com/sohu/supplier/user/api/dto/UserRegisterDto.java · isValid|params、userCode、password、verificationCode非空；该DTO未校验长度或复杂度|
+|supplier-user-service/src/main/java/com/sohu/supplier/user/server/api/UserApi.java · checkUserCode/registerUserAccount|账号验重入口，注册时调用图形验证码校验|
+|supplier-user-service/src/main/java/com/sohu/supplier/user/server/biz/UserBiz.java · checkRegLink/registerUserAccount|供应商类型、名称等由邀请参数取得；注册后供应商状态为注册中，并返回令牌|
+
+该包主要是Java后端及构建报告，没有PC业务前端。以上证据不能证明PC前端没有额外密码强度限制；本轮不添加未经证实的限制。确认密码一致性按用户截图补齐。
+
+原型仍从站点首页独立“新供应商注册（移动端）”进入，先账号注册再进入原有资料步骤；门户登录页不加注册入口。账号页复用城市背景、白色表单卡、搜狐橙按钮和公共Field，支持字段错误、密码显隐、验证码换图与未保存保护。
+
+邀请信息取已有邀请中样本；账号验重对照当前会话账号。成功后同步已有供应商记录为注册中，最终资料提交同步为审批中，结果展示账号。会话仅保存账号元数据，不保存密码，不创建真实账号或令牌。刷新或切换到其他模块后，前端演示会话可能重置。
+
+验证：浏览器10通过、0失败；核对邀请信息、必填、两次密码、验证码错误/换图、离开/继续、账号提交至资料、草稿续填及注册中状态同步。账号重复分支、证照实际上传、完整企业资料提交、真机及窄屏本轮未实测。

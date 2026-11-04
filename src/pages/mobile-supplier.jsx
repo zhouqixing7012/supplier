@@ -10,6 +10,7 @@ import { InteractionProvider, SwipeArea, useInteraction, useDirtyForm, useBackLa
 import { SupplierExport, exportSupplierRows } from './mobile-export.jsx';
 import { canChangeSupplier, canRateSupplier, canReinviteSupplier, canDeleteSupplier, deleteStatuses } from './mobile-rules.js';
 import { PortalWorkspace } from './mobile-portal.jsx';
+import { SupplierAccountRegistration } from './mobile-account-registration.jsx';
 import { ChangeComparison } from './mobile-changes.jsx';
 import './mobile-supplier.css';
 import './mobile-refinement.css';
@@ -151,13 +152,16 @@ function MobileSurface({ scene, shot, ratings, setRatings, activeRating, setActi
   const editingAll = scene === 'register-edit-all';
   const portalRegistration = scene === 'register-supplier';
   const registrationDraft = portalRegistration ? views.portalRegistrationDraft : null;
+  const [accountRegistered, setAccountRegistered] = useState(Boolean(views.portalRegistrationAccount));
+  const registrationInvitation = useRef(views.portalRegistrationInvitation || suppliers.find(s => s.status === '邀请中')).current;
+  if (portalRegistration && registrationInvitation && !views.portalRegistrationInvitation) views.portalRegistrationInvitation = clone(registrationInvitation);
   const isRegistration = scene.startsWith('register') || ['expiry', 'address', 'region'].includes(scene);
   const [returnPreview, setReturnPreview] = useState(false);
   const [step, setStep] = useState(registrationDraft?.step ?? (scene.includes('contacts') ? 1 : scene.includes('banks') ? 2 : 0));
   const stepScroll = useRef({});
   const changeStep = next => { stepScroll.current[step] = window.scrollY; runMotion(() => setStep(next), next < step ? 'back' : 'forward'); };
   useLayoutEffect(() => { if (isRegistration) window.scrollTo(0, stepScroll.current[step] || 0); }, [step, isRegistration]);
-  const [basic, setBasic] = useState(() => registrationDraft ? clone(registrationDraft.basic) : scene === 'expiry' ? { ...clone(filledBasic), supplierName: 'Gys', creditCode: 'qqq', establishedAt: '2026-10-14', licenseUntil: '2036-12-31', legalRepresentative: '', companyPhone: '', proof: '' } : shot ? clone(filledBasic) : editingRegistration ? { ...(supplier.basic || {}), type: supplier.type, supplierName: supplier.name, registerEmail: supplier.email, creditCode: supplier.code } : { type: supplierTypes[0], supplierName: '', registerEmail: '' });
+  const [basic, setBasic] = useState(() => registrationDraft ? clone(registrationDraft.basic) : portalRegistration && registrationInvitation ? { type: registrationInvitation.type, supplierName: registrationInvitation.name, registerEmail: registrationInvitation.email || '' } : scene === 'expiry' ? { ...clone(filledBasic), supplierName: 'Gys', creditCode: 'qqq', establishedAt: '2026-10-14', licenseUntil: '2036-12-31', legalRepresentative: '', companyPhone: '', proof: '' } : shot ? clone(filledBasic) : editingRegistration ? { ...(supplier.basic || {}), type: supplier.type, supplierName: supplier.name, registerEmail: supplier.email, creditCode: supplier.code } : { type: supplierTypes[0], supplierName: '', registerEmail: '' });
   const [contacts, setContacts] = useState(() => registrationDraft ? clone(registrationDraft.contacts) : scene === 'register-contacts' ? [{ id: 'c1', name: '', phone: '', email: '' }, { id: 'c2', name: '', phone: '', email: '' }] : editingRegistration ? clone(supplier.contacts || []) : []);
   const [registerBanks, setRegisterBanks] = useState(() => registrationDraft ? clone(registrationDraft.banks) : scene === 'register-banks' ? [{ ...clone(exampleBank), accountType: '一般账户', name: '1', number: '1', country: '', province: '', city: '', proof: '开户证明.png' }] : editingRegistration ? clone(supplier.banks) : []);
   const [addressOpen, setAddressOpen] = useState(false);
@@ -173,7 +177,7 @@ function MobileSurface({ scene, shot, ratings, setRatings, activeRating, setActi
   const [ratingQuery, setRatingQuery] = useState(false);
   const [ratingRange, setRatingRange] = useState(['', '']);
   const portalGuard = useDirtyForm({ portal, newPassword, passwordScreen }, scene.startsWith('portal'));
-  const registrationGuard = useDirtyForm({ basic, contacts, registerBanks }, isRegistration);
+  const registrationGuard = useDirtyForm({ basic, contacts, registerBanks }, isRegistration && (!portalRegistration || accountRegistered));
   const bankGuard = useDirtyForm(banks, ['bank', 'bank-tip'].includes(scene));
   const bankFormGuard = useDirtyForm(bankForm, showBankForm || scene.startsWith('bank-form'));
   const permissionsGuard = useDirtyForm(permissions, scene.startsWith('permissions'));
@@ -300,7 +304,10 @@ function MobileSurface({ scene, shot, ratings, setRatings, activeRating, setActi
     if (saving) return; setSaving(true);
     const patch = { name: basic.supplierName, type: basic.type, code: basic.creditCode || '', email: basic.registerEmail || '', contact: contacts[0]?.name || '', phone: contacts[0]?.phone || '', banks: clone(registerBanks), basic: clone(basic), contacts: clone(contacts) };
     if (portalRegistration) {
-      views.portalRegistrationSubmitted = { ...patch, status: '审批中', submittedAt: now() };
+      views.portalRegistrationSubmitted = { ...patch, account: views.portalRegistrationAccount?.account, status: '审批中', submittedAt: now() };
+      setSuppliers(list => list.map(s => s.id === registrationInvitation?.id ? { ...s, ...patch, account: views.portalRegistrationAccount?.account, status: '审批中', updated: now() } : s));
+      views.portalRegistrationAccount = null;
+      views.portalRegistrationInvitation = null;
       views.portalRegistrationDraft = null;
       registrationGuard.accept();
       notify('');
@@ -374,10 +381,17 @@ function MobileSurface({ scene, shot, ratings, setRatings, activeRating, setActi
     </>}
     {peoplePicker && <div className="m-fullscreen-panel"><Header title="选择新邀请人" onBack={() => setPeoplePicker(false)} /><ReferenceList kind="people" mode="confirm" selected={newInviter} onCancel={() => setPeoplePicker(false)} onConfirm={v => { setNewInviter(v); setPeoplePicker(false); }} /></div>}
     {['invite', 'invite-again'].includes(scene) && <InviteForm initial={scene === 'invite-again' ? { type: supplier.type, name: supplier.name, contact: supplier.contact, email: supplier.email, phone: supplier.phone } : undefined} notify={notify} onCancel={() => go(scene === 'invite-again' ? listReturn.current : 'query')} onSave={data => { if (scene === 'invite-again' && !canReinviteSupplier(supplier)) return notify('当前状态不能重新邀请'); if (data.type !== supplierTypes[1] && suppliers.some(s => s.name === data.name && (scene !== 'invite-again' || s.id !== supplier.id))) return notify('供应商名称已存在'); const invitation = { ...data, status: '邀请中', mode: '邀请注册', inviter: '陈才慧', date: now(), updated: now(), score: '未评分', code: '', banks: [], permissions: [] }; if (scene === 'invite-again') setSuppliers(suppliers.map(s => s.id === supplier.id ? { ...s, ...invitation, date: s.date, basic: undefined, contacts: [] } : s)); else setSuppliers([{ ...invitation, id: createSessionId() }, ...suppliers]); notify(scene === 'invite-again' ? '已重新邀请' : '邀请已提交'); go(scene === 'invite-again' ? listReturn.current : 'mine'); }} />}
-    {isRegistration && !['address', 'region'].includes(scene) && <>
+    {portalRegistration && !accountRegistered && (registrationInvitation ? <SupplierAccountRegistration invitation={registrationInvitation} accounts={[...suppliers.map(s => s.account).filter(Boolean), ...(views.portalRegisteredAccounts || [])]} onCancel={() => go('portal')} onComplete={account => {
+      views.portalRegistrationAccount = account;
+      views.portalRegisteredAccounts = [...(views.portalRegisteredAccounts || []), account.account];
+      select(registrationInvitation.id);
+      setSuppliers(list => list.map(s => s.id === registrationInvitation.id ? { ...s, account: account.account, status: '注册中', updated: now() } : s));
+      runMotion(() => { setAccountRegistered(true); window.scrollTo(0, 0); }, 'forward');
+    }} /> : <Empty text="暂无可注册的邀请信息" />)}
+    {isRegistration && (!portalRegistration || accountRegistered) && !['address', 'region'].includes(scene) && <>
       {editingRegistration && <div className="m-form-heading">{editingAll ? '修改全部信息' : '修改草稿'}</div>}
       <RegistrationSteps personal={basic.type === supplierTypes[1]} step={step} />
-      {step === 0 && <BasicFields data={basic} setData={setBasic} shot={!!shot} onAddress={() => setAddressOpen(true)} initialDate={scene === 'expiry'} />}
+      {step === 0 && <BasicFields data={basic} setData={setBasic} identityReadOnly={portalRegistration} shot={!!shot} onAddress={() => setAddressOpen(true)} initialDate={scene === 'expiry'} />}
       {step === 1 && <ContactFields contacts={contacts} setContacts={setContacts} />}
       {step === 2 && <div className="m-register-banks">{registerBanks.map((b, i) => <BankCard key={b.id} bank={b} onPreview={() => preview(b.proof)} onEdit={() => { setEditingBank(i); setRegisterBankForm(clone(b)); setRegisterBankPicker(true); }} onDelete={() => setConfirm({ type: 'delete-register-bank', index: i, text: '确认删除银行信息' + (i + 1) + '？' })} />)}<button aria-label="添加银行" title="添加银行" className="m-dashed-add m-add-icon" onClick={() => { setEditingBank(-1); setRegisterBankForm(blankBank(basic.supplierName)); setRegisterBankPicker(true); }}><Plus aria-hidden="true" /></button></div>}
       {step === 3 && <div className="m-register-preview">{editingAll && <ChangeComparison before={supplier} after={{ basic, name: basic.supplierName, email: basic.registerEmail, type: basic.type, contacts, banks: registerBanks }} />}<button className="m-preview-edit" onClick={() => { setReturnPreview(true); changeStep(0); }}>修改基本信息</button><Section title="基本信息">{fieldsFor(basic.type).map(([key, label]) => <Row key={key} label={label}>{basic[key]}</Row>)}<Row label="供应商注册邮箱">{basic.registerEmail}</Row>{basic.proof && <Row label="证照附件"><button onClick={() => preview(basic.proof)}>{attachmentName(basic.proof)}</button></Row>}</Section>{basic.type !== supplierTypes[1] && <><button className="m-preview-edit" onClick={() => { setReturnPreview(true); changeStep(1); }}>修改联系人</button><Section title="联系人信息">{contacts.map(c => <div key={c.id}>{[['name', '姓名'], ['phone', '电话'], ['email', '邮箱'], ['department', '部门'], ['job', '职位'], ['wechat', '微信'], ['note', '备注']].map(([key, label]) => <Row key={key} label={label}>{c[key]}</Row>)}</div>)}</Section></>}<button className="m-preview-edit" onClick={() => { setReturnPreview(true); changeStep(2); }}>修改银行信息</button><Section title="银行信息">{registerBanks.map(b => <BankCard key={b.id} bank={b} onPreview={() => preview(b.proof)} />)}</Section></div>}
@@ -392,7 +406,7 @@ function MobileSurface({ scene, shot, ratings, setRatings, activeRating, setActi
     {scene === 'rating-ops' && <RatingOperations notify={notify} />}
     {scene === 'bank-application' && <div className="m-bank-notice-stage"><BankApplication onApply={() => { views.applicationResult = null; go('bank-application-form'); }} />{views.applicationResult && <button className="m-preview-edit" onClick={() => go('bank-application-form')}>查看本次申请</button>}</div>}
     {['bank-application-form', 'application-empty'].includes(scene) && <BankApplicationForm savedApplication={views.applicationResult} onComplete={data => { views.applicationResult = data; }} notify={notify} onCancel={() => go('bank-application')} />}
-    {scene === 'supplier-registration-result' && <section className="m-registration-result" aria-label="注册结果">{views.portalRegistrationSubmitted ? <><div className="m-registration-success"><Check aria-hidden="true" /><h2>注册已提交</h2><p>供应商资料已提交，等待审批</p></div><Section title="注册信息"><Row label="供应商名称">{views.portalRegistrationSubmitted.name}</Row><Row label="供应商类型">{views.portalRegistrationSubmitted.type}</Row><Row label="注册邮箱">{views.portalRegistrationSubmitted.email}</Row><Row label="状态">{views.portalRegistrationSubmitted.status}</Row><Row label="提交时间">{views.portalRegistrationSubmitted.submittedAt}</Row></Section></> : <Empty text="暂无注册提交记录" />}<Actions items={[{ label: '返回协同门户', onClick: () => go('portal') }]} /></section>}
+    {scene === 'supplier-registration-result' && <section className="m-registration-result" aria-label="注册结果">{views.portalRegistrationSubmitted ? <><div className="m-registration-success"><Check aria-hidden="true" /><h2>注册已提交</h2><p>供应商资料已提交，等待审批</p></div><Section title="注册信息"><Row label="供应商名称">{views.portalRegistrationSubmitted.name}</Row><Row label="供应商类型">{views.portalRegistrationSubmitted.type}</Row><Row label="供应商账号">{views.portalRegistrationSubmitted.account}</Row><Row label="注册邮箱">{views.portalRegistrationSubmitted.email}</Row><Row label="状态">{views.portalRegistrationSubmitted.status}</Row><Row label="提交时间">{views.portalRegistrationSubmitted.submittedAt}</Row></Section></> : <Empty text="暂无注册提交记录" />}<Actions items={[{ label: '返回协同门户', onClick: () => go('portal') }]} /></section>}
     {scene.startsWith('portal') && <div className="m-portal-login"><div className="m-portal-brand"><span className="m-portal-brand-mark">搜狐</span><span>供应商协同门户</span></div><section className="m-portal-login-card" aria-labelledby="portal-login-heading"><h2 id="portal-login-heading">{passwordScreen ? '修改密码' : portalEmail ? '验证注册邮箱' : '用户登录'}</h2><p className="m-portal-intro">{passwordScreen ? '验证注册邮箱后，设置新的登录密码' : portalEmail ? '请使用注册邮箱完成身份验证' : '使用供应商账号登录协同门户'}</p><div className="m-portal-form">
       {!passwordScreen && !portalEmail && <><Field label="账号" required value={portal.account} onChange={account => setPortal({ ...portal, account })} placeholder="请输入登录账号" /><Field label="密码" required type="password" value={portal.password} onChange={password => setPortal({ ...portal, password })} placeholder="请输入登录密码" /><div className="m-captcha-field"><Field label="验证码" required value={portal.captcha} onChange={v => setPortal({ ...portal, captcha: v })} placeholder="请输入验证码" /><span className="m-captcha">{captcha}</span><button onClick={() => { setCaptcha(captcha === 'cbvs' ? '39qq' : 'cbvs'); setPortal({ ...portal, captcha: '' }); }}>换一张</button></div></>}
       {(portalEmail || passwordScreen) && <><Field label="注册邮箱" required type="email" value={portal.email} onChange={email => setPortal({ ...portal, email })} /><button className="m-send-code" disabled={countdown > 0} onClick={() => { if (!validEmail(portal.email)) return notify('请输入正确的注册邮箱'); setCountdown(60); notify('演示验证码：123456；未发送真实邮件'); }}>{countdown ? countdown + ' s 后可重发' : '发送验证码'}</button><Field label="邮箱验证码" required value={portal.code} onChange={code => setPortal({ ...portal, code })} /></>}

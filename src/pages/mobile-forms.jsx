@@ -84,17 +84,17 @@ export const fieldsFor = type => type === supplierTypes[1] ? personalFields : ty
 
 export const filledBasic = { type: supplierTypes[0], proof: '营业执照.jpg', supplierName: '北京初然文化传媒有限公司483920', creditCode: '73652184MACA1H2A43', establishedAt: '2023-03-07', licenseUntil: '2053-03-06', legalRepresentative: '王嵩涵', companyPhone: '010-52867111', companyType: '有限责任公司', industry: '文化、体育、娱乐业', capital: '100', currency: '人民币', country: '国内', address: '', invoiceAddress: '', website: '', taxpayer: '', businessScope: '', cooperation: '', remark: '' };
 
-export function BasicFields({ data, setData, shot = false, onAddress, initialDate = false }) {
+export function BasicFields({ data, setData, shot = false, onAddress, initialDate = false, identityReadOnly = false }) {
   const [nextType, setNextType] = useState('');
   const [picker, setPicker] = useState(initialDate ? { key: 'licenseUntil', title: '证件有效期至' } : null);
   const change = (key, value) => setData({ ...data, [key]: value });
   const renderField = ([key, label, required, kind]) => {
-      const field = <Field key={key} label={label} required={required} value={data[key] || ''} onChange={v => change(key, v)} options={Array.isArray(kind) ? kind : undefined} searchable={key === 'industry'} type={kind === 'date' ? 'date' : kind === 'email' ? 'email' : 'text'} multiline={kind === 'textarea'} maxLength={kind === 'textarea' ? 500 : undefined} onPick={kind === 'date' ? () => setPicker({ key, title: label }) : kind === 'address' ? onAddress : undefined} />;
+      const field = <Field key={key} label={label} required={required && !(identityReadOnly && key === 'supplierName')} readOnly={identityReadOnly && key === 'supplierName'} value={data[key] || ''} onChange={identityReadOnly && key === 'supplierName' ? undefined : v => change(key, v)} options={Array.isArray(kind) ? kind : undefined} searchable={key === 'industry'} type={kind === 'date' ? 'date' : kind === 'email' ? 'email' : 'text'} multiline={kind === 'textarea'} maxLength={kind === 'textarea' ? 500 : undefined} onPick={kind === 'date' ? () => setPicker({ key, title: label }) : kind === 'address' ? onAddress : undefined} />;
       return key === 'supplierName' && !shot ? [field, <Field key="registerEmail" label="供应商注册邮箱" required type="email" value={data.registerEmail || ''} help="用于供应商登录协同门户及修改密码时接收验证码" onChange={v => change('registerEmail', v)} />] : [field];
   };
   const proof = <>{[supplierTypes[0], supplierTypes[3]].includes(data.type) && <UploadField label={data.type === supplierTypes[0] ? '营业执照' : '证书'} required value={data.proof} onChange={v => change('proof', v)} help="上传证照附件。" />}</>;
   return <>
-    <Field label="供应商类型" required options={supplierTypes} value={data.type} onChange={type => { if (type === data.type) return; if (Object.entries(data).some(([key, value]) => !['type', 'supplierName', 'registerEmail'].includes(key) && value)) setNextType(type); else setData({ type, supplierName: data.supplierName || '', registerEmail: data.registerEmail || '' }); }} />
+    <Field label="供应商类型" required={!identityReadOnly} readOnly={identityReadOnly} options={identityReadOnly ? undefined : supplierTypes} value={data.type} onChange={type => { if (type === data.type) return; if (Object.entries(data).some(([key, value]) => !['type', 'supplierName', 'registerEmail'].includes(key) && value)) setNextType(type); else setData({ type, supplierName: data.supplierName || '', registerEmail: data.registerEmail || '' }); }} />
     {proof}{fieldsFor(data.type).flatMap(renderField)}
     {nextType && <Confirm text="切换供应商类型会清除不适用的基本信息，是否继续？" onCancel={() => setNextType('')} onConfirm={() => { setData({ type: nextType, supplierName: data.supplierName || '', registerEmail: data.registerEmail || '' }); setNextType(''); }} />}
     {picker && <DateSheet title={picker.title} value={data[picker.key]} onChange={v => change(picker.key, v)} onClose={() => setPicker(null)} allowLong={picker.key === 'licenseUntil'} />}
