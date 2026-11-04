@@ -209,8 +209,8 @@ export function OptionSheet({ title, options = [], value, onChange, onClose: clo
   return <Overlay label={title} onClose={onClose} sheet><div className={'m-option-picker ' + (searchable ? 'is-searchable' : 'is-simple')}><div className="m-picker-title"><strong>{title}</strong></div>{searchable && <SearchBox value={query} onChange={setQuery} placeholder={'搜索' + title} />}<div className="m-sheet-options">{matches.length ? matches.map(x => <button type="button" aria-pressed={x === selected} className={x === selected ? 'selected' : ''} key={x} onClick={() => { if (mode === 'immediate') { choose(x); } else setSelected(x); }}><span>{x}</span>{searchable && <span className="m-option-radio" aria-hidden="true">{x === selected && <Check />}</span>}</button>) : <Empty search={!!query} text={query ? '暂无匹配选项' : '暂无可用选项'} />}</div><div className="m-picker-actions">{clearable && <button type="button" onClick={clear}>清空选择</button>}<button type="button" onClick={onClose}>取消</button>{mode === 'confirm' && <button type="button" className="primary" onClick={() => choose(selected)}>确认</button>}</div></div></Overlay>;
 }
 
-export function Header({ onBack, title = '供应商管理平台', close }) {
-  return <header className="m-header"><button onClick={onBack} aria-label="返回"><ChevronLeft /></button><h1>{title}</h1>{close && <button onClick={close} aria-label="关闭"><X /></button>}</header>;
+export function Header({ onBack, title = '供应商管理平台', close, hideBack = false }) {
+  return <header className="m-header">{!hideBack && <button onClick={onBack} aria-label="返回"><ChevronLeft /></button>}<h1>{title}</h1>{close && <button onClick={close} aria-label="关闭"><X /></button>}</header>;
 }
 
 
