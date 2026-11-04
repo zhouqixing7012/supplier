@@ -511,3 +511,42 @@
 .m-file-select { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; padding: 0 16px; background: var(--m-info-surface); border-radius: 8px; color: var(--m-action); font-size: 14px; }
 .m-file-select svg { width: 18px; height: 18px; }
 .m-file-hint { margin: 8px 0 0 12px; font-size: 12px; color: var(--m-text-secondary); }
+
+
+/* 门户走查：统一业务卡片密度、对象标题与任务操作层级。 */
+.m-portal-home-group h2 { padding-block: 10px 6px; }
+.m-portal-entry-grid { padding-bottom: 10px; }
+.mobile-page .m-portal-entry-grid button { min-height: 88px; padding-top: 4px; gap: 6px; }
+.mobile-page:not(.m-shot) .m-portal-task-card .m-record-heading { padding: 0 0 8px; }
+.m-portal-record-number { margin: 0 0 8px; color: var(--m-text-secondary); font-size: 14px; overflow-wrap: anywhere; }
+.m-portal-object-summary { margin: 12px 16px; padding: 14px 16px 0; background: var(--m-surface); border: 1px solid var(--m-border); border-radius: 12px; }
+.mobile-page:not(.m-shot) .m-portal-object-summary .m-record-heading { padding: 0 0 8px; border: 0; }
+.m-portal-object-summary .m-input-note { margin: 0 0 12px; padding: 0; }
+.m-portal-object-summary > .m-field { border-top: 1px solid var(--m-border-subtle); }
+.mobile-page:not(.m-shot) .m-workspace .m-bank-card { margin: 12px 16px; }
+.mobile-page:not(.m-shot) .m-workspace .m-card-body .m-row { min-height: 48px; padding-block: 10px; box-sizing: border-box; }
+.mobile-page:not(.m-shot) .m-workspace .m-row > .m-label { flex: 0 0 128px; width: 128px; }
+.mobile-page:not(.m-shot) .m-workspace .m-row > .m-value { min-width: 0; flex: 1; overflow-wrap: anywhere; }
+.mobile-page .m-bank-proof-file { display: inline-flex; gap: 8px; align-items: center; min-height: 44px; max-width: 100%; text-align: left; font-size: 14px; color: var(--m-action); }
+.m-bank-proof-file svg { width: 18px; height: 18px; flex-shrink: 0; }
+.m-bank-proof-file span { min-width: 0; overflow-wrap: anywhere; }
+.m-account-logout { margin: 16px; }
+.mobile-page .m-account-logout button { width: 100%; min-height: 46px; background: var(--m-surface); border: 1px solid var(--m-border); border-radius: 8px; color: var(--m-text); font-size: 14px; }
+.mobile-page .m-control-trailing { display: flex; align-items: center; gap: 6px; }
+.mobile-page .m-control-trailing input { flex: 1; min-width: 0; width: 0; padding-right: 0 !important; }
+.mobile-page .m-control-trailing .m-field-clear { display: none; }
+.mobile-page .m-account-code-button { flex-shrink: 0; min-height: 44px; padding: 0 4px; color: var(--m-action); font-size: 14px; white-space: nowrap; }
+.mobile-page .m-account-code-button:disabled { color: var(--m-text-secondary); }
+.mobile-page[data-scene^="workspace-account-"] .m-field-inline > label { width: 112px; }
+@media (max-width: 389px) { .mobile-page[data-scene^="workspace-account-"] .m-field-inline > label { width: 96px; } }
+.m-file-upload-field { position: relative; padding: 16px 0; border-bottom: 1px solid var(--m-border-subtle); }
+.m-file-upload-label { display: block; margin: 0 0 12px; padding-left: 12px; color: var(--m-text-secondary); font-size: 14px; }
+.m-file-upload-entry { display: flex; align-items: center; gap: 8px; padding: 8px 12px; margin-bottom: 12px; border: 1px solid var(--m-border); border-radius: 8px; }
+.m-file-upload-entry > svg { width: 24px; height: 24px; flex-shrink: 0; color: var(--m-action); }
+.mobile-page .m-file-upload-entry .m-file-name { flex: 1; min-width: 0; min-height: 44px; text-align: left; overflow-wrap: anywhere; font-size: 14px; color: var(--m-text); }
+.mobile-page .m-file-remove { display: grid; place-items: center; flex: 0 0 44px; width: 44px; height: 44px; border: 0; background: transparent; color: var(--m-text-secondary); }
+.m-file-remove svg { width: 14px; height: 14px; }
+
+/* 百分比以布局视口为准，避免100vw包含滚动条造成居中偏移。 */
+.mobile-page:not(.m-shot) .m-fullscreen-panel,
+.mobile-page:not(.m-shot) .m-fullscreen-panel .m-actions { left: max(0px, calc((100% - 430px) / 2)); transform: none; width: min(430px, 100%); }

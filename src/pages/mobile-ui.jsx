@@ -1,5 +1,5 @@
 import React, { useEffect, useId, useRef, useState } from 'react';
-import { Camera, Check, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, HelpCircle, Eye, EyeOff, X } from 'lucide-react';
+import { Camera, FileText, Paperclip, Check, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, HelpCircle, Eye, EyeOff, X } from 'lucide-react';
 import { useBackLayer, rememberAttachment, attachmentFiles, attachmentName } from './mobile-interaction.jsx';
 
 import { useOverlayExit, runMotion } from './mobile-motion.jsx';
@@ -41,7 +41,7 @@ export function AppliedFilters({ filters, query, count, onEdit, onClear }) {
   return <section className="m-applied-filters" aria-label="当前查询条件"><div className="m-filter-summary">{entries.length > 0 && <button onClick={onEdit}>已筛选 · {entries.length}项</button>}<span className="m-result-count" role="status">共 {count} 家供应商</span>{entries.length > 0 && <button onClick={onClear}>清除筛选</button>}</div><dl className="m-applied-conditions">{query && <div><dt>关键词</dt><dd>{query}</dd></div>}{entries.map(([key, value]) => <div key={key}><dt>{labels[key]}</dt><dd>{value}</dd></div>)}</dl></section>;
 }
 
-export function Field({ label, value = '', onChange, required = false, options, onPick, type = 'text', placeholder, maxLength, help, readOnly = false, multiline = false, error, inputMode, autoComplete, selectionMode = 'immediate', searchable = false, layout, allowClearDate = false }) {
+export function Field({ label, value = '', onChange, required = false, options, onPick, type = 'text', placeholder, maxLength, help, readOnly = false, multiline = false, error, inputMode, autoComplete, selectionMode = 'immediate', searchable = false, layout, allowClearDate = false, trailing }) {
   const id = useId();
   const [validation, setValidation] = useState('');
   useEffect(() => {
@@ -59,9 +59,9 @@ export function Field({ label, value = '', onChange, required = false, options, 
   const attrs = { 'aria-invalid': !!error, 'aria-describedby': error ? id + '-error' : undefined, inputMode: inputMode || (numeric ? 'numeric' : /电话|手机/.test(label) ? 'tel' : /邮箱/.test(label) ? 'email' : undefined), autoComplete: autoComplete || (type === 'password' ? (/新/.test(label) ? 'new-password' : 'current-password') : /邮箱/.test(label) ? 'email' : /邮箱验证码/.test(label) ? 'one-time-code' : /账号/.test(label) ? 'username' : /电话|手机/.test(label) ? 'tel' : 'off'), enterKeyHint: 'next' };
   return <><div data-field-label={label} className={`m-field ${layout === 'inline' ? 'm-field-force-inline' : ''} ${multiline ? 'm-field-stacked' : 'm-field-inline'} ${error ? 'has-error' : ''} ${multiline ? 'm-field-block' : ''}`}>
     <label htmlFor={id}>{required && <em>*</em>}<span className="m-field-name">{label}</span>{help && <button type="button" className="m-help" aria-label={label + "填写说明"} onClick={() => setHelpOpen(true)}><HelpCircle /></button>}</label>
-    <div className="m-field-control">
+    <div className={"m-field-control" + (trailing ? " m-control-trailing" : "")}>
       {onPick ? <button aria-invalid={!!error} aria-describedby={error ? id + "-error" : undefined} id={id} aria-label={label} type="button" className="m-select-field" onClick={onPick}><span className={!value ? 'm-placeholder' : ''}>{value || placeholder || `请选择${label}`}</span><ChevronRight /></button> : options ? <button aria-invalid={!!error} aria-describedby={error ? id + "-error" : undefined} id={id} role="combobox" aria-label={label} aria-expanded={choosing} aria-haspopup="dialog" type="button" className="m-select-field" onClick={() => setChoosing(true)}><span className={!value ? 'm-placeholder' : ''}>{value || placeholder || `请选择${label}`}</span><ChevronDown /></button> : type === 'date' ? <button aria-invalid={!!error} aria-describedby={error ? id + "-error" : undefined} id={id} aria-label={label} className="m-select-field" type="button" onClick={() => setDateOpen(true)}><span className={!value ? 'm-placeholder' : ''}>{value || '请选择日期'}</span><ChevronDown /></button> : multiline ? <textarea {...attrs} id={id} aria-label={label} value={value} onChange={e => onChange(e.target.value)} maxLength={maxLength} placeholder={placeholder || `请输入${label}`} required={required} readOnly={readOnly} /> : <input {...attrs} id={id} aria-label={label} value={value} onChange={e => onChange?.(e.target.value)} type={type === 'password' && visiblePassword ? 'text' : type} maxLength={maxLength} placeholder={readOnly ? '' : placeholder || `请输入${label}`} required={required} readOnly={readOnly} />}
-      {onChange && value && !readOnly && !options && !onPick && type !== 'date' && type !== 'password' && <button type="button" className="m-field-clear" aria-label={'清空' + label} onClick={() => { onChange(''); document.getElementById(id)?.focus(); }}><X /></button>}{type === 'password' && <button type="button" className="m-password-toggle" aria-label={visiblePassword ? "隐藏密码" : "显示密码"} onClick={() => setVisiblePassword(!visiblePassword)}>{visiblePassword ? <EyeOff aria-hidden="true" /> : <Eye aria-hidden="true" />}</button>}{maxLength && !options && !onPick && <small className="m-counter">{value.length}/{maxLength}</small>}
+      {trailing}{onChange && value && !readOnly && !options && !onPick && type !== 'date' && type !== 'password' && <button type="button" className="m-field-clear" aria-label={'清空' + label} onClick={() => { onChange(''); document.getElementById(id)?.focus(); }}><X /></button>}{type === 'password' && <button type="button" className="m-password-toggle" aria-label={visiblePassword ? "隐藏密码" : "显示密码"} onClick={() => setVisiblePassword(!visiblePassword)}>{visiblePassword ? <EyeOff aria-hidden="true" /> : <Eye aria-hidden="true" />}</button>}{maxLength && !options && !onPick && <small className="m-counter">{value.length}/{maxLength}</small>}
     </div>{error && <p id={id + "-error"} className="m-field-error" role="alert">{error}</p>}
   </div>{helpOpen && <Overlay label={label + "填写说明"} onClose={() => setHelpOpen(false)}><h2>{label}</h2><p>{help}</p><div className="m-dialog-actions"><button onClick={() => setHelpOpen(false)}>知道了</button></div></Overlay>}{choosing && <OptionSheet title={label} options={options} value={value} onChange={onChange} onClose={() => setChoosing(false)} mode={selectionMode} searchable={searchable} />}{dateOpen && <DateSheet allowClear={allowClearDate} title={label} value={value} onChange={onChange} onClose={() => setDateOpen(false)} />}</>;
 }
@@ -84,13 +84,26 @@ export function UploadField({ label, required, value, onChange, help }) {
   </div>{error && <p id={id + "-error"} className="m-field-error" role="alert">{error}</p>}{helpOpen && <Overlay label={label + "填写说明"} onClose={() => setHelpOpen(false)}><h2>{label}</h2><p>{help}</p><div className="m-dialog-actions"><button onClick={() => setHelpOpen(false)}>知道了</button></div></Overlay>}{removing && <Confirm text={"确认移除" + label + "？"} onCancel={() => setRemoving(false)} onConfirm={() => { onChange(''); setPreview(''); setRemoving(false); }} />}</div>;
 }
 
+// 通用文件上传保留实际文件名，不以拍照缩略图代替附件。
+export function FileUploadField({ label, value, onChange }) {
+  const input = useRef(null);
+  const [removing, setRemoving] = useState(false);
+  return <div className="m-file-upload-field"><span className="m-file-upload-label">{label}</span>
+    <input ref={input} type="file" className="m-file-input" tabIndex={-1} aria-label={label} onChange={e => { const file = e.target.files[0]; if (file) onChange(rememberAttachment(file).key); e.target.value = ''; }} />
+    {value && <div className="m-file-upload-entry"><FileText aria-hidden="true" /><button type="button" className="m-file-name" aria-label={'查看' + label} onClick={() => setRemoving('preview')}>{attachmentName(value)}</button><button type="button" className="m-file-remove" aria-label={'移除' + label} onClick={() => setRemoving(true)}><X aria-hidden="true" /></button></div>}
+    <button type="button" className="m-file-select" onClick={() => input.current.click()}><Paperclip aria-hidden="true" />{value ? '替换文件' : '选择文件'}</button>
+    {removing === 'preview' && <AttachmentViewer value={value} title={label} onClose={() => setRemoving(false)} />}
+    {removing === true && <Confirm text={'确认移除' + label + '？'} onCancel={() => setRemoving(false)} onConfirm={() => { onChange(''); setRemoving(false); }} />}
+  </div>;
+}
+
 export function SearchBox({ value, onChange, placeholder = '搜索供应商名称或邀请人', children }) {
   return <div className="m-search-row"><label className="m-search"><img src="/mobile-assets/workbench/search.svg" alt="" /><input type="search" autoComplete="off" enterKeyHint="search" aria-label={placeholder || '搜索供应商名称或邀请人'} placeholder={placeholder} value={value} onChange={e => onChange(e.target.value)} />{value && <button type="button" aria-label="清空搜索" onClick={() => onChange('')}><img src="/mobile-assets/workbench/search-clear.svg" alt="" /></button>}</label>{children}</div>;
 }
 
 export function Actions({ items, flat = false }) {
   const primary = items.reduce((index, item, i) => !item.secondary && !item.muted && (items.length === 1 || !/^(取消|返回|关闭|上一步|重置|保存草稿|继续修改)/.test(item.label)) ? i : index, -1);
-  return <footer className={`m-actions ${flat ? 'm-actions-flat' : ''}`}>{items.map((item, i) => <button key={`${item.label}-${i}`} type={item.type || 'button'} className={item.secondary ? 'secondary' : item.muted ? 'muted' : i === primary ? 'primary' : 'secondary'} disabled={item.disabled} onClick={item.onClick}>{item.label}</button>)}</footer>;
+  return <footer className={`m-actions ${flat ? 'm-actions-flat' : ''}`}>{items.map((item, i) => <button key={`${item.label}-${i}`} type={item.type || 'button'} className={item.secondary ? 'secondary' : item.muted ? 'muted' : item.primary || i === primary ? 'primary' : 'secondary'} disabled={item.disabled} onClick={item.onClick}>{item.label}</button>)}</footer>;
 }
 
 // 搜索空态复用工作台原始插画资产，普通业务空态保持简洁。
@@ -216,6 +229,7 @@ export function RegistrationSteps({ personal, step }) {
     </li>)}</ol>
   </nav>;
 }
+
 
 
 

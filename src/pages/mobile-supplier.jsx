@@ -25,6 +25,11 @@ const mobileTitle = scene => {
   if (scene === 'workspace-account-email') return '修改注册邮箱';
   if (scene === 'workspace-account') return '我的';
   if (scene === 'workspace-account-password') return '修改密码';
+  if (scene === 'workspace-tasks') return '业务任务';
+  if (scene === 'workspace-info') return '供应商信息';
+  if (scene === 'workspace-travel') return '差旅账单录入';
+  if (scene === 'workspace-quote-detail') return '报价详情';
+  if (scene.startsWith('workspace-tax')) return '价税拆分详情';
   if (scene.startsWith('workspace')) return '供应商协同门户';
   if (scene.startsWith('portal')) return '协同门户登录';
   if (scene.startsWith('detail')) return '供应商详情';
@@ -388,6 +393,7 @@ function MobileSurface({ scene, shot, ratings, setRatings, activeRating, setActi
     {shot && <div className="m-android-nav"><span /><i /><b /></div>}
   </div>;
 }
+
 
 
 

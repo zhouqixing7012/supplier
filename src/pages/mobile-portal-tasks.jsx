@@ -30,7 +30,13 @@ export function PortalTaskList({ tab, inquiries, orders, store, go }) {
   return <>
     <SearchBox placeholder={quote ? '搜索询价单号' : '搜索订单编号'} value={query} onChange={setQuery}><FilterButton label={quote ? '筛选报价' : '筛选价税拆分'} onClick={begin} /></SearchBox>
     <section className="m-applied-filters" aria-label="当前任务查询条件"><div className="m-filter-summary">{conditions.length > 0 && <button onClick={begin}>已筛选 · {conditions.length}项</button>}<span role="status">共 {records.length} 条</span>{conditions.length > 0 && <button onClick={() => setFilters({})}>清除筛选</button>}</div>{conditions.length > 0 && <dl className="m-applied-conditions">{conditions.map(([key, value]) => <div key={key}><dt>{labels[key]}</dt><dd>{value}</dd></div>)}</dl>}</section>
-    {records.length ? records.map(item => quote ? <Section key={item.number} collapsible={false} title={item.title}><div className="m-record-heading"><h3>{item.number}</h3><StatusTag value={item.inquiryStatus} /></div>{[['采购单位', item.unit], ['采购类型', item.type], ['剩余时间', remainingTime(item)], ['创建时间', item.created], ['结束时间', item.end]].map(([label, value]) => <Row key={label} label={label}>{value}</Row>)}<div className="m-record-actions"><button onClick={() => go('workspace-quote-detail?record=' + item.number)}>{handled ? '查看' : '报价'}</button></div></Section> : <Section key={item.number} collapsible={false} title={item.number}><div className="m-record-heading"><h3>采购订单</h3><StatusTag value={item.status} /></div><Row label="采购公司">{item.unit}</Row><Row label="采购类型">{item.type}</Row><Row label="金额">{item.gross}</Row><Row label="创建时间">{item.created}</Row><div className="m-record-actions"><button onClick={() => go('workspace-tax-' + (handled ? 'detail' : 'split') + '?record=' + item.number)}>{handled ? '查看' : '价税拆分'}</button></div></Section>) : <Empty search={filtered} text={!quote && handled && !filtered ? '暂无已处理的价税拆分记录' : quote ? '暂无匹配的询价单' : '暂无匹配的订单'} />}
+    {records.length ? records.map(item => <Section key={item.number} collapsible={false} className="m-portal-task-card">
+      <div className="m-record-heading"><h3>{quote ? item.title : item.number}</h3><StatusTag value={quote ? item.inquiryStatus : item.status} /></div>
+      {quote && <p className="m-portal-record-number" aria-label="询价单号">{item.number}</p>}
+      {(quote ? [['采购单位', item.unit], ['采购类型', item.type], ['剩余时间', remainingTime(item)], ['创建时间', item.created], ['结束时间', item.end]] : [['采购公司', item.unit], ['采购类型', item.type], ['金额', item.gross], ['创建时间', item.created]]).map(([label, value]) => <Row key={label} label={label}>{value}</Row>)}
+      <div className="m-record-actions"><button onClick={() => go((quote ? 'workspace-quote-detail' : 'workspace-tax-' + (handled ? 'detail' : 'split')) + '?record=' + item.number)}>{handled ? '查看' : quote ? '报价' : '价税拆分'}</button></div>
+    </Section>) : <Empty search={filtered} text={!quote && handled && !filtered ? '暂无已处理的价税拆分记录' : quote ? '暂无匹配的询价单' : '暂无匹配的订单'} />}
+
     {open && <div className="m-fullscreen-panel m-portal-task-filter" role="dialog" aria-modal="true" aria-label={quote ? '筛选报价' : '筛选价税拆分'}><Header title={quote ? '筛选报价' : '筛选价税拆分'} onBack={() => runMotion(() => setOpen(false), 'back')} /><div className="m-filter-view">
       <Field label={labels.company} value={draft.company || ''} onChange={value => change('company', value)} />
       <Field label="采购类型" options={purchaseTypes} value={draft.type || ''} onChange={value => change('type', value)} />
@@ -40,4 +46,5 @@ export function PortalTaskList({ tab, inquiries, orders, store, go }) {
     </div></div>}
   </>;
 }
+
 
