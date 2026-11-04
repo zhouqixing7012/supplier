@@ -550,3 +550,22 @@
 /* 百分比以布局视口为准，避免100vw包含滚动条造成居中偏移。 */
 .mobile-page:not(.m-shot) .m-fullscreen-panel,
 .mobile-page:not(.m-shot) .m-fullscreen-panel .m-actions { left: max(0px, calc((100% - 430px) / 2)); transform: none; width: min(430px, 100%); }
+
+/* 控件内侧留白由控件自身负责，编辑容器不叠加第二层内边距。 */
+.mobile-page:not(.m-shot) { --m-control-inset: 12px; }
+.mobile-page:not(.m-shot) .m-field :where(input:not([readonly]):not([type=file]):not([type=hidden]), textarea:not([readonly])) { padding-left: var(--m-control-inset); padding-right: var(--m-control-inset); box-sizing: border-box; }
+.mobile-page:not(.m-shot) .m-field textarea:not([readonly]) { padding-block: 10px; }
+.mobile-page:not(.m-shot) .m-field .m-select-field { padding-inline: var(--m-control-inset) !important; box-sizing: border-box; }
+.mobile-page:not(.m-shot) .m-edit-mode .m-field-control:has(input:not([readonly]), textarea) { padding: 0; }
+.mobile-page:not(.m-shot) .m-field-control:has(.m-field-clear) input:not([readonly]),
+.mobile-page:not(.m-shot) .m-field-control:has(.m-field-clear) textarea { padding-right: 44px; }
+.mobile-page:not(.m-shot) .m-field-control:has(.m-password-toggle) input { padding-right: 56px; }
+.mobile-page:not(.m-shot) .m-field-control:has(.m-field-clear):has(.m-counter) input { padding-right: 88px; }
+.mobile-page:not(.m-shot) .m-search { padding-inline: var(--m-control-inset); gap: 8px; }
+.mobile-page:not(.m-shot) .m-search input { padding: 0; }
+.mobile-page .m-portal-register-link { display: block; width: 100%; min-height: 44px; margin-top: 8px; color: #b65a00; font-size: 14px; text-align: center; }
+.m-registration-result { padding-bottom: 84px; }
+.m-registration-success { padding: 32px 16px 20px; text-align: center; }
+.m-registration-success > svg { width: 48px; height: 48px; padding: 12px; box-sizing: border-box; border-radius: 50%; color: var(--m-positive); background: var(--m-success-surface); }
+.m-registration-success h2 { margin: 16px 0 8px; font-size: 20px; }
+.m-registration-success p { margin: 0; color: var(--m-text-secondary); font-size: 14px; }

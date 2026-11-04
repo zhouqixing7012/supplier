@@ -7,6 +7,7 @@ export function routeMotion(from, to, returning = false) {
   if (from === to) return 'fade';
   if (portalRoots.includes(from) && portalRoots.includes(to)) return 'fade';
   if (managementRoutes.includes(from) && managementRoutes.includes(to)) return managementRoutes.indexOf(to) > managementRoutes.indexOf(from) ? 'tab-next' : 'tab-prev';
+  if (to === 'portal' && ['register-supplier', 'supplier-registration-result'].includes(from)) return 'back';
   if (returning || managementRoutes.includes(to) || portalRoots.includes(to) || (/^(detail|workspace-info)/.test(to) && /edit|bank|permission|workspace-changes/.test(from))) return 'back';
   return 'forward';
 }
