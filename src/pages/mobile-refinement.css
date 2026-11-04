@@ -569,3 +569,31 @@
 .m-registration-success > svg { width: 48px; height: 48px; padding: 12px; box-sizing: border-box; border-radius: 50%; color: var(--m-positive); background: var(--m-success-surface); }
 .m-registration-success h2 { margin: 16px 0 8px; font-size: 20px; }
 .m-registration-success p { margin: 0; color: var(--m-text-secondary); font-size: 14px; }
+
+/* 可编辑控件始终保留边框，只读字段保持文本，边框不随是否有值变化。 */
+.mobile-page:not(.m-shot) .m-edit-mode .m-field-control { border: 0; border-radius: 0; padding: 0; }
+.mobile-page:not(.m-shot) .m-field .m-field-control:focus-within { outline: none !important; }
+.mobile-page:not(.m-shot) .m-field.has-error .m-field-control { outline: none; }
+.mobile-page:not(.m-shot) .m-field-control > :where(input:not([readonly]):not([type=file]):not([type=hidden]), textarea:not([readonly]), .m-select-field) {
+  min-height: 44px; box-sizing: border-box; border: 1px solid #dce4ee; border-radius: 8px;
+  background: #fff; line-height: 22px;
+}
+.mobile-page:not(.m-shot) .m-field-control > :where(input:not([readonly]):not([type=file]):not([type=hidden])) { padding-block: 10px; }
+.mobile-page:not(.m-shot) .m-field-control > :where(input, textarea, .m-select-field):focus {
+  border-color: var(--m-action); outline: none; box-shadow: 0 0 0 2px #145cff14;
+}
+.mobile-page:not(.m-shot) .m-field-control > .m-select-field[aria-expanded=true] { border-color: var(--m-action); }
+.mobile-page:not(.m-shot) .m-field-control > :where(input, textarea, .m-select-field)[aria-invalid=true] {
+  border-color: var(--m-danger-text); box-shadow: none;
+}
+.mobile-page:not(.m-shot) .m-field-control > :where(input, textarea)[readonly] {
+  border: 0; background: transparent; padding: 0; box-shadow: none; outline: none;
+}
+.mobile-page:not(.m-shot) .m-field-control.m-control-trailing {
+  border: 1px solid #dce4ee; border-radius: 8px; background: #fff; padding-right: 8px;
+}
+.mobile-page:not(.m-shot) .m-control-trailing > input { border: 0; background: transparent; box-shadow: none; }
+.mobile-page:not(.m-shot) .m-control-trailing:focus-within { border-color: var(--m-action); box-shadow: 0 0 0 2px #145cff14; }
+.mobile-page:not(.m-shot) .m-control-trailing:has([aria-invalid=true]) { border-color: var(--m-danger-text); box-shadow: none; }
+.mobile-page:not(.m-shot) .m-control-trailing > input:focus { border: 0; box-shadow: none; }
+.mobile-page:not(.m-shot) .m-select-field > .m-date-shot-icon, .mobile-page.m-shot .m-select-field > .m-date-icon { display: none; }
