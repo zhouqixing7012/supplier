@@ -10,6 +10,7 @@ import { InteractionProvider, SwipeArea, useInteraction, useDirtyForm, useBackLa
 import { SupplierExport, exportSupplierRows } from './mobile-export.jsx';
 import { canChangeSupplier, canRateSupplier, canReinviteSupplier, canDeleteSupplier, deleteStatuses } from './mobile-rules.js';
 import { PortalWorkspace } from './mobile-portal.jsx';
+import { RegistrationPreview } from './mobile-registration-preview.jsx';
 import { SupplierAccountRegistration } from './mobile-account-registration.jsx';
 import { ChangeComparison } from './mobile-changes.jsx';
 import './mobile-supplier.css';
@@ -157,6 +158,8 @@ function MobileSurface({ scene, shot, ratings, setRatings, activeRating, setActi
   if (portalRegistration && registrationInvitation && !views.portalRegistrationInvitation) views.portalRegistrationInvitation = clone(registrationInvitation);
   const isRegistration = scene.startsWith('register') || ['expiry', 'address', 'region'].includes(scene);
   const [returnPreview, setReturnPreview] = useState(false);
+  const [previewTab, setPreviewTab] = useState(0);
+  const [registrationMenu, setRegistrationMenu] = usePanelState(false);
   const [step, setStep] = useState(registrationDraft?.step ?? (scene.includes('contacts') ? 1 : scene.includes('banks') ? 2 : 0));
   const stepScroll = useRef({});
   const changeStep = next => { stepScroll.current[step] = window.scrollY; runMotion(() => setStep(next), next < step ? 'back' : 'forward'); };
@@ -316,13 +319,13 @@ function MobileSurface({ scene, shot, ratings, setRatings, activeRating, setActi
     }
     if (editingAll) {
       update({ pendingInformation: patch, status: '变更中' });
-      notify('原型演示：信息变更已提交，等待审批');
+      notify('信息变更已提交，等待审批');
     } else if (editingRegistration) {
-      update({ ...patch, status: '审批中' }); notify('原型演示：草稿已提交，等待审批');
+      update({ ...patch, status: '审批中' }); notify('草稿已提交，等待审批');
     } else {
       const id = createSessionId();
       setSuppliers([{ ...patch, id, status: '审批中', mode: '代注册', inviter: '陈才慧', date: now(), updated: now(), score: '未评分', permissions: [] }, ...suppliers]); select(id);
-      notify('原型演示：注册已提交，等待审批');
+      notify('注册已提交，等待审批');
     }
     go(editingAll ? 'information-change' : 'mine');
   }
@@ -336,7 +339,7 @@ function MobileSurface({ scene, shot, ratings, setRatings, activeRating, setActi
     const patch = { basic: clone(basic), name: basic.supplierName, type: basic.type, email: basic.registerEmail, code: basic.creditCode || '', banks: clone(registerBanks), contacts: clone(contacts), updated: now() };
     if (editingRegistration && !editingAll) update(patch);
     else { const id = createSessionId(); setSuppliers([{ ...patch, id, status: '草稿', inviter: '陈才慧', mode: '代注册', date: now(), permissions: [], score: '未评分' }, ...suppliers]); select(id); }
-    notify('演示草稿已保存'); go('mine');
+    notify('草稿已保存'); go('mine');
   }
 
   function saveRegisterBank() {
@@ -348,7 +351,7 @@ function MobileSurface({ scene, shot, ratings, setRatings, activeRating, setActi
   return <div className={'mobile-page ' + (shot ? 'm-shot ' : '') + (shot?.sourceHeight > 2340 ? 'm-long-shot ' : '') + (listScene ? 'm-list-page' : '')} data-scene={scene}>
     {shot && <div className="m-watermark" aria-hidden="true">{Array.from({ length: 60 }, (_, i) => <span key={i}>{shot.index < 25 ? '孙志强213852' : '陈才慧208660'}</span>)}</div>}
     {shot && <div className="m-status-bar"><span>{shot.time.slice(0, 2)}:{shot.time.slice(2, 4)}</span><div><Signal /><Wifi /><Battery /><small>67</small></div></div>}
-    <Header hideBack={portalRegistration && !accountRegistered} onBack={back} title={shot ? (scene.startsWith('portal') ? '协同门户-登录' : '供应商管理平台') : mobileTitle(scene)} close={scene.startsWith('portal') ? () => go('query') : undefined} />
+    <Header right={!shot && isRegistration && (!portalRegistration || accountRegistered) ? <button type="button" aria-label="注册更多操作" onClick={() => setRegistrationMenu(true)}><MoreHorizontal /></button> : undefined} hideBack={portalRegistration && !accountRegistered} onBack={back} title={shot ? (scene.startsWith('portal') ? '协同门户-登录' : '供应商管理平台') : mobileTitle(scene)} close={scene.startsWith('portal') ? () => go('query') : undefined} />
     {(listScene || ['ratings', 'my-ratings', 'rating-ops', 'bank-application'].includes(scene)) && <Tabs active={tab} onChange={i => go(['query', 'mine', 'my-ratings', 'ratings', 'rating-ops', 'bank-application'][i])} />}
     <SwipeArea active={tab} count={6} onChange={i => { if (listScene || ['ratings', 'my-ratings', 'rating-ops', 'bank-application'].includes(scene)) go(['query', 'mine', 'my-ratings', 'ratings', 'rating-ops', 'bank-application'][i]); }}>
     {listScene && <>
@@ -394,8 +397,8 @@ function MobileSurface({ scene, shot, ratings, setRatings, activeRating, setActi
       {step === 0 && <BasicFields data={basic} setData={setBasic} identityReadOnly={portalRegistration} shot={!!shot} onAddress={() => setAddressOpen(true)} initialDate={scene === 'expiry'} />}
       {step === 1 && <ContactFields contacts={contacts} setContacts={setContacts} />}
       {step === 2 && <div className="m-register-banks">{registerBanks.map((b, i) => <BankCard key={b.id} bank={b} onPreview={() => preview(b.proof)} onEdit={() => { setEditingBank(i); setRegisterBankForm(clone(b)); setRegisterBankPicker(true); }} onDelete={() => setConfirm({ type: 'delete-register-bank', index: i, text: '确认删除银行信息' + (i + 1) + '？' })} />)}<button aria-label="添加银行" title="添加银行" className="m-dashed-add m-add-icon" onClick={() => { setEditingBank(-1); setRegisterBankForm(blankBank(basic.supplierName)); setRegisterBankPicker(true); }}><Plus aria-hidden="true" /></button></div>}
-      {step === 3 && <div className="m-register-preview">{editingAll && <ChangeComparison before={supplier} after={{ basic, name: basic.supplierName, email: basic.registerEmail, type: basic.type, contacts, banks: registerBanks }} />}<button className="m-preview-edit" onClick={() => { setReturnPreview(true); changeStep(0); }}>修改基本信息</button><Section title="基本信息">{fieldsFor(basic.type).map(([key, label]) => <Row key={key} label={label}>{basic[key]}</Row>)}<Row label="供应商注册邮箱">{basic.registerEmail}</Row>{basic.proof && <Row label="证照附件"><button onClick={() => preview(basic.proof)}>{attachmentName(basic.proof)}</button></Row>}</Section>{basic.type !== supplierTypes[1] && <><button className="m-preview-edit" onClick={() => { setReturnPreview(true); changeStep(1); }}>修改联系人</button><Section title="联系人信息">{contacts.map(c => <div key={c.id}>{[['name', '姓名'], ['phone', '电话'], ['email', '邮箱'], ['department', '部门'], ['job', '职位'], ['wechat', '微信'], ['note', '备注']].map(([key, label]) => <Row key={key} label={label}>{c[key]}</Row>)}</div>)}</Section></>}<button className="m-preview-edit" onClick={() => { setReturnPreview(true); changeStep(2); }}>修改银行信息</button><Section title="银行信息">{registerBanks.map(b => <BankCard key={b.id} bank={b} onPreview={() => preview(b.proof)} />)}</Section></div>}
-      <Actions items={[{ label: '取消', secondary: true, onClick: () => go(portalRegistration ? 'portal' : listReturn.current) }, ...(!editingAll ? [{ label: '保存草稿', secondary: true, onClick: saveDraft }] : []), ...(step > 0 ? [{ label: '上一步', secondary: true, onClick: () => { changeStep(step === 2 && basic.type === supplierTypes[1] ? 0 : step - 1); } }] : []), { label: step === 3 ? (portalRegistration ? '提交注册' : '提交') : returnPreview ? '保存并返回预览' : '下一步 (' + (basic.type === supplierTypes[1] ? step === 0 ? 1 : 2 : step + 1) + ' / ' + (basic.type === supplierTypes[1] ? 3 : 4) + ')', disabled: saving, onClick: step === 3 ? submitRegister : nextStep }]} />
+      {step === 3 && <RegistrationPreview basic={basic} contacts={contacts} banks={registerBanks} mode={portalRegistration ? '邀请注册' : editingRegistration ? supplier.mode : '代注册'} active={previewTab} onTabChange={setPreviewTab} onEdit={next => { setReturnPreview(true); changeStep(next); }} onPreview={preview}>{editingAll && <ChangeComparison before={supplier} after={{ basic, name: basic.supplierName, email: basic.registerEmail, type: basic.type, contacts, banks: registerBanks }} />}</RegistrationPreview>}
+      <Actions items={[...(step > 0 ? [{ label: '上一步', secondary: true, onClick: () => { changeStep(step === 2 && basic.type === supplierTypes[1] ? 0 : step - 1); } }] : []), { label: step === 3 ? (portalRegistration ? '提交注册' : '提交') : returnPreview ? '保存并返回预览' : '下一步 (' + (basic.type === supplierTypes[1] ? step === 0 ? 1 : 2 : step + 1) + ' / ' + (basic.type === supplierTypes[1] ? 3 : 4) + ')', disabled: saving, onClick: step === 3 ? submitRegister : nextStep }]} />
     </>}
     {addressOpen && <Overlay sheet label="编辑注册地址" onClose={() => window.dispatchEvent(new CustomEvent('mobile-close-address'))}><div className="m-address-editor"><div className="m-picker-title"><strong>编辑注册地址</strong><button onClick={() => window.dispatchEvent(new CustomEvent('mobile-close-address'))}>关闭</button></div><AddressForm initial={basic.address} onConfirm={v => { setBasic({ ...basic, address: v }); setAddressOpen(false); }} onCancel={() => setAddressOpen(false)} /></div></Overlay>}
     {['address', 'region'].includes(scene) && <AddressForm initial={shot ? '云南省/保山市/龙陵县 个哈哈哈哈' : basic.address} startRegion={scene === 'region'} onConfirm={v => { setBasic({ ...basic, address: v }); go('register'); }} onCancel={() => go('register')} />}
@@ -415,6 +418,7 @@ function MobileSurface({ scene, shot, ratings, setRatings, activeRating, setActi
     </div></section></div>}
     {scene.startsWith('workspace') && <PortalWorkspace scene={scene} go={go} notify={notify} store={views} onPreview={preview} />}
     </SwipeArea>
+    {registrationMenu && <Overlay sheet label="注册更多操作" onClose={() => setRegistrationMenu(false)}><div className="m-action-sheet">{!editingAll && <button type="button" onClick={() => { setRegistrationMenu(false); saveDraft(); }}>保存草稿</button>}<button type="button" onClick={() => { setRegistrationMenu(false); go(portalRegistration ? 'portal' : listReturn.current); }}>取消填写</button><button type="button" className="cancel" onClick={() => setRegistrationMenu(false)}>关闭</button></div></Overlay>}
     {exportOpen && <SupplierExport suppliers={matching} initial={filters} query={search} busy={exportBusy} onExport={performExport} onClose={closeExport} />}
     {sheet === 'more' && <Overlay sheet label="更多操作" onClose={() => setSheet(null)}><div className="m-action-sheet">{canChangeSupplier(supplier) && ['修改银行', '分配权限', '变更邀请人'].map((label, i) => <button key={label} onClick={() => { setSheet(null); go(['bank', 'permissions', 'inviter'][i]); }}>{label}</button>)}{canRateSupplier(supplier) && <button onClick={() => { setSheet(null); startScore(supplier); }}>评分</button>}<button onClick={() => { setSheet(null); go('detail-approval'); }}>审批记录</button><button className="cancel" onClick={() => setSheet(null)}>取消</button></div></Overlay>}
     {sheet?.kind === 'attachment' && <AttachmentViewer value={sheet.name} onClose={() => setSheet(null)} />}
@@ -426,6 +430,7 @@ function MobileSurface({ scene, shot, ratings, setRatings, activeRating, setActi
     {shot && <div className="m-android-nav"><span /><i /><b /></div>}
   </div>;
 }
+
 
 
 

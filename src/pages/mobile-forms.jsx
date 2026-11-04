@@ -1,7 +1,8 @@
 import { usePanelState } from './mobile-motion.jsx';
 import React, { useEffect, useState } from 'react';
 import { Check, FileText, ChevronRight, MoreHorizontal, Plus, Trash2, UserRoundPlus } from 'lucide-react';
-import { Actions, ChangeTag, Confirm, DateSheet, Empty, Field, OptionSheet, Overlay, Row, SearchBox, Section, UploadField } from './mobile-ui.jsx';
+import { QualificationInfo } from './mobile-qualifications.jsx';
+import { Actions, ChangeTag, Confirm, DateSheet, Empty, Field, Header, OptionSheet, Overlay, Row, SearchBox, Section, UploadField } from './mobile-ui.jsx';
 import { bankNames, branches, people, permissionGroups, supplierTypes, supplierIndustries } from './mobile-data.js';
 import { createSessionId, useDirtyForm, useBackLayer, attachmentFiles, attachmentName } from './mobile-interaction.jsx';
 
@@ -71,18 +72,18 @@ const basicCompany = [
   ['capital', '注册资金', true], ['currency', '注册币种', true, ['人民币', '美元', '港币']],
   ['country', '国家', true, ['国内', '国外']], ['address', '注册地址', true, 'address'],
   ['invoiceAddress', '接收发票地址'], ['website', '公司网址'], ['taxpayer', '纳税人资格', false, ['一般纳税人', '小规模纳税人']],
-  ['businessScope', '经营范围', true, 'textarea'], ['cooperation', '与搜狐合作事项', false, 'textarea'], ['remark', '备注', false, 'textarea'],
+  ['businessScope', '经营范围', true, 'textarea'], ['cooperation', '与搜狐合作事项', true, 'textarea'], ['businessAdvantage', '经营优势及业务优势', true, 'textarea'], ['remark', '备注', false, 'textarea'],
 ];
 const personalFields = [
   ['certificateType', '证件类型', true, ['身份证', '港澳通行证', '护照']], ['supplierName', '姓名', true],
   ['gender', '性别', true, ['男', '女']], ['creditCode', '证件号码', true], ['establishedAt', '证件有效起始日期', true, 'date'], ['licenseUntil', '证件有效截止日期', true, 'date'],
-  ['country', '国家', true, ['国内', '国外']], ['address', '注册地址', true, 'address'], ['email', '邮箱', true, 'email'], ['mobile', '手机', true], ['qq', 'QQ'], ['wechat', '微信'], ['cooperation', '与搜狐合作事项', true, 'textarea'], ['remark', '备注', false, 'textarea'],
+  ['country', '国家', true, ['国内', '国外']], ['address', '注册地址', true, 'address'], ['email', '邮箱', true, 'email'], ['mobile', '手机', true], ['qq', 'QQ'], ['wechat', '微信'], ['cooperation', '与搜狐合作事项', true, 'textarea'], ['businessAdvantage', '经营优势及业务优势', true, 'textarea'], ['remark', '备注', false, 'textarea'],
 ];
-const governmentFields = [['supplierName', '供应商名称', true], ['country', '国家', true, ['国内', '国外']], ['address', '注册地址', true, 'address'], ['cooperation', '与搜狐合作事项', true, 'textarea'], ['remark', '备注', false, 'textarea']];
-const foreignFields = [['supplierName', '供应商名称', true], ['creditCode', '证件号码', true], ['establishedAt', '成立日期', true, 'date'], ['licenseUntil', '证件有效期至', true, 'date'], ['legalRepresentative', '法人代表', true], ['companyPhone', '公司电话'], ['capital', '注册资金', true], ['currency', '注册币种', true, ['人民币', '美元', '港币']], ['country', '国家', true, ['国内', '国外']], ['address', '注册地址', true], ['cooperation', '与搜狐合作事项', true, 'textarea'], ['remark', '备注', false, 'textarea']];
+const governmentFields = [['supplierName', '供应商名称', true], ['country', '国家', true, ['国内', '国外']], ['address', '注册地址', true, 'address'], ['cooperation', '与搜狐合作事项', true, 'textarea'], ['businessAdvantage', '经营优势及业务优势', true, 'textarea'], ['remark', '备注', false, 'textarea']];
+const foreignFields = [['supplierName', '供应商名称', true], ['creditCode', '证件号码', true], ['establishedAt', '成立日期', true, 'date'], ['licenseUntil', '证件有效期至', true, 'date'], ['legalRepresentative', '法人代表', true], ['companyPhone', '公司电话'], ['capital', '注册资金', true], ['currency', '注册币种', true, ['人民币', '美元', '港币']], ['country', '国家', true, ['国内', '国外']], ['address', '注册地址', true], ['cooperation', '与搜狐合作事项', true, 'textarea'], ['businessAdvantage', '经营优势及业务优势', true, 'textarea'], ['remark', '备注', false, 'textarea']];
 export const fieldsFor = type => type === supplierTypes[1] ? personalFields : type === supplierTypes[2] ? governmentFields : type === supplierTypes[3] ? foreignFields : basicCompany;
 
-export const filledBasic = { type: supplierTypes[0], proof: '营业执照.jpg', supplierName: '北京初然文化传媒有限公司483920', creditCode: '73652184MACA1H2A43', establishedAt: '2023-03-07', licenseUntil: '2053-03-06', legalRepresentative: '王嵩涵', companyPhone: '010-52867111', companyType: '有限责任公司', industry: '文化、体育、娱乐业', capital: '100', currency: '人民币', country: '国内', address: '', invoiceAddress: '', website: '', taxpayer: '', businessScope: '', cooperation: '', remark: '' };
+export const filledBasic = { type: supplierTypes[0], proof: '营业执照.jpg', supplierName: '北京初然文化传媒有限公司483920', creditCode: '73652184MACA1H2A43', establishedAt: '2023-03-07', licenseUntil: '2053-03-06', legalRepresentative: '王嵩涵', companyPhone: '010-52867111', companyType: '有限责任公司', industry: '文化、体育、娱乐业', capital: '100', currency: '人民币', country: '国内', address: '', invoiceAddress: '', website: '', taxpayer: '', businessScope: '', cooperation: '', businessAdvantage: '', remark: '' };
 
 export function BasicFields({ data, setData, shot = false, onAddress, initialDate = false, identityReadOnly = false }) {
   const [nextType, setNextType] = useState('');
@@ -96,6 +97,7 @@ export function BasicFields({ data, setData, shot = false, onAddress, initialDat
   return <>
     <Field label="供应商类型" required={!identityReadOnly} readOnly={identityReadOnly} options={identityReadOnly ? undefined : supplierTypes} value={data.type} onChange={type => { if (type === data.type) return; if (Object.entries(data).some(([key, value]) => !['type', 'supplierName', 'registerEmail'].includes(key) && value)) setNextType(type); else setData({ type, supplierName: data.supplierName || '', registerEmail: data.registerEmail || '' }); }} />
     {proof}{fieldsFor(data.type).flatMap(renderField)}
+    <QualificationInfo records={data.qualifications} onChange={qualifications => change('qualifications', qualifications)} />
     {nextType && <Confirm text="切换供应商类型会清除不适用的基本信息，是否继续？" onCancel={() => setNextType('')} onConfirm={() => { setData({ type: nextType, supplierName: data.supplierName || '', registerEmail: data.registerEmail || '' }); setNextType(''); }} />}
     {picker && <DateSheet title={picker.title} value={data[picker.key]} onChange={v => change(picker.key, v)} onClose={() => setPicker(null)} allowLong={picker.key === 'licenseUntil'} />}
   </>;
@@ -108,14 +110,19 @@ export function ContactFields({ contacts, setContacts }) {
   const guard = useDirtyForm(draft, editing !== null);
   const close = () => guard.leave(() => setEditing(null));
   useBackLayer(editing !== null, close);
-  return <Section title="联系人信息" className="m-contact-section">{contacts.length ? contacts.map((c, i) => <article className="m-contact-summary" data-motion-key={"contact-" + c.id} key={c.id}><h3>联系人 {i + 1} · {c.name || '未填写姓名'}</h3><Row label="电话">{c.phone || '—'}</Row><Row label="邮箱">{c.email || '—'}</Row><div className="m-record-actions"><button onClick={() => { setDraft({ ...c }); setEditing(i); }}>编辑联系人{i + 1}</button><button className="m-action-danger" onClick={() => setRemoving(i)}>删除联系人{i + 1}</button></div></article>) : <Empty text="尚未添加联系人" />}
-    <button className="m-dashed-add" onClick={() => { setDraft({ id: createSessionId(), name: '', phone: '', email: '', department: '', job: '', wechat: '', note: '' }); setEditing(-1); }}><UserRoundPlus aria-hidden="true" />添加联系人</button>
-    {editing !== null && <div className="m-fullscreen-panel" role="dialog" aria-modal="true" aria-label="联系人编辑"><div className="m-picker-title"><button onClick={close}>取消</button><strong>{editing === -1 ? '新增联系人' : '编辑联系人'}</strong></div><div className="m-contact-form">{[['name', '姓名', true], ['phone', '电话', true], ['email', '邮箱', true], ['department', '部门'], ['job', '职位'], ['wechat', '微信'], ['note', '备注']].map(([key, label, required]) => <Field key={key} label={label} required={required} value={draft[key] || ''} type={key === 'email' ? 'email' : 'text'} multiline={key === 'note'} maxLength={['department', 'job'].includes(key) ? 50 : key === 'note' ? 400 : undefined} onChange={value => setDraft({ ...draft, [key]: value })} />)}</div><Actions items={[{ label: '取消', secondary: true, onClick: close }, { label: '保存联系人', onClick: () => {
-      const error = !draft.name.trim() ? '请填写姓名' : !draft.phone.trim() ? '请填写电话' : !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(draft.email) ? '请输入正确的邮箱格式' : '';
-      if (error) return window.dispatchEvent(new CustomEvent('mobile-validation', { detail: error }));
-      guard.accept(); setContacts(editing < 0 ? [...contacts, draft] : contacts.map((c, i) => i === editing ? draft : c)); setEditing(null);
-    } }]} /></div>}
-    {removing !== null && <Confirm text={'确认删除联系人' + (removing + 1) + '？'} onCancel={() => setRemoving(null)} onConfirm={() => { setContacts(contacts.filter((_, i) => i !== removing)); setRemoving(null); }} />}
+  return <Section title="联系人信息" collapsible={false} className="m-contact-section">
+    {contacts.length ? contacts.map((c, i) => <article className="m-entity-card" data-motion-key={"contact-" + c.id} key={c.id}><h3>{c.name || '联系人 ' + (i + 1)}</h3><Row label="电话">{c.phone || '—'}</Row><Row label="邮箱">{c.email || '—'}</Row><div className="m-record-actions"><button type="button" onClick={() => { setDraft({ ...c }); setEditing(i); }}>编辑</button><button type="button" className="m-action-danger" onClick={() => setRemoving(i)}>删除</button></div></article>) : <Empty text="暂无联系人信息" />}
+    <button type="button" className="m-dashed-add" onClick={() => { setDraft({ id: createSessionId(), name: '', phone: '', email: '', department: '', job: '', wechat: '', note: '' }); setEditing(-1); }}><UserRoundPlus aria-hidden="true" />添加联系人</button>
+    {editing !== null && <div className="m-fullscreen-panel m-record-editor" role="dialog" aria-modal="true" aria-label={editing === -1 ? '新增联系人' : '编辑联系人'}>
+      <Header title={editing === -1 ? '新增联系人' : '编辑联系人'} onBack={close} />
+      <Section title="联系人信息" collapsible={false}>{[['name', '姓名', true], ['phone', '电话', true], ['email', '邮箱', true], ['department', '部门'], ['job', '职位'], ['wechat', '微信'], ['note', '备注']].map(([key, label, required]) => <Field key={key} label={label} required={required} value={draft[key] || ''} type={key === 'email' ? 'email' : 'text'} multiline={key === 'note'} maxLength={['department', 'job'].includes(key) ? 50 : key === 'note' ? 400 : undefined} onChange={value => setDraft({ ...draft, [key]: value })} />)}</Section>
+      <Actions items={[{ label: '取消', secondary: true, onClick: close }, { label: '保存', onClick: () => {
+        const error = !(draft.name || '').trim() ? '请填写姓名' : !(draft.phone || '').trim() ? '请填写电话' : !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(draft.email) ? '请输入正确的邮箱格式' : '';
+        if (error) return window.dispatchEvent(new CustomEvent('mobile-validation', { detail: error }));
+        guard.accept(); setContacts(editing < 0 ? [...contacts, draft] : contacts.map((c, i) => i === editing ? draft : c)); setEditing(null);
+      } }]} />
+    </div>}
+    {removing !== null && <Confirm danger text="确认删除这位联系人？" onCancel={() => setRemoving(null)} onConfirm={() => { setContacts(contacts.filter((_, i) => i !== removing)); setRemoving(null); }} />}
   </Section>;
 }
 
@@ -143,6 +150,7 @@ export function InviteForm({ initial, onSave, onCancel, notify }) {
   const change = (key, value) => setData({ ...data, [key]: value });
   return <><Section title="企业名称"><Field label="供应商类型" required options={supplierTypes} value={data.type} onChange={v => change('type', v)} /><p className="m-orange-copy">请选择正确的供应商类型，以免影响供应商准入、合同及付款业务</p><Field label="供应商名称" required value={data.name} onChange={v => change('name', v)} /><Field label="联系人姓名" required value={data.contact} onChange={v => change('contact', v)} /><Field label="邮箱" required type="email" value={data.email} onChange={v => change('email', v)} /><Field label="手机号" required value={data.phone} onChange={v => change('phone', v)} /><div className="m-orange-copy"><p>邀请须知：</p><p>1、邀请提交后，邀请注册地址将通过邮件发送至填写的联系人邮箱内</p><p>2、请通知供应商通过邮件内的邀请注册地址，登陆供应商协同门户注册账号</p><p>3、系统将引导供应商填写基本信息、证照、联系人、银行信息</p></div></Section><Actions items={[{ label: '取消', onClick: () => guard.leave(onCancel) }, { label: '提交', onClick: () => { for (const [key, label] of [['type', '供应商类型'], ['name', '供应商名称'], ['contact', '联系人姓名'], ['email', '邮箱'], ['phone', '手机号']]) if (!data[key].trim()) return notify('请填写' + label); if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)) return notify('请输入正确的邮箱格式'); if (!/^1\d{10}$/.test(data.phone)) return notify('请输入11位手机号'); onSave(data); } }]} /></>;
 }
+
 
 
 

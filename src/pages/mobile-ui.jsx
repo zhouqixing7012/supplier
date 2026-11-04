@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom';
 import React, { useEffect, useId, useRef, useState } from 'react';
 import { Camera, CalendarDays, FileText, Paperclip, Check, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, HelpCircle, Eye, EyeOff, X } from 'lucide-react';
 import { useBackLayer, rememberAttachment, attachmentFiles, attachmentName } from './mobile-interaction.jsx';
@@ -106,14 +107,19 @@ export function Actions({ items, flat = false }) {
   return <footer className={`m-actions ${flat ? 'm-actions-flat' : ''}`}>{items.map((item, i) => <button key={`${item.label}-${i}`} type={item.type || 'button'} className={item.secondary ? 'secondary' : item.muted ? 'muted' : item.primary || i === primary ? 'primary' : 'secondary'} disabled={item.disabled} onClick={item.onClick}>{item.label}</button>)}</footer>;
 }
 
-// 搜索空态复用工作台原始插画资产，普通业务空态保持简洁。
+// 搜索与业务空态共用工作台原始插画资产。
 function SearchEmptyArt() {
   const base = '/mobile-assets/workbench/';
   return <span className="m-search-empty-art" aria-hidden="true"><span className="m-empty-art-group"><span className="m-empty-art-board" /><span className="m-empty-art-mask"><span /></span><img className="m-empty-art-warning" src={base + 'empty-warning.svg'} alt="" /><img className="m-empty-art-clip" src={base + 'empty-clip.svg'} alt="" /><span className="m-empty-art-bar" /><img className="m-empty-art-dots" src={base + 'empty-dots.svg'} alt="" /><img className="m-empty-art-detail" src={base + 'empty-detail.png'} width="34.909" height="46.545" alt="" /></span><span className="m-empty-art-decoration"><img src={base + 'empty-decoration.svg'} alt="" /></span></span>;
 }
 
 export function Empty({ text = '暂无数据', illustration = false, search = false }) {
-  return <div className={`m-empty ${illustration ? 'm-empty-illustrated' : ''} ${search ? 'm-empty-search' : ''}`} role="status">{search ? <SearchEmptyArt /> : illustration && <span className="m-empty-plate"><img src="/mobile-assets/empty-application-source.jpg" alt="" /></span>}<span>{text}</span></div>;
+  return <div className={`m-empty ${illustration ? 'm-empty-illustrated' : ''} ${search ? 'm-empty-search' : !illustration ? 'm-empty-neutral' : ''}`} role="status">{search || !illustration ? <SearchEmptyArt /> : illustration && <span className="m-empty-plate"><img src="/mobile-assets/empty-application-source.jpg" alt="" /></span>}<span>{text}</span></div>;
+}
+
+export function AttachmentLink({ value, onPreview }) {
+  const [opened, setOpened] = useState(false);
+  return <><button type="button" className="m-attachment-reference" onClick={() => onPreview ? onPreview(value) : setOpened(true)}><img src="/mobile-assets/workbench/file.svg" alt="" /><span>{attachmentName(value)}</span><Paperclip aria-hidden="true" /></button>{opened && <AttachmentViewer value={value} onClose={() => setOpened(false)} />}</>;
 }
 
 export function AttachmentViewer({ value, title = '查看附件', onClose }) {
@@ -121,7 +127,7 @@ export function AttachmentViewer({ value, title = '查看附件', onClose }) {
   const file = attachmentFiles.get(value);
   const name = attachmentName(value);
   const isImage = file?.type.startsWith('image/');
-  return <Overlay label="查看附件" onClose={onClose} sheet><div className="m-attachment-viewer"><div className="m-picker-title"><strong>{opened ? name : title}</strong><button type="button" aria-label="关闭附件" onClick={onClose}><X /></button></div>{!opened ? <><p className="m-attachment-count">共 1 个附件</p><div className="m-attachment-list"><button type="button" className="m-attachment-file selected" aria-label={'预览' + name} disabled={!file} onClick={() => setOpened(true)}><span className="m-file-icon"><img src="/mobile-assets/workbench/file.svg" alt="" /></span><span><strong>{name}</strong><small>{file ? isImage ? '图片附件' : '文件附件' : '演示样本 · 未提供原件'}</small></span></button></div>{!file && <p className="m-attachment-unavailable">此附件仅有截图示例，未提供原件，暂不可预览原图。</p>}<div className="m-picker-actions"><button type="button" onClick={onClose}>返回</button><button type="button" className="primary" disabled={!file} onClick={() => setOpened(true)}>打开附件</button></div></> : <><div className="m-attachment-content">{isImage ? <a href={file.url} target="_blank" rel="noreferrer" aria-label="打开原图"><img className="m-attachment-full" src={file.url} alt={name} /></a> : <p>此文件不支持图片预览。<a href={file.url} target="_blank" rel="noreferrer">打开文件</a></p>}</div><div className="m-picker-actions"><button type="button" onClick={() => setOpened(false)}>返回附件列表</button><button type="button" className="primary" onClick={onClose}>关闭</button></div></>}</div></Overlay>;
+  return <Overlay label="查看附件" onClose={onClose} sheet><div className="m-attachment-viewer"><div className="m-picker-title"><strong>{opened ? name : title}</strong><button type="button" aria-label="关闭附件" onClick={onClose}><X /></button></div>{!opened ? <><p className="m-attachment-count">共 1 个附件</p><div className="m-attachment-list"><button type="button" className="m-attachment-file selected" aria-label={'预览' + name} disabled={!file} onClick={() => setOpened(true)}><span className="m-file-icon"><img src="/mobile-assets/workbench/file.svg" alt="" /></span><span><strong>{name}</strong><small>{file ? isImage ? '图片附件' : '文件附件' : '附件暂不可用'}</small></span></button></div>{!file && <p className="m-attachment-unavailable">附件暂不可用，请联系提供方补充。</p>}<div className="m-picker-actions"><button type="button" onClick={onClose}>返回</button><button type="button" className="primary" disabled={!file} onClick={() => setOpened(true)}>打开附件</button></div></> : <><div className="m-attachment-content">{isImage ? <a href={file.url} target="_blank" rel="noreferrer" aria-label="打开原图"><img className="m-attachment-full" src={file.url} alt={name} /></a> : <p>此文件不支持图片预览。<a href={file.url} target="_blank" rel="noreferrer">打开文件</a></p>}</div><div className="m-picker-actions"><button type="button" onClick={() => setOpened(false)}>返回附件列表</button><button type="button" className="primary" onClick={onClose}>关闭</button></div></>}</div></Overlay>;
 }
 
 export function Overlay({ children, label = '选择', onClose: closeOriginal, sheet = false }) {
@@ -146,11 +152,13 @@ export function Overlay({ children, label = '选择', onClose: closeOriginal, sh
     window.addEventListener('keydown', onKey);
     return () => { window.removeEventListener('keydown', onKey); document.body.style.overflow = oldOverflow; previous?.focus(); };
   }, []);
-  return <div className="m-overlay" onClick={e => { if (e.target === e.currentTarget) onClose(); }}><div ref={ref} tabIndex={-1} className={sheet ? 'm-sheet' : 'm-dialog'} role="dialog" aria-modal="true" aria-label={label}>{children}</div></div>;
+  const overlay = <div className="m-overlay" onClick={e => { if (e.target === e.currentTarget) onClose(); }}><div ref={ref} tabIndex={-1} className={sheet ? 'm-sheet' : 'm-dialog'} role="dialog" aria-modal="true" aria-label={label}>{children}</div></div>;
+  const host = document.querySelector('#root .mobile-page');
+  return host ? createPortal(overlay, host) : overlay;
 }
 
 export function SupplierIdentityCard({ supplier, children }) {
-  return <div className="m-detail-summary"><div className="m-supplier-heading"><h2>{supplier.name}</h2><StatusTag value={supplier.status} /></div><p className="m-summary-meta"><span>{supplier.type || '—'} · {supplier.mode || '—'}</span></p>{children}</div>;
+  return <div className="m-detail-summary"><div className="m-supplier-heading"><h2>{supplier.name}</h2>{supplier.status && <StatusTag value={supplier.status} />}</div><p className="m-summary-meta"><span>{supplier.type || '—'} · {supplier.mode || '—'}</span></p>{children}</div>;
 }
 
 export function Confirm({ text, onCancel: cancelOriginal, onConfirm: confirmOriginal, cancelLabel = '取消', confirmLabel = '确认', danger = false, unsaved = false }) {
@@ -209,8 +217,8 @@ export function OptionSheet({ title, options = [], value, onChange, onClose: clo
   return <Overlay label={title} onClose={onClose} sheet><div className={'m-option-picker ' + (searchable ? 'is-searchable' : 'is-simple')}><div className="m-picker-title"><strong>{title}</strong></div>{searchable && <SearchBox value={query} onChange={setQuery} placeholder={'搜索' + title} />}<div className="m-sheet-options">{matches.length ? matches.map(x => <button type="button" aria-pressed={x === selected} className={x === selected ? 'selected' : ''} key={x} onClick={() => { if (mode === 'immediate') { choose(x); } else setSelected(x); }}><span>{x}</span>{searchable && <span className="m-option-radio" aria-hidden="true">{x === selected && <Check />}</span>}</button>) : <Empty search={!!query} text={query ? '暂无匹配选项' : '暂无可用选项'} />}</div><div className="m-picker-actions">{clearable && <button type="button" onClick={clear}>清空选择</button>}<button type="button" onClick={onClose}>取消</button>{mode === 'confirm' && <button type="button" className="primary" onClick={() => choose(selected)}>确认</button>}</div></div></Overlay>;
 }
 
-export function Header({ onBack, title = '供应商管理平台', close, hideBack = false }) {
-  return <header className="m-header">{!hideBack && <button onClick={onBack} aria-label="返回"><ChevronLeft /></button>}<h1>{title}</h1>{close && <button onClick={close} aria-label="关闭"><X /></button>}</header>;
+export function Header({ onBack, title = '供应商管理平台', close, hideBack = false, right }) {
+  return <header className="m-header">{!hideBack && <button onClick={onBack} aria-label="返回"><ChevronLeft /></button>}<h1>{title}</h1>{right || (close && <button onClick={close} aria-label="关闭"><X /></button>)}</header>;
 }
 
 
@@ -229,6 +237,7 @@ export function RegistrationSteps({ personal, step }) {
     </li>)}</ol>
   </nav>;
 }
+
 
 
 

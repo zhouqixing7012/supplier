@@ -1,6 +1,7 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Check, ChevronDown, ClipboardList, Edit3, Filter, List, MoreHorizontal, Pencil, Plus, X } from 'lucide-react';
-import { Actions, ChangeTag, Empty, Field, StatusTag, OptionSheet, Overlay, Row, SearchBox, Section, SupplierIdentityCard } from './mobile-ui.jsx';
+import { QualificationInfo } from './mobile-qualifications.jsx';
+import { Actions, AttachmentLink, ChangeTag, Empty, Field, StatusTag, OptionSheet, Overlay, Row, SearchBox, Section, SupplierIdentityCard } from './mobile-ui.jsx';
 import { BankCard, fieldsFor } from './mobile-forms.jsx';
 import { cooperation, supplierStates, supplierTypes, supplierIndustries } from './mobile-data.js';
 import { SwipeArea, attachmentName } from './mobile-interaction.jsx';
@@ -84,12 +85,12 @@ export function Approval({ supplier, populated = true, history = false, showSupp
 export function SupplierDetail({ supplier, initialTab = 0, approvalEmpty = false, onPreview, ratings = [], onScore, onRatingOpen }) {
   const [tab, setTab] = useState(initialTab);
   const registration = [['供应商账号', supplier.supplierAccount || supplier.userCode || supplier.account], ['邀请人', supplier.inviter], ['邀请时间', supplier.date], ['曾用名', supplier.supplierFormerName || supplier.formerName], ['注册邮箱', supplier.email]];
-  const basic = { ...supplier.basic, type: supplier.type, supplierName: supplier.name, creditCode: supplier.basic?.creditCode || supplier.code };
+  const basic = { ...supplier.basic, type: supplier.type, supplierName: supplier.name, creditCode: supplier.basic?.creditCode || supplier.code, businessAdvantage: supplier.basic?.businessAdvantage || supplier.businessAdvantage };
   const basicRows = fieldsFor(supplier.type).filter(([key]) => key !== 'supplierName' || supplier.type === supplierTypes[1]);
   return <div className="m-detail"><SupplierIdentityCard supplier={supplier} /><Tabs variant="pill" items={['注册信息', '基本信息', '联系人信息', '银行信息', '分配权限', '财务OU', '黑名单操作记录', '审批记录', '合作信息及评分']} active={tab} onChange={setTab} /><SwipeArea active={tab} count={9} onChange={setTab}>
     {tab === 0 && <Section title="注册信息" collapsible={false}>{registration.map(([label, value]) => <Row key={label} label={label}>{value || '—'}</Row>)}</Section>}
-    {tab === 1 && <Section title="基本信息" collapsible={false}>{basicRows.map(([key, label]) => <Row key={key} label={label}>{basic[key] === '' ? '—' : basic[key] ?? '—'}</Row>)}<Row label="证照附件">{basic.proof ? <button onClick={() => onPreview(basic.proof)}>{attachmentName(basic.proof)}</button> : '—'}</Row><Row label="经营优势及业务优势">{basic.businessAdvantage || supplier.businessAdvantage || '—'}</Row></Section>}
-    {tab === 2 && <Section title="联系人信息" collapsible={false}>{supplier.contact ? <><Row label="姓名">{supplier.contact}</Row><Row label="电话">{supplier.phone}</Row><Row label="邮箱">{supplier.email}</Row></> : <Empty text="无数据" />}</Section>}
+    {tab === 1 && <><Section title="基本信息" collapsible={false}>{basicRows.map(([key, label]) => <Row key={key} label={label}>{basic[key] === '' ? '—' : basic[key] ?? '—'}</Row>)}<Row label="证照附件">{basic.proof ? <AttachmentLink value={basic.proof} onPreview={onPreview} /> : '—'}</Row></Section><QualificationInfo records={basic.qualifications} onPreview={onPreview} /></>}
+    {tab === 2 && <Section title="联系人信息" collapsible={false}>{(supplier.contacts?.length ? supplier.contacts : supplier.contact ? [{ id: 'legacy', name: supplier.contact, phone: supplier.phone, email: supplier.email }] : []).map(contact => <article className="m-entity-card" key={contact.id}><h3>{contact.name || '—'}</h3>{[['phone', '电话'], ['email', '邮箱'], ['department', '部门'], ['job', '职位'], ['wechat', '微信'], ['note', '备注']].map(([key, label]) => <Row key={key} label={label}>{contact[key] || '—'}</Row>)}</article>)}{!supplier.contacts?.length && !supplier.contact && <Empty text="暂无联系人信息" />}</Section>}
     {tab === 3 && <Section title="银行信息" collapsible={false}>{supplier.banks.length ? supplier.banks.map(b => <div key={b.id}><h3 className="m-account-heading">{b.accountType} · {b.bank} · 尾号{b.number?.slice(-4)}</h3>{[['账户类型', b.accountType], ['开户银行', b.bank], ['银行分行', b.branch], ['账户名称', b.name], ['银行账户', b.number], ['开户行所在国家（地区）', b.country], ['所在省', b.province], ['所在市', b.city], ['币种', b.currency], ['备注', b.note]].map(([label, value]) => <Row key={label} label={label}>{value}</Row>)}</div>) : <Empty text="无数据" />}</Section>}
     {tab === 4 && <Section title="分配权限" collapsible={false}>{supplier.permissions.length ? supplier.permissions.map(p => <div key={p.id}><Row label="所属权限">{p.group}</Row><Row label="权限分类">{p.category}</Row><Row label="备注">{p.note}</Row></div>) : <Empty text="无数据" />}</Section>}
     {tab === 5 && <div className="m-detail-records">{supplier.financeOus?.length ? supplier.financeOus.map((record, index) => <article className="m-bank-card" key={record.id}><div className="m-record-heading"><h3>{record.orgName || '—'}</h3></div><div className="m-card-body">{[['负债账户', record.liabilityAccount], ['预付款账户', record.prepayAccount], ['地址', record.address]].map(([label, value]) => <Row key={label} label={label}><span className="m-finance-value">{value || '—'}</span></Row>)}</div></article>) : <Section title="财务OU" collapsible={false}><Empty text="无数据" /></Section>}</div>}
@@ -111,5 +112,6 @@ export function PermissionCard({ data, onEdit, onDelete }) {
 export function BankApplication({ onApply }) {
   return <div className="m-bank-application"><h2>申请须知</h2><p>若邀请注册供应商反馈添加银行信息时，未查询到目标开户银行或分行，可通过本功能补充未收录银行。</p><button onClick={onApply}>确认申请</button></div>;
 }
+
 
 
