@@ -777,3 +777,4 @@
 /* 简单单选是居中的动作列表，不能套用信息目录的右侧圆形标记。 */
 .mobile-page .m-option-picker.is-simple .m-sheet-options > button { display: flex; align-items: center; justify-content: center; text-align: center; }
 .mobile-page .m-option-picker.is-simple .m-sheet-options > button > span:first-child { text-align: center; }
+.mobile-page .m-option-picker.is-simple .m-sheet-options > button.selected { padding-inline: 12px; border-bottom-color: transparent; border-radius: 12px; background: var(--m-info-surface); color: var(--m-action); font-weight: 600; }
