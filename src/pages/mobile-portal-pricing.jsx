@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Pencil } from 'lucide-react';
-import { Actions, Empty, Field, Header, Row, Section, StatusTag, FileUploadField } from './mobile-ui.jsx';
+import { Actions, CardActions, Empty, Field, Header, Row, Section, StatusTag, FileUploadField } from './mobile-ui.jsx';
 import { attachmentName, useBackLayer, useDirtyForm } from './mobile-interaction.jsx';
 import { runMotion } from './mobile-motion.jsx';
 import { calculateTax, isDecimal, quoteError, remainingTime } from './mobile-portal-pricing.js';
@@ -51,7 +51,7 @@ export function PortalPricingDetail({ quote, records, store, go, notify, onPrevi
   const editable = !!record && record.status === '待处理';
   const guard = useDirtyForm(draft, editable);
   const back = () => guard.leave(() => go('workspace-tasks'));
-  if (!record) return <><Empty text={quote ? '未找到询价单' : '未找到采购订单'} /><Actions items={[{ label: '返回业务任务', onClick: back }]} /></>;
+  if (!record) return <><Empty text={quote ? '未找到询价单' : '未找到采购订单'} /><Actions items={[{ label: quote ? '返回报价列表' : '返回价税拆分列表', onClick: back }]} /></>;
   const changeRate = value => setDraft({ ...draft, rate: value, lines: draft.lines.map(line => ({ ...line, rate: value })) });
   const expired = quote && remainingTime(record) === '已过期';
   const submit = () => {
@@ -78,7 +78,7 @@ export function PortalPricingDetail({ quote, records, store, go, notify, onPrevi
     {draft.lines.map((line, index) => <Section key={index} title={`${index + 1}. ${quote ? line.material : line.name}`} collapsible={false}>
       {(quote ? quoteFields.slice(1) : taxFields.filter(([key]) => key !== 'name')).map(([key, label]) => <Row key={key} label={label}>{line[key] || '—'}</Row>)}
       {quote && <><FileRow label="报价附件" value={line.attachment} onPreview={onPreview} /><Row label="报价说明">{line.note || '—'}</Row></>}
-      {editable && <div className="m-record-actions"><button aria-label={'编辑第' + (index + 1) + '项' + (quote ? '报价' : '价税')} onClick={() => runMotion(() => setEditor(index), 'forward')}><Pencil aria-hidden="true" /></button></div>}
+      {editable && <CardActions><button aria-label={'编辑第' + (index + 1) + '项' + (quote ? '报价' : '价税')} onClick={() => runMotion(() => setEditor(index), 'forward')}><Pencil aria-hidden="true" /></button></CardActions>}
     </Section>)}
     <Section title={quote ? '询价资料' : '采购资料'} collapsible={false}>
       {(quote ? [['way', '询价类型'], ['buyer', '采购员'], ['unit', '采购单位'], ['type', '采购类型'], ['created', '创建时间'], ['end', '结束时间']] : orderFields.filter(([key]) => key !== 'number')).map(([key, label]) => <Row key={key} label={label}>{draft[key] || '—'}</Row>)}
@@ -88,5 +88,6 @@ export function PortalPricingDetail({ quote, records, store, go, notify, onPrevi
     {editor !== null && <LineEditor key={editor} index={editor} quote={quote} line={draft.lines[editor]} notify={notify} onCancel={() => runMotion(() => setEditor(null), 'back')} onSave={line => { setDraft({ ...draft, lines: draft.lines.map((entry, index) => index === editor ? line : entry) }); runMotion(() => setEditor(null), 'back'); }} />}
   </div>;
 }
+
 
 

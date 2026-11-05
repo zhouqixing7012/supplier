@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Plus } from 'lucide-react';
-import { Actions, AttachmentLink, Confirm, Empty, Field, FileUploadField, Header, Row, Section } from './mobile-ui.jsx';
+import { Actions, CardActions, AttachmentLink, Confirm, Empty, Field, FileUploadField, Header, Row, Section } from './mobile-ui.jsx';
 import { createSessionId, useBackLayer, useDirtyForm } from './mobile-interaction.jsx';
 import { usePanelState } from './mobile-motion.jsx';
 
@@ -27,7 +27,7 @@ export function QualificationInfo({ records = [], onChange, onPreview }) {
       <h3>{record.qualificationName || '资质信息 ' + (i + 1)}</h3>
       {qualificationFields.filter(([key]) => key !== 'qualificationName').map(([key, label]) => <Row key={key} label={label}>{record[key] || '—'}</Row>)}
       <Row label="附件">{record.qualificationCertificatePicture ? <AttachmentLink value={record.qualificationCertificatePicture} onPreview={onPreview} /> : '—'}</Row>
-      {onChange && <div className="m-record-actions"><button type="button" onClick={() => begin(i)}>编辑</button><button type="button" className="m-action-danger" onClick={() => setRemoving(i)}>删除</button></div>}
+      {onChange && <CardActions><button type="button" onClick={() => begin(i)}>编辑</button><button type="button" className="m-action-danger" onClick={() => setRemoving(i)}>删除</button></CardActions>}
     </article>) : <Empty text="暂无资质信息" />}
     {onChange && <button type="button" className="m-dashed-add m-add-icon" aria-label="添加资质" title="添加资质" onClick={() => begin(-1)}><Plus aria-hidden="true" /></button>}
     {editing !== null && <div className="m-fullscreen-panel m-record-editor" role="dialog" aria-modal="true" aria-label={editing < 0 ? '新增资质' : '编辑资质'}>

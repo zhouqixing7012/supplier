@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Actions, Empty, Field, FilterButton, Header, Row, SearchBox, Section, StatusTag } from './mobile-ui.jsx';
+import { Actions, CardActions, Empty, Field, FilterButton, Header, Row, SearchBox, Section, StatusTag } from './mobile-ui.jsx';
 import { runMotion } from './mobile-motion.jsx';
 import { useBackLayer } from './mobile-interaction.jsx';
 import { remainingTime } from './mobile-portal-pricing.js';
@@ -34,7 +34,7 @@ export function PortalTaskList({ tab, inquiries, orders, store, go }) {
       <div className="m-record-heading"><h3>{quote ? item.title : item.number}</h3><StatusTag value={quote ? item.inquiryStatus : item.status} /></div>
       {quote && <p className="m-portal-record-number" aria-label="询价单号">{item.number}</p>}
       {(quote ? [['采购单位', item.unit], ['采购类型', item.type], ['剩余时间', remainingTime(item)], ['创建时间', item.created], ['结束时间', item.end]] : [['采购公司', item.unit], ['采购类型', item.type], ['金额', item.gross], ['创建时间', item.created]]).map(([label, value]) => <Row key={label} label={label}>{value}</Row>)}
-      <div className="m-record-actions"><button onClick={() => go((quote ? 'workspace-quote-detail' : 'workspace-tax-' + (handled ? 'detail' : 'split')) + '?record=' + item.number)}>{handled ? '查看' : quote ? '报价' : '价税拆分'}</button></div>
+      <CardActions><button onClick={() => go((quote ? 'workspace-quote-detail' : 'workspace-tax-' + (handled ? 'detail' : 'split')) + '?record=' + item.number)}>{handled ? '查看' : quote ? '报价' : '价税拆分'}</button></CardActions>
     </Section>) : <Empty search={filtered} text={!quote && handled && !filtered ? '暂无已处理的价税拆分记录' : quote ? '暂无匹配的询价单' : '暂无匹配的订单'} />}
 
     {open && <div className="m-fullscreen-panel m-portal-task-filter" role="dialog" aria-modal="true" aria-label={quote ? '筛选报价' : '筛选价税拆分'}><Header title={quote ? '筛选报价' : '筛选价税拆分'} onBack={() => runMotion(() => setOpen(false), 'back')} /><div className="m-filter-view">
@@ -46,5 +46,6 @@ export function PortalTaskList({ tab, inquiries, orders, store, go }) {
     </div></div>}
   </>;
 }
+
 
 

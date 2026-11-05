@@ -157,8 +157,13 @@ export function Overlay({ children, label = '选择', onClose: closeOriginal, sh
   return host ? createPortal(overlay, host) : overlay;
 }
 
-export function SupplierIdentityCard({ supplier, children }) {
-  return <div className="m-detail-summary"><div className="m-supplier-heading"><h2>{supplier.name}</h2>{supplier.status && <StatusTag value={supplier.status} />}</div><p className="m-summary-meta"><span>{supplier.type || '—'} · {supplier.mode || '—'}</span></p>{children}</div>;
+// 卡片内操作栏统一留白与触控范围，split仅用于列表主次布局。
+export function CardActions({ children, split = false }) {
+  return <div className={'m-card-actions' + (split ? ' m-card-actions-split' : '')}>{children}</div>;
+}
+
+export function SupplierIdentityCard({ supplier, children, showMeta = true }) {
+  return <div className="m-detail-summary"><div className="m-supplier-heading"><h2>{supplier.name}</h2>{supplier.status && <StatusTag value={supplier.status} />}</div>{showMeta && <p className="m-summary-meta"><span>{supplier.type || '—'} · {supplier.mode || '—'}</span></p>}{children}</div>;
 }
 
 export function Confirm({ text, onCancel: cancelOriginal, onConfirm: confirmOriginal, cancelLabel = '取消', confirmLabel = '确认', danger = false, unsaved = false }) {

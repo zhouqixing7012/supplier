@@ -6,11 +6,11 @@ import { Tabs } from './mobile-views.jsx';
 import { SwipeArea } from './mobile-interaction.jsx';
 import { supplierTypes } from './mobile-data.js';
 
-export function RegistrationPreview({ basic, contacts, banks, mode, active, onTabChange, onEdit, onPreview, children }) {
+export function RegistrationPreview({ basic, contacts, banks, mode, active, onTabChange, onEdit, onPreview, children, supplierFacing = false }) {
   const personal = basic.type === supplierTypes[1];
   const groups = [{ label: '基本信息', step: 0 }, ...(!personal ? [{ label: '联系人信息', step: 1 }] : []), { label: '银行信息', step: 2 }];
   return <div className="m-detail m-registration-preview">
-    <SupplierIdentityCard supplier={{ name: basic.supplierName, type: basic.type, mode }} />
+    <SupplierIdentityCard showMeta={!supplierFacing} supplier={{ name: basic.supplierName, type: basic.type, mode }} />
     <Tabs variant="pill" items={groups.map(g => g.label)} active={active} onChange={onTabChange} />
     <div className="m-preview-toolbar"><button type="button" onClick={() => onEdit(groups[active].step)} aria-label={'编辑' + groups[active].label}>编辑</button></div>
     <SwipeArea active={active} count={groups.length} onChange={onTabChange}>

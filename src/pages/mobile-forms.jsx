@@ -2,7 +2,7 @@ import { usePanelState } from './mobile-motion.jsx';
 import React, { useEffect, useState } from 'react';
 import { Check, FileText, ChevronRight, MoreHorizontal, Plus, Trash2, UserRoundPlus } from 'lucide-react';
 import { QualificationInfo } from './mobile-qualifications.jsx';
-import { Actions, ChangeTag, Confirm, DateSheet, Empty, Field, Header, OptionSheet, Overlay, Row, SearchBox, Section, UploadField } from './mobile-ui.jsx';
+import { Actions, CardActions, ChangeTag, Confirm, DateSheet, Empty, Field, Header, OptionSheet, Overlay, Row, SearchBox, Section, UploadField } from './mobile-ui.jsx';
 import { bankNames, branches, people, permissionGroups, supplierTypes, supplierIndustries } from './mobile-data.js';
 import { createSessionId, useDirtyForm, useBackLayer, attachmentFiles, attachmentName } from './mobile-interaction.jsx';
 
@@ -52,7 +52,7 @@ export function BankCard({ bank, onEdit, onDelete, onPreview, deleteDisabledReas
   const [blockedDelete, setBlockedDelete] = useState(false);
   return <><article data-motion-key={"bank-" + bank.id} className="m-bank-card" data-change={bank.change || undefined}><div className="m-record-heading"><h3>{bank.accountType || '银行账户'} · {bank.bank || '未选择银行'}{bank.number ? ' · 尾号' + bank.number.slice(-4) : ''}</h3><ChangeTag value={bank.change} /></div><div className="m-card-body">
     {bank.accountType && <Row label="账户类型" compact>{bank.accountType}</Row>}<Row label="开户银行" compact>{bank.bank}</Row><Row label="银行分行" compact>{bank.branch}</Row><Row label="开户行所在国家/地区" compact>{bank.country}</Row><Row label="开户所在省" compact>{bank.province}</Row><Row label="开户所在市" compact>{bank.city}</Row><Row label="账户名称" compact>{bank.name}</Row><Row label="银行账号" compact>{bank.number}</Row><Row label="币种" compact>{bank.currency}</Row><Row label="开户证明" compact>{fileProof ? bank.proof ? <button className="m-bank-proof-file" aria-label="查看开户证明" onClick={onPreview}><FileText aria-hidden="true" /><span>{attachmentName(bank.proof)}</span></button> : '—' : bank.proof && <button className="m-proof-thumb" onClick={onPreview}>{bank.proof === '开户证明.png' ? <span className="m-proof-plate"><img src="/mobile-assets/bank-proof-source.jpg" alt="开户证明" /></span> : attachmentName(bank.proof)}</button>}</Row><Row label="备注" compact>{bank.note}</Row>
-    {(onEdit || onDelete || deleteDisabledReason) && <div className="m-record-actions">{onEdit && <button onClick={onEdit}>修改</button>}{(onDelete || deleteDisabledReason) && <button className="m-action-danger" onClick={() => deleteDisabledReason ? setBlockedDelete(true) : onDelete?.()}>删除</button>}</div>}
+    {(onEdit || onDelete) && <CardActions>{onEdit && <button onClick={onEdit}>修改</button>}{(onDelete || (onEdit && deleteDisabledReason)) && <button className="m-action-danger" onClick={() => deleteDisabledReason ? setBlockedDelete(true) : onDelete?.()}>删除</button>}</CardActions>}
   </div></article>{blockedDelete && <Overlay label="银行删除校验" onClose={() => setBlockedDelete(false)}><h2>无法删除</h2><p>{deleteDisabledReason}</p><div className="m-dialog-actions"><button type="button" onClick={() => setBlockedDelete(false)}>知道了</button></div></Overlay>}</>;
 }
 
@@ -85,7 +85,7 @@ export const fieldsFor = type => type === supplierTypes[1] ? personalFields : ty
 
 export const filledBasic = { type: supplierTypes[0], proof: '营业执照.jpg', supplierName: '北京初然文化传媒有限公司483920', creditCode: '73652184MACA1H2A43', establishedAt: '2023-03-07', licenseUntil: '2053-03-06', legalRepresentative: '王嵩涵', companyPhone: '010-52867111', companyType: '有限责任公司', industry: '文化、体育、娱乐业', capital: '100', currency: '人民币', country: '国内', address: '', invoiceAddress: '', website: '', taxpayer: '', businessScope: '', cooperation: '', businessAdvantage: '', remark: '' };
 
-export function BasicFields({ data, setData, shot = false, onAddress, initialDate = false, identityReadOnly = false }) {
+export function BasicFields({ data, setData, shot = false, onAddress, initialDate = false, identityReadOnly = false, hideSupplierType = false }) {
   const [nextType, setNextType] = useState('');
   const [picker, setPicker] = useState(initialDate ? { key: 'licenseUntil', title: '证件有效期至' } : null);
   const change = (key, value) => setData({ ...data, [key]: value });
@@ -95,7 +95,7 @@ export function BasicFields({ data, setData, shot = false, onAddress, initialDat
   };
   const proof = <>{[supplierTypes[0], supplierTypes[3]].includes(data.type) && <UploadField label={data.type === supplierTypes[0] ? '营业执照' : '证书'} required value={data.proof} onChange={v => change('proof', v)} help="上传证照附件。" />}</>;
   return <>
-    <Field label="供应商类型" required={!identityReadOnly} readOnly={identityReadOnly} options={identityReadOnly ? undefined : supplierTypes} value={data.type} onChange={type => { if (type === data.type) return; if (Object.entries(data).some(([key, value]) => !['type', 'supplierName', 'registerEmail'].includes(key) && value)) setNextType(type); else setData({ type, supplierName: data.supplierName || '', registerEmail: data.registerEmail || '' }); }} />
+    {!hideSupplierType && <Field label="供应商类型" required={!identityReadOnly} readOnly={identityReadOnly} options={identityReadOnly ? undefined : supplierTypes} value={data.type} onChange={type => { if (type === data.type) return; if (Object.entries(data).some(([key, value]) => !['type', 'supplierName', 'registerEmail'].includes(key) && value)) setNextType(type); else setData({ type, supplierName: data.supplierName || '', registerEmail: data.registerEmail || '' }); }} />}
     {proof}{fieldsFor(data.type).flatMap(renderField)}
     <QualificationInfo records={data.qualifications} onChange={qualifications => change('qualifications', qualifications)} />
     {nextType && <Confirm text="切换供应商类型会清除不适用的基本信息，是否继续？" onCancel={() => setNextType('')} onConfirm={() => { setData({ type: nextType, supplierName: data.supplierName || '', registerEmail: data.registerEmail || '' }); setNextType(''); }} />}
@@ -111,7 +111,7 @@ export function ContactFields({ contacts, setContacts }) {
   const close = () => guard.leave(() => setEditing(null));
   useBackLayer(editing !== null, close);
   return <Section title="联系人信息" collapsible={false} className="m-contact-section">
-    {contacts.length ? contacts.map((c, i) => <article className="m-entity-card" data-motion-key={"contact-" + c.id} key={c.id}><h3>{c.name || '联系人 ' + (i + 1)}</h3><Row label="电话">{c.phone || '—'}</Row><Row label="邮箱">{c.email || '—'}</Row><div className="m-record-actions"><button type="button" onClick={() => { setDraft({ ...c }); setEditing(i); }}>编辑</button><button type="button" className="m-action-danger" onClick={() => setRemoving(i)}>删除</button></div></article>) : <Empty text="暂无联系人信息" />}
+    {contacts.length ? contacts.map((c, i) => <article className="m-entity-card" data-motion-key={"contact-" + c.id} key={c.id}><h3>{c.name || '联系人 ' + (i + 1)}</h3><Row label="电话">{c.phone || '—'}</Row><Row label="邮箱">{c.email || '—'}</Row><CardActions><button type="button" onClick={() => { setDraft({ ...c }); setEditing(i); }}>编辑</button><button type="button" className="m-action-danger" onClick={() => setRemoving(i)}>删除</button></CardActions></article>) : <Empty text="暂无联系人信息" />}
     <button type="button" className="m-dashed-add" onClick={() => { setDraft({ id: createSessionId(), name: '', phone: '', email: '', department: '', job: '', wechat: '', note: '' }); setEditing(-1); }}><UserRoundPlus aria-hidden="true" />添加联系人</button>
     {editing !== null && <div className="m-fullscreen-panel m-record-editor" role="dialog" aria-modal="true" aria-label={editing === -1 ? '新增联系人' : '编辑联系人'}>
       <Header title={editing === -1 ? '新增联系人' : '编辑联系人'} onBack={close} />

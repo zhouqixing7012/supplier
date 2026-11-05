@@ -642,3 +642,40 @@
 .mobile-page:not(.m-shot) .m-inviter-applicants .m-row { gap: 8px; }
 .mobile-page:not(.m-shot) .m-inviter-applicants .m-row > .m-label { width: 128px; max-width: 44%; }
 .mobile-page:not(.m-shot) .m-inviter-applicants .m-row > .m-value { padding-left: 13px; box-sizing: border-box; }
+
+/* 卡片操作栏由CardActions统一承载，父容器不再额外叠加底部留白。 */
+.mobile-page .m-card-actions { display: flex; justify-content: flex-end; align-items: center; flex-wrap: wrap; gap: 8px; margin: 0 -16px; padding: 8px 16px; border-top: 1px solid var(--m-border-subtle); }
+.mobile-page .m-card-actions > button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-width: 44px; min-height: 44px; margin: 0; padding: 0 8px; border: 0; border-radius: 0; background: transparent; color: var(--m-action); font: inherit; font-size: 14px; line-height: 20px; }
+.mobile-page .m-card-actions > button > svg { width: 18px; height: 18px; }
+.mobile-page .m-card-actions > button.m-action-danger { color: var(--m-danger-text); background: transparent; }
+.mobile-page .m-card-actions > button:disabled { opacity: .5; }
+.mobile-page .m-card-actions-split > button:first-child { margin-right: auto; }
+.mobile-page:not(.m-shot) :is(.m-card-body, .m-entity-card):has(> .m-card-actions),
+.mobile-page:not(.m-shot) .m-section:has(> .m-section-content > .m-card-actions) { padding-bottom: 0; }
+.mobile-page .m-row:has(+ .m-card-actions) { border-bottom: 0; }
+.mobile-page .m-supplier-card:has(> .m-card-actions) { overflow: hidden; }
+
+/* 门户以工作台承载导航，账户入口固定在身份卡片右上角。 */
+.mobile-page .m-workspace { padding-bottom: 16px; }
+.mobile-page .m-workspace:has(.m-actions) { padding-bottom: 90px; }
+.mobile-page .m-portal-home-identity { display: block; position: relative; }
+.m-portal-identity-heading { display: flex; align-items: center; gap: 8px; }
+.m-portal-identity-heading > svg { width: 22px; height: 22px; flex-shrink: 0; color: var(--m-action); }
+.mobile-page .m-portal-account-button { display: grid; place-items: center; width: 44px; height: 44px; flex-shrink: 0; margin: -8px -8px -8px 0; color: var(--m-text-secondary); }
+.m-portal-account-button > svg { width: 20px; height: 20px; }
+.m-portal-identity-details { margin: 12px 0; font-size: 14px; line-height: 22px; }
+.m-portal-identity-details > div { display: flex; gap: 12px; margin-top: 6px; }
+.m-portal-identity-details dt { flex: 0 0 56px; color: var(--m-text-secondary); }
+.m-portal-identity-details dd { flex: 1; min-width: 0; margin: 0; overflow-wrap: anywhere; }
+.mobile-page .m-portal-account-panel .m-picker-title { display: grid; grid-template-columns: 44px 1fr 44px; align-items: center; padding: 0 12px; min-height: 52px; }
+.m-portal-account-panel .m-picker-title > strong { grid-column: 2; text-align: center; font-size: 16px; }
+.mobile-page .m-portal-account-panel .m-picker-title > button { grid-column: 3; display: grid; place-items: center; width: 44px; height: 44px; }
+.m-account-panel-menu { padding: 0 16px; }
+.mobile-page .m-account-panel-menu > button { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 56px; border-bottom: 1px solid var(--m-border-subtle); text-align: left; font-size: 14px; }
+.m-account-panel-menu > button > span { flex: 1; }
+.m-account-panel-menu > button > svg { width: 20px; height: 20px; color: var(--m-text-secondary); }
+.m-account-panel-logout { padding: 16px; margin-top: 8px; border-top: 8px solid var(--m-background, #f4f7fa); }
+.mobile-page .m-account-panel-logout > button { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: 48px; color: var(--m-danger-text); font-size: 14px; }
+.m-account-panel-logout svg { width: 20px; height: 20px; }
+
+.m-portal-home-identity .m-portal-identity-details { margin-bottom: 0; }
