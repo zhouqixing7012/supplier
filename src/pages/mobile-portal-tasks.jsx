@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Actions, CardActions, FilterSummary, Empty, Field, FilterButton, Header, Row, SearchBox, Section, StatusTag } from './mobile-ui.jsx';
+import { Actions, CardActions, FilterSummary, Empty, FilterField, FilterButton, Header, Row, SearchBox, Section, StatusTag } from './mobile-ui.jsx';
 import { runMotion } from './mobile-motion.jsx';
 import { useBackLayer } from './mobile-interaction.jsx';
 import { remainingTime } from './mobile-portal-pricing.js';
@@ -38,10 +38,10 @@ export function PortalTaskList({ tab, inquiries, orders, store, go }) {
     </Section>) : <Empty search={filtered} text={!quote && handled && !filtered ? '暂无已处理的价税拆分记录' : quote ? '暂无匹配的询价单' : '暂无匹配的订单'} />}
 
     {open && <div className="m-fullscreen-panel m-portal-task-filter" role="dialog" aria-modal="true" aria-label={quote ? '筛选报价' : '筛选价税拆分'}><Header title={quote ? '筛选报价' : '筛选价税拆分'} onBack={() => runMotion(() => setOpen(false), 'back')} /><div className="m-filter-view">
-      <Field label={labels.company} value={draft.company || ''} onChange={value => change('company', value)} />
-      <Field label="采购类型" options={purchaseTypes} value={draft.type || ''} onChange={value => change('type', value)} />
-      <Field label="开始时间" type="date" layout="inline" allowClearDate value={draft.start || ''} onChange={value => change('start', value)} help="筛选创建时间不早于所选日期的单据" />
-      <Field label="结束时间" type="date" layout="inline" allowClearDate value={draft.end || ''} error={errors.end} onChange={value => change('end', value)} help="筛选结束时间不晚于所选日期的单据，包含所选日期当天" />
+      <FilterField label={labels.company} value={draft.company || ''} onChange={value => change('company', value)} />
+      <FilterField label="采购类型" options={purchaseTypes} value={draft.type || ''} onChange={value => change('type', value)} />
+      <FilterField label="开始时间" type="date" layout="inline" allowClearDate value={draft.start || ''} onChange={value => change('start', value)} help="筛选创建时间不早于所选日期的单据" />
+      <FilterField label="结束时间" type="date" layout="inline" allowClearDate value={draft.end || ''} error={errors.end} onChange={value => change('end', value)} help="筛选结束时间不晚于所选日期的单据，包含所选日期当天" />
       <Actions flat items={[{ label: '重置', muted: true, onClick: () => { setDraft({}); setErrors({}); } }, { label: '应用筛选', onClick: apply }]} />
     </div></div>}
   </>;

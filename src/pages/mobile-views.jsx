@@ -1,7 +1,7 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Check, ChevronDown, ClipboardList, Edit3, Filter, List, MoreHorizontal, Pencil, Plus, X } from 'lucide-react';
 import { QualificationInfo } from './mobile-qualifications.jsx';
-import { Actions, CardActions, RecordCard, RecordCollection, AttachmentLink, ChangeTag, Empty, Field, StatusTag, OptionSheet, Overlay, Row, SearchBox, Section, SupplierIdentityCard } from './mobile-ui.jsx';
+import { Actions, CardActions, RecordCard, RecordCollection, AttachmentLink, ChangeTag, Empty, Field, FilterField, StatusTag, OptionSheet, Overlay, Row, SearchBox, Section, SupplierIdentityCard } from './mobile-ui.jsx';
 import { BankCard, fieldsFor } from './mobile-forms.jsx';
 import { cooperation, supplierStates, supplierTypes, supplierIndustries } from './mobile-data.js';
 import { SwipeArea, attachmentName } from './mobile-interaction.jsx';
@@ -57,7 +57,7 @@ export function FilterView({ rating = false, initial = {}, onApply, onCancel, in
   const [department, setDepartment] = useState(false);
   const update = (key, value) => setData({ ...data, [key]: value });
   const fields = rating ? [['cooperationType', '合作类型', ['技术服务', '电子产品']], ['person', '业务线联系人'], ['department', '所属部门'], ['start', '评分开始时间', 'date'], ['end', '评分结束时间', 'date']] : [['type', '供应商类型', supplierTypes], ['status', '供应商状态', supplierStates], ['start', '邀请时间（起）', 'date'], ['end', '邀请时间（止）', 'date'], ['recommended', '供应商推荐', supplierIndustries], ['inviter', '邀请人']];
-  return <div className="m-filter-view">{fields.map(([key, label, kind]) => <Field key={key} label={label} allowClearDate={kind === 'date'} layout={kind === 'date' ? 'inline' : undefined} selectionMode="immediate" searchable={key === 'recommended'} value={data[key] || ''} type={kind === 'date' ? 'date' : 'text'} options={Array.isArray(kind) ? kind : undefined} onChange={v => update(key, v)} onPick={kind === 'department' ? () => setDepartment(true) : undefined} />)}<Actions flat items={[{ label: '重置', muted: true, onClick: () => setData({}) }, { label: '应用筛选', onClick: () => onApply(data) }]} />{department && <OptionSheet title="所属部门" value={data.department} options={[]} onChange={v => update('department', v)} onClose={() => setDepartment(false)} />}</div>;
+  return <div className="m-filter-view">{fields.map(([key, label, kind]) => <FilterField key={key} label={label} allowClearDate={kind === 'date'} layout={kind === 'date' ? 'inline' : undefined} selectionMode="immediate" searchable={key === 'recommended'} value={data[key] || ''} type={kind === 'date' ? 'date' : 'text'} options={Array.isArray(kind) ? kind : undefined} onChange={v => update(key, v)} onPick={kind === 'department' ? () => setDepartment(true) : undefined} />)}<Actions flat items={[{ label: '重置', muted: true, onClick: () => setData({}) }, { label: '应用筛选', onClick: () => onApply(data) }]} />{department && <OptionSheet title="所属部门" value={data.department} options={[]} onChange={v => update('department', v)} onClose={() => setDepartment(false)} />}</div>;
 }
 
 function ApprovalTimeline({ nodes = [] }) {
