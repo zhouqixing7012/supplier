@@ -746,7 +746,7 @@
 .mobile-page .m-option-radio { width: 20px; height: 20px; box-sizing: border-box; }
 .mobile-page .m-option-radio[data-selected=true] { border-color: var(--m-action); }
 .mobile-page .m-option-radio[data-selected=true] svg { color: var(--m-action); }
-.mobile-page .m-option-picker .m-sheet-options > button { display: flex; align-items: center; justify-content: space-between; gap: 12px; text-align: left; }
+.mobile-page .m-option-picker.has-selection-marks .m-sheet-options > button { display: flex; align-items: center; justify-content: space-between; gap: 12px; text-align: left; }
 .mobile-page .m-option-picker .m-sheet-options > button > span:first-child { flex: 1; min-width: 0; }
 /* 截图入口与普通入口也使用同一个多行计数规则。 */
 .mobile-page .m-field-block .m-field-control { position: relative; }
@@ -773,3 +773,7 @@
 .mobile-page .m-section-content > .m-empty { margin: 0; }
 .m-empty-art-frame { display: block; width: 128px; height: 93px; flex: none; }
 .m-empty-art-frame > .m-search-empty-art { display: block; transform: scale(.8); transform-origin: top left; }
+
+/* 简单单选是居中的动作列表，不能套用信息目录的右侧圆形标记。 */
+.mobile-page .m-option-picker.is-simple .m-sheet-options > button { display: flex; align-items: center; justify-content: center; text-align: center; }
+.mobile-page .m-option-picker.is-simple .m-sheet-options > button > span:first-child { text-align: center; }
