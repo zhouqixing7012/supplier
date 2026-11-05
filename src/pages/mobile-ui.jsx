@@ -161,8 +161,8 @@ export function Overlay({ children, label = '选择', onClose: closeOriginal, sh
   return host ? createPortal(overlay, host) : overlay;
 }
 
-// 重复记录共用空态、底部添加入口及卡片标题，避免各页面另画空白卡片。
-// 所有单选目录共用右侧选中标记，整行保持可点。
+// 重复记录共用分组标题、顶部添加入口及空态，避免各页面另画容器。
+// 搜索及信息目录按需使用右侧选中标记，整行保持可点。
 export function SelectionMark({ selected }) {
   return <span className="m-option-radio" data-selected={selected || undefined} aria-hidden="true">{selected && <Check />}</span>;
 }
@@ -172,10 +172,13 @@ export function PickerHeading({ title }) {
 }
 
 export function RecordCollection({ title, count = 0, emptyText, addLabel, onAdd, children, className = '' }) {
-  return <section className={'m-record-collection ' + className}>{count ? <><h2 className="m-record-collection-title">{title}</h2>{children}</> : <div className="m-record-empty-card"><h2 className="m-record-collection-title">{title}</h2><Empty text={emptyText || '暂无' + title} /></div>}{onAdd && <button type="button" className="m-record-add" onClick={onAdd}><Plus aria-hidden="true" />{addLabel}</button>}</section>;
+  return <section className={'m-record-collection ' + className}>
+    <div className="m-record-collection-header"><h2 className="m-record-collection-title">{title}</h2>{onAdd && <button type="button" className="m-record-add" aria-label={addLabel || '添加' + title} onClick={onAdd}><Plus aria-hidden="true" /><span>添加</span></button>}</div>
+    {count ? children : <div className="m-record-empty-card"><Empty text={emptyText || '暂无' + title} /></div>}
+  </section>;
 }
-export function RecordCard({ title, children, motionKey }) {
-  return <article className="m-record-card" data-motion-key={motionKey}><div className="m-record-card-heading"><h3>{title}</h3></div><div className="m-record-card-body">{children}</div></article>;
+export function RecordCard({ title, children, motionKey, status }) {
+  return <article className="m-record-card" data-motion-key={motionKey}><div className="m-record-card-heading"><h3>{title}</h3>{status}</div><div className="m-record-card-body">{children}</div></article>;
 }
 
 // 卡片内操作栏统一留白与触控范围，split仅用于列表主次布局。

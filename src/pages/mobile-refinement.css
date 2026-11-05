@@ -422,8 +422,6 @@
 /* 同行可编辑字段标签与输入值同字号，详情字段维持紧凑正文。 */
 .mobile-page:not(.m-shot) .m-field > label { font-size: var(--m-font-field); }
 .mobile-page:not(.m-shot) .m-field.m-field-inline > label { width: 128px; max-width: 44%; }
-.m-detail-records { margin: 12px 16px; }
-.m-detail-records .m-bank-card { margin: 0 0 12px; }
 .m-finance-value { overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
 @media (max-width: 359px) { .mobile-page:not(.m-shot) .m-field.m-field-inline > label { width: 112px; } }
 
@@ -744,15 +742,16 @@
 
 .m-region-empty { display: flex; align-items: center; justify-content: center; height: 100%; min-height: 88px; margin: 0; color: var(--m-text-secondary); font-size: 14px; text-align: center; }
 
-/* 重复记录共用集合空态、底部添加和标题内边距。 */
+/* 分组标题与添加保持同一顶部工具行，空态与记录使用同一宽度。 */
 .mobile-page .m-record-collection { margin: 12px 16px; }
 .mobile-page .m-section-content > .m-record-collection { margin-inline: 0; }
-.m-record-collection-title { margin: 0 0 12px; font-size: 16px; font-weight: 600; line-height: 26px; }
-.mobile-page .m-record-add { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: 44px; margin-top: 12px; border: 1px dashed var(--m-control-border); border-radius: 8px; background: white; color: var(--m-action); font-size: 14px; font-weight: 500; }
+.m-record-collection-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 44px; margin-bottom: 12px; }
+.m-record-collection-title { flex: 1; min-width: 0; margin: 0; font-size: 16px; font-weight: 600; line-height: 26px; }
+.mobile-page .m-record-add { display: inline-flex; flex-shrink: 0; align-items: center; justify-content: center; gap: 4px; min-height: 44px; padding: 0 4px; border: 0; background: transparent; color: var(--m-action); font-size: 14px; font-weight: 500; }
 .m-record-add svg { width: 18px; height: 18px; }
 .m-record-card { margin: 12px 0; border: 1px solid var(--m-border); border-radius: 12px; background: white; overflow: hidden; }
-.mobile-page .m-record-card-heading { padding: 14px 16px; border-bottom: 1px solid var(--m-border-subtle); }
-.mobile-page .m-record-card-heading h3 { margin: 0; padding: 0; font-size: 16px; line-height: 24px; }
+.mobile-page .m-record-card-heading { display: flex; align-items: flex-start; gap: 12px; padding: 14px 16px; border-bottom: 1px solid var(--m-border-subtle); }
+.mobile-page .m-record-card-heading h3 { flex: 1; min-width: 0; overflow-wrap: anywhere; margin: 0; padding: 0; font-size: 16px; line-height: 24px; }
 .m-record-card-body { padding: 0 16px; }
 .mobile-page:not(.m-shot) .m-record-collection .m-bank-card { margin: 12px 0; }
 .mobile-page:not(.m-shot) .m-rating-list { padding-inline: 16px; }
@@ -807,7 +806,6 @@
 .mobile-page .m-empty-bare { background: transparent; border: 0; border-radius: 0; margin: 12px 0; }
 .mobile-page .m-empty-card { background: white; border: 1px solid var(--m-border); border-radius: 12px; margin: 12px 16px; }
 .mobile-page .m-record-empty-card { background: white; border: 1px solid var(--m-border); border-radius: 12px; overflow: hidden; }
-.mobile-page .m-record-empty-card > .m-record-collection-title { padding: 14px 16px 0; margin: 0; }
 .mobile-page .m-record-empty-card > .m-empty { margin: 0; }
 .mobile-page .m-section-content > .m-empty { margin: 0; }
 .m-empty-art-frame { display: block; width: 128px; height: 93px; flex: none; }

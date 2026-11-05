@@ -386,13 +386,13 @@ try {
     await tabs.getByRole('button', { name: '银行信息', exact: true }).click();
     const bank = page.locator('#root .m-detail .m-record-collection .m-bank-card').first(); await bank.waitFor();
     const width = await bank.evaluate(n => Math.round(n.getBoundingClientRect().width));
-    const divider = node => node.locator('.m-record-heading').evaluate(n => getComputedStyle(n).borderBottomWidth);
+    const divider = node => node.locator('.m-record-heading,.m-record-card-heading').evaluate(n => getComputedStyle(n).borderBottomWidth);
     assert.equal(await divider(bank), '1px');
     await tabs.getByRole('button', { name: '财务OU', exact: true }).click();
-    const finance = page.locator('#root .m-detail-records .m-bank-card').first(); await finance.waitFor();
+    const finance = page.locator('#root .m-record-collection .m-record-card').first(); await finance.waitFor();
     assert.equal(await finance.evaluate(n => Math.round(n.getBoundingClientRect().width)), width); assert.equal(await divider(finance), '1px');
     await tabs.getByRole('button', { name: '黑名单操作记录', exact: true }).click();
-    const blacklist = page.locator('#root .m-detail-records .m-bank-card').first(); await blacklist.waitFor();
+    const blacklist = page.locator('#root .m-record-collection .m-record-card').first(); await blacklist.waitFor();
     assert.equal(await blacklist.evaluate(n => Math.round(n.getBoundingClientRect().width)), width); assert.equal(await divider(blacklist), '1px');
     await tabs.getByRole('button', { name: '合作信息及评分', exact: true }).click();
     const ratingList = page.locator('#root .m-rating-list'); assert.equal(await ratingList.evaluate(n => getComputedStyle(n).paddingLeft), '16px'); assert.equal(await ratingList.evaluate(n => getComputedStyle(n).paddingRight), '16px'); assert.equal(await ratingList.evaluate(n => Math.round(n.getBoundingClientRect().width - parseFloat(getComputedStyle(n).paddingLeft) - parseFloat(getComputedStyle(n).paddingRight))), width); const ratingCard = ratingList.locator('.m-bank-card').first(); if (await ratingCard.count()) { assert.equal(await ratingCard.locator(':scope > h3').evaluate(n => getComputedStyle(n).borderBottomWidth), '1px'); assert.equal(await ratingCard.locator(':scope > h3').evaluate(n => getComputedStyle(n).fontSize), '16px'); }
