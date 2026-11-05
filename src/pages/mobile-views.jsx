@@ -101,7 +101,7 @@ export function SupplierDetail({ supplier, initialTab = 0, approvalEmpty = false
 }
 
 export function RatingList({ entries = cooperation, onOpen, onEdit }) {
-  return <div className="m-rating-list">{entries.length ? entries.map(x => <article className="m-bank-card" key={x.id}><div className="m-record-heading"><h3>{x.name}</h3></div><div className="m-card-body">{[['记录编号', x.id], ['供应商名称', x.name], ['合作类型', x.type], ['合作内容', x.content], ['业务线联系人', x.person], ['所属部门', x.department], ['合作时间', x.date], ['评分时间', x.rated], ['评分', x.score]].map(([label, value]) => <Row compact key={label} label={label}>{value}</Row>)}{onOpen && <CardActions>{x.status === '未评分' ? <button onClick={() => onEdit(x)}>评分</button> : <><button onClick={() => onOpen(x)}>评分详情</button>{x.person === '陈才慧' && <button onClick={() => onEdit(x)}>修改评分</button>}</>}</CardActions>}</div></article>) : <Empty />}</div>;
+  return <div className="m-rating-list">{entries.length ? entries.map(x => <article className="m-bank-card" key={x.id}><h3>{x.name}</h3><div className="m-card-body">{[['记录编号', x.id], ['供应商名称', x.name], ['合作类型', x.type], ['合作内容', x.content], ['业务线联系人', x.person], ['所属部门', x.department], ['合作时间', x.date], ['评分时间', x.rated], ['评分', x.score]].map(([label, value]) => <Row compact key={label} label={label}>{value}</Row>)}{onOpen && <CardActions>{x.status === '未评分' ? <button onClick={() => onEdit(x)}>评分</button> : <><button onClick={() => onOpen(x)}>评分详情</button>{x.person === '陈才慧' && <button onClick={() => onEdit(x)}>修改评分</button>}</>}</CardActions>}</div></article>) : <Empty />}</div>;
 }
 
 export function PermissionCard({ data, onEdit, onDelete }) {
