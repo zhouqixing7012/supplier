@@ -1,6 +1,6 @@
 import { usePanelState } from './mobile-motion.jsx';
-import React, { useState } from 'react';
-import { Building2, FileClock, FileCheck2, Calculator, ClipboardCheck, Plane, Train, Hotel, Car, Plus, Mail, KeyRound, ChevronRight, X, LogOut } from 'lucide-react';
+import React, { useRef, useState } from 'react';
+import { Building2, FileClock, FileCheck2, Calculator, ClipboardCheck, Plane, Train, Hotel, Car, Upload, LoaderCircle, Plus, Mail, KeyRound, ChevronRight, X, LogOut } from 'lucide-react';
 import { Actions, PickerHeading, RecordCard, RecordCollection, AttachmentLink, Confirm, Empty, StatusTag, Field, Overlay, Row, Section, SearchBox } from './mobile-ui.jsx';
 import { QualificationInfo } from './mobile-qualifications.jsx';
 import { AddressForm, BankCard, BankFields, BasicFields, ContactFields, bankError, fieldsFor, filledBasic, blankBank } from './mobile-forms.jsx';
@@ -36,6 +36,52 @@ const travelEntryDefinitions = [
   { key: 'flight', label: '飞机账单', Icon: Plane },
   { key: 'rental', label: '租车账单', Icon: Car },
 ];
+async function forwardTravelBill(type, files) {
+  const adapter = window.__PORTAL_TRAVEL_UPLOAD__;
+  if (typeof adapter !== 'function') throw new Error('差旅上传接口尚未接入');
+  const result = await adapter({ type, files, timeoutMs: 180000 });
+  if (result === false || result?.success === false) throw new Error(result?.message || '差旅系统未确认上传成功');
+  return result;
+}
+
+function TravelBillUploadEntry({ entry, notify }) {
+  const inputRef = useRef(null);
+  const [status, setStatus] = useState('idle');
+  const [message, setMessage] = useState('');
+  const [fileNames, setFileNames] = useState([]);
+  const selectFiles = async event => {
+    const selected = Array.from(event.currentTarget.files || []);
+    event.currentTarget.value = '';
+    if (!selected.length) return;
+    setFileNames(selected.map(file => file.name));
+    setStatus('uploading');
+    setMessage('正在上传至差旅系统…');
+    try {
+      await forwardTravelBill(entry.key, selected);
+      setStatus('success');
+      setMessage(`上传成功，共 ${selected.length} 个附件`);
+      notify(entry.label + '上传成功');
+    } catch (error) {
+      const reason = error instanceof Error && error.message ? error.message : '上传失败，请重试';
+      setStatus('error');
+      setMessage(reason);
+      notify(reason);
+    }
+  };
+  return <div className="m-travel-upload-entry" data-travel-type={entry.key} data-upload-status={status}>
+    <div className="m-travel-entry-main">
+      <span className="m-travel-entry-icon"><entry.Icon aria-hidden="true" /></span>
+      <div className="m-travel-entry-copy"><strong>{entry.label}</strong></div>
+    </div>
+    <input ref={inputRef} className="m-file-input" type="file" multiple aria-label={entry.label + '附件'} onChange={selectFiles} />
+    <button type="button" className="m-travel-upload-button" aria-label={entry.label + '上传附件'} disabled={status === 'uploading'} onClick={() => inputRef.current?.click()}>
+      {status === 'uploading' ? <><LoaderCircle className="m-travel-upload-spinner" aria-hidden="true" />上传中</> : <><Upload aria-hidden="true" />上传附件</>}
+    </button>
+    {message && <p className="m-travel-upload-message" data-status={status} aria-live="polite">{message}</p>}
+    {fileNames.length > 0 && <p className="m-travel-upload-files">{fileNames.join('、')}</p>}
+  </div>;
+}
+
 function initialProfile() {
   const basic = { ...clone(filledBasic), supplierName: '协同门户演示供应商', registerEmail: 'supplier@example.com', address: '北京市/北京市/朝阳区 演示地址', businessScope: '技术与电子产品服务' };
   return { name: basic.supplierName, type: basic.type, email: basic.registerEmail, basic, status: '已审批', contacts: [{ id: 'portal-contact', name: '演示联系人', phone: '13800000000', email: 'supplier@example.com', department: '', job: '', wechat: '', note: '' }], banks: [{ ...clone(sampleBank), name: basic.supplierName }] };
@@ -58,20 +104,6 @@ export function PortalWorkspace({ scene, go, notify, store, onPreview, accountMe
   const closeBank = () => bankGuard.leave(() => setBankIndex(null));
   useBackLayer(bankIndex !== null, closeBank);
   const pending = store.portalPending;
-  const travelPermissionTypes = store.portalTravelEntryTypes ?? window.__PORTAL_TRAVEL_ENTRY_TYPES__;
-  const visibleTravelEntries = Array.isArray(travelPermissionTypes)
-    ? travelEntryDefinitions.filter(entry => travelPermissionTypes.includes(entry.key))
-    : travelEntryDefinitions;
-  const openTravelEntry = entry => {
-    const urlMap = store.portalTravelEntryUrls ?? window.__PORTAL_TRAVEL_ENTRY_URLS__ ?? {};
-    const rawUrl = urlMap[entry.key];
-    if (typeof rawUrl !== 'string' || !rawUrl.trim()) return notify(entry.label + '入口尚未接入');
-    let target;
-    try { target = new URL(rawUrl, window.location.origin); }
-    catch { return notify(entry.label + '入口地址无效'); }
-    if (!['http:', 'https:'].includes(target.protocol)) return notify(entry.label + '入口地址无效');
-    window.location.assign(target.href);
-  };
   const setInfoTab = i => { store.portalInfoTab = i; setTab(i); };
   const setTasks = i => { store.portalTaskTab = i; setTaskTab(i); };
   const cancel = () => guard.leave(() => { setDraft(clone(store.portalDraft || profile)); setEditing(false); });
@@ -99,7 +131,7 @@ export function PortalWorkspace({ scene, go, notify, store, onPreview, accountMe
       <section className="m-portal-home-identity" aria-label="当前供应商"><div className="m-portal-identity-heading"><Building2 aria-hidden="true" /><h2>{profile.name}</h2><StatusTag value={pending ? '变更中' : profile.status} /></div><dl className="m-portal-identity-details"><div><dt>账号</dt><dd>{store.portalAccount?.account || '演示供应商账号'}</dd></div><div><dt>注册邮箱</dt><dd>{profile.email}</dd></div></dl></section>
       {store.portalDraft && !pending && <button className="m-preview-edit" onClick={() => go('workspace-changes')}>继续提交资料修改</button>}
       {pending && <button className="m-preview-edit" onClick={() => go('workspace-approval')}>查看资料变更审批</button>}
-      {homeGroups.map(group => <section className="m-portal-home-group" key={group.title} aria-label={group.title}><h2>{group.title}</h2><div className="m-portal-entry-grid">{group.entries.map(({ label, lines, icon: Icon, color, route, task }) => <button key={label} aria-label={label} onClick={() => { if (task !== undefined) store.portalTaskTab = task; if (route === 'workspace-travel') store.portalTravelReturn = 'workspace-home'; if (route.startsWith('workspace-account-')) { store.portalSecurityReturn = 'workspace-home'; } go(route); }}><span className={'m-portal-entry-icon is-' + color}><Icon aria-hidden="true" />{pendingCount(task) > 0 && <span className="m-portal-pending-count" aria-label={pendingCount(task) + '项待处理'}>{pendingCount(task)}</span>}</span><span className="m-portal-entry-label">{lines.map(line => <span key={line}>{line}</span>)}</span></button>)}</div></section>)}
+      {homeGroups.map(group => <section className="m-portal-home-group" key={group.title} aria-label={group.title}><h2>{group.title}</h2><div className="m-portal-entry-grid">{group.entries.map(({ label, lines, icon: Icon, color, route, task }) => <button key={label} aria-label={label} onClick={() => { if (task !== undefined) store.portalTaskTab = task; if (route.startsWith('workspace-account-')) { store.portalSecurityReturn = 'workspace-home'; } go(route); }}><span className={'m-portal-entry-icon is-' + color}><Icon aria-hidden="true" />{pendingCount(task) > 0 && <span className="m-portal-pending-count" aria-label={pendingCount(task) + '项待处理'}>{pendingCount(task)}</span>}</span><span className="m-portal-entry-label">{lines.map(line => <span key={line}>{line}</span>)}</span></button>)}</div></section>)}
     </div>}
 
     {['workspace-account-email', 'workspace-account-password'].includes(scene) && <AccountSecurityForm kind={scene.endsWith('email') ? 'email' : 'password'} email={profile.email} onCancel={() => { go(store.portalSecurityReturn || 'workspace-home'); }} onComplete={value => {
@@ -123,7 +155,7 @@ export function PortalWorkspace({ scene, go, notify, store, onPreview, accountMe
     {scene === 'workspace-tasks' && <><Tabs showDirectory={false} stretch items={['待处理', '已处理']} active={taskTab % 2} onChange={i => setTasks((taskTab < 2 ? 0 : 2) + i)} /><SwipeArea active={taskTab % 2} count={2} onChange={i => setTasks((taskTab < 2 ? 0 : 2) + i)}><PortalTaskList key={taskTab} tab={taskTab} inquiries={inquiries} orders={orders} store={store} go={go} /></SwipeArea></>}
 
     {scene === 'workspace-quote-detail' && <PortalPricingDetail quote records={inquiries} store={store} go={go} notify={notify} onPreview={onPreview} />}
-    {scene === 'workspace-travel' && <><Section title="差旅账单" collapsible={false}><div className="m-travel-entry-list">{visibleTravelEntries.length ? visibleTravelEntries.map(({ key, label, Icon }) => <button type="button" key={key} className="m-travel-entry" data-travel-entry={key} aria-label={label} onClick={() => openTravelEntry({ key, label })}><span className="m-travel-entry-icon"><Icon aria-hidden="true" /></span><span className="m-travel-entry-copy"><strong>{label}</strong><small>进入差旅系统上传</small></span><span className="m-travel-entry-action">上传<ChevronRight aria-hidden="true" /></span></button>) : <Empty text="当前账号暂无可用的差旅账单入口" />}</div></Section><Actions items={[{ label: '返回工作台', secondary: true, onClick: () => go(store.portalTravelReturn || 'workspace-home') }]} />}</>}
+    {scene === 'workspace-travel' && <Section title="差旅账单" collapsible={false}><div className="m-travel-entry-list">{travelEntryDefinitions.map(entry => <TravelBillUploadEntry key={entry.key} entry={entry} notify={notify} />)}</div></Section>}
     {['workspace-tax-detail', 'workspace-tax-split'].includes(scene) && <PortalPricingDetail records={orders} store={store} go={go} notify={notify} onPreview={onPreview} />}
     {address && <Overlay sheet label="编辑注册地址" onClose={() => window.dispatchEvent(new CustomEvent('mobile-close-address'))}><div className="m-address-editor"><div className="m-picker-title"><strong>编辑注册地址</strong></div><AddressForm initial={draft.basic.address} onCancel={() => setAddress(false)} onConfirm={value => { setDraft({ ...draft, basic: { ...draft.basic, address: value } }); setAddress(false); }} /></div></Overlay>}
     {bankIndex !== null && <div className="m-fullscreen-panel" role="dialog" aria-modal="true" aria-label="门户银行编辑"><PickerHeading title={bankIndex < 0 ? '新增银行' : '修改银行'} /><BankFields bank={bank} setBank={setBank} company={profile.type === supplierTypes[0]} /><Actions items={[{ label: '取消', secondary: true, onClick: closeBank }, { label: '保存此账户', onClick: () => { const error = bankError(bank, profile.type === supplierTypes[0]); if (error) return notify(error); if (draft.banks.some((b, i) => i !== bankIndex && b.accountType === '基本账户' && bank.accountType === '基本账户')) return notify('基本账户只能有一个'); const entry = { ...bank, id: bankIndex < 0 ? createSessionId() : draft.banks[bankIndex].id }; setDraft({ ...draft, banks: bankIndex < 0 ? [...draft.banks, entry] : draft.banks.map((b, i) => i === bankIndex ? entry : b) }); bankGuard.accept(); setBankIndex(null); } }]} /></div>}

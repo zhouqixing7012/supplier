@@ -439,27 +439,56 @@ try {
     assert.equal(await warning.innerText(), '请您按照发票金额填写并检查，否则会影响后续付款！');
     assert.equal(await warning.evaluate(node => getComputedStyle(node).color), 'rgb(180, 35, 24)');
   });
-  await check('差旅账单仅展示权限入口，不提供账期和本地上传', async () => {
+  await check('差旅四类账单在当前页面上传并透传对应差旅入口', async () => {
     await goto('mobile/workspace-travel');
     assert.equal(await page.locator('#root').getByRole('textbox', { name: '账期', exact: true }).count(), 0);
-    assert.equal(await page.locator('#root input[type="file"]').count(), 0);
-    assert.equal(await button('保存草稿').count(), 0);
-    for (const label of ['火车账单', '酒店账单', '飞机账单', '租车账单']) assert.ok(await button(label).isVisible(), label);
-    await button('火车账单').click();
-    assert.ok(await page.locator('#root').getByText('火车账单入口尚未接入', { exact: true }).isVisible());
-    for (const [key, label] of [['train', '火车账单'], ['hotel', '酒店账单'], ['flight', '飞机账单'], ['rental', '租车账单']]) {
-      await goto('mobile/workspace-travel');
-      await page.evaluate(key => { window.__PORTAL_TRAVEL_ENTRY_URLS__ = { [key]: '/?travel-entry=' + key }; }, key);
-      await button(label).click();
-      await page.waitForURL(url => url.searchParams.get('travel-entry') === key);
+    assert.equal(await button('返回工作台').count(), 0);
+    assert.equal(await page.locator('#root .m-travel-upload-entry').count(), 4);
+    const entries = [['train', '火车账单'], ['hotel', '酒店账单'], ['flight', '飞机账单'], ['rental', '租车账单']];
+    for (const [key, label] of entries) {
+      const row = page.locator(`#root [data-travel-type="${key}"]`);
+      const input = row.getByLabel(label + '附件', { exact: true });
+      assert.equal(await input.evaluate(node => node.multiple), true);
+      assert.equal(await input.getAttribute('accept'), null);
+      assert.ok(await row.getByRole('button', { name: label + '上传附件', exact: true }).isVisible());
     }
-    const permissionPage = await context.newPage();
-    await permissionPage.addInitScript(() => { window.__PORTAL_TRAVEL_ENTRY_TYPES__ = ['train']; });
-    await permissionPage.goto(base + '/?permission-test=1#/mobile/workspace-travel');
-    await permissionPage.locator('#root [data-travel-entry="train"]').waitFor();
-    assert.equal(await permissionPage.locator('#root .m-travel-entry').count(), 1);
-    await permissionPage.close();
+    const select = async (type, names) => page.evaluate(({ type, names }) => {
+      const input = document.querySelector(`#root [data-travel-type="${type}"] input[type="file"]`);
+      const transfer = new DataTransfer();
+      names.forEach(name => transfer.items.add(new File(['bill'], name)));
+      Object.defineProperty(input, 'files', { configurable: true, value: transfer.files });
+      input.dispatchEvent(new Event('change', { bubbles: true }));
+    }, { type, names });
+    await page.evaluate(() => { delete window.__PORTAL_TRAVEL_UPLOAD__; });
+    await select('train', ['火车账单.pdf']);
+    await page.waitForFunction(() => document.querySelector('#root [data-travel-type="train"]')?.dataset.uploadStatus === 'error');
+    assert.ok(await page.locator('#root [data-travel-type="train"]').getByText('差旅上传接口尚未接入', { exact: true }).isVisible());
+    await page.evaluate(() => {
+      window.__PORTAL_TRAVEL_UPLOAD_CALLS__ = [];
+      window.__PORTAL_TRAVEL_UPLOAD__ = async ({ type, files, timeoutMs }) => {
+        window.__PORTAL_TRAVEL_UPLOAD_CALLS__.push({ type, names: files.map(file => file.name), timeoutMs });
+        return { success: true };
+      };
+    });
+    const selected = {
+      train: ['火车账单A.pdf', '火车账单B.txt'],
+      hotel: ['酒店账单.csv'],
+      flight: ['飞机账单.xlsx'],
+      rental: ['租车账单.bin']
+    };
+    for (const [key] of entries) {
+      await select(key, selected[key]);
+      await page.waitForFunction(key => document.querySelector(`#root [data-travel-type="${key}"]`)?.dataset.uploadStatus === 'success', key);
+    }
+    const calls = await page.evaluate(() => window.__PORTAL_TRAVEL_UPLOAD_CALLS__);
+    assert.deepEqual(calls, [
+      { type: 'train', names: ['火车账单A.pdf', '火车账单B.txt'], timeoutMs: 180000 },
+      { type: 'hotel', names: ['酒店账单.csv'], timeoutMs: 180000 },
+      { type: 'flight', names: ['飞机账单.xlsx'], timeoutMs: 180000 },
+      { type: 'rental', names: ['租车账单.bin'], timeoutMs: 180000 }
+    ]);
   });
+
   await check('门户待办角标、双邮箱验证及密码修改', async () => {
     await goto('mobile/workspace-home'); assert.equal(await page.locator('#root .m-portal-pending-count').count(), 2);
     await button('我的').click(); await button('修改注册邮箱').click(); await button('下一步').click(); assert.ok(await page.locator('#root').getByText('请输入邮箱验证码', {exact:true}).isVisible());
