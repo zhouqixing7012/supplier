@@ -209,6 +209,7 @@ try {
     assert.ok((await toggle.innerText()).includes('第 2 / 4 步')); assert.equal(await list.getAttribute('data-open'), 'false');
     assert.ok((await list.evaluate(n => getComputedStyle(n).transitionProperty)).includes('grid-template-rows'));
     await page.waitForTimeout(220); assert.ok(await list.evaluate(n => n.getBoundingClientRect().height < 1));
+    await toggle.click(); assert.equal(await toggle.getAttribute('aria-expanded'), 'true'); await page.waitForTimeout(200); assert.ok(await list.evaluate(n => n.getBoundingClientRect().height > 0)); await toggle.click(); assert.equal(await toggle.getAttribute('aria-expanded'), 'false');
     await goto('mobile/shot/200506'); const shotList = page.locator('#root .m-registration-step-list'); assert.equal(await shotList.evaluate(n => getComputedStyle(n).display), 'none');
   });
   await check('供应商蓝条与关键摘要默认可见，常用操作不藏菜单', async () => {
