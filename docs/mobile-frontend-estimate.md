@@ -75,7 +75,7 @@
 | B08 | 报价详情/办理 | `workspace-quote-detail`、`PortalPricingDetail` | P07 | 待处理编辑/已处理只读共用页面，报价字段与附件需验收 |
 | B09 | 价税拆分列表 | `workspace-tasks`价税模式、`PortalTaskList` | P06 | B07的另一业务模式，展示字段及筛选标签不同 |
 | B10 | 价税详情/办理 | `workspace-tax-detail`、`workspace-tax-split`、`PortalPricingDetail` | P07 | B08的另一业务模式；只读/编辑与数值联算须分别验收 |
-| B11 | 差旅账单录入 | `workspace-travel` | P08 | 账期、xls/xlsx文件选择/替换/移除及草稿 |
+| B11 | 差旅账单录入 | `workspace-travel` | P08 | 火车、酒店、飞机、租车四类授权入口及跳转；无权限、加载失败和入口不可用分别验收 |
 | B12 | 修改注册邮箱 | `workspace-account-email`、`AccountSecurityForm` | P09 | 与B13共用账户验证表单；旧邮箱/新邮箱分步验证属于业务状态 |
 | B13 | 修改密码 | `workspace-account-password`、`AccountSecurityForm` | P09 | 邮箱验证、密码输入/确认/校验分别验收 |
 | B14 | 新供应商账号注册 | `register-supplier`账号阶段、`SupplierAccountRegistration` | P10 | 邀请信息、账号、密码/确认密码、验证码及进入资料注册 |
@@ -157,3 +157,4 @@
 - `src/pages/mobile-forms.jsx`、`src/pages/mobile-qualifications.jsx`、`src/pages/mobile-registration-preview.jsx`：注册步骤及共享记录编辑。
 - `src/pages/mobile-account.jsx`、`src/pages/mobile-account-registration.jsx`：账户安全与新供应商账号注册。
 - `src/pages/mobile-ui.jsx`、`src/pages/mobile-interaction.jsx`、`src/pages/mobile-motion.jsx`：公共UI与交互基础。
+
