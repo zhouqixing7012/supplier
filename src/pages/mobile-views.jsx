@@ -11,7 +11,7 @@ import { canChangeSupplier, canRateSupplier, canReinviteSupplier, canDeleteSuppl
 import { MotionDetails, MotionPresence, runMotion } from './mobile-motion.jsx';
 
 export const mobileTabs = ['供应商查询', '我的邀请', '我的评分', '供应商评分', '供应商运维-评分查询', '银行信息申请'];
-export function Tabs({ active, onChange, items = mobileTabs, variant = 'line' }) {
+export function Tabs({ active, onChange, items = mobileTabs, variant = 'line', showDirectory = true, stretch = false }) {
   const ref = useRef(null);
   const [directory, setDirectory] = useState(false);
   useEffect(() => { let cancelled = false; const align = () => { const nav = ref.current; const node = nav?.querySelector('[aria-current="page"]'); if (!cancelled && node) nav.scrollLeft = active === items.length - 1 ? nav.scrollWidth - nav.clientWidth : Math.max(0, node.getBoundingClientRect().left - nav.getBoundingClientRect().left + nav.scrollLeft - (nav.clientWidth - node.clientWidth) / 2); }; align(); document.fonts.ready.then(align); return () => { cancelled = true; }; }, [active, items.length]);
@@ -21,7 +21,7 @@ export function Tabs({ active, onChange, items = mobileTabs, variant = 'line' })
     const align = () => { const button = nav?.querySelector('[aria-current="page"]'); if (!button) return; nav.style.setProperty('--m-indicator-x', button.offsetLeft + 'px'); nav.style.setProperty('--m-indicator-width', button.offsetWidth + 'px'); };
     align(); const observer = new ResizeObserver(align); observer.observe(nav); return () => observer.disconnect();
   }, [active, items.length]);
-  return <><div className={'m-tab-bar m-tab-motion ' + (variant === 'pill' ? 'm-tab-bar-pill' : '')}><nav ref={ref} className="m-tabs" data-active={active} aria-label="功能模块">{items.map((label, i) => <button className={active === i ? 'active' : ''} aria-current={active === i ? 'page' : undefined} key={label} onClick={() => choose(i)}><span className="m-tab-label">{label}</span></button>)}<span className="m-tab-indicator" aria-hidden="true" /></nav><button className="m-tab-directory" aria-label="全部标签" onClick={() => setDirectory(true)}><ChevronDown /></button></div>{directory && <OptionSheet title="全部标签" options={items} value={items[active]} clearable={false} onClose={() => setDirectory(false)} onChange={label => { const index = items.indexOf(label); if (index >= 0) choose(index); }} />}</>;
+  return <><div className={'m-tab-bar m-tab-motion ' + (variant === 'pill' ? 'm-tab-bar-pill' : '') + (stretch ? ' m-tab-bar-stretch' : '')}><nav ref={ref} className="m-tabs" data-active={active} aria-label="功能模块">{items.map((label, i) => <button className={active === i ? 'active' : ''} aria-current={active === i ? 'page' : undefined} key={label} onClick={() => choose(i)}><span className="m-tab-label">{label}</span></button>)}<span className="m-tab-indicator" aria-hidden="true" /></nav>{showDirectory && <button className="m-tab-directory" aria-label="全部标签" onClick={() => setDirectory(true)}><ChevronDown /></button>}</div>{showDirectory && directory && <OptionSheet title="全部标签" options={items} value={items[active]} clearable={false} onClose={() => setDirectory(false)} onChange={label => { const index = items.indexOf(label); if (index >= 0) choose(index); }} />}</>;
 }
 
 export function SupplierList({ suppliers, mine = false, batch = false, checked, setChecked, onDetail, onBank, onMore, onInviter, onReinvite, onEdit, onEditAll, onDelete, onScore, admin = false, filtered = false, batchKind = 'delete' }) {

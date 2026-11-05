@@ -1,6 +1,6 @@
 import { usePanelState } from './mobile-motion.jsx';
-import React, { useEffect, useState } from 'react';
-import { Check, FileText, ChevronRight, MoreHorizontal, Plus, Trash2, UserRoundPlus } from 'lucide-react';
+import React, { useEffect, useId, useState } from 'react';
+import { Check, FileText, ChevronDown, ChevronRight, MoreHorizontal, Plus, Trash2, UserRoundPlus } from 'lucide-react';
 import { QualificationInfo } from './mobile-qualifications.jsx';
 import { Actions, CardActions, ChangeTag, Confirm, DateSheet, Empty, Field, Header, OptionSheet, Overlay, Row, SearchBox, Section, UploadField } from './mobile-ui.jsx';
 import { bankNames, branches, people, permissionGroups, supplierTypes, supplierIndustries } from './mobile-data.js';
@@ -127,21 +127,31 @@ export function ContactFields({ contacts, setContacts }) {
 }
 
 export function AddressForm({ initial = '', startRegion = false, onConfirm, onCancel }) {
+  const regionId = useId();
   const split = initial.split(' ');
   const [region, setRegion] = useState(split[0] || '');
   const [detail, setDetail] = useState(split.slice(1).join(' ') || '');
   const guard = useDirtyForm({ region, detail });
   useEffect(() => { const close = () => guard.leave(onCancel); window.addEventListener('mobile-close-address', close); return () => window.removeEventListener('mobile-close-address', close); });
-  const [open, setOpen] = useState(startRegion);
+  const regionData = { '云南省': { '保山市': ['龙陵县'] }, '北京市': { '北京市': ['朝阳区', '海淀区'] }, '天津市': { '天津市': ['和平区'] }, '河北省': { '石家庄市': ['长安区'] } };
+  const initialParts = region.split('/').filter(Boolean);
+  const [selected, setSelected] = useState(() => initialParts.length === 2 && regionData[initialParts[0]]?.[initialParts[0]] ? [initialParts[0], initialParts[0], initialParts[1]] : initialParts);
+  const [open, setOpen] = useState(startRegion || !region);
   const [stage, setStage] = useState(0);
   const [regionSearch, setRegionSearch] = useState('');
-  const [selected, setSelected] = useState(region.split('/'));
-  const regionData = { '云南省': { '保山市': ['龙陵县'] }, '北京市': { '北京市': ['朝阳区', '海淀区'] }, '天津市': { '天津市': ['和平区'] }, '河北省': { '石家庄市': ['长安区'] } };
-  const provinces = Object.keys(regionData);
-  const options = stage === 0 ? provinces : stage === 1 ? Object.keys(regionData[selected[0]] || {}) : regionData[selected[0]]?.[selected[1]] || [];
-  return <><Field label="选择地址" required value={region} onPick={() => { setOpen(true); setStage(0); setRegionSearch(''); }} /><Field label="详细地址" required value={detail} maxLength={50} onChange={setDetail} /><Actions flat items={[{ label: '取消', muted: true, onClick: () => guard.leave(onCancel) }, { label: '确定', disabled: !region || !detail.trim(), onClick: () => { guard.accept(); onConfirm(`${region} ${detail}`); } }]} />
-    {open && <Overlay sheet label="省市区选择" onClose={() => setOpen(false)}><div className="m-region-head"><button aria-label="关闭地址选择" onClick={() => setOpen(false)}>关闭</button></div><div className="m-region-tabs">{[0, 1, 2].map(i => <button key={i} disabled={i > 0 && !selected[i - 1]} onClick={() => { setStage(i); setRegionSearch(''); }}>{selected[i] || ['省', '市', '区/县'][i]}</button>)}</div><SearchBox value={regionSearch} onChange={setRegionSearch} placeholder="搜索当前省市区" /><div className="m-sheet-options">{options.filter(x => x.includes(regionSearch.trim())).length ? options.filter(x => x.includes(regionSearch.trim())).map(x => <button key={x} className={selected[stage] === x ? 'selected' : ''} onClick={() => { const next = [...selected.slice(0, stage), x]; setSelected(next); if (stage === 2) { setRegion(next.join('/')); setOpen(false); } else { setStage(stage + 1); setRegionSearch(''); } }}>{x}{selected[stage] === x && <Check />}</button>) : <Empty text="暂无相关数据" />}</div></Overlay>}
-  </>;
+  const options = stage === 0 ? Object.keys(regionData) : stage === 1 ? Object.keys(regionData[selected[0]] || {}) : regionData[selected[0]]?.[selected[1]] || [];
+  const matches = options.filter(x => x.includes(regionSearch.trim()));
+  const choose = value => {
+    const next = [...selected.slice(0, stage), value];
+    setSelected(next); setRegionSearch('');
+    if (stage === 2) { setRegion(next.join('/')); setOpen(false); }
+    else setStage(stage + 1);
+  };
+  return <div className="m-address-form"><div className="m-address-fields">
+    <div className="m-field m-field-inline"><label htmlFor={regionId}><em>*</em><span className="m-field-name">省市区</span></label><div className="m-field-control"><button id={regionId} type="button" aria-label="省市区" aria-expanded={open} className="m-select-field" onClick={() => { setOpen(!open); setStage(0); setRegionSearch(''); }}><span className={!region ? 'm-placeholder' : ''}>{open ? selected.filter(Boolean).join(' / ') || '请选择省 / 市 / 区县' : region || '请选择省 / 市 / 区县'}</span><ChevronDown aria-hidden="true" /></button></div></div>
+    {open && <div className="m-region-panel"><div className="m-region-tabs" aria-label="选择省市区">{[0, 1, 2].map(i => <button type="button" key={i} aria-current={stage === i ? 'step' : undefined} disabled={i > 0 && !selected[i - 1]} onClick={() => { setStage(i); setRegionSearch(''); }}>{selected[i] || ['请选择省', '请选择市', '请选择区县'][i]}</button>)}</div><SearchBox value={regionSearch} onChange={setRegionSearch} placeholder={['搜索省份', '搜索城市', '搜索区县'][stage]} /><div className="m-sheet-options m-region-options">{matches.length ? matches.map(x => <button type="button" key={x} className={selected[stage] === x ? 'selected' : ''} onClick={() => choose(x)}><span>{x}</span>{selected[stage] === x && <Check aria-hidden="true" />}</button>) : <p className="m-region-empty" role="status">{regionSearch ? '暂无匹配地区' : '暂无可选地区'}</p>}</div></div>}
+    <Field label="详细地址" required multiline placeholder="请输入街道、门牌号等详细地址" value={detail} maxLength={50} onChange={setDetail} />
+  </div><Actions flat items={[{ label: '取消', muted: true, onClick: () => guard.leave(onCancel) }, { label: '确定', disabled: open || !region || !detail.trim(), onClick: () => { guard.accept(); onConfirm(`${region} ${detail}`); } }]} /></div>;
 }
 
 export function InviteForm({ initial, onSave, onCancel, notify }) {
