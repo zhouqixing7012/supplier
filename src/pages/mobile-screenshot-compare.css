@@ -1,0 +1,19 @@
+.m-screenshot-tools { font: 14px/1.5 "Microsoft YaHei",sans-serif; color: #1d2126; }
+.m-screenshot-tools * { box-sizing: border-box; }
+.m-screenshot-tools button,.m-screenshot-tools select { font: inherit; }
+.m-screenshot-tools button { cursor: pointer; border: 1px solid #d3d9e5; border-radius: 6px; padding: 7px 10px; background: #fff; color: #145cff; }
+.m-screenshot-tools button:focus-visible,.m-screenshot-tools select:focus-visible { outline: 2px solid #145cff; outline-offset: 2px; }
+.m-screenshot-toggle { position: fixed; right: 16px; top: 12px; z-index: 90; box-shadow: 0 2px 10px #18243915; }
+.m-screenshot-toggle[aria-checked="true"] { background: #e5f1ff; }
+.m-screenshot-toggle span { margin-left: 10px; }
+.m-screenshot-panel { position: fixed; left: calc(50% + 235px); right: 16px; top: 60px; bottom: 16px; z-index: 85; background: #fff; border: 1px solid #d3d9e5; border-radius: 10px; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 4px 20px #18243912; }
+.m-screenshot-panel header { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 12px; border-bottom: 1px solid #e2e6f0; }
+.m-screenshot-settings { padding: 12px; display: grid; gap: 8px; max-height: 45%; overflow: auto; }
+.m-screenshot-settings label { display: flex; align-items: center; gap: 8px; }
+.m-screenshot-settings select { width: 0; min-width: 0; flex: 1; padding: 6px; border: 1px solid #d3d9e5; border-radius: 4px; background: white; }
+.m-screenshot-settings small { color: #545b66; overflow-wrap: anywhere; }
+.m-screenshot-settings p { margin: 0; }
+.m-screenshot-scroll { flex: 1; min-height: 0; overflow: auto; border-top: 1px solid #e2e6f0; background: #f1f3f8; overscroll-behavior: contain; }
+.m-screenshot-scroll img { display: block; height: auto; }
+.m-screenshot-scroll p { margin: 16px; }
+@media(max-width: 1099px) { .m-screenshot-panel { left: auto; width: min(390px, calc(100vw - 24px)); z-index: 95; } .m-screenshot-toggle { top: auto; bottom: 92px; } }

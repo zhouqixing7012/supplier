@@ -14,6 +14,7 @@ import { RegistrationPreview } from './mobile-registration-preview.jsx';
 import { SupplierAccountRegistration } from './mobile-account-registration.jsx';
 import { ChangeComparison } from './mobile-changes.jsx';
 import { PrototypeReview } from './mobile-review.jsx';
+import { ScreenshotCompare } from './mobile-screenshot-compare.jsx';
 import './mobile-supplier.css';
 import './mobile-refinement.css';
 import './mobile-motion.css';
@@ -79,6 +80,7 @@ function MobileApp() {
   const restoring = useRef(null);
   const approvedBack = useRef(false);
   const [result, setResult] = useState(null);
+  const [comparisonState, setComparisonState] = useState({});
   const [route, setRoute] = useState(readRoute);
   const [suppliers, setSuppliers] = useState(() => clone(initialSuppliers));
   const [ratings, setRatings] = useState(() => clone(initialRatings));
@@ -132,10 +134,10 @@ function MobileApp() {
     }
   };
   const update = patch => setSuppliers(list => list.map(s => s.id === selected ? { ...s, ...patch, updated: patch.status ? now() : s.updated } : s));
-  return <>{scene === 'scenes' ? <SceneGallery /> : <><aside className="m-preview-nav" aria-label="原型导航"><a href="#/mobile/scenes">47 张截图</a><span>演示数据</span><a href="#/login">电脑端</a></aside><MotionPresence show={!!result} as="aside" className="m-result-banner" role="status">{result && <><strong>操作结果</strong><p>{result.text}</p><button aria-label="关闭操作结果" onClick={() => setResult(null)}>关闭</button></>}</MotionPresence><MobileSurface key={route} scene={scene} shot={shot} ratings={ratings} setRatings={setRatings} activeRating={activeRating} setActiveRating={setActiveRating} ratingReturn={ratingReturn} setRatingReturn={setRatingReturn} views={views.current} listReturn={listReturn} suppliers={suppliers} setSuppliers={setSuppliers} selectedId={selected} select={setSelected} update={update} go={go} notify={notify} /><PrototypeReview route={route} scope={scene} /></>}<MotionPresence show={!!message} as="div" className="m-toast" role="status">{message}</MotionPresence></>;
+  return <>{scene === 'scenes' ? <SceneGallery /> : <><aside className="m-preview-nav" aria-label="原型导航"><a href="#/mobile/scenes">47 张截图</a><span>演示数据</span><a href="#/login">电脑端</a></aside><MotionPresence show={!!result} as="aside" className="m-result-banner" role="status">{result && <><strong>操作结果</strong><p>{result.text}</p><button aria-label="关闭操作结果" onClick={() => setResult(null)}>关闭</button></>}</MotionPresence><MobileSurface onComparisonChange={setComparisonState} key={route} scene={scene} shot={shot} ratings={ratings} setRatings={setRatings} activeRating={activeRating} setActiveRating={setActiveRating} ratingReturn={ratingReturn} setRatingReturn={setRatingReturn} views={views.current} listReturn={listReturn} suppliers={suppliers} setSuppliers={setSuppliers} selectedId={selected} select={setSelected} update={update} go={go} notify={notify} /><PrototypeReview route={route} scope={scene} /><ScreenshotCompare state={comparisonState} /></>}<MotionPresence show={!!message} as="div" className="m-toast" role="status">{message}</MotionPresence></>;
 }
 
-function MobileSurface({ scene, shot, ratings, setRatings, activeRating, setActiveRating, ratingReturn, setRatingReturn, views, listReturn, suppliers, setSuppliers, selectedId, select, update, go, notify }) {
+function MobileSurface({ onComparisonChange, scene, shot, ratings, setRatings, activeRating, setActiveRating, ratingReturn, setRatingReturn, views, listReturn, suppliers, setSuppliers, selectedId, select, update, go, notify }) {
   const supplier = suppliers.find(s => s.id === selectedId) || suppliers[0] || clone(initialSuppliers[0]);
   const [portalAccountMenu, setPortalAccountMenu] = usePanelState(scene === 'workspace-account');
   const [search, setSearch] = useState(views[scene]?.search || '');
@@ -226,6 +228,18 @@ function MobileSurface({ scene, shot, ratings, setRatings, activeRating, setActi
       return () => clearTimeout(timer);
     }
   }, [scene, shot]);
+
+  useEffect(() => {
+    onComparisonChange({
+      scene, shotTime: shot?.time, filtering, expanded, batch, sheet: typeof sheet === 'string' ? sheet : null,
+      exportOpen, tip, showBankForm, permissionForm: !!permissionForm, peoplePicker, newInviter,
+      addressOpen, registerBankPicker, isRegistration, step, contacts: contacts.length,
+      registerBanks: registerBanks.length, bankSelected: !!(registerBankPicker ? registerBankForm.bank : bankForm.bank),
+      portalEmail, passwordScreen
+    });
+  }, [onComparisonChange, scene, shot?.time, filtering, expanded, batch, sheet, exportOpen, tip,
+    showBankForm, permissionForm, peoplePicker, newInviter, addressOpen, registerBankPicker,
+    isRegistration, step, contacts.length, registerBanks.length, registerBankForm.bank, bankForm.bank, portalEmail, passwordScreen]);
 
   const mine = scene.startsWith('mine') || scene === 'export';
   const listScene = scene.startsWith('query') || mine;
