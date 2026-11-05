@@ -505,29 +505,30 @@
 .m-pricing-warning { margin: 8px 20px 12px; color: #b42318; font-size: 14px; font-weight: 600; line-height: 1.6; }
 
 /* 差旅账单在当前页面选择附件，供应商服务将文件透传至对应差旅接口。 */
+.m-travel-page { margin: 12px 16px; }
 .m-travel-template { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 8px; margin: 0 0 12px; }
 .m-travel-template p { margin: 0; font-size: 12px; color: var(--m-text-secondary); }
 .mobile-page .m-travel-template button { display: inline-flex; align-items: center; gap: 5px; min-height: 44px; padding: 0; border: 0; background: transparent; color: var(--m-action); font-size: 14px; }
 .m-travel-template svg { width: 17px; height: 17px; }
 .m-travel-entry-list { display: flex; flex-direction: column; gap: 12px; padding: 0 0 4px; }
-.m-travel-upload-entry { position: relative; display: grid; gap: 8px; }
+.m-travel-upload-entry { position: relative; display: grid; gap: 8px; border: 1px solid var(--m-border); border-radius: 12px; background: white; overflow: hidden; }
 .m-travel-entry-icon { display: grid; place-items: center; flex: 0 0 40px; width: 40px; height: 40px; border-radius: 10px; background: #e6efff; color: var(--m-action); }
 .m-travel-entry-icon svg { width: 21px; height: 21px; stroke-width: 1.8; }
 .m-travel-entry-copy { display: flex; flex: 1; flex-direction: column; gap: 3px; min-width: 0; text-align: left; }
-.m-travel-entry-copy strong { color: var(--m-text); font-size: 15px; font-weight: 600; line-height: 1.5; }
+.m-travel-entry-copy strong { color: var(--m-text); font-size: 16px; font-weight: 600; line-height: 1.5; }
 .m-travel-entry-copy small { font-size: 12px; color: var(--m-text-secondary); }
-.mobile-page .m-travel-upload-button { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 80px; padding: 14px; border: 1px solid #e2eaf6; border-radius: 12px; background: #f7faff; color: var(--m-action); font-size: 14px; cursor: pointer; }
+.mobile-page .m-travel-upload-button { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 80px; padding: 14px; border: 0; border-radius: 0; background: transparent; color: var(--m-action); font-size: 14px; cursor: pointer; }
 .mobile-page .m-travel-upload-button > svg { flex-shrink: 0; width: 20px; height: 20px; }
 .mobile-page .m-travel-upload-button:disabled { opacity: .58; cursor: wait; }
 .mobile-page .m-travel-upload-button:focus-visible { outline: 2px solid var(--m-action); outline-offset: 2px; }
 .mobile-page .m-travel-upload-button:active:not(:disabled) { background: #edf3ff; }
 .m-travel-upload-spinner { animation: m-travel-upload-spin 1s linear infinite; }
 @keyframes m-travel-upload-spin { to { transform: rotate(360deg); } }
-.m-travel-upload-message, .m-travel-upload-files { grid-column: 1 / -1; margin: 0 0 0 52px; font-size: 12px; line-height: 1.5; overflow-wrap: anywhere; }
+.m-travel-upload-message, .m-travel-upload-files { grid-column: 1 / -1; margin: 0 14px 0 66px; font-size: 12px; line-height: 1.5; overflow-wrap: anywhere; }
 .m-travel-upload-message[data-status="uploading"] { color: var(--m-text-secondary); }
 .m-travel-upload-message[data-status="success"] { color: #15803d; }
 .m-travel-upload-message[data-status="error"] { color: #b42318; }
-.m-travel-upload-files { color: var(--m-text-secondary); }
+.m-travel-upload-files { margin-bottom: 14px; color: var(--m-text-secondary); }
 
 /* 明细编辑独立占满移动画布，固定操作栏与画布左右边界一致。 */
 .m-pricing-editor .m-actions { left: max(0px, calc((100vw - 430px) / 2)); transform: none; width: min(100%, 430px); z-index: 49; }

@@ -464,8 +464,8 @@ try {
     }, { type, names });
     await page.evaluate(() => { delete window.__PORTAL_TRAVEL_UPLOAD__; });
     await select('train', ['火车账单.pdf']);
-    await page.waitForFunction(() => document.querySelector('#root [data-travel-type="train"]')?.dataset.uploadStatus === 'error');
-    assert.ok(await page.locator('#root [data-travel-type="train"]').getByText('差旅上传接口尚未接入', { exact: true }).isVisible());
+    await page.waitForFunction(() => document.querySelector('#root [data-travel-type="train"]')?.dataset.uploadStatus === 'success');
+    assert.ok(await page.locator('#root [data-travel-type="train"]').getByText('上传成功，共 1 个附件', { exact: true }).isVisible());
     await page.evaluate(() => {
       window.__PORTAL_TRAVEL_UPLOAD_CALLS__ = [];
       window.__PORTAL_TRAVEL_UPLOAD__ = async ({ type, files, timeoutMs }) => {

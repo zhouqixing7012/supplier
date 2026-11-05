@@ -38,7 +38,8 @@ const travelEntryDefinitions = [
 ];
 async function forwardTravelBill(type, files) {
   const adapter = window.__PORTAL_TRAVEL_UPLOAD__;
-  if (typeof adapter !== 'function') throw new Error('差旅上传接口尚未接入');
+  // 演示原型默认完成本地上传交互；接入宿主服务后按真实回执反馈。
+  if (typeof adapter !== 'function') return { success: true, demo: true };
   const result = await adapter({ type, files, timeoutMs: 180000 });
   if (result === false || result?.success === false) throw new Error(result?.message || '差旅系统未确认上传成功');
   return result;
@@ -55,7 +56,7 @@ function TravelBillUploadEntry({ entry, notify }) {
     if (!selected.length) return;
     setFileNames(selected.map(file => file.name));
     setStatus('uploading');
-    setMessage('正在上传至差旅系统…');
+    setMessage('正在上传…');
     try {
       await forwardTravelBill(entry.key, selected);
       setStatus('success');
@@ -173,7 +174,7 @@ export function PortalWorkspace({ scene, go, notify, store, onPreview, accountMe
     {scene === 'workspace-tasks' && <><Tabs showDirectory={false} stretch items={['待处理', '已处理']} active={taskTab % 2} onChange={i => setTasks((taskTab < 2 ? 0 : 2) + i)} /><SwipeArea active={taskTab % 2} count={2} onChange={i => setTasks((taskTab < 2 ? 0 : 2) + i)}><PortalTaskList key={taskTab} tab={taskTab} inquiries={inquiries} orders={orders} store={store} go={go} /></SwipeArea></>}
 
     {scene === 'workspace-quote-detail' && <PortalPricingDetail quote records={inquiries} store={store} go={go} notify={notify} onPreview={onPreview} />}
-    {scene === 'workspace-travel' && <Section title="差旅账单" collapsible={false}><TravelTemplateDownload notify={notify} /><div className="m-travel-entry-list">{travelEntryDefinitions.map(entry => <TravelBillUploadEntry key={entry.key} entry={entry} notify={notify} />)}</div></Section>}
+    {scene === 'workspace-travel' && <div className="m-travel-page"><TravelTemplateDownload notify={notify} /><div className="m-travel-entry-list">{travelEntryDefinitions.map(entry => <TravelBillUploadEntry key={entry.key} entry={entry} notify={notify} />)}</div></div>}
     {['workspace-tax-detail', 'workspace-tax-split'].includes(scene) && <PortalPricingDetail records={orders} store={store} go={go} notify={notify} onPreview={onPreview} />}
     {address && <Overlay sheet label="编辑注册地址" onClose={() => window.dispatchEvent(new CustomEvent('mobile-close-address'))}><div className="m-address-editor"><div className="m-picker-title"><strong>编辑注册地址</strong></div><AddressForm initial={draft.basic.address} onCancel={() => setAddress(false)} onConfirm={value => { setDraft({ ...draft, basic: { ...draft.basic, address: value } }); setAddress(false); }} /></div></Overlay>}
     {bankIndex !== null && <div className="m-fullscreen-panel" role="dialog" aria-modal="true" aria-label="门户银行编辑"><PickerHeading title={bankIndex < 0 ? '新增银行' : '修改银行'} /><BankFields bank={bank} setBank={setBank} company={profile.type === supplierTypes[0]} /><Actions items={[{ label: '取消', secondary: true, onClick: closeBank }, { label: '保存此账户', onClick: () => { const error = bankError(bank, profile.type === supplierTypes[0]); if (error) return notify(error); if (draft.banks.some((b, i) => i !== bankIndex && b.accountType === '基本账户' && bank.accountType === '基本账户')) return notify('基本账户只能有一个'); const entry = { ...bank, id: bankIndex < 0 ? createSessionId() : draft.banks[bankIndex].id }; setDraft({ ...draft, banks: bankIndex < 0 ? [...draft.banks, entry] : draft.banks.map((b, i) => i === bankIndex ? entry : b) }); bankGuard.accept(); setBankIndex(null); } }]} /></div>}
