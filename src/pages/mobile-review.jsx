@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { ClipboardList, Download, MapPin, MessageSquarePlus, Pencil, Upload, X } from 'lucide-react';
 import { Confirm, Field, Overlay, PickerHeading } from './mobile-ui.jsx';
 import { createSessionId } from './mobile-interaction.jsx';
-import { REVIEW_STORAGE_KEY, REVIEW_VERSION, reviewDefinitions, reviewSelectors, validateReviewImport } from './mobile-review-data.js';
+import { REVIEW_STORAGE_KEY, REVIEW_VERSION, reviewDefinitions, reviewSelectors, reviewActionLabels, reviewAppliesToScope, validateReviewImport } from './mobile-review-data.js';
 import './mobile-review.css';
 
 const visible = element => !!element?.isConnected && !element.closest('[inert], [hidden], [data-review-ui]') && element.getClientRects().length > 0 && getComputedStyle(element).visibility !== 'hidden';
@@ -36,7 +36,17 @@ function elementTarget(element) {
 }
 function resolve(root, target) {
   const layer = activeLayer(root);
-  if (target.kind === 'component') { const matches = [...layer.querySelectorAll(reviewSelectors[target.key])].filter(element => visible(element) && !(target.key === 'empty' && element.closest('.m-record-collection'))); return matches.find(element => clippedBox(element)) || matches[0] || null; }
+  if (target.kind === 'component') {
+    if (target.key === 'prd-1.23' && !root.querySelector('.m-header h1')?.textContent.includes('价税拆分')) return null;
+    const selector = reviewSelectors[target.key];
+    if (!selector) return null;
+    const candidates = [...(layer.matches(selector) ? [layer] : []), ...layer.querySelectorAll(selector)];
+    const labels = reviewActionLabels[target.key];
+    const matches = candidates.filter(element => visible(element)
+      && !(target.key === 'empty' && element.closest('.m-record-collection'))
+      && (!labels || labels.includes(element.textContent.trim())));
+    return matches.find(element => clippedBox(element)) || matches[0] || null;
+  }
   const selector = target.type === 'field' ? '[data-field-label]' : target.type === 'action' ? 'button' : 'article, section, .m-reference-card, .m-field';
   const matches = [...layer.querySelectorAll(selector)].filter(element => {
     if (!visible(element) || contextOf(element) !== target.context) return false;
@@ -70,7 +80,7 @@ export function PrototypeReview({ route, scope }) {
   const anchors = useRef(new Map());
   const root = () => document.querySelector('#root .mobile-page');
   const notes = useMemo(() => {
-    const base = reviewDefinitions.map(([key, , title, body, doc]) => ({ id: scope + ':base:' + key, scope, title, body, target: { kind: 'component', key }, source: '已确认', doc }));
+    const base = reviewDefinitions.filter(([, , , , , scopes]) => reviewAppliesToScope(scopes, scope)).map(([key, , title, body, doc]) => ({ id: scope + ':base:' + key, scope, title, body, target: { kind: 'component', key }, source: 'PRD正文', doc }));
     const map = new Map(base.map(note => [note.id, note]));
     custom.filter(note => note.scope === scope).forEach(note => map.set(note.id, note));
     return [...map.values()];
@@ -100,7 +110,7 @@ export function PrototypeReview({ route, scope }) {
         const box = clippedBox(element);
         if (!box) return [];
         const { top, bottom } = box;
-        return [{ id: note.id, x: Math.max(0, Math.min(innerWidth - 44, innerWidth >= 1050 ? pageBox.right + 2 : Math.min(box.right - 22, pageBox.right - 44))), y: Math.max(48, Math.min(innerHeight - 132, top + 4)), anchorX: box.right - 4, anchorY: top + Math.min(24, (bottom - top) / 2), pageRight: pageBox.right }];
+        return [{ id: note.id, x: Math.max(0, Math.min(innerWidth - 44, document.body.classList.contains('m-screenshot-comparing') ? pageBox.right - 42 : innerWidth >= 1050 ? pageBox.right + 2 : Math.min(box.right - 22, pageBox.right - 44))), y: Math.max(48, Math.min(innerHeight - 132, top + 4)), anchorX: box.right - 4, anchorY: top + Math.min(24, (bottom - top) / 2), pageRight: pageBox.right }];
       });
       const order = [...anchors.current.entries()].sort(([, a], [, b]) => a.getBoundingClientRect().top - b.getBoundingClientRect().top);
       next.forEach(position => { position.number = order.findIndex(([id]) => id === position.id) + 1; });
@@ -114,10 +124,11 @@ export function PrototypeReview({ route, scope }) {
     const schedule = () => { settleUntil = performance.now() + 300; if (frame === null) frame = requestAnimationFrame(update); };
     schedule();
     const observer = new MutationObserver(mutations => { if (mutations.some(mutation => !mutation.target.closest?.('[data-review-ui]'))) schedule(); });
-    observer.observe(page, { childList: true, subtree: true, attributes: true, attributeFilter: ['hidden', 'inert', 'aria-expanded'] });
+    observer.observe(page, { childList: true, subtree: true, attributes: true, attributeFilter: ['hidden', 'inert', 'aria-expanded', 'aria-current', 'aria-selected', 'class'] });
     const resize = new ResizeObserver(schedule); resize.observe(page);
+    const bodyObserver = new MutationObserver(schedule); bodyObserver.observe(document.body, { attributes: true, attributeFilter: ['class'] });
     window.addEventListener('scroll', schedule, true); window.addEventListener('resize', schedule);
-    return () => { observer.disconnect(); resize.disconnect(); window.removeEventListener('scroll', schedule, true); window.removeEventListener('resize', schedule); if (frame !== null) cancelAnimationFrame(frame); };
+    return () => { observer.disconnect(); bodyObserver.disconnect(); resize.disconnect(); window.removeEventListener('scroll', schedule, true); window.removeEventListener('resize', schedule); if (frame !== null) cancelAnimationFrame(frame); };
   }, [enabled, notes, route, panel]);
   useEffect(() => {
     if (!enabled || !picking) return;
@@ -172,7 +183,7 @@ export function PrototypeReview({ route, scope }) {
   return <>
     {createPortal(<div data-review-ui data-panel={!!panel} className="m-review-controls"><button type="button" className={'m-review-switch ' + (enabled ? 'is-on' : '')} role="switch" aria-checked={enabled} aria-label="需求评审" onClick={() => leave(() => { setEnabled(!enabled); setPanel(null); setPicking(false); })}><ClipboardList aria-hidden="true" /><span>需求评审</span><i aria-hidden="true" /></button>{enabled && <div className="m-review-tools"><button type="button" onClick={() => { setPicking(false); setPanel('list'); }}><MapPin />查看标注</button><button type="button" aria-pressed={picking} onClick={() => { setPanel(null); setPicking(!picking); }}><MessageSquarePlus />{picking ? '取消选点' : '新增标注'}</button><button type="button" onClick={exportNotes}><Download />导出</button><button type="button" onClick={() => importInput.current?.click()}><Upload />导入</button><input ref={importInput} hidden type="file" accept="application/json,.json" onChange={importNotes} /></div>}{enabled && picking && <p className="m-review-pick-hint" role="status">点击字段、按钮或卡片添加标注</p>}{enabled && notice && !panel && <p className="m-review-pick-hint" role="status">{notice}</p>}{enabled && error && !panel && <p className="m-review-error" role="alert">{error}</p>}</div>, document.body)}
     {enabled && !panel && !picking && createPortal(<div data-review-ui className="m-review-marks">{positions.filter(position => position.y < innerHeight - 100).map(position => <button key={position.id} type="button" className={'m-review-pin ' + (selected?.id === position.id ? 'active' : '')} style={{ left: position.x, top: position.y }} aria-label={'需求标注：' + notes.find(note => note.id === position.id)?.title} onClick={() => { setActiveId(position.id); setPanel('list'); }}><span>{position.number}</span></button>)}{selected && selectedPosition && <><svg className="m-review-connector" aria-hidden="true"><defs><marker id="review-arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#f50000" /></marker></defs><path d={`M${calloutLeft},${calloutTop + 18} L${selectedPosition.anchorX + 30},${calloutTop + 18} L${selectedPosition.anchorX},${selectedPosition.anchorY}`} fill="none" stroke="#f50000" strokeWidth="1.5" markerEnd="url(#review-arrow)" /></svg><aside className="m-review-callout" style={{ left: calloutLeft, top: calloutTop }}><strong>{selected.title}</strong><p>{selected.body}</p><button type="button" onClick={() => edit(selected)}>编辑标注</button></aside></>}</div>, document.body)}
-    {enabled && panel && <Overlay sheet label={panel === 'edit' ? '编辑需求标注' : '需求标注'} onClose={closePanel}><div data-review-ui className="m-review-panel"><div className="m-review-panel-heading"><PickerHeading title={panel === 'edit' ? '编辑需求标注' : '需求标注'} /><button type="button" aria-label="关闭需求标注" onClick={closePanel}><X /></button></div>{error && <p className="m-review-error" role="alert">{error}</p>}{panel === 'edit' ? <><Field label="标注标题" required value={draft.title} maxLength={100} onChange={title => setDraft({ ...draft, title })} /><Field label="需求详情" required multiline maxLength={4000} value={draft.body} onChange={body => setDraft({ ...draft, body })} /><p className="m-review-storage-note">保存至此浏览器。导出标注文件可交给其他评审人；修改不会写入正式PRD。</p><div className="m-picker-actions"><button type="button" onClick={() => leave(() => setPanel('list'))}>返回标注列表</button><button type="button" className="primary" onClick={save}>保存标注</button></div></> : <><p className="m-review-scope">当前页面 · {shown.length} 条可定位标注</p><div className="m-review-note-list">{[...shown, ...locals].map(note => <button key={note.id} type="button" aria-pressed={selected?.id === note.id} onClick={() => setActiveId(note.id)}><span>{note.title}</span><small>{shown.some(item => item.id === note.id) ? note.source : '当前页面未显示'}</small></button>)}</div>{selected && <article className="m-review-note-detail"><h3>{selected.title}</h3><p>{selected.body}</p><small>{selected.source}</small>{selected.doc && <a href={'https://github.com/zhouqixing7012/supplier/blob/main/' + selected.doc} target="_blank" rel="noreferrer">查看对应文档</a>}<div className="m-picker-actions"><button type="button" onClick={() => locate(selected)}><MapPin />定位到原型</button><button type="button" className="primary" onClick={() => edit(selected)}><Pencil />编辑详情</button></div></article>}{!shown.length && !locals.length && <p className="m-review-storage-note">当前页面暂无标注，可关闭面板后使用新增标注。</p>}</>}</div></Overlay>}
+    {enabled && panel && <Overlay sheet label={panel === 'edit' ? '编辑需求标注' : '需求标注'} onClose={closePanel}><div data-review-ui className="m-review-panel"><div className="m-review-panel-heading"><PickerHeading title={panel === 'edit' ? '编辑需求标注' : '需求标注'} /><button type="button" aria-label="关闭需求标注" onClick={closePanel}><X /></button></div>{error && <p className="m-review-error" role="alert">{error}</p>}{panel === 'edit' ? <><Field label="标注标题" required value={draft.title} maxLength={100} onChange={title => setDraft({ ...draft, title })} /><Field label="需求详情" required multiline maxLength={4000} value={draft.body} onChange={body => setDraft({ ...draft, body })} /><p className="m-review-storage-note">保存至此浏览器。导出标注文件可交给其他评审人；修改不会写入正式PRD。</p><div className="m-picker-actions"><button type="button" onClick={() => leave(() => setPanel('list'))}>返回标注列表</button><button type="button" className="primary" onClick={save}>保存标注</button></div></> : <><p className="m-review-scope">当前页面 · {shown.length} 条可定位标注</p><div className="m-review-note-list">{[...shown, ...locals].map(note => <button key={note.id} type="button" aria-pressed={selected?.id === note.id} onClick={() => setActiveId(note.id)}><span>{note.title}</span><small>{shown.some(item => item.id === note.id) ? note.source : '当前页面未显示'}</small></button>)}</div>{selected && <article className="m-review-note-detail"><h3>{selected.title}</h3><p>{selected.body}</p><small>{selected.source}</small>{selected.doc && <a href={'https://github.com/zhouqixing7012/supplier/blob/main/' + selected.doc + (/^\d+\.\d+ /.test(selected.title) ? '#' + selected.title.replace(/\./g, '').replace(/ /g, '-').toLowerCase() : '')} target="_blank" rel="noreferrer">查看对应文档</a>}<div className="m-picker-actions"><button type="button" onClick={() => locate(selected)}><MapPin />定位到原型</button><button type="button" className="primary" onClick={() => edit(selected)}><Pencil />编辑详情</button></div></article>}{!shown.length && !locals.length && <p className="m-review-storage-note">当前页面暂无标注，可关闭面板后使用新增标注。</p>}</>}</div></Overlay>}
     {leaving && <Confirm unsaved confirmLabel="放弃修改" cancelLabel="继续编辑" text="本次标注尚未保存，是否放弃修改？" onCancel={() => setLeaving(false)} onConfirm={() => { setLeaving(false); leaveAction.current?.(); leaveAction.current = null; }} />}
   </>;
 }

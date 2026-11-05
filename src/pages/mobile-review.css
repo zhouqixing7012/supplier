@@ -50,3 +50,26 @@
 @media (prefers-reduced-motion: reduce) { .m-review-switch i::after { transition: none; } }
 .m-review-panel-heading > .m-picker-title { position: static; }
 .m-review-panel-heading > button { z-index: 3; }
+
+/* 对照模式把评审操作收进共用工具栏，标注文字留在原型一侧。 */
+@media (min-width: 768px) {
+  body.m-screenshot-comparing .m-review-controls {
+    left: calc(var(--compare-left) + 12px); right: auto; top: 22px; bottom: auto;
+    width: 146px; flex-direction: column; align-items: flex-start;
+  }
+  body.m-screenshot-comparing .m-review-switch { align-self: flex-start; min-height: 42px; box-shadow: none; }
+  body.m-screenshot-comparing .m-review-tools {
+    position: fixed; top: 88px; left: calc(var(--compare-left) + 88px);
+    width: calc(var(--compare-width) - 88px); height: 44px;
+    display: flex; gap: 0; padding: 0 2px; border: 0; box-shadow: none; border-radius: 0;
+  }
+  body.m-screenshot-comparing .m-review-tools button { flex: 1; padding: 2px; gap: 2px; font-size: 12px; white-space: nowrap; }
+  body.m-screenshot-comparing .m-review-tools svg { width: 13px; height: 13px; }
+  body.m-screenshot-comparing .m-review-callout {
+    display: block; left: calc(var(--compare-left) + 12px) !important; top: auto !important;
+    bottom: 16px; width: calc(var(--compare-width) - 24px); max-height: 180px;
+    padding: 10px 12px; box-sizing: border-box; background: #fff;
+    border: 1px solid #f5b6b2; border-radius: 8px; box-shadow: 0 3px 12px #16223a18;
+  }
+  body.m-screenshot-comparing .m-review-connector { display: none; }
+}

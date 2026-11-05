@@ -43,9 +43,13 @@ export function ScreenshotCompare({ state }) {
   const [layerScenes, setLayerScenes] = useState(null);
   const [manual, setManual] = useState('');
   const [failed, setFailed] = useState(false);
-  const [zoom, setZoom] = useState(50);
+  const [zoom, setZoom] = useState('fit');
   const scroll = useRef(null);
   const switchRef = useRef(null);
+  useLayoutEffect(() => {
+    document.body.classList.toggle('m-screenshot-comparing', enabled);
+    return () => document.body.classList.remove('m-screenshot-comparing');
+  }, [enabled]);
   useLayoutEffect(() => {
     if (!enabled) return;
     let frame;
@@ -73,17 +77,19 @@ export function ScreenshotCompare({ state }) {
   const close = () => { setEnabled(false); switchRef.current?.focus(); };
   return createPortal(<div data-review-ui className="m-screenshot-tools">
     <button ref={switchRef} type="button" className="m-screenshot-toggle" role="switch" aria-checked={enabled} aria-controls="original-screenshot-panel" onClick={() => setEnabled(value => !value)}>原图对照 <span>{enabled ? '开' : '关'}</span></button>
-    {enabled && <aside id="original-screenshot-panel" className="m-screenshot-panel" aria-label="当前页面原始截图">
-      <header><strong>原图对照</strong><button type="button" onClick={close} aria-label="关闭原图对照">关闭</button></header>
+    {enabled && <>
       <div className="m-screenshot-settings">
         {automatic.length > 0 ? <label>对应截图<select aria-label="选择当前页面对应截图" value={selected?.time || ''} onChange={event => setManual(event.target.value)}>{automatic.map(shot => <option key={shot.time} value={shot.time}>{shot.index}. {shot.title}</option>)}</select></label> : <p>当前页面或状态暂无对应的历史截图。</p>}
-        {selected && <><small>{selected.filename}</small><label>缩放<select aria-label="原图缩放" value={zoom} onChange={event => setZoom(Number(event.target.value))}>{[10, 25, 33, 50, 75, 100, 150, 200].map(value => <option key={value} value={value}>{value}%</option>)}</select></label></>}
-        <small>已接入 {Object.keys(originalScreenshots).length}/47 张原图，随当前页面和状态切换。</small>
+        {selected && <><small className="m-screenshot-filename">{selected.filename}</small><label>缩放<select aria-label="原图缩放" value={zoom} onChange={event => setZoom(event.target.value === 'fit' ? 'fit' : Number(event.target.value))}><option value="fit">与原型等宽</option>{[10, 25, 33, 50, 75, 100, 150, 200].map(value => <option key={value} value={value}>{value}%</option>)}</select></label></>}
+        <small className="m-screenshot-source-note">已接入 {Object.keys(originalScreenshots).length}/47 张原图</small>
       </div>
+      <div className="m-prototype-caption" aria-hidden="true">当前原型</div>
+      <aside id="original-screenshot-panel" className="m-screenshot-panel" aria-label="当前页面原始截图">
+      <header><strong>原始截图</strong><button type="button" onClick={close} aria-label="关闭原图对照">关闭</button></header>
       <div ref={scroll} className="m-screenshot-scroll">
-        {selected && src && !failed && <img key={src} src={src} alt={selected.title + '的原始截图'} style={{ width: zoom + '%', maxWidth: 'none' }} onError={() => setFailed(true)} />}
+        {selected && src && !failed && <img key={src} src={src} alt={selected.title + '的原始截图'} style={{ width: zoom === 'fit' ? '100%' : zoom + '%', maxWidth: 'none' }} onError={() => setFailed(true)} />}
         {selected && (failed || !src) && <p role="status">原图加载失败，请刷新页面重试。</p>}
       </div>
-    </aside>}
+    </aside></>}
   </div>, document.body);
 }

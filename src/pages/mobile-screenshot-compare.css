@@ -17,3 +17,98 @@
 .m-screenshot-scroll img { display: block; height: auto; }
 .m-screenshot-scroll p { margin: 16px; }
 @media(max-width: 1099px) { .m-screenshot-panel { left: auto; width: min(390px, calc(100vw - 24px)); z-index: 95; } .m-screenshot-toggle { top: auto; bottom: 92px; } }
+
+/* 开启对照后共用列宽和顶部基线，原型仍沿用页面原有的滚动及定位逻辑。 */
+.m-prototype-caption { display: none; }
+.m-screenshot-settings { position: fixed; z-index: 86; left: 12px; right: 12px; top: 60px; background: #fff; border: 1px solid #d3d9e5; border-radius: 8px; max-height: 180px; }
+@media (min-width: 768px) {
+  body.m-screenshot-comparing {
+    --compare-width: min(430px, calc((100vw - 64px) / 2));
+    --compare-left: calc((100vw - var(--compare-width) - var(--compare-width) - 24px) / 2);
+    --compare-right: calc(var(--compare-left) + var(--compare-width) + 24px);
+    padding-top: 132px;
+  }
+  body.m-screenshot-comparing #root .m-preview-nav { display: none; }
+  body.m-screenshot-comparing #root .mobile-page {
+    width: var(--compare-width); max-width: none;
+    margin: 0 0 0 var(--compare-left);
+    min-height: calc(100dvh - 132px);
+  }
+  body.m-screenshot-comparing #root .m-result-banner {
+    position: fixed; top: 132px; bottom: auto; left: var(--compare-left); right: auto;
+    width: var(--compare-width); max-width: none; margin: 0; z-index: 51;
+  }
+  body.m-screenshot-comparing .m-prototype-caption {
+    display: flex; position: fixed; top: 88px; left: var(--compare-left);
+    width: var(--compare-width); height: 44px; align-items: center;
+    padding: 0 12px; background: #fff; border: 1px solid #d3d9e5;
+    border-radius: 8px 8px 0 0; font-weight: 600; z-index: 84;
+  }
+  body.m-screenshot-comparing .m-screenshot-panel {
+    left: var(--compare-right); right: auto; top: 88px; bottom: 0;
+    width: var(--compare-width); border: 0; border-radius: 8px 8px 0 0;
+    box-shadow: none; z-index: 85;
+  }
+  body.m-screenshot-comparing .m-screenshot-panel header {
+    box-sizing: border-box; height: 44px; min-height: 44px;
+    padding: 0 12px; border: 1px solid #d3d9e5; border-radius: 8px 8px 0 0;
+  }
+  body.m-screenshot-comparing .m-screenshot-scroll {
+    border: 0; scrollbar-width: thin;
+    /* 滚动条不占图片宽度，确保默认比例与左栏等宽。 */
+  }
+  body.m-screenshot-comparing .m-screenshot-settings {
+    left: var(--compare-left); right: auto; top: 16px;
+    width: calc(var(--compare-width) + var(--compare-width) + 24px);
+    height: 56px; max-height: none; padding: 10px 130px 10px 172px;
+    display: flex; align-items: center; gap: 16px; overflow: visible;
+  }
+  body.m-screenshot-comparing .m-screenshot-settings label { flex: 1; min-width: 0; white-space: nowrap; }
+  body.m-screenshot-comparing .m-screenshot-filename,
+  body.m-screenshot-comparing .m-screenshot-source-note { display: none; }
+  body.m-screenshot-comparing .m-screenshot-toggle {
+    top: 26px; bottom: auto;
+    right: calc(var(--compare-left) + 12px); z-index: 90;
+  }
+  body.m-screenshot-comparing .mobile-page .m-header { top: 132px; }
+  body.m-screenshot-comparing .mobile-page .m-fullscreen-panel .m-header { top: 0; }
+  body.m-screenshot-comparing .mobile-page .m-fullscreen-panel {
+    top: 132px; bottom: 0; left: var(--compare-left); right: auto;
+    width: var(--compare-width); transform: none;
+  }
+  body.m-screenshot-comparing .mobile-page .m-actions,
+  body.m-screenshot-comparing .mobile-page .m-fullscreen-panel .m-actions,
+  body.m-screenshot-comparing .mobile-page .m-pricing-editor .m-actions,
+  body.m-screenshot-comparing .mobile-page .m-batch-actions,
+  body.m-screenshot-comparing .mobile-page .m-bottom-nav,
+  body.m-screenshot-comparing .mobile-page .m-android-nav,
+  body.m-screenshot-comparing .mobile-page .m-watermark {
+    left: var(--compare-left); width: var(--compare-width); transform: none;
+  }
+  body.m-screenshot-comparing .mobile-page .m-reference-list .m-actions,
+  body.m-screenshot-comparing .mobile-page .m-ops-filter .m-actions,
+  body.m-screenshot-comparing .mobile-page .m-export-panel .m-actions,
+  body.m-screenshot-comparing .mobile-page .m-address-form > .m-actions,
+  body.m-screenshot-comparing .mobile-page .m-address-editor > .m-actions {
+    left: 0; width: 100%; transform: none;
+  }
+  body.m-screenshot-comparing .mobile-page .m-reference-confirm .m-actions {
+    left: var(--compare-left); width: var(--compare-width);
+  }
+  body.m-screenshot-comparing .mobile-page .m-overlay {
+    left: var(--compare-left); right: auto; top: 132px; bottom: 0; width: var(--compare-width);
+  }
+  body.m-screenshot-comparing .mobile-page .m-fab,
+  body.m-screenshot-comparing .mobile-page .m-fab-group {
+    right: calc(100vw - var(--compare-left) - var(--compare-width) + 16px);
+  }
+  body.m-screenshot-comparing .mobile-page .m-vconsole {
+    left: var(--compare-left); right: auto;
+  }
+  body.m-screenshot-comparing .mobile-page .m-watermark { top: 217px; }
+  body.m-screenshot-comparing .m-toast { left: calc(var(--compare-left) + var(--compare-width) / 2); }
+}
+@media (max-width: 767px) {
+  .m-screenshot-settings { top: 16px; bottom: auto; max-height: 210px; overflow: auto; }
+  .m-screenshot-panel { top: 238px; }
+}
