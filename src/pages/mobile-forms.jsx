@@ -2,7 +2,7 @@ import { usePanelState } from './mobile-motion.jsx';
 import React, { useEffect, useId, useState } from 'react';
 import { Check, FileText, ChevronDown, ChevronRight, MoreHorizontal, Plus, Trash2, UserRoundPlus } from 'lucide-react';
 import { QualificationInfo } from './mobile-qualifications.jsx';
-import { Actions, CardActions, ChangeTag, Confirm, DateSheet, Empty, Field, Header, OptionSheet, Overlay, Row, SearchBox, Section, UploadField } from './mobile-ui.jsx';
+import { Actions, PickerHeading, CardActions, RecordCard, RecordCollection, ChangeTag, Confirm, DateSheet, Empty, Field, Header, OptionSheet, Overlay, Row, SearchBox, Section, UploadField } from './mobile-ui.jsx';
 import { bankNames, branches, people, permissionGroups, supplierTypes, supplierIndustries } from './mobile-data.js';
 import { createSessionId, useDirtyForm, useBackLayer, attachmentFiles, attachmentName } from './mobile-interaction.jsx';
 
@@ -28,14 +28,14 @@ export function BankFields({ bank, setBank, company = true, proofRequired = comp
     {company && <Field label="账户类型" required options={['基本账户', '一般账户']} value={bank.accountType} onChange={v => change('accountType', v)} />}
     <Field label="开户银行" required value={bank.bank} help="开户银行来自银行基础数据，未查询到时请联系业务对接人。" onPick={() => setPicker('bank')} />
     <Field label="银行分行" required value={bank.branch} help="选择开户银行后选择对应分行。" onPick={() => bank.bank ? setPicker('branch') : window.dispatchEvent(new CustomEvent('mobile-validation', { detail: '请先选择开户银行' }))} />
-    {!bank.branch && <p className="m-bank-location-note">选择银行分行后，国家、省、市自动带出。</p>}<Field label="开户行所在国家/地区" value={bank.country} readOnly />
+    <Field label="开户行所在国家/地区" value={bank.country} readOnly />
     <Field label="开户所在省" value={bank.province} readOnly /><Field label="开户所在市" value={bank.city} readOnly />
     </Section><Section title="账户信息"><Field label="账户名称" required value={bank.name} onChange={v => change('name', v)} maxLength={100} />
     <Field label="银行账号" required value={bank.number} onChange={v => change('number', v)} maxLength={50} />
     <Field label="币种" required options={['人民币', '美元', '港币']} value={bank.currency} onChange={v => change('currency', v)} />
     </Section><Section title="证明及备注"><UploadField label="开户证明" required={proofRequired} value={bank.proof} onChange={v => change('proof', v)} help="上传银行开户证明；个人供应商可不上传银行卡照片。" />
     <Field label="备注" multiline value={bank.note} onChange={v => change('note', v)} maxLength={400} />
-    </Section>{picker && <Overlay label={picker === 'bank' ? '开户银行' : '银行分行'} onClose={() => setPicker(null)} sheet><div className="m-picker-title"><button onClick={() => setPicker(null)}>取消</button><strong>{picker === 'bank' ? '开户银行' : '银行分行'}</strong></div><ReferenceList kind={picker} selected={picker === 'bank' ? bank.bank : bank.branch} bank={bank.bank} onCancel={() => setPicker(null)} onConfirm={v => { if (picker === 'bank') setBank({ ...bank, bank: v, branch: '', country: '', province: '', city: '' }); else { const branch = branches.find(x => x.name === v); setBank({ ...bank, branch: v, country: branch?.country || '', province: branch?.province || '', city: branch?.city || '' }); } setPicker(null); }} /></Overlay>}
+    </Section>{picker && <Overlay label={picker === 'bank' ? '开户银行' : '银行分行'} onClose={() => setPicker(null)} sheet><PickerHeading title={picker === 'bank' ? '开户银行' : '银行分行'} /><ReferenceList kind={picker} selected={picker === 'bank' ? bank.bank : bank.branch} bank={bank.bank} onCancel={() => setPicker(null)} onConfirm={v => { if (picker === 'bank') setBank({ ...bank, bank: v, branch: '', country: '', province: '', city: '' }); else { const branch = branches.find(x => x.name === v); setBank({ ...bank, branch: v, country: branch?.country || '', province: branch?.province || '', city: branch?.city || '' }); } setPicker(null); }} /></Overlay>}
   </div>;
 }
 
@@ -43,9 +43,9 @@ export function ReferenceList({ kind, selected = '', bank = bankNames[0], onCanc
   const [query, setQuery] = useState(initialSearch);
   const [pending, setPending] = useState(selected);
   const chosen = mode === 'confirm' ? pending : selected;
-  const entries = kind === 'bank' ? bankNames.map(name => ({ name, rows: [['国家（地区）代码', 'CN'], ['国家（地区）', '中国']] })) : kind === 'branch' ? branches.filter(x => x.bank === bank).map(x => ({ name: x.name, rows: [['银行名称', x.bank], ['国家（地区）代码', 'CN'], ['国家（地区）', x.country], ['省份', x.province], ['城市', x.city]] })) : query ? people.filter(x => [x.name, x.userCode, x.phone].some(v => v?.includes(query))).map(x => ({ name: x.name, searchText: [x.name, x.userCode, x.phone].join(' '), rows: [['工号', x.userCode], ['座机', x.phone], ['邮箱', x.email], ['职位', x.job], ['部门', x.department]] })) : [];
+  const entries = kind === 'bank' ? bankNames.map(name => ({ name, rows: [['国家（地区）代码', 'CN'], ['国家（地区）', '中国']] })) : kind === 'branch' ? branches.filter(x => x.bank === bank).map(x => ({ name: x.name, rows: [['银行名称', x.bank], ['国家（地区）代码', 'CN'], ['国家（地区）', x.country], ['省份', x.province], ['城市', x.city]] })) : query ? people.filter(x => [x.name, x.userCode, x.phone].some(v => v?.includes(query))).map(x => ({ name: x.name, code: x.userCode, searchText: [x.name, x.userCode, x.phone].join(' '), rows: [['座机', x.phone], ['邮箱', x.email], ['职位', x.job], ['部门', x.department]] })) : [];
   const matches = entries.filter(x => (x.searchText || x.name).includes(query));
-  return <div className={'m-reference-list' + (mode === 'confirm' ? ' m-reference-confirm' : '')}><SearchBox value={query} onChange={setQuery} placeholder={kind === 'people' ? '搜索姓名或工号' : '搜索银行或分行名称'} /><div className="m-reference-content">{matches.length ? matches.map(x => <label key={x.name} className="m-reference-card"><input type="radio" name={`reference-${kind}`} value={x.name} checked={chosen === x.name} readOnly onClick={() => mode === 'confirm' ? setPending(x.name) : onConfirm(x.name)} /><span className="m-radio">{chosen === x.name && <Check />}</span><div><h3>{x.name}</h3>{x.rows.map(([label, value]) => <Row key={label} label={label} compact>{value}</Row>)}</div></label>) : <Empty search={!!query} text={kind === 'people' && !query ? '请输入姓名搜索人员' : query ? '没有匹配结果，请调整关键词' : kind === 'branch' ? '当前银行没有可用分行，请核对银行或申请补充银行信息' : '暂无可用数据'} />}</div><Actions flat items={[{ label: '取消', muted: true, onClick: onCancel }, ...(mode === 'confirm' ? [{ label: '确认', disabled: !pending, onClick: () => onConfirm(pending) }] : [])]} /></div>;
+  return <div className={'m-reference-list' + (mode === 'confirm' ? ' m-reference-confirm' : '')}><SearchBox value={query} onChange={setQuery} placeholder={kind === 'people' ? '搜索姓名或工号' : '搜索银行或分行名称'} /><div className="m-reference-content">{matches.length ? matches.map(x => <label key={x.name} className="m-reference-card"><input type="radio" name={`reference-${kind}`} value={x.name} checked={chosen === x.name} readOnly onClick={() => mode === 'confirm' ? setPending(x.name) : onConfirm(x.name)} /><span className="m-radio">{chosen === x.name && <Check />}</span><div><div className="m-reference-heading"><h3>{x.name}</h3>{kind === 'people' && <span className="m-person-code">工号 {x.code || '—'}</span>}</div>{x.rows.map(([label, value]) => <Row key={label} label={label} compact>{value}</Row>)}</div></label>) : <Empty search={!!query} text={kind === 'people' && !query ? '请输入姓名搜索人员' : query ? '没有匹配结果，请调整关键词' : kind === 'branch' ? '当前银行没有可用分行，请核对银行或申请补充银行信息' : '暂无可用数据'} />}</div><Actions flat items={[{ label: '取消', muted: true, onClick: onCancel }, ...(mode === 'confirm' ? [{ label: '确认', disabled: !pending, onClick: () => onConfirm(pending) }] : [])]} /></div>;
 }
 
 export function BankCard({ bank, onEdit, onDelete, onPreview, deleteDisabledReason = '', fileProof = false }) {
@@ -110,9 +110,9 @@ export function ContactFields({ contacts, setContacts }) {
   const guard = useDirtyForm(draft, editing !== null);
   const close = () => guard.leave(() => setEditing(null));
   useBackLayer(editing !== null, close);
-  return <Section title="联系人信息" collapsible={false} className="m-contact-section">
-    {contacts.length ? contacts.map((c, i) => <article className="m-entity-card" data-motion-key={"contact-" + c.id} key={c.id}><h3>{c.name || '联系人 ' + (i + 1)}</h3><Row label="电话">{c.phone || '—'}</Row><Row label="邮箱">{c.email || '—'}</Row><CardActions><button type="button" onClick={() => { setDraft({ ...c }); setEditing(i); }}>编辑</button><button type="button" className="m-action-danger" onClick={() => setRemoving(i)}>删除</button></CardActions></article>) : <Empty text="暂无联系人信息" />}
-    <button type="button" className="m-dashed-add" onClick={() => { setDraft({ id: createSessionId(), name: '', phone: '', email: '', department: '', job: '', wechat: '', note: '' }); setEditing(-1); }}><UserRoundPlus aria-hidden="true" />添加联系人</button>
+  return <><RecordCollection title="联系人信息" count={contacts.length} emptyText="暂无联系人信息" addLabel="添加联系人" onAdd={() => { setDraft({ id: createSessionId(), name: '', phone: '', email: '', department: '', job: '', wechat: '', note: '' }); setEditing(-1); }}>
+    {contacts.map((c, i) => <RecordCard motionKey={'contact-' + c.id} key={c.id} title={c.name || '联系人 ' + (i + 1)}><Row label="电话">{c.phone || '—'}</Row><Row label="邮箱">{c.email || '—'}</Row><CardActions><button type="button" onClick={() => { setDraft({ ...c }); setEditing(i); }}>编辑</button><button type="button" className="m-action-danger" onClick={() => setRemoving(i)}>删除</button></CardActions></RecordCard>)}
+  </RecordCollection>
     {editing !== null && <div className="m-fullscreen-panel m-record-editor" role="dialog" aria-modal="true" aria-label={editing === -1 ? '新增联系人' : '编辑联系人'}>
       <Header title={editing === -1 ? '新增联系人' : '编辑联系人'} onBack={close} />
       <Section title="联系人信息" collapsible={false}>{[['name', '姓名', true], ['phone', '电话', true], ['email', '邮箱', true], ['department', '部门'], ['job', '职位'], ['wechat', '微信'], ['note', '备注']].map(([key, label, required]) => <Field key={key} label={label} required={required} value={draft[key] || ''} type={key === 'email' ? 'email' : 'text'} multiline={key === 'note'} maxLength={['department', 'job'].includes(key) ? 50 : key === 'note' ? 400 : undefined} onChange={value => setDraft({ ...draft, [key]: value })} />)}</Section>
@@ -123,7 +123,7 @@ export function ContactFields({ contacts, setContacts }) {
       } }]} />
     </div>}
     {removing !== null && <Confirm danger text="确认删除这位联系人？" onCancel={() => setRemoving(null)} onConfirm={() => { setContacts(contacts.filter((_, i) => i !== removing)); setRemoving(null); }} />}
-  </Section>;
+  </>;
 }
 
 export function AddressForm({ initial = '', startRegion = false, onConfirm, onCancel }) {

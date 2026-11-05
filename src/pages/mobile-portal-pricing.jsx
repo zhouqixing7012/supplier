@@ -71,7 +71,7 @@ export function PortalPricingDetail({ quote, records, store, go, notify, onPrevi
     <section className="m-portal-object-summary" aria-label={quote ? '询价摘要' : '采购订单摘要'}>
       <div className="m-record-heading"><h2>{quote ? draft.title : draft.number}</h2><StatusTag value={quote ? draft.inquiryStatus : draft.status} /></div>
       {quote && <p className="m-portal-record-number" aria-label="询价单号">{draft.number}</p>}
-      {quote && editable && <p className="m-input-note">{expired ? '报价已截止' : '报价截止时间：' + draft.end + '，超时自动取消报价资格。'}</p>}
+      {quote && editable && <p className="m-input-note m-quote-deadline">{expired ? '报价已截止' : '报价截止时间：' + draft.end + '，超时自动取消报价资格。'}</p>}
       {quote && (editable ? <Field label="税率（%）" inputMode="decimal" value={draft.rate} onChange={changeRate} /> : <Row label="税率（%）">{draft.rate || '—'}</Row>)}
       {!quote && editable && <p className="m-input-note">请按发票金额填写并检查，以免影响后续付款。</p>}
     </section>

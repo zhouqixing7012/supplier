@@ -1,6 +1,6 @@
 import { createPortal } from 'react-dom';
 import React, { useEffect, useId, useRef, useState } from 'react';
-import { Camera, CalendarDays, FileText, Paperclip, Check, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, HelpCircle, Eye, EyeOff, X } from 'lucide-react';
+import { Camera, CalendarDays, FileText, Paperclip, Check, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, HelpCircle, Eye, EyeOff, X, Plus } from 'lucide-react';
 import { useBackLayer, rememberAttachment, attachmentFiles, attachmentName } from './mobile-interaction.jsx';
 
 import { useOverlayExit, runMotion } from './mobile-motion.jsx';
@@ -157,6 +157,18 @@ export function Overlay({ children, label = '选择', onClose: closeOriginal, sh
   return host ? createPortal(overlay, host) : overlay;
 }
 
+// 重复记录共用空态、底部添加入口及卡片标题，避免各页面另画空白卡片。
+export function PickerHeading({ title }) {
+  return <div className="m-picker-title m-common-picker-heading"><strong>{title}</strong></div>;
+}
+
+export function RecordCollection({ title, count = 0, emptyText, addLabel, onAdd, children, className = '' }) {
+  return <section className={'m-record-collection ' + className}><h2 className="m-record-collection-title">{title}</h2>{count ? children : <Empty text={emptyText || '暂无' + title} />}{onAdd && <button type="button" className="m-record-add" onClick={onAdd}><Plus aria-hidden="true" />{addLabel}</button>}</section>;
+}
+export function RecordCard({ title, children, motionKey }) {
+  return <article className="m-record-card" data-motion-key={motionKey}><div className="m-record-card-heading"><h3>{title}</h3></div><div className="m-record-card-body">{children}</div></article>;
+}
+
 // 卡片内操作栏统一留白与触控范围，split仅用于列表主次布局。
 export function CardActions({ children, split = false }) {
   return <div className={'m-card-actions' + (split ? ' m-card-actions-split' : '')}>{children}</div>;
@@ -209,7 +221,7 @@ export function DateSheet({ title, value, onChange: changeOriginal, onClose: clo
     current[2] = Math.min(current[2], new Date(current[0], current[1], 0).getDate());
     runMotion(() => { onChange(`${current[0]}-${String(current[1]).padStart(2, '0')}-${String(current[2]).padStart(2, '0')}`); closeOriginal(); }, 'sheet-close');
   };
-  return <Overlay label={title} onClose={onClose} sheet><div className="m-date-picker"><div className="m-picker-title"><button onClick={onClose}>取消</button><strong>{title}</strong><span /></div><p className="m-date-selection" aria-live="polite">{date[0]}年{date[1]}月{Math.min(date[2], days)}日</p><div className="m-date-columns" aria-hidden="true"><span>年</span><span>月</span><span>日</span></div><div ref={wheels} className="m-date-wheels" data-no-swipe>{values.map((items, i) => <DateWheel key={i} label={['年', '月', '日'][i]} values={items} value={Math.min(date[i], i === 2 ? days : date[i])} onChange={v => setDate(old => { const next = old.map((x, n) => n === i ? v : x); next[2] = Math.min(next[2], new Date(next[0], next[1], 0).getDate()); return next; })} />)}</div>{(allowLong || allowClear) && <div className="m-date-shortcuts">{allowLong && <button onClick={() => { onChange('长期'); onClose(); }}>长期</button>}{allowClear && <button onClick={() => { onChange(''); onClose(); }}>清空日期</button>}</div>}<div className="m-picker-actions"><button type="button" className="primary" onClick={confirm}>确认</button></div></div></Overlay>;
+  return <Overlay label={title} onClose={onClose} sheet><div className="m-date-picker"><PickerHeading title={title} /><p className="m-date-selection" aria-live="polite">{date[0]}年{date[1]}月{Math.min(date[2], days)}日</p><div className="m-date-columns" aria-hidden="true"><span>年</span><span>月</span><span>日</span></div><div ref={wheels} className="m-date-wheels" data-no-swipe>{values.map((items, i) => <DateWheel key={i} label={['年', '月', '日'][i]} values={items} value={Math.min(date[i], i === 2 ? days : date[i])} onChange={v => setDate(old => { const next = old.map((x, n) => n === i ? v : x); next[2] = Math.min(next[2], new Date(next[0], next[1], 0).getDate()); return next; })} />)}</div>{(allowLong || allowClear) && <div className="m-date-shortcuts">{allowLong && <button onClick={() => { onChange('长期'); onClose(); }}>长期</button>}{allowClear && <button onClick={() => { onChange(''); onClose(); }}>清空日期</button>}</div>}<div className="m-picker-actions"><button type="button" onClick={onClose}>取消</button><button type="button" className="primary" onClick={confirm}>确认</button></div></div></Overlay>;
 }
 
 export function OptionSheet({ title, options = [], value, onChange, onClose: closeOriginal, mode = 'immediate', searchable = false, clearable = true }) {
@@ -219,7 +231,7 @@ export function OptionSheet({ title, options = [], value, onChange, onClose: clo
   const [query, setQuery] = useState('');
   const matches = options.filter(x => x.includes(query.trim()));
   const clear = () => { if (mode === 'immediate') { choose(''); } else setSelected(''); };
-  return <Overlay label={title} onClose={onClose} sheet><div className={'m-option-picker ' + (searchable ? 'is-searchable' : 'is-simple')}><div className="m-picker-title"><strong>{title}</strong></div>{searchable && <SearchBox value={query} onChange={setQuery} placeholder={'搜索' + title} />}<div className="m-sheet-options">{matches.length ? matches.map(x => <button type="button" aria-pressed={x === selected} className={x === selected ? 'selected' : ''} key={x} onClick={() => { if (mode === 'immediate') { choose(x); } else setSelected(x); }}><span>{x}</span>{searchable && <span className="m-option-radio" aria-hidden="true">{x === selected && <Check />}</span>}</button>) : <Empty search={!!query} text={query ? '暂无匹配选项' : '暂无可用选项'} />}</div><div className="m-picker-actions">{clearable && <button type="button" onClick={clear}>清空选择</button>}<button type="button" onClick={onClose}>取消</button>{mode === 'confirm' && <button type="button" className="primary" onClick={() => choose(selected)}>确认</button>}</div></div></Overlay>;
+  return <Overlay label={title} onClose={onClose} sheet><div className={'m-option-picker ' + (searchable ? 'is-searchable' : 'is-simple')}><PickerHeading title={title} />{searchable && <SearchBox value={query} onChange={setQuery} placeholder={'搜索' + title} />}<div className="m-sheet-options">{matches.length ? matches.map(x => <button type="button" aria-pressed={x === selected} className={x === selected ? 'selected' : ''} key={x} onClick={() => { if (mode === 'immediate') { choose(x); } else setSelected(x); }}><span>{x}</span>{searchable && <span className="m-option-radio" aria-hidden="true">{x === selected && <Check />}</span>}</button>) : <Empty search={!!query} text={query ? '暂无匹配选项' : '暂无可用选项'} />}</div><div className="m-picker-actions">{clearable && <button type="button" onClick={clear}>清空选择</button>}<button type="button" onClick={onClose}>取消</button>{mode === 'confirm' && <button type="button" className="primary" onClick={() => choose(selected)}>确认</button>}</div></div></Overlay>;
 }
 
 export function Header({ onBack, title = '供应商管理平台', close, hideBack = false, right }) {
@@ -228,11 +240,11 @@ export function Header({ onBack, title = '供应商管理平台', close, hideBac
 
 
 export function RegistrationSteps({ personal, step }) {
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(step === 0);
   const id = useId();
   const stages = personal ? [[0, '基本信息'], [2, '银行信息'], [3, '预览提交']] : [[0, '基本信息'], [1, '联系人信息'], [2, '银行信息'], [3, '预览提交']];
   const index = stages.findIndex(([value]) => value === step);
-  useEffect(() => setExpanded(false), [step]);
+  useEffect(() => setExpanded(step === 0), [step]);
   return <nav className="m-registration-steps" aria-label="注册步骤" data-no-swipe>
     <button type="button" className="m-steps-toggle" aria-expanded={expanded} aria-controls={id} onClick={() => setExpanded(!expanded)}>
       <span>第 {index + 1} / {stages.length} 步</span><strong>{stages[index][1]}</strong><span className="m-steps-disclosure">{expanded ? '收起步骤' : '全部步骤'}{expanded ? <ChevronUp /> : <ChevronDown />}</span>
