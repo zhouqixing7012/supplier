@@ -637,3 +637,8 @@
 .mobile-page:not(.m-shot) .m-attachment-file { border-radius: 12px; padding: 16px; gap: 12px; }
 .mobile-page:not(.m-shot) .m-attachment-file .m-file-icon { display: grid; place-items: center; flex: 0 0 40px; width: 40px; height: 40px; border-radius: 8px; background: #fff; }
 
+
+/* 只读值与选择框内文字共用起点，覆盖单条和批量变更邀请人。 */
+.mobile-page:not(.m-shot) .m-inviter-applicants .m-row { gap: 8px; }
+.mobile-page:not(.m-shot) .m-inviter-applicants .m-row > .m-label { width: 128px; max-width: 44%; }
+.mobile-page:not(.m-shot) .m-inviter-applicants .m-row > .m-value { padding-left: 13px; box-sizing: border-box; }
