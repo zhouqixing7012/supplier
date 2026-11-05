@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readdirSync } from 'node:fs';
 import { matchScreenshots, screenshotFromFilename } from '../src/pages/mobile-screenshot-match.js';
 import { screenshotScenes } from '../src/pages/mobile-data.js';
 
@@ -200,4 +201,9 @@ test('47张原图文件名可唯一匹配', () => {
   assert.equal(new Set(screenshotScenes.map(shot => shot.time)).size, 47);
   for (const shot of screenshotScenes) assert.equal(screenshotFromFilename(shot.filename)?.time, shot.time);
   assert.equal(screenshotFromFilename('unrelated.jpg'), null);
+});
+
+test('原图目录完整覆盖47张截图索引', () => {
+  const images = readdirSync(new URL('../docs/screenshot/', import.meta.url)).filter(name => name.endsWith('.jpg')).sort();
+  assert.deepEqual(images, screenshotScenes.map(shot => shot.filename).sort());
 });

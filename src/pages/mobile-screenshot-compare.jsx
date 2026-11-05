@@ -1,8 +1,15 @@
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { screenshotScenes } from './mobile-data.js';
-import { matchScreenshots, screenshotFromFilename } from './mobile-screenshot-match.js';
+import { matchScreenshots } from './mobile-screenshot-match.js';
 import './mobile-screenshot-compare.css';
+
+// 由 Vite 打包仓库内的原始截图，开发和生产环境共用同一资源映射。
+const originalScreenshots = Object.fromEntries(
+  Object.entries(import.meta.glob('../../docs/screenshot/*.jpg', {
+    eager: true, query: '?url', import: 'default',
+  })).map(([path, url]) => [path.split('/').pop(), url])
+);
 
 const visible = element => element && element.getClientRects().length > 0 && !element.closest('[inert], [hidden], [data-review-ui], [data-motion-clone]');
 
@@ -35,15 +42,10 @@ export function ScreenshotCompare({ state }) {
   const [enabled, setEnabled] = useState(false);
   const [layerScenes, setLayerScenes] = useState(null);
   const [manual, setManual] = useState('');
-  const [files, setFiles] = useState({});
-  const [message, setMessage] = useState('');
   const [failed, setFailed] = useState(false);
   const [zoom, setZoom] = useState(100);
-  const input = useRef(null);
-  const urls = useRef(new Map());
   const scroll = useRef(null);
   const switchRef = useRef(null);
-  useEffect(() => () => urls.current.forEach(url => URL.revokeObjectURL(url)), []);
   useLayoutEffect(() => {
     if (!enabled) return;
     let frame;
@@ -66,23 +68,8 @@ export function ScreenshotCompare({ state }) {
   const key = automatic.map(shot => shot.time).join(',');
   useEffect(() => { setManual(''); }, [key]);
   const selected = automatic.find(shot => shot.time === manual) || automatic[0];
-  const src = selected ? files[selected.time] || '/mobile-assets/original-screenshots/' + selected.filename : '';
+  const src = selected ? originalScreenshots[selected.filename] : '';
   useEffect(() => { setFailed(false); setZoom(100); if (scroll.current) scroll.current.scrollTop = 0; }, [src]);
-  const importImages = event => {
-    const chosen = [...event.target.files]; event.target.value = '';
-    let count = 0;
-    const next = {};
-    for (const file of chosen) {
-      const shot = screenshotFromFilename(file.name);
-      if (!shot || !/^image\/(jpeg|png|webp)$/.test(file.type)) continue;
-      const previous = urls.current.get(shot.time);
-      if (previous) URL.revokeObjectURL(previous);
-      const url = URL.createObjectURL(file);
-      urls.current.set(shot.time, url); next[shot.time] = url; count++;
-    }
-    setFiles(old => ({ ...old, ...next }));
-    setMessage(count ? '已载入' + count + '张原图，本次打开期间可用。' : '未匹配到原图，请选择保留原文件名的截图。');
-  };
   const close = () => { setEnabled(false); switchRef.current?.focus(); };
   return createPortal(<div data-review-ui className="m-screenshot-tools">
     <button ref={switchRef} type="button" className="m-screenshot-toggle" role="switch" aria-checked={enabled} aria-controls="original-screenshot-panel" onClick={() => setEnabled(value => !value)}>原图对照 <span>{enabled ? '开' : '关'}</span></button>
@@ -91,14 +78,11 @@ export function ScreenshotCompare({ state }) {
       <div className="m-screenshot-settings">
         {automatic.length > 0 ? <label>对应截图<select aria-label="选择当前页面对应截图" value={selected?.time || ''} onChange={event => setManual(event.target.value)}>{automatic.map(shot => <option key={shot.time} value={shot.time}>{shot.index}. {shot.title}</option>)}</select></label> : <p>当前页面或状态暂无对应的历史截图。</p>}
         {selected && <><small>{selected.filename}</small><label>缩放<select aria-label="原图缩放" value={zoom} onChange={event => setZoom(Number(event.target.value))}>{[100, 150, 200].map(value => <option key={value} value={value}>{value}%</option>)}</select></label></>}
-        <button type="button" onClick={() => input.current?.click()}>批量载入原始截图</button>
-        <input ref={input} type="file" multiple accept="image/jpeg,image/png,image/webp" hidden onChange={importImages} />
-        <small>已载入 {Object.keys(files).length}/47 张。原图用于对照历史页面。</small>
-        {message && <p role="status">{message}</p>}
+        <small>已接入 {Object.keys(originalScreenshots).length}/47 张原图，随当前页面和状态切换。</small>
       </div>
       <div ref={scroll} className="m-screenshot-scroll">
-        {selected && !failed && <img key={src} src={src} alt={selected.title + '的原始截图'} style={{ width: zoom + '%', maxWidth: 'none' }} onError={() => setFailed(true)} />}
-        {selected && failed && <p role="status">尚未载入这张原图。请批量选择47张原始截图，系统会按文件名匹配。</p>}
+        {selected && src && !failed && <img key={src} src={src} alt={selected.title + '的原始截图'} style={{ width: zoom + '%', maxWidth: 'none' }} onError={() => setFailed(true)} />}
+        {selected && (failed || !src) && <p role="status">原图加载失败，请刷新页面重试。</p>}
       </div>
     </aside>}
   </div>, document.body);
