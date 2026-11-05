@@ -250,19 +250,19 @@ export function Header({ onBack, title = '供应商管理平台', close, hideBac
 }
 
 
-export function RegistrationSteps({ personal, step }) {
-  const [expanded, setExpanded] = useState(step === 0);
+export function RegistrationSteps({ personal, step, expanded, onExpandedChange }) {
   const id = useId();
   const stages = personal ? [[0, '基本信息'], [2, '银行信息'], [3, '预览提交']] : [[0, '基本信息'], [1, '联系人信息'], [2, '银行信息'], [3, '预览提交']];
   const index = stages.findIndex(([value]) => value === step);
-  useEffect(() => setExpanded(step === 0), [step]);
   return <nav className="m-registration-steps" aria-label="注册步骤" data-no-swipe>
-    <button type="button" className="m-steps-toggle" aria-expanded={expanded} aria-controls={id} onClick={() => setExpanded(!expanded)}>
+    <button type="button" className="m-steps-toggle" aria-expanded={expanded} aria-controls={id} onClick={() => onExpandedChange(!expanded)}>
       <span>第 {index + 1} / {stages.length} 步</span><strong>{stages[index][1]}</strong><span className="m-steps-disclosure">{expanded ? '收起步骤' : '全部步骤'}{expanded ? <ChevronUp /> : <ChevronDown />}</span>
     </button>
-    <ol id={id} hidden={!expanded}>{stages.map(([value, title], i) => <li key={value} aria-current={value === step ? 'step' : undefined} className={value < step ? 'completed' : value === step ? 'current' : ''}>
-      <span className="m-step-number">{value < step ? <Check aria-label="已完成" /> : i + 1}</span><span className="m-step-name">{title}</span><span className="m-step-state">{value < step ? '已完成' : value === step ? '当前步骤' : '待填写'}</span>
-    </li>)}</ol>
+    <div id={id} className="m-registration-step-list" data-open={expanded} aria-hidden={!expanded} inert={!expanded ? true : undefined}>
+      <div className="m-registration-step-list-inner"><ol>{stages.map(([value, title], i) => <li key={value} aria-current={value === step ? 'step' : undefined} className={value < step ? 'completed' : value === step ? 'current' : ''}>
+        <span className="m-step-number">{value < step ? <Check aria-label="已完成" /> : i + 1}</span><span className="m-step-name">{title}</span><span className="m-step-state">{value < step ? '已完成' : value === step ? '当前步骤' : '待填写'}</span>
+      </li>)}</ol></div>
+    </div>
   </nav>;
 }
 
