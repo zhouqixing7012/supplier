@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Actions, CardActions, Empty, Field, FilterButton, Header, Row, SearchBox, Section, StatusTag } from './mobile-ui.jsx';
+import { Actions, CardActions, FilterSummary, Empty, Field, FilterButton, Header, Row, SearchBox, Section, StatusTag } from './mobile-ui.jsx';
 import { runMotion } from './mobile-motion.jsx';
 import { useBackLayer } from './mobile-interaction.jsx';
 import { remainingTime } from './mobile-portal-pricing.js';
@@ -29,7 +29,7 @@ export function PortalTaskList({ tab, inquiries, orders, store, go }) {
   const filtered = !!query.trim() || !!conditions.length;
   return <>
     <SearchBox placeholder={quote ? '搜索询价单号' : '搜索订单编号'} value={query} onChange={setQuery}><FilterButton label={quote ? '筛选报价' : '筛选价税拆分'} onClick={begin} /></SearchBox>
-    <section className="m-applied-filters" aria-label="当前任务查询条件"><div className="m-filter-summary">{conditions.length > 0 && <button onClick={begin}>已筛选 · {conditions.length}项</button>}<span role="status">共 {records.length} 条</span>{conditions.length > 0 && <button onClick={() => setFilters({})}>清除筛选</button>}</div>{conditions.length > 0 && <dl className="m-applied-conditions">{conditions.map(([key, value]) => <div key={key}><dt>{labels[key]}</dt><dd>{value}</dd></div>)}</dl>}</section>
+    <FilterSummary entries={conditions.map(([key, value]) => [labels[key], value])} count={records.length} onEdit={begin} onClear={() => setFilters({})} label="当前任务查询条件" />
     {records.length ? records.map(item => <Section key={item.number} collapsible={false} className="m-portal-task-card">
       <div className="m-record-heading"><h3>{quote ? item.title : item.number}</h3><StatusTag value={quote ? item.inquiryStatus : item.status} /></div>
       {quote && <p className="m-portal-record-number" aria-label="询价单号">{item.number}</p>}

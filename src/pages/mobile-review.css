@@ -1,0 +1,52 @@
+/* 评审层独立命名，只在显式开启时覆盖需求定位点。 */
+.m-review-controls, .m-review-marks, .m-review-panel { font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif; font-size: 14px; line-height: 1.6; }
+.m-review-controls { position: fixed; z-index: 1900; left: calc(50% + 287px); top: 16px; width: 264px; display: flex; flex-direction: column; gap: 8px; }
+.m-review-controls[data-panel=true] { display: none; }
+.m-review-controls button { font: inherit; cursor: pointer; }
+.m-review-switch { display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 8px 12px; align-self: flex-start; border: 1px solid #e6b8b8; border-radius: 24px; color: #9d2121; background: white; box-shadow: 0 3px 12px #16223a18; }
+.m-review-switch svg { width: 18px; height: 18px; }
+.m-review-switch i { width: 28px; height: 16px; border-radius: 10px; background: #c2c9d2; position: relative; }
+.m-review-switch i::after { content: ''; position: absolute; left: 2px; top: 2px; width: 12px; height: 12px; border-radius: 50%; background: white; transition: transform 120ms; }
+.m-review-switch.is-on i { background: #ec221f; }
+.m-review-switch.is-on i::after { transform: translateX(12px); }
+.m-review-tools { display: grid; grid-template-columns: 1fr 1fr; padding: 4px; border: 1px solid #e3e9f0; border-radius: 10px; background: white; box-shadow: 0 3px 12px #16223a12; }
+.m-review-tools button { display: flex; align-items: center; justify-content: center; gap: 6px; border: 0; border-radius: 6px; min-height: 44px; padding: 4px 8px; background: white; color: #374151; }
+.m-review-tools button:hover, .m-review-tools button[aria-pressed=true] { background: #fff0ef; color: #b51818; }
+.m-review-tools svg { width: 16px; height: 16px; }
+.m-review-pin { position: fixed; display: grid; place-items: center; width: 44px; height: 44px; z-index: 1800; padding: 0; border: 0; background: transparent; cursor: pointer; }
+.m-review-pin span { display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: white; border: 1.5px solid #f50000; color: #d91916; font-size: 12px; font-weight: 600; }
+.m-review-pin.active span { background: #ec221f; color: white; }
+.m-review-connector { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 1700; pointer-events: none; }
+.m-review-callout { position: fixed; z-index: 1800; width: 280px; max-height: calc(100dvh - 220px); overflow-y: auto; color: #f50000; }
+.m-review-callout strong { font-size: 16px; font-weight: 600; }
+.m-review-callout p { margin: 8px 0; font-size: 14px; line-height: 1.8; white-space: pre-wrap; overflow-wrap: anywhere; }
+.m-review-callout button { min-height: 44px; padding: 4px 8px; border: 1px solid #f5b6b2; border-radius: 6px; color: #c61b19; background: #fff; font: inherit; cursor: pointer; }
+.m-review-error { margin: 8px 16px; color: #bf1818; font-size: 14px; overflow-wrap: anywhere; }
+.m-review-controls .m-review-error { background: white; border-radius: 8px; padding: 8px; margin: 0; }
+.m-review-pick-hint { padding: 8px 12px; border: 1px solid #f2d0ce; border-radius: 8px; color: #af1916; background: #fff5f5; margin: 0; }
+.mobile-page .m-review-panel { max-height: 78dvh; overflow-y: auto; background: white; }
+.m-review-panel-heading { position: sticky; top: 0; z-index: 2; background: white; }
+.m-review-panel-heading > button { position: absolute; right: 8px; top: 2px; min-width: 44px; min-height: 44px; display: grid; place-items: center; }
+.m-review-panel-heading svg { width: 20px; height: 20px; }
+.m-review-scope, .m-review-storage-note { color: #697586; font-size: 12px; margin: 12px 16px; }
+.m-review-note-list { margin: 0 16px; display: flex; flex-direction: column; border-top: 1px solid #edf1f5; }
+.m-review-note-list > button { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 48px; padding: 8px 0; text-align: left; border-bottom: 1px solid #edf1f5; font-size: 14px; }
+.m-review-note-list small { flex-shrink: 0; color: #697586; font-size: 12px; }
+.m-review-note-list > button[aria-pressed=true] { color: #c51c19; }
+.m-review-note-detail { margin: 16px; padding-top: 12px; border-top: 2px solid #ec221f; }
+.m-review-note-detail h3 { margin: 0 0 8px; font-size: 16px; }
+.m-review-note-detail p { margin: 0 0 12px; white-space: pre-wrap; line-height: 1.8; overflow-wrap: anywhere; }
+.m-review-note-detail small { font-size: 12px; color: #697586; }
+.m-review-note-detail a { margin-left: 12px; font-size: 12px; color: #145cff; }
+.mobile-page .m-review-panel .m-picker-actions { position: sticky; bottom: 0; background: white; padding: 12px 16px; }
+.m-review-panel .m-picker-actions button { display: flex; justify-content: center; align-items: center; gap: 6px; }
+.m-review-panel .m-picker-actions svg { width: 16px; height: 16px; }
+@media (max-width: 1049px) {
+  .m-review-controls { left: auto; right: max(12px, calc((100vw - 430px) / 2 + 12px)); top: auto; bottom: calc(92px + env(safe-area-inset-bottom, 0px)); width: 190px; flex-direction: column-reverse; align-items: flex-end; }
+  .m-review-switch { align-self: flex-end; }
+  .m-review-tools { width: 190px; box-sizing: border-box; }
+  .m-review-callout, .m-review-connector { display: none; }
+}
+@media (prefers-reduced-motion: reduce) { .m-review-switch i::after { transition: none; } }
+.m-review-panel-heading > .m-picker-title { position: static; }
+.m-review-panel-heading > button { z-index: 3; }

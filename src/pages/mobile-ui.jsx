@@ -36,10 +36,14 @@ export function StatusTag({ value }) {
   return value ? <span className="m-status" data-tone={statusTone[value] || 'neutral'}>{value}</span> : <span>—</span>;
 }
 
-export function AppliedFilters({ filters, query, count, onEdit, onClear }) {
+// 查询摘要只展示数量与筛选项，搜索词由搜索框自身承载。
+export function FilterSummary({ entries = [], count, unit = '条', onEdit, onClear, label = '当前查询条件', showConditions = true }) {
+  return <section className="m-applied-filters" aria-label={label}><div className="m-filter-summary">{entries.length > 0 && <button type="button" onClick={onEdit}>已筛选 · {entries.length}项</button>}{count !== undefined && <span className="m-result-count" role="status">共 {count} {unit}</span>}{entries.length > 0 && <button type="button" onClick={onClear}>清除筛选</button>}</div>{showConditions && entries.length > 0 && <dl className="m-applied-conditions">{entries.map(([name, value]) => <div key={name}><dt>{name}</dt><dd>{value}</dd></div>)}</dl>}</section>;
+}
+export function AppliedFilters({ filters, count, onEdit, onClear }) {
   const labels = { type: '供应商类型', status: '供应商状态', start: '邀请时间（起）', end: '邀请时间（止）', recommended: '供应商推荐', inviter: '邀请人' };
-  const entries = Object.entries(filters).filter(([key, value]) => labels[key] && value);
-  return <section className="m-applied-filters" aria-label="当前查询条件"><div className="m-filter-summary">{entries.length > 0 && <button onClick={onEdit}>已筛选 · {entries.length}项</button>}<span className="m-result-count" role="status">共 {count} 家供应商</span>{entries.length > 0 && <button onClick={onClear}>清除筛选</button>}</div><dl className="m-applied-conditions">{query && <div><dt>关键词</dt><dd>{query}</dd></div>}{entries.map(([key, value]) => <div key={key}><dt>{labels[key]}</dt><dd>{value}</dd></div>)}</dl></section>;
+  const entries = Object.entries(filters).filter(([key, value]) => labels[key] && value).map(([key, value]) => [labels[key], value]);
+  return <FilterSummary entries={entries} count={count} unit="家供应商" onEdit={onEdit} onClear={onClear} />;
 }
 
 export function Field({ label, value = '', onChange, required = false, options, onPick, type = 'text', placeholder, maxLength, help, readOnly = false, multiline = false, error, inputMode, autoComplete, selectionMode = 'immediate', searchable = false, layout, allowClearDate = false, trailing }) {
@@ -113,8 +117,8 @@ function SearchEmptyArt() {
   return <span className="m-search-empty-art" aria-hidden="true"><span className="m-empty-art-group"><span className="m-empty-art-board" /><span className="m-empty-art-mask"><span /></span><img className="m-empty-art-warning" src={base + 'empty-warning.svg'} alt="" /><img className="m-empty-art-clip" src={base + 'empty-clip.svg'} alt="" /><span className="m-empty-art-bar" /><img className="m-empty-art-dots" src={base + 'empty-dots.svg'} alt="" /><img className="m-empty-art-detail" src={base + 'empty-detail.png'} width="34.909" height="46.545" alt="" /></span><span className="m-empty-art-decoration"><img src={base + 'empty-decoration.svg'} alt="" /></span></span>;
 }
 
-export function Empty({ text = '暂无数据', illustration = false, search = false }) {
-  return <div className={`m-empty m-empty-panel ${illustration ? 'm-empty-illustrated' : ''} ${search ? 'm-empty-search' : !illustration ? 'm-empty-neutral' : ''}`} role="status">{search || !illustration ? <span className="m-empty-art-frame"><SearchEmptyArt /></span> : illustration && <span className="m-empty-plate"><img src="/mobile-assets/empty-application-source.jpg" alt="" /></span>}<span>{text}</span></div>;
+export function Empty({ text = '暂无数据', illustration = false, search = false, variant = 'bare' }) {
+  return <div className={`m-empty m-empty-${variant} ${illustration ? 'm-empty-illustrated' : ''} ${search ? 'm-empty-search' : !illustration ? 'm-empty-neutral' : ''}`} role="status">{search || !illustration ? <span className="m-empty-art-frame"><SearchEmptyArt /></span> : illustration && <span className="m-empty-plate"><img src="/mobile-assets/empty-application-source.jpg" alt="" /></span>}<span>{text}</span></div>;
 }
 
 export function AttachmentLink({ value, onPreview }) {
@@ -168,7 +172,7 @@ export function PickerHeading({ title }) {
 }
 
 export function RecordCollection({ title, count = 0, emptyText, addLabel, onAdd, children, className = '' }) {
-  return <section className={'m-record-collection ' + className}><h2 className="m-record-collection-title">{title}</h2>{count ? children : <Empty text={emptyText || '暂无' + title} />}{onAdd && <button type="button" className="m-record-add" onClick={onAdd}><Plus aria-hidden="true" />{addLabel}</button>}</section>;
+  return <section className={'m-record-collection ' + className}>{count ? <><h2 className="m-record-collection-title">{title}</h2>{children}</> : <div className="m-record-empty-card"><h2 className="m-record-collection-title">{title}</h2><Empty text={emptyText || '暂无' + title} /></div>}{onAdd && <button type="button" className="m-record-add" onClick={onAdd}><Plus aria-hidden="true" />{addLabel}</button>}</section>;
 }
 export function RecordCard({ title, children, motionKey }) {
   return <article className="m-record-card" data-motion-key={motionKey}><div className="m-record-card-heading"><h3>{title}</h3></div><div className="m-record-card-body">{children}</div></article>;

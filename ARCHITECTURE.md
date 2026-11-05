@@ -15,7 +15,8 @@
 - `src/pages/mobile-portal-pricing.jsx`：报价与价税详情、全屏行编辑、整单提交和只读结果；复用公共字段、附件与未保存保护。
 - `src/pages/mobile-portal-pricing.js`：十进制分数价税计算、数值检查及剩余时间展示；计算规则由mobile-prd.md维护。
 - `src/pages/mobile-portal-files.jsx`：门户表格文件选择、替换及确认移除；mobile-portal-files.js维护格式检查，复用会话附件存储。
-- `src/pages/mobile-ui.jsx`：移动端字段、上传、弹层、选择器、固定操作栏和空状态。
+- `src/pages/mobile-ui.jsx`：移动端字段、上传、弹层、选择器、固定操作栏、FilterSummary查询摘要及Empty空态内容；RecordCollection维护分组空态容器。
+- `src/pages/mobile-review.jsx`及`mobile-review.css`：独立原型评审开关、顶层锚点定位、红字引线、详情编辑与本机导入导出；`mobile-review-data.js`维护预置说明与文件校验，不参与供应商业务状态或正式PRD写入。
 - `src/pages/mobile-forms.jsx`：银行、联系人、地址、权限、邀请及注册字段。
 - `src/pages/mobile-views.jsx`：列表、筛选、详情、审批记录、评分与银行信息申请。
 - `src/pages/mobile-supplier.css`：隔离的移动端复刻视觉，手机布局与截图状态。
@@ -91,6 +92,7 @@
 ## 门户任务阅读与账单准备
 
 `PortalWorkspace`通过`workspace-quote-detail`读取会话询价样本，内部`PortalQuotes`负责待处理/已处理列表与搜索；`workspace-travel`使用公共字段/附件组件和未保存保护准备账期及文件，草稿存入`portalBillDraft`。首页快捷卡片设置任务页签后进入`workspace-tasks`。这些路由的标题返回由`mobile-supplier.jsx`统一回到业务任务。未接入报价/价税提交及真实账单上传服务。
+
 
 
 

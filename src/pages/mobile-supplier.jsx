@@ -13,6 +13,7 @@ import { PortalWorkspace } from './mobile-portal.jsx';
 import { RegistrationPreview } from './mobile-registration-preview.jsx';
 import { SupplierAccountRegistration } from './mobile-account-registration.jsx';
 import { ChangeComparison } from './mobile-changes.jsx';
+import { PrototypeReview } from './mobile-review.jsx';
 import './mobile-supplier.css';
 import './mobile-refinement.css';
 import './mobile-motion.css';
@@ -120,7 +121,7 @@ function MobileApp() {
     }
   };
   const update = patch => setSuppliers(list => list.map(s => s.id === selected ? { ...s, ...patch, updated: patch.status ? now() : s.updated } : s));
-  return <>{scene === 'scenes' ? <SceneGallery /> : <><aside className="m-preview-nav" aria-label="原型导航"><a href="#/mobile/scenes">47 张截图</a><span>演示数据</span><a href="#/login">电脑端</a></aside><MotionPresence show={!!result} as="aside" className="m-result-banner" role="status">{result && <><strong>操作结果</strong><p>{result.text}</p><button aria-label="关闭操作结果" onClick={() => setResult(null)}>关闭</button></>}</MotionPresence><MobileSurface key={route} scene={scene} shot={shot} ratings={ratings} setRatings={setRatings} activeRating={activeRating} setActiveRating={setActiveRating} ratingReturn={ratingReturn} setRatingReturn={setRatingReturn} views={views.current} listReturn={listReturn} suppliers={suppliers} setSuppliers={setSuppliers} selectedId={selected} select={setSelected} update={update} go={go} notify={notify} /></>}<MotionPresence show={!!message} as="div" className="m-toast" role="status">{message}</MotionPresence></>;
+  return <>{scene === 'scenes' ? <SceneGallery /> : <><aside className="m-preview-nav" aria-label="原型导航"><a href="#/mobile/scenes">47 张截图</a><span>演示数据</span><a href="#/login">电脑端</a></aside><MotionPresence show={!!result} as="aside" className="m-result-banner" role="status">{result && <><strong>操作结果</strong><p>{result.text}</p><button aria-label="关闭操作结果" onClick={() => setResult(null)}>关闭</button></>}</MotionPresence><MobileSurface key={route} scene={scene} shot={shot} ratings={ratings} setRatings={setRatings} activeRating={activeRating} setActiveRating={setActiveRating} ratingReturn={ratingReturn} setRatingReturn={setRatingReturn} views={views.current} listReturn={listReturn} suppliers={suppliers} setSuppliers={setSuppliers} selectedId={selected} select={setSelected} update={update} go={go} notify={notify} /><PrototypeReview route={route} scope={scene} /></>}<MotionPresence show={!!message} as="div" className="m-toast" role="status">{message}</MotionPresence></>;
 }
 
 function MobileSurface({ scene, shot, ratings, setRatings, activeRating, setActiveRating, ratingReturn, setRatingReturn, views, listReturn, suppliers, setSuppliers, selectedId, select, update, go, notify }) {

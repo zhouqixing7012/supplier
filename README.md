@@ -4,6 +4,8 @@ React + Vite 的可点击原型，当前包含协同门户登录安全升级和�
 
 移动端原型入口为 `#/mobile`，原页面状态目录为 `#/mobile/scenes`，覆盖提供的 47 张截图。逐张入口见 [截图覆盖表](docs/mobile-screenshot-coverage.md)，规则与范围见 [移动端原型 PRD](docs/mobile-prd.md)，演示限制见 [工程说明](docs/mobile-prototype.md)。
 
+移动端提供独立“需求评审”悬浮开关，可查看及编辑定位标注；使用方法与保存范围见[评审模式说明](docs/mobile-review-mode.md)。前端重构估时参考[页面与公共组件清单](docs/mobile-frontend-estimate.md)。
+
 ## 页面导航
 
 协同门户和四类代注册页面共用顶部“供应商系统”导航，可在页面内直接切换：
@@ -94,4 +96,5 @@ npm run test:mobile
 ## 移动协同门户
 
 为方便原型演示，站点首页顶部导航提供“协同门户移动端”入口，点击进入登录流程，登录完成进入门户首页。该快捷入口不属于正式业务需求。门户包含资料维护、报价任务阅读/搜索/详情、价税订单阅读、差旅账单附件草稿和账户退出。沿用当前移动UI，业务计算及真实提交边界见[源码能力差异报告](docs/mobile-pc-gap-report.md)。
+
 
