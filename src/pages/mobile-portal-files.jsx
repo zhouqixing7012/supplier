@@ -1,8 +1,32 @@
-import React, { useId, useState } from 'react';
-import { FileSpreadsheet, Upload, X } from 'lucide-react';
-import { Confirm } from './mobile-ui.jsx';
+import React, { useId, useRef, useState } from 'react';
+import { FileSpreadsheet, Plus, Upload, X } from 'lucide-react';
+import { AttachmentLink, Confirm } from './mobile-ui.jsx';
 import { attachmentName, rememberAttachment } from './mobile-interaction.jsx';
 import { isSpreadsheetName, spreadsheetAccept } from './mobile-portal-files.js';
+
+export function MultiAttachmentField({ label, value, onChange, onPreview }) {
+  const id = useId();
+  const input = useRef(null);
+  const [removing, setRemoving] = useState(null);
+  const files = Array.isArray(value) ? value : value ? [value] : [];
+  const pendingFile = removing === null ? null : files[removing];
+  return <div className="m-field m-field-inline m-multi-attachment-field" data-field-label={label}>
+    <label htmlFor={id}>{label}</label>
+    <div className="m-field-control">
+      {files.length ? <ul className="m-multi-attachment-list">{files.map((file, index) => <li className="m-multi-attachment-item" key={String(file) + '-' + index}>
+        <AttachmentLink value={file} onPreview={onPreview} />
+        <button type="button" aria-label={`删除${label}${index + 1}`} title={`删除${attachmentName(file)}`} onClick={() => setRemoving(index)}>删除</button>
+      </li>)}</ul> : <p className="m-multi-attachment-empty">暂无附件</p>}
+      <input ref={input} id={id} className="m-file-input" type="file" multiple aria-label={label} onChange={event => {
+        const selected = Array.from(event.target.files || []);
+        if (selected.length) onChange([...files, ...selected.map(file => rememberAttachment(file).key)]);
+        event.target.value = '';
+      }} />
+      <button type="button" className="m-file-select" onClick={() => input.current?.click()}><Plus aria-hidden="true" />添加附件</button>
+    </div>
+    {removing !== null && pendingFile && <Confirm text={`确认删除附件「${attachmentName(pendingFile)}」？`} onCancel={() => setRemoving(null)} onConfirm={() => { onChange(files.filter((_, index) => index !== removing)); setRemoving(null); }} />}
+  </div>;
+}
 
 export function SpreadsheetUploadField({ label, value, onChange }) {
   const id = useId();

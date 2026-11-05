@@ -494,6 +494,32 @@
 .m-portal-pending-count { min-width: 20px; height: 20px; padding: 0 4px; box-sizing: border-box; border-radius: 999px; color: #fff; background: var(--m-danger-fill); font-size: 12px; line-height: 16px; }
 .m-portal-task-filter .m-filter-view { padding-bottom: 84px; }
 
+/* 报价附件支持多条目；标签与附件列表保持左右布局。 */
+.mobile-page:not(.m-shot) .m-multi-attachment-field { align-items: flex-start; }
+.mobile-page:not(.m-shot) .m-multi-attachment-field > label { padding-top: 10px; }
+.mobile-page:not(.m-shot) .m-multi-attachment-field > .m-field-control { align-self: flex-start; display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
+.m-multi-attachment-list { display: flex; flex-direction: column; gap: 6px; width: 100%; margin: 0; padding: 0; list-style: none; }
+.m-multi-attachment-item { display: flex; align-items: center; gap: 4px; width: 100%; min-width: 0; }
+.m-multi-attachment-item > .m-attachment-reference { flex: 1; min-width: 0; }
+.mobile-page .m-multi-attachment-item > button:not(.m-attachment-reference) { flex: 0 0 44px; min-width: 44px; min-height: 44px; padding: 0 4px; color: var(--m-danger-text); font-size: 13px; }
+.m-multi-attachment-empty { margin: 0; color: var(--m-text-secondary); font-size: 13px; line-height: 44px; }
+.m-pricing-file-list { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; min-width: 0; }
+.m-pricing-warning { margin: 8px 20px 12px; color: #b42318; font-size: 14px; font-weight: 600; line-height: 1.6; }
+
+/* 差旅账单只提供跳转入口，文件选择和上传状态由差旅系统处理。 */
+.m-travel-entry-list { padding: 0; }
+.mobile-page .m-travel-entry { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 68px; padding: 12px 0; border: 0; border-bottom: 1px solid var(--m-border-subtle); background: transparent; color: var(--m-text); text-align: left; cursor: pointer; }
+.mobile-page .m-travel-entry:last-child { border-bottom: 0; }
+.m-travel-entry-icon { display: grid; place-items: center; flex: 0 0 40px; width: 40px; height: 40px; border-radius: 10px; background: #edf4ff; color: var(--m-action); }
+.m-travel-entry-icon svg { width: 21px; height: 21px; stroke-width: 1.8; }
+.m-travel-entry-copy { display: flex; flex: 1; flex-direction: column; gap: 2px; min-width: 0; }
+.m-travel-entry-copy strong { color: var(--m-text); font-size: 15px; font-weight: 600; line-height: 1.5; }
+.m-travel-entry-copy small { color: var(--m-text-secondary); font-size: 12px; line-height: 1.5; }
+.m-travel-entry-action { display: inline-flex; align-items: center; gap: 4px; flex: none; color: var(--m-action); font-size: 14px; }
+.m-travel-entry-action svg { width: 18px; height: 18px; }
+.mobile-page .m-travel-entry:focus-visible { outline: 2px solid var(--m-action); outline-offset: 2px; border-radius: 8px; }
+.mobile-page .m-travel-entry:active { background: #f7f9fc; }
+
 /* 明细编辑独立占满移动画布，固定操作栏与画布左右边界一致。 */
 .m-pricing-editor .m-actions { left: max(0px, calc((100vw - 430px) / 2)); transform: none; width: min(100%, 430px); z-index: 49; }
 .m-pricing-editor .m-row .m-label { padding-left: 12px; }

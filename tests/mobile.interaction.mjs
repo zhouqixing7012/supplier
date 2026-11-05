@@ -403,8 +403,62 @@ try {
   await check('我的邀请批量操作提交校验与新邀请人确认', async () => {
     await goto('mobile/mine'); await button('批量选择').click(); assert.equal(await page.locator('#root .m-batch-help').count(), 0); await page.locator('#root').getByRole('checkbox', { name: '选择快速创建557348', exact: true }).check(); await button('删除').click(); await page.locator('#root').getByRole('dialog', { name: '批量操作校验', exact: true }).waitFor(); await button('知道了').click(); await button('批量变更邀请人').click(); await page.locator('#root [data-scene="inviter-batch"]').waitFor(); await button('新邀请人').click(); await page.locator('#root').getByRole('searchbox', { name: '搜索姓名或工号', exact: true }).fill('周辉'); await page.locator('#root').getByRole('radio', { name: /^周辉 / }).click(); assert.ok(await button('确认').isVisible()); await button('确认').click(); await button('提交').click(); await page.locator('#root').getByRole('dialog', { name: '提示', exact: true }).getByRole('button', { name: '确认', exact: true }).click(); await button('供应商查询').click(); assert.ok((await card('快速创建').innerText()).includes('周辉'));
   });
-  await check('门户报价待处理已处理搜索详情及账单草稿', async () => {
-    await goto('mobile/workspace-home'); await shot('portal-home-new'); await button('报价管理待处理').click(); await button('报价').click(); assert.ok(await page.locator('#root').getByText('MOCK-INQ-001', { exact: true }).first().isVisible()); assert.ok(await page.locator('#root').getByRole('heading', { name: '1. Dell.R740', exact: true }).isVisible()); await shot('portal-quote-new'); await button('返回列表').click(); await button('报价管理已处理').click(); await button('查看').click(); assert.ok(await page.locator('#root').getByText('MOCK-INQ-002', { exact: true }).first().isVisible()); await button('返回列表').click(); await page.locator('#root').getByRole('searchbox').fill('不存在'); assert.ok(await page.locator('#root').getByText('暂无匹配的询价单', { exact: true }).isVisible()); await goto('mobile/workspace-travel'); await field('账期').fill('2026-11'); await button('返回业务任务').click(); await button('继续编辑').click(); assert.equal(await field('账期').inputValue(), '2026-11'); await page.locator('#root').getByLabel('账单文件', { exact: true }).setInputFiles({ name: '测试账单.xls', mimeType: 'application/vnd.ms-excel', buffer: Buffer.from('演示账单\t金额\n演示项目\t100') }); await button('保存草稿').click(); await button('返回业务任务').click(); await button('工作台').click(); await button('差旅账单录入').click(); assert.equal(await field('账期').inputValue(), '2026-11'); assert.ok((await page.locator('#root .m-attachment-name').innerText()).includes('测试账单.xls'));
+  await check('门户报价详情询价资料前置及报价附件多文件编辑', async () => {
+    await goto('mobile/workspace-home'); await button('报价管理待处理').click(); await button('报价').click();
+    const headings = await page.locator('#root .m-portal-pricing > .m-section > h2').allTextContents();
+    assert.equal(headings[0], '询价资料'); assert.equal(headings[1], '1. Dell.R740');
+    assert.ok(await page.locator('#root .m-portal-pricing').getByText('采购类型', { exact: true }).isVisible());
+    assert.equal(await page.locator('#root .m-portal-object-summary .m-field').count(), 0);
+    await button('编辑第1项报价').click();
+    const editor = page.locator('#root .m-pricing-editor');
+    const attachmentField = editor.locator('.m-multi-attachment-field');
+    const labelBox = await attachmentField.locator('label').boundingBox(), controlBox = await attachmentField.locator('.m-field-control').boundingBox();
+    assert.ok(controlBox.x > labelBox.x + labelBox.width - 2); assert.ok(Math.abs(controlBox.y - labelBox.y) < 24);
+    await editor.getByLabel('报价附件', { exact: true }).setInputFiles([
+      { name: '报价附件A.pdf', mimeType: 'application/pdf', buffer: Buffer.from('%PDF-1.4 test') },
+      { name: '报价附件B.xlsx', mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', buffer: Buffer.from('test workbook') }
+    ]);
+    assert.equal(await editor.locator('.m-multi-attachment-item').count(), 2);
+    assert.equal(await editor.getByRole('button', { name: '替换文件', exact: true }).count(), 0);
+    await editor.getByRole('button', { name: '删除报价附件1', exact: true }).click();
+    await page.locator('#root').getByRole('dialog').last().getByRole('button', { name: '确认', exact: true }).click();
+    assert.equal(await editor.locator('.m-multi-attachment-item').count(), 1);
+    await editor.getByRole('textbox', { name: '含税单价', exact: true }).fill('100');
+    await editor.getByRole('textbox', { name: '税率（%）', exact: true }).fill('13');
+    await editor.getByRole('button', { name: '确定', exact: true }).click();
+    await page.locator('#root [data-scene="workspace-quote-detail"]').waitFor();
+    assert.ok(await button('预览报价附件B.xlsx').isVisible());
+    assert.equal(await button('预览报价附件A.pdf').count(), 0);
+  });
+  await check('门户价税订单资料前置及发票金额红字提醒', async () => {
+    await goto('mobile/workspace-tax-detail');
+    const headings = await page.locator('#root .m-portal-pricing > .m-section > h2').allTextContents();
+    assert.equal(headings[0], '采购订单资料'); assert.equal(headings[1], '1. Dell.R740');
+    assert.ok(await page.locator('#root .m-portal-pricing > .m-section').first().getByText('采购类型', { exact: true }).isVisible());
+    const warning = page.locator('#root .m-pricing-warning');
+    assert.equal(await warning.innerText(), '请您按照发票金额填写并检查，否则会影响后续付款！');
+    assert.equal(await warning.evaluate(node => getComputedStyle(node).color), 'rgb(180, 35, 24)');
+  });
+  await check('差旅账单仅展示权限入口，不提供账期和本地上传', async () => {
+    await goto('mobile/workspace-travel');
+    assert.equal(await page.locator('#root').getByRole('textbox', { name: '账期', exact: true }).count(), 0);
+    assert.equal(await page.locator('#root input[type="file"]').count(), 0);
+    assert.equal(await button('保存草稿').count(), 0);
+    for (const label of ['火车账单', '酒店账单', '飞机账单', '租车账单']) assert.ok(await button(label).isVisible(), label);
+    await button('火车账单').click();
+    assert.ok(await page.locator('#root').getByText('火车账单入口尚未接入', { exact: true }).isVisible());
+    for (const [key, label] of [['train', '火车账单'], ['hotel', '酒店账单'], ['flight', '飞机账单'], ['rental', '租车账单']]) {
+      await goto('mobile/workspace-travel');
+      await page.evaluate(key => { window.__PORTAL_TRAVEL_ENTRY_URLS__ = { [key]: '/?travel-entry=' + key }; }, key);
+      await button(label).click();
+      await page.waitForURL(url => url.searchParams.get('travel-entry') === key);
+    }
+    const permissionPage = await context.newPage();
+    await permissionPage.addInitScript(() => { window.__PORTAL_TRAVEL_ENTRY_TYPES__ = ['train']; });
+    await permissionPage.goto(base + '/?permission-test=1#/mobile/workspace-travel');
+    await permissionPage.locator('#root [data-travel-entry="train"]').waitFor();
+    assert.equal(await permissionPage.locator('#root .m-travel-entry').count(), 1);
+    await permissionPage.close();
   });
   await check('门户待办角标、双邮箱验证及密码修改', async () => {
     await goto('mobile/workspace-home'); assert.equal(await page.locator('#root .m-portal-pending-count').count(), 2);

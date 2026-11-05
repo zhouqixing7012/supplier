@@ -1,18 +1,16 @@
 import { usePanelState } from './mobile-motion.jsx';
 import React, { useState } from 'react';
-import { Building2, FileClock, FileCheck2, Calculator, ClipboardCheck, Plane, Plus, Mail, KeyRound, ChevronRight, X, LogOut } from 'lucide-react';
+import { Building2, FileClock, FileCheck2, Calculator, ClipboardCheck, Plane, Train, Hotel, Car, Plus, Mail, KeyRound, ChevronRight, X, LogOut } from 'lucide-react';
 import { Actions, PickerHeading, RecordCard, RecordCollection, AttachmentLink, Confirm, Empty, StatusTag, Field, Overlay, Row, Section, SearchBox } from './mobile-ui.jsx';
 import { QualificationInfo } from './mobile-qualifications.jsx';
 import { AddressForm, BankCard, BankFields, BasicFields, ContactFields, bankError, fieldsFor, filledBasic, blankBank } from './mobile-forms.jsx';
 import { exampleBank as sampleBank, supplierTypes } from './mobile-data.js';
 import { Tabs, Approval } from './mobile-views.jsx';
-import { createSessionId, SwipeArea, useBackLayer, useDirtyForm, attachmentName } from './mobile-interaction.jsx';
+import { createSessionId, SwipeArea, useBackLayer, useDirtyForm } from './mobile-interaction.jsx';
 import { ChangeComparison } from './mobile-changes.jsx';
 import { AccountSecurityForm } from './mobile-account.jsx';
 import { PortalTaskList } from './mobile-portal-tasks.jsx';
 import { PortalPricingDetail } from './mobile-portal-pricing.jsx';
-import { SpreadsheetUploadField } from './mobile-portal-files.jsx';
-import { isSpreadsheetName } from './mobile-portal-files.js';
 import { createPortalInquiries, createPortalOrders } from './mobile-portal-records.js';
 
 const clone = value => structuredClone(value);
@@ -32,6 +30,12 @@ const homeGroups = [
   ] },
   { title: '差旅服务', entries: [{ label: '差旅账单录入', lines: ['差旅账单', '录入'], icon: Plane, color: 'orange', route: 'workspace-travel' }] },
 ];
+const travelEntryDefinitions = [
+  { key: 'train', label: '火车账单', Icon: Train },
+  { key: 'hotel', label: '酒店账单', Icon: Hotel },
+  { key: 'flight', label: '飞机账单', Icon: Plane },
+  { key: 'rental', label: '租车账单', Icon: Car },
+];
 function initialProfile() {
   const basic = { ...clone(filledBasic), supplierName: '协同门户演示供应商', registerEmail: 'supplier@example.com', address: '北京市/北京市/朝阳区 演示地址', businessScope: '技术与电子产品服务' };
   return { name: basic.supplierName, type: basic.type, email: basic.registerEmail, basic, status: '已审批', contacts: [{ id: 'portal-contact', name: '演示联系人', phone: '13800000000', email: 'supplier@example.com', department: '', job: '', wechat: '', note: '' }], banks: [{ ...clone(sampleBank), name: basic.supplierName }] };
@@ -49,13 +53,25 @@ export function PortalWorkspace({ scene, go, notify, store, onPreview, accountMe
   const [bank, setBank] = useState(null);
   const [removeBank, setRemoveBank] = useState(null);
   const [logout, setLogout] = useState(false);
-  const [bill, setBill] = useState(store.portalBillDraft || { period: '', attachment: '' });
-  const billGuard = useDirtyForm(bill, scene === 'workspace-travel');
   const guard = useDirtyForm(draft, editing);
   const bankGuard = useDirtyForm(bank, bankIndex !== null);
   const closeBank = () => bankGuard.leave(() => setBankIndex(null));
   useBackLayer(bankIndex !== null, closeBank);
   const pending = store.portalPending;
+  const travelPermissionTypes = store.portalTravelEntryTypes ?? window.__PORTAL_TRAVEL_ENTRY_TYPES__;
+  const visibleTravelEntries = Array.isArray(travelPermissionTypes)
+    ? travelEntryDefinitions.filter(entry => travelPermissionTypes.includes(entry.key))
+    : travelEntryDefinitions;
+  const openTravelEntry = entry => {
+    const urlMap = store.portalTravelEntryUrls ?? window.__PORTAL_TRAVEL_ENTRY_URLS__ ?? {};
+    const rawUrl = urlMap[entry.key];
+    if (typeof rawUrl !== 'string' || !rawUrl.trim()) return notify(entry.label + '入口尚未接入');
+    let target;
+    try { target = new URL(rawUrl, window.location.origin); }
+    catch { return notify(entry.label + '入口地址无效'); }
+    if (!['http:', 'https:'].includes(target.protocol)) return notify(entry.label + '入口地址无效');
+    window.location.assign(target.href);
+  };
   const setInfoTab = i => { store.portalInfoTab = i; setTab(i); };
   const setTasks = i => { store.portalTaskTab = i; setTaskTab(i); };
   const cancel = () => guard.leave(() => { setDraft(clone(store.portalDraft || profile)); setEditing(false); });
@@ -107,7 +123,7 @@ export function PortalWorkspace({ scene, go, notify, store, onPreview, accountMe
     {scene === 'workspace-tasks' && <><Tabs showDirectory={false} stretch items={['待处理', '已处理']} active={taskTab % 2} onChange={i => setTasks((taskTab < 2 ? 0 : 2) + i)} /><SwipeArea active={taskTab % 2} count={2} onChange={i => setTasks((taskTab < 2 ? 0 : 2) + i)}><PortalTaskList key={taskTab} tab={taskTab} inquiries={inquiries} orders={orders} store={store} go={go} /></SwipeArea></>}
 
     {scene === 'workspace-quote-detail' && <PortalPricingDetail quote records={inquiries} store={store} go={go} notify={notify} onPreview={onPreview} />}
-    {scene === 'workspace-travel' && <><Section title="差旅账单" collapsible={false}><Field label="账期" placeholder="例如2026-11" value={bill.period} onChange={period => setBill({ ...bill, period })} /><SpreadsheetUploadField label="账单文件" value={bill.attachment} onChange={attachment => setBill({ ...bill, attachment })} /></Section><Actions items={[{ label: '返回工作台', secondary: true, onClick: () => go(store.portalTravelReturn || 'workspace-home') }, { label: '保存草稿', primary: true, onClick: () => { if (bill.attachment && !isSpreadsheetName(attachmentName(bill.attachment))) return notify('账单文件仅支持xls或xlsx格式'); store.portalBillDraft = { ...bill }; billGuard.accept(); notify('账单草稿已保存'); } }]} /></>}
+    {scene === 'workspace-travel' && <><Section title="差旅账单" collapsible={false}><div className="m-travel-entry-list">{visibleTravelEntries.length ? visibleTravelEntries.map(({ key, label, Icon }) => <button type="button" key={key} className="m-travel-entry" data-travel-entry={key} aria-label={label} onClick={() => openTravelEntry({ key, label })}><span className="m-travel-entry-icon"><Icon aria-hidden="true" /></span><span className="m-travel-entry-copy"><strong>{label}</strong><small>进入差旅系统上传</small></span><span className="m-travel-entry-action">上传<ChevronRight aria-hidden="true" /></span></button>) : <Empty text="当前账号暂无可用的差旅账单入口" />}</div></Section><Actions items={[{ label: '返回工作台', secondary: true, onClick: () => go(store.portalTravelReturn || 'workspace-home') }]} />}</>}
     {['workspace-tax-detail', 'workspace-tax-split'].includes(scene) && <PortalPricingDetail records={orders} store={store} go={go} notify={notify} onPreview={onPreview} />}
     {address && <Overlay sheet label="编辑注册地址" onClose={() => window.dispatchEvent(new CustomEvent('mobile-close-address'))}><div className="m-address-editor"><div className="m-picker-title"><strong>编辑注册地址</strong></div><AddressForm initial={draft.basic.address} onCancel={() => setAddress(false)} onConfirm={value => { setDraft({ ...draft, basic: { ...draft.basic, address: value } }); setAddress(false); }} /></div></Overlay>}
     {bankIndex !== null && <div className="m-fullscreen-panel" role="dialog" aria-modal="true" aria-label="门户银行编辑"><PickerHeading title={bankIndex < 0 ? '新增银行' : '修改银行'} /><BankFields bank={bank} setBank={setBank} company={profile.type === supplierTypes[0]} /><Actions items={[{ label: '取消', secondary: true, onClick: closeBank }, { label: '保存此账户', onClick: () => { const error = bankError(bank, profile.type === supplierTypes[0]); if (error) return notify(error); if (draft.banks.some((b, i) => i !== bankIndex && b.accountType === '基本账户' && bank.accountType === '基本账户')) return notify('基本账户只能有一个'); const entry = { ...bank, id: bankIndex < 0 ? createSessionId() : draft.banks[bankIndex].id }; setDraft({ ...draft, banks: bankIndex < 0 ? [...draft.banks, entry] : draft.banks.map((b, i) => i === bankIndex ? entry : b) }); bankGuard.accept(); setBankIndex(null); } }]} /></div>}
