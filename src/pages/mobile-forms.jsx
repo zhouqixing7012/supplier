@@ -1,8 +1,8 @@
 import { usePanelState } from './mobile-motion.jsx';
-import React, { useEffect, useId, useState } from 'react';
+import React, { useEffect, useId, useRef, useState } from 'react';
 import { Check, FileText, ChevronDown, ChevronRight, MoreHorizontal, Plus, Trash2, UserRoundPlus } from 'lucide-react';
 import { QualificationInfo } from './mobile-qualifications.jsx';
-import { Actions, PickerHeading, CardActions, RecordCard, RecordCollection, ChangeTag, Confirm, DateSheet, Empty, Field, Header, OptionSheet, Overlay, Row, SearchBox, Section, UploadField } from './mobile-ui.jsx';
+import { Actions, PickerHeading, SelectionMark, CardActions, RecordCard, RecordCollection, ChangeTag, Confirm, DateSheet, Empty, Field, Header, OptionSheet, Overlay, Row, SearchBox, Section, UploadField } from './mobile-ui.jsx';
 import { bankNames, branches, people, permissionGroups, supplierTypes, supplierIndustries } from './mobile-data.js';
 import { createSessionId, useDirtyForm, useBackLayer, attachmentFiles, attachmentName } from './mobile-interaction.jsx';
 
@@ -45,7 +45,7 @@ export function ReferenceList({ kind, selected = '', bank = bankNames[0], onCanc
   const chosen = mode === 'confirm' ? pending : selected;
   const entries = kind === 'bank' ? bankNames.map(name => ({ name, rows: [['国家（地区）代码', 'CN'], ['国家（地区）', '中国']] })) : kind === 'branch' ? branches.filter(x => x.bank === bank).map(x => ({ name: x.name, rows: [['银行名称', x.bank], ['国家（地区）代码', 'CN'], ['国家（地区）', x.country], ['省份', x.province], ['城市', x.city]] })) : query ? people.filter(x => [x.name, x.userCode, x.phone].some(v => v?.includes(query))).map(x => ({ name: x.name, code: x.userCode, searchText: [x.name, x.userCode, x.phone].join(' '), rows: [['座机', x.phone], ['邮箱', x.email], ['职位', x.job], ['部门', x.department]] })) : [];
   const matches = entries.filter(x => (x.searchText || x.name).includes(query));
-  return <div className={'m-reference-list' + (mode === 'confirm' ? ' m-reference-confirm' : '')}><SearchBox value={query} onChange={setQuery} placeholder={kind === 'people' ? '搜索姓名或工号' : '搜索银行或分行名称'} /><div className="m-reference-content">{matches.length ? matches.map(x => <label key={x.name} className="m-reference-card"><input type="radio" name={`reference-${kind}`} value={x.name} checked={chosen === x.name} readOnly onClick={() => mode === 'confirm' ? setPending(x.name) : onConfirm(x.name)} /><span className="m-radio">{chosen === x.name && <Check />}</span><div><div className="m-reference-heading"><h3>{x.name}</h3>{kind === 'people' && <span className="m-person-code">工号 {x.code || '—'}</span>}</div>{x.rows.map(([label, value]) => <Row key={label} label={label} compact>{value}</Row>)}</div></label>) : <Empty search={!!query} text={kind === 'people' && !query ? '请输入姓名搜索人员' : query ? '没有匹配结果，请调整关键词' : kind === 'branch' ? '当前银行没有可用分行，请核对银行或申请补充银行信息' : '暂无可用数据'} />}</div><Actions flat items={[{ label: '取消', muted: true, onClick: onCancel }, ...(mode === 'confirm' ? [{ label: '确认', disabled: !pending, onClick: () => onConfirm(pending) }] : [])]} /></div>;
+  return <div className={'m-reference-list' + (mode === 'confirm' ? ' m-reference-confirm' : '')}><SearchBox value={query} onChange={setQuery} placeholder={kind === 'people' ? '搜索姓名或工号' : '搜索银行或分行名称'} /><div className="m-reference-content">{matches.length ? matches.map(x => <label key={x.name} className="m-reference-card"><input type="radio" name={`reference-${kind}`} value={x.name} checked={chosen === x.name} readOnly onClick={() => mode === 'confirm' ? setPending(x.name) : onConfirm(x.name)} /><div><div className="m-reference-heading"><h3>{x.name}</h3>{kind === 'people' && <span className="m-person-code">{x.code || '—'}</span>}<SelectionMark selected={chosen === x.name} /></div>{x.rows.map(([label, value]) => <Row key={label} label={label} compact>{value}</Row>)}</div></label>) : <Empty search={!!query} text={kind === 'people' && !query ? '请输入姓名搜索人员' : query ? '没有匹配结果，请调整关键词' : kind === 'branch' ? '当前银行没有可用分行，请核对银行或申请补充银行信息' : '暂无可用数据'} />}</div><Actions flat items={[{ label: '取消', muted: true, onClick: onCancel }, ...(mode === 'confirm' ? [{ label: '确认', disabled: !pending, onClick: () => onConfirm(pending) }] : [])]} /></div>;
 }
 
 export function BankCard({ bank, onEdit, onDelete, onPreview, deleteDisabledReason = '', fileProof = false }) {
@@ -133,12 +133,24 @@ export function AddressForm({ initial = '', startRegion = false, onConfirm, onCa
   const [detail, setDetail] = useState(split.slice(1).join(' ') || '');
   const guard = useDirtyForm({ region, detail });
   useEffect(() => { const close = () => guard.leave(onCancel); window.addEventListener('mobile-close-address', close); return () => window.removeEventListener('mobile-close-address', close); });
-  const regionData = { '云南省': { '保山市': ['龙陵县'] }, '北京市': { '北京市': ['朝阳区', '海淀区'] }, '天津市': { '天津市': ['和平区'] }, '河北省': { '石家庄市': ['长安区'] } };
+  // 前端演示地区样本，用于省、市、区县搜索和长列表滚动；不代表完整行政区划。
+  const regionData = {
+    '北京市': { '北京市': ['朝阳区', '海淀区', '东城区', '西城区', '丰台区', '石景山区', '通州区', '昌平区', '顺义区', '大兴区', '房山区', '门头沟区', '怀柔区', '平谷区', '密云区', '延庆区'] },
+    '天津市': { '天津市': ['和平区', '河东区', '河西区', '南开区', '河北区', '红桥区', '滨海新区', '西青区'] },
+    '河北省': { '石家庄市': ['长安区', '桥西区', '新华区', '裕华区'], '唐山市': ['路南区', '路北区'], '秦皇岛市': ['海港区', '北戴河区'], '邯郸市': ['丛台区'], '邢台市': ['襄都区'], '保定市': ['莲池区'], '张家口市': ['桥东区'], '承德市': ['双桥区'], '沧州市': ['运河区'], '廊坊市': ['广阳区'], '衡水市': ['桃城区'] },
+    '云南省': { '昆明市': ['五华区', '盘龙区', '官渡区'], '曲靖市': ['麒麟区'], '玉溪市': ['红塔区'], '保山市': ['隆阳区', '龙陵县'], '昭通市': ['昭阳区'], '丽江市': ['古城区'], '普洱市': ['思茅区'], '临沧市': ['临翔区'] },
+    '广东省': { '广州市': ['越秀区', '天河区', '海珠区'], '深圳市': ['福田区', '南山区', '罗湖区'], '珠海市': ['香洲区'], '汕头市': ['龙湖区'], '佛山市': ['禅城区'], '韶关市': ['武江区'], '湛江市': ['赤坎区'], '肇庆市': ['端州区'], '江门市': ['蓬江区'], '茂名市': ['茂南区'], '惠州市': ['惠城区'], '梅州市': ['梅江区'], '汕尾市': ['城区'], '河源市': ['源城区'], '阳江市': ['江城区'], '清远市': ['清城区'], '潮州市': ['湘桥区'], '揭阳市': ['榕城区'], '云浮市': ['云城区'] },
+    '江苏省': { '南京市': ['玄武区', '鼓楼区'], '无锡市': ['梁溪区'], '徐州市': ['云龙区'], '常州市': ['天宁区'], '苏州市': ['姑苏区'], '南通市': ['崇川区'], '连云港市': ['海州区'], '淮安市': ['清江浦区'], '盐城市': ['亭湖区'], '扬州市': ['广陵区'], '镇江市': ['京口区'], '泰州市': ['海陵区'], '宿迁市': ['宿城区'] },
+    '浙江省': { '杭州市': ['上城区', '拱墅区', '西湖区'], '宁波市': ['海曙区'], '温州市': ['鹿城区'], '嘉兴市': ['南湖区'], '湖州市': ['吴兴区'], '绍兴市': ['越城区'], '金华市': ['婺城区'], '衢州市': ['柯城区'], '舟山市': ['定海区'], '台州市': ['椒江区'], '丽水市': ['莲都区'] },
+  };
   const initialParts = region.split('/').filter(Boolean);
   const [selected, setSelected] = useState(() => initialParts.length === 2 && regionData[initialParts[0]]?.[initialParts[0]] ? [initialParts[0], initialParts[0], initialParts[1]] : initialParts);
   const [open, setOpen] = useState(startRegion || !region);
   const [stage, setStage] = useState(0);
   const [regionSearch, setRegionSearch] = useState('');
+  const regionList = useRef(null);
+  // 切换层级或搜索后从列表顶部展示，避免继承上一层的滚动偏移。
+  useEffect(() => { if (regionList.current) regionList.current.scrollTop = 0; }, [open, stage, regionSearch]);
   const options = stage === 0 ? Object.keys(regionData) : stage === 1 ? Object.keys(regionData[selected[0]] || {}) : regionData[selected[0]]?.[selected[1]] || [];
   const matches = options.filter(x => x.includes(regionSearch.trim()));
   const choose = value => {
@@ -149,7 +161,7 @@ export function AddressForm({ initial = '', startRegion = false, onConfirm, onCa
   };
   return <div className="m-address-form"><div className="m-address-fields">
     <div className="m-field m-field-inline"><label htmlFor={regionId}><em>*</em><span className="m-field-name">省市区</span></label><div className="m-field-control"><button id={regionId} type="button" aria-label="省市区" aria-expanded={open} className="m-select-field" onClick={() => { setOpen(!open); setStage(0); setRegionSearch(''); }}><span className={!region ? 'm-placeholder' : ''}>{open ? selected.filter(Boolean).join(' / ') || '请选择省 / 市 / 区县' : region || '请选择省 / 市 / 区县'}</span><ChevronDown aria-hidden="true" /></button></div></div>
-    {open && <div className="m-region-panel"><div className="m-region-tabs" aria-label="选择省市区">{[0, 1, 2].map(i => <button type="button" key={i} aria-current={stage === i ? 'step' : undefined} disabled={i > 0 && !selected[i - 1]} onClick={() => { setStage(i); setRegionSearch(''); }}>{selected[i] || ['请选择省', '请选择市', '请选择区县'][i]}</button>)}</div><SearchBox value={regionSearch} onChange={setRegionSearch} placeholder={['搜索省份', '搜索城市', '搜索区县'][stage]} /><div className="m-sheet-options m-region-options">{matches.length ? matches.map(x => <button type="button" key={x} className={selected[stage] === x ? 'selected' : ''} onClick={() => choose(x)}><span>{x}</span>{selected[stage] === x && <Check aria-hidden="true" />}</button>) : <p className="m-region-empty" role="status">{regionSearch ? '暂无匹配地区' : '暂无可选地区'}</p>}</div></div>}
+    {open && <div className="m-region-panel"><div className="m-region-tabs" aria-label="选择省市区">{[0, 1, 2].map(i => <button type="button" key={i} aria-current={stage === i ? 'step' : undefined} disabled={i > 0 && !selected[i - 1]} onClick={() => { setStage(i); setRegionSearch(''); }}>{selected[i] || ['请选择省', '请选择市', '请选择区县'][i]}</button>)}</div><SearchBox value={regionSearch} onChange={setRegionSearch} placeholder={['搜索省份', '搜索城市', '搜索区县'][stage]} /><div ref={regionList} className="m-sheet-options m-region-options">{matches.length ? matches.map(x => <button type="button" key={x} className={selected[stage] === x ? 'selected' : ''} onClick={() => choose(x)}><span>{x}</span>{selected[stage] === x && <Check aria-hidden="true" />}</button>) : <p className="m-region-empty" role="status">{regionSearch ? '暂无匹配地区' : '暂无可选地区'}</p>}</div></div>}
     <Field label="详细地址" required multiline placeholder="请输入街道、门牌号等详细地址" value={detail} maxLength={50} onChange={setDetail} />
   </div><Actions flat items={[{ label: '取消', muted: true, onClick: () => guard.leave(onCancel) }, { label: '确定', disabled: open || !region || !detail.trim(), onClick: () => { guard.accept(); onConfirm(`${region} ${detail}`); } }]} /></div>;
 }

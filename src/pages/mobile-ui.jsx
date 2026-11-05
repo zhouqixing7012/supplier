@@ -102,9 +102,9 @@ export function SearchBox({ value, onChange, placeholder = '搜索供应商名�
   return <div className="m-search-row"><label className="m-search"><img src="/mobile-assets/workbench/search.svg" alt="" /><input type="search" autoComplete="off" enterKeyHint="search" aria-label={placeholder || '搜索供应商名称或邀请人'} placeholder={placeholder} value={value} onChange={e => onChange(e.target.value)} />{value && <button type="button" aria-label="清空搜索" onClick={() => onChange('')}><img src="/mobile-assets/workbench/search-clear.svg" alt="" /></button>}</label>{children}</div>;
 }
 
-export function Actions({ items, flat = false }) {
+export function Actions({ items, flat = false, className = '' }) {
   const primary = items.reduce((index, item, i) => !item.secondary && !item.muted && (items.length === 1 || !/^(取消|返回|关闭|上一步|重置|保存草稿|继续修改)/.test(item.label)) ? i : index, -1);
-  return <footer className={`m-actions ${flat ? 'm-actions-flat' : ''}`}>{items.map((item, i) => <button key={`${item.label}-${i}`} type={item.type || 'button'} className={item.secondary ? 'secondary' : item.muted ? 'muted' : item.primary || i === primary ? 'primary' : 'secondary'} disabled={item.disabled} onClick={item.onClick}>{item.label}</button>)}</footer>;
+  return <footer className={`m-actions ${flat ? 'm-actions-flat' : ''} ${className}`}>{items.map((item, i) => <button key={`${item.label}-${i}`} type={item.type || 'button'} className={item.secondary ? 'secondary' : item.muted ? 'muted' : item.primary || i === primary ? 'primary' : 'secondary'} disabled={item.disabled} onClick={item.onClick}>{item.label}</button>)}</footer>;
 }
 
 // 搜索与业务空态共用工作台原始插画资产。
@@ -114,7 +114,7 @@ function SearchEmptyArt() {
 }
 
 export function Empty({ text = '暂无数据', illustration = false, search = false }) {
-  return <div className={`m-empty ${illustration ? 'm-empty-illustrated' : ''} ${search ? 'm-empty-search' : !illustration ? 'm-empty-neutral' : ''}`} role="status">{search || !illustration ? <SearchEmptyArt /> : illustration && <span className="m-empty-plate"><img src="/mobile-assets/empty-application-source.jpg" alt="" /></span>}<span>{text}</span></div>;
+  return <div className={`m-empty m-empty-panel ${illustration ? 'm-empty-illustrated' : ''} ${search ? 'm-empty-search' : !illustration ? 'm-empty-neutral' : ''}`} role="status">{search || !illustration ? <span className="m-empty-art-frame"><SearchEmptyArt /></span> : illustration && <span className="m-empty-plate"><img src="/mobile-assets/empty-application-source.jpg" alt="" /></span>}<span>{text}</span></div>;
 }
 
 export function AttachmentLink({ value, onPreview }) {
@@ -158,6 +158,11 @@ export function Overlay({ children, label = '选择', onClose: closeOriginal, sh
 }
 
 // 重复记录共用空态、底部添加入口及卡片标题，避免各页面另画空白卡片。
+// 所有单选目录共用右侧选中标记，整行保持可点。
+export function SelectionMark({ selected }) {
+  return <span className="m-option-radio" data-selected={selected || undefined} aria-hidden="true">{selected && <Check />}</span>;
+}
+
 export function PickerHeading({ title }) {
   return <div className="m-picker-title m-common-picker-heading"><strong>{title}</strong></div>;
 }
@@ -231,7 +236,7 @@ export function OptionSheet({ title, options = [], value, onChange, onClose: clo
   const [query, setQuery] = useState('');
   const matches = options.filter(x => x.includes(query.trim()));
   const clear = () => { if (mode === 'immediate') { choose(''); } else setSelected(''); };
-  return <Overlay label={title} onClose={onClose} sheet><div className={'m-option-picker ' + (searchable ? 'is-searchable' : 'is-simple')}><PickerHeading title={title} />{searchable && <SearchBox value={query} onChange={setQuery} placeholder={'搜索' + title} />}<div className="m-sheet-options">{matches.length ? matches.map(x => <button type="button" aria-pressed={x === selected} className={x === selected ? 'selected' : ''} key={x} onClick={() => { if (mode === 'immediate') { choose(x); } else setSelected(x); }}><span>{x}</span>{searchable && <span className="m-option-radio" aria-hidden="true">{x === selected && <Check />}</span>}</button>) : <Empty search={!!query} text={query ? '暂无匹配选项' : '暂无可用选项'} />}</div><div className="m-picker-actions">{clearable && <button type="button" onClick={clear}>清空选择</button>}<button type="button" onClick={onClose}>取消</button>{mode === 'confirm' && <button type="button" className="primary" onClick={() => choose(selected)}>确认</button>}</div></div></Overlay>;
+  return <Overlay label={title} onClose={onClose} sheet><div className={'m-option-picker ' + (searchable ? 'is-searchable' : 'is-simple')}><PickerHeading title={title} />{searchable && <SearchBox value={query} onChange={setQuery} placeholder={'搜索' + title} />}<div className="m-sheet-options">{matches.length ? matches.map(x => <button type="button" aria-pressed={x === selected} className={x === selected ? 'selected' : ''} key={x} onClick={() => { if (mode === 'immediate') { choose(x); } else setSelected(x); }}><span>{x}</span><SelectionMark selected={x === selected} /></button>) : <Empty search={!!query} text={query ? '暂无匹配选项' : '暂无可用选项'} />}</div><div className="m-picker-actions">{clearable && <button type="button" onClick={clear}>清空选择</button>}<button type="button" onClick={onClose}>取消</button>{mode === 'confirm' && <button type="button" className="primary" onClick={() => choose(selected)}>确认</button>}</div></div></Overlay>;
 }
 
 export function Header({ onBack, title = '供应商管理平台', close, hideBack = false, right }) {
