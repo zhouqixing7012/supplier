@@ -209,6 +209,7 @@ try {
     assert.ok((await toggle.innerText()).includes('第 2 / 4 步')); assert.equal(await list.getAttribute('data-open'), 'false');
     assert.ok((await list.evaluate(n => getComputedStyle(n).transitionProperty)).includes('grid-template-rows'));
     await page.waitForTimeout(220); assert.ok(await list.evaluate(n => n.getBoundingClientRect().height < 1));
+    await goto('mobile/shot/200506'); const shotList = page.locator('#root .m-registration-step-list'); assert.equal(await shotList.evaluate(n => getComputedStyle(n).display), 'none');
   });
   await check('供应商蓝条与关键摘要默认可见，常用操作不藏菜单', async () => {
     await goto('mobile'); const records = page.locator('#root .m-supplier-card'); assert.equal(await records.locator('h3 .m-blue-mark').count(), await records.count());
@@ -380,7 +381,7 @@ try {
     await goto('mobile/detail'); assert.equal(await page.locator('#root .m-detail .m-tabs button').count(), 9); assert.equal(await page.locator('#root .m-detail .m-section .m-label').allTextContents().then(x => x.join('|')), '供应商账号|邀请人|邀请时间|曾用名|注册邮箱'); await shot('detail-registration'); await button('基本信息').click(); assert.ok(await page.locator('#root').getByText('统一社会信用代码', { exact: true }).isVisible()); assert.ok(await page.locator('#root').getByText('经营优势及业务优势', { exact: true }).isVisible()); assert.equal(await page.locator('#root .m-section .m-label').filter({ hasText: '注册邮箱' }).count(), 0); await shot('detail-basic'); for (const [route, active] of [['mobile/detail-bank','银行信息'], ['mobile/detail-approval-empty','审批记录'], ['mobile/detail-ratings','合作信息及评分']]) { await goto(route); assert.equal(await page.locator('#root .m-detail .m-tabs [aria-current=page]').innerText(), active); }
   });
   await check('详情记录卡片宽度与标题分隔线统一', async () => {
-    await goto('mobile/detail'); const tabs = page.locator('#root .m-detail .m-tabs');
+    await goto('mobile'); await card('北京初然').getByRole('button', { name: '详情', exact: true }).click(); const tabs = page.locator('#root .m-detail .m-tabs');
     await tabs.getByRole('button', { name: '银行信息', exact: true }).click();
     const bank = page.locator('#root .m-detail .m-record-collection .m-bank-card').first(); await bank.waitFor();
     const width = await bank.evaluate(n => Math.round(n.getBoundingClientRect().width));
