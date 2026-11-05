@@ -161,7 +161,7 @@ try {
     await goto('mobile/rating-ops'); assert.ok(await button('批量发起评分').isDisabled()); await button('筛选评分运维').click(); await page.locator('#root').getByRole('textbox', { name: '排除评分人' }).fill('甲#乙'); assert.equal(await page.locator('#root').getByRole('textbox', { name: '排除评分人' }).inputValue(), '甲\n乙'); await shot('rating-operations');
   });
   await check('首页入口及登录键盘语义、显示密码和验证码演示', async () => {
-    await goto('login'); const entry = page.locator('#root').getByRole('link', { name: '协同门户移动端', exact: true }); assert.ok(await entry.isVisible()); await entry.click(); await page.locator('#root [data-scene="portal"]').waitFor(); await button('关闭').click(); await page.locator('#root [data-scene="query"]').waitFor(); await goto('login'); await page.locator('#root').getByRole('link', { name: '协同门户移动端', exact: true }).click(); await field('账号').fill('demo'); await page.locator('#root').getByLabel('密码', { exact: true }).fill('prototype'); await button('显示密码').click(); assert.equal(await page.locator('#root').getByLabel('密码', { exact: true }).getAttribute('type'), 'text'); await field('验证码').fill('cbvs'); await button('下一步').click(); assert.equal(await field('邮箱验证码').getAttribute('inputmode'), 'numeric'); await field('注册邮箱').fill('mobile@example.com'); await button('发送验证码').click(); await field('邮箱验证码').fill('123456'); assert.equal(await page.locator('[aria-invalid="true"]').count(), 0); await shot('portal-email'); await button('登录').click(); await page.locator('#root [data-scene="workspace-home"]').waitFor(); assert.equal(await page.locator('#root .m-result-banner,.m-toast,.m-unsaved-confirm').count(), 0); assert.equal(await page.locator('#root .m-portal-entry-grid button').count(), 6);
+    await goto('login'); const entry = page.locator('#root').getByRole('link', { name: '协同门户移动端', exact: true }); assert.ok(await entry.isVisible()); await entry.click(); await page.locator('#root [data-scene="portal"]').waitFor(); await button('关闭').click(); await page.locator('#root [data-scene="query"]').waitFor(); await goto('login'); await page.locator('#root').getByRole('link', { name: '协同门户移动端', exact: true }).click(); await field('账号').fill('demo'); await page.locator('#root').getByLabel('密码', { exact: true }).fill('prototype'); await button('显示密码').click(); assert.equal(await page.locator('#root').getByLabel('密码', { exact: true }).getAttribute('type'), 'text'); await field('验证码').fill('cbvs'); await button('下一步').click(); assert.equal(await field('邮箱验证码').getAttribute('inputmode'), 'numeric'); await field('注册邮箱').fill('mobile@example.com'); await button('发送验证码').click(); await field('邮箱验证码').fill('123456'); assert.equal(await page.locator('[aria-invalid="true"]').count(), 0); await shot('portal-email'); await button('登录').click(); await page.locator('#root [data-scene="workspace-home"]').waitFor(); assert.equal(await page.locator('#root .m-result-banner,.m-toast,.m-decision-confirm').count(), 0); assert.equal(await page.locator('#root .m-portal-entry-grid button').count(), 6);
   });
   await check('四类供应商表单及个人注册跳过联系人', async () => {
     for (const type of ['企业供应商', '个人供应商', '政府机构', '国外供应商']) {
@@ -433,7 +433,10 @@ try {
   await check('门户价税订单资料前置及发票金额红字提醒', async () => {
     await goto('mobile/workspace-tax-detail');
     const headings = await page.locator('#root .m-portal-pricing > .m-section > h2').allTextContents();
-    assert.equal(headings[0], '采购订单资料'); assert.equal(headings[1], '1. Dell.R740');
+    assert.equal(headings[0], '1. Dell.R740');
+    assert.equal(await page.locator('#root .m-order-info-card .m-record-heading h2').innerText(), 'DEMO-ORDER-001');
+    assert.equal(await page.locator('#root .m-order-info-card .m-record-heading .m-status').innerText(), '待处理');
+    assert.equal(await page.locator('#root .m-portal-object-summary').count(), 0);
     assert.ok(await page.locator('#root .m-portal-pricing > .m-section').first().getByText('采购类型', { exact: true }).isVisible());
     const warning = page.locator('#root .m-pricing-warning');
     assert.equal(await warning.innerText(), '请您按照发票金额填写并检查，否则会影响后续付款！');

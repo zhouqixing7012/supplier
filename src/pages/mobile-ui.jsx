@@ -187,10 +187,15 @@ export function SupplierIdentityCard({ supplier, children, showMeta = true }) {
   return <div className="m-detail-summary"><div className="m-supplier-heading"><h2>{supplier.name}</h2>{supplier.status && <StatusTag value={supplier.status} />}</div>{showMeta && <p className="m-summary-meta"><span>{supplier.type || '—'} · {supplier.mode || '—'}</span></p>}{children}</div>;
 }
 
-export function Confirm({ text, onCancel: cancelOriginal, onConfirm: confirmOriginal, cancelLabel = '取消', confirmLabel = '确认', danger = false, unsaved = false }) {
+export function Confirm({ text, onCancel: cancelOriginal, onConfirm: confirmOriginal, cancelLabel = '取消', confirmLabel = '确认', danger = false, unsaved = false, decision = false, title }) {
   const onCancel = () => runMotion(cancelOriginal, 'sheet-close');
   const onConfirm = () => runMotion(confirmOriginal, 'record');
-  return <Overlay label={unsaved ? '离开编辑' : '提示'} sheet={unsaved} onClose={onCancel}>{unsaved ? <div className="m-unsaved-confirm"><span className="m-sheet-handle" aria-hidden="true" /><h2>离开编辑？</h2><p>{text}</p><div className="m-unsaved-actions"><button type="button" className="m-discard-button" onClick={onConfirm}>{confirmLabel}</button><button type="button" className="m-continue-button" data-initial-focus onClick={onCancel}>{cancelLabel}</button></div></div> : <><h2>提示</h2><p>{text}</p><div className="m-dialog-actions"><button onClick={onCancel}>{cancelLabel}</button><button className={danger ? 'm-action-danger' : undefined} onClick={onConfirm}>{confirmLabel}</button></div></>}</Overlay>;
+  const heading = title || (unsaved ? '离开编辑？' : decision ? '退出登录？' : '提示');
+  const primaryCancel = unsaved;
+  return <Overlay label={heading} onClose={onCancel}>{unsaved || decision ? <div className="m-decision-confirm"><h2>{heading}</h2><p>{text}</p><div className="m-decision-actions">
+    <button type="button" className="m-discard-button" onClick={primaryCancel ? onConfirm : onCancel}>{primaryCancel ? confirmLabel : cancelLabel}</button>
+    <button type="button" className="m-continue-button" data-initial-focus onClick={primaryCancel ? onCancel : onConfirm}>{primaryCancel ? cancelLabel : confirmLabel}</button>
+  </div></div> : <><h2>提示</h2><p>{text}</p><div className="m-dialog-actions"><button onClick={onCancel}>{cancelLabel}</button><button className={danger ? 'm-action-danger' : undefined} onClick={onConfirm}>{confirmLabel}</button></div></>}</Overlay>;
 }
 
 export function ScreenshotTip({ onClose }) {

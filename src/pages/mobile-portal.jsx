@@ -1,6 +1,6 @@
 import { usePanelState } from './mobile-motion.jsx';
 import React, { useRef, useState } from 'react';
-import { Building2, FileClock, FileCheck2, Calculator, ClipboardCheck, Plane, Train, Hotel, Car, Upload, LoaderCircle, Plus, Mail, KeyRound, ChevronRight, X, LogOut } from 'lucide-react';
+import { Building2, FileClock, FileCheck2, Calculator, ClipboardCheck, Plane, Train, Hotel, Car, Upload, Download, LoaderCircle, Plus, Mail, KeyRound, ChevronRight, X, LogOut } from 'lucide-react';
 import { Actions, PickerHeading, RecordCard, RecordCollection, AttachmentLink, Confirm, Empty, StatusTag, Field, Overlay, Row, Section, SearchBox } from './mobile-ui.jsx';
 import { QualificationInfo } from './mobile-qualifications.jsx';
 import { AddressForm, BankCard, BankFields, BasicFields, ContactFields, bankError, fieldsFor, filledBasic, blankBank } from './mobile-forms.jsx';
@@ -69,17 +69,35 @@ function TravelBillUploadEntry({ entry, notify }) {
     }
   };
   return <div className="m-travel-upload-entry" data-travel-type={entry.key} data-upload-status={status}>
-    <div className="m-travel-entry-main">
-      <span className="m-travel-entry-icon"><entry.Icon aria-hidden="true" /></span>
-      <div className="m-travel-entry-copy"><strong>{entry.label}</strong></div>
-    </div>
     <input ref={inputRef} className="m-file-input" type="file" multiple aria-label={entry.label + '附件'} onChange={selectFiles} />
     <button type="button" className="m-travel-upload-button" aria-label={entry.label + '上传附件'} disabled={status === 'uploading'} onClick={() => inputRef.current?.click()}>
-      {status === 'uploading' ? <><LoaderCircle className="m-travel-upload-spinner" aria-hidden="true" />上传中</> : <><Upload aria-hidden="true" />上传附件</>}
+      <span className="m-travel-entry-icon"><entry.Icon aria-hidden="true" /></span>
+      <span className="m-travel-entry-copy"><strong>{entry.label}</strong><small>{status === 'uploading' ? '正在上传…' : '点击选择文件'}</small></span>
+      {status === 'uploading' ? <LoaderCircle className="m-travel-upload-spinner" aria-hidden="true" /> : <Upload aria-hidden="true" />}
     </button>
     {message && <p className="m-travel-upload-message" data-status={status} aria-live="polite">{message}</p>}
     {fileNames.length > 0 && <p className="m-travel-upload-files">{fileNames.join('、')}</p>}
   </div>;
+}
+
+function TravelTemplateDownload({ notify }) {
+  const [loading, setLoading] = useState(false);
+  const download = async () => {
+    setLoading(true);
+    try {
+      const adapter = window.__PORTAL_TRAVEL_TEMPLATE__;
+      if (typeof adapter !== 'function') throw new Error('模板暂不可用，请联系管理员');
+      const file = await adapter();
+      if (!(file?.blob instanceof Blob) || !file.blob.size || !file.name) throw new Error('模板文件获取失败，请重试');
+      const url = URL.createObjectURL(file.blob);
+      const link = document.createElement('a');
+      link.href = url; link.download = file.name; link.click();
+      window.setTimeout(() => URL.revokeObjectURL(url), 60000);
+    } catch (error) {
+      notify(error instanceof Error ? error.message : '模板下载失败，请重试');
+    } finally { setLoading(false); }
+  };
+  return <div className="m-travel-template"><p>上传文件格式为xls、xlsx</p><button type="button" onClick={download} disabled={loading}><Download aria-hidden="true" />{loading ? '下载中' : '模板下载'}</button></div>;
 }
 
 function initialProfile() {
@@ -155,12 +173,12 @@ export function PortalWorkspace({ scene, go, notify, store, onPreview, accountMe
     {scene === 'workspace-tasks' && <><Tabs showDirectory={false} stretch items={['待处理', '已处理']} active={taskTab % 2} onChange={i => setTasks((taskTab < 2 ? 0 : 2) + i)} /><SwipeArea active={taskTab % 2} count={2} onChange={i => setTasks((taskTab < 2 ? 0 : 2) + i)}><PortalTaskList key={taskTab} tab={taskTab} inquiries={inquiries} orders={orders} store={store} go={go} /></SwipeArea></>}
 
     {scene === 'workspace-quote-detail' && <PortalPricingDetail quote records={inquiries} store={store} go={go} notify={notify} onPreview={onPreview} />}
-    {scene === 'workspace-travel' && <Section title="差旅账单" collapsible={false}><div className="m-travel-entry-list">{travelEntryDefinitions.map(entry => <TravelBillUploadEntry key={entry.key} entry={entry} notify={notify} />)}</div></Section>}
+    {scene === 'workspace-travel' && <Section title="差旅账单" collapsible={false}><TravelTemplateDownload notify={notify} /><div className="m-travel-entry-list">{travelEntryDefinitions.map(entry => <TravelBillUploadEntry key={entry.key} entry={entry} notify={notify} />)}</div></Section>}
     {['workspace-tax-detail', 'workspace-tax-split'].includes(scene) && <PortalPricingDetail records={orders} store={store} go={go} notify={notify} onPreview={onPreview} />}
     {address && <Overlay sheet label="编辑注册地址" onClose={() => window.dispatchEvent(new CustomEvent('mobile-close-address'))}><div className="m-address-editor"><div className="m-picker-title"><strong>编辑注册地址</strong></div><AddressForm initial={draft.basic.address} onCancel={() => setAddress(false)} onConfirm={value => { setDraft({ ...draft, basic: { ...draft.basic, address: value } }); setAddress(false); }} /></div></Overlay>}
     {bankIndex !== null && <div className="m-fullscreen-panel" role="dialog" aria-modal="true" aria-label="门户银行编辑"><PickerHeading title={bankIndex < 0 ? '新增银行' : '修改银行'} /><BankFields bank={bank} setBank={setBank} company={profile.type === supplierTypes[0]} /><Actions items={[{ label: '取消', secondary: true, onClick: closeBank }, { label: '保存此账户', onClick: () => { const error = bankError(bank, profile.type === supplierTypes[0]); if (error) return notify(error); if (draft.banks.some((b, i) => i !== bankIndex && b.accountType === '基本账户' && bank.accountType === '基本账户')) return notify('基本账户只能有一个'); const entry = { ...bank, id: bankIndex < 0 ? createSessionId() : draft.banks[bankIndex].id }; setDraft({ ...draft, banks: bankIndex < 0 ? [...draft.banks, entry] : draft.banks.map((b, i) => i === bankIndex ? entry : b) }); bankGuard.accept(); setBankIndex(null); } }]} /></div>}
     {removeBank !== null && <Confirm text="确认删除此银行账户？" onCancel={() => setRemoveBank(null)} onConfirm={() => { setDraft({ ...draft, banks: draft.banks.filter((_, i) => i !== removeBank) }); setRemoveBank(null); }} />}
-    {logout && <Confirm text={store.portalDraft ? '还有尚未提交的资料修改，退出将放弃这些修改。确认退出？' : '确认退出协同门户？'} onCancel={() => setLogout(false)} onConfirm={() => { store.portalDraft = null; store.portalAccount = null; notify('已退出登录'); go('portal'); }} />}
+    {logout && <Confirm decision confirmLabel="退出登录" text={store.portalDraft ? '还有尚未提交的资料修改，退出将放弃这些修改。确认退出？' : '确认退出协同门户？'} onCancel={() => setLogout(false)} onConfirm={() => { store.portalDraft = null; store.portalAccount = null; notify('已退出登录'); go('portal'); }} />}
     {accountMenu && <Overlay sheet label="账户设置" onClose={() => setAccountMenu(false)}><div className="m-portal-account-panel"><div className="m-picker-title"><strong>账户设置</strong><button type="button" aria-label="关闭账户设置" onClick={() => setAccountMenu(false)}><X /></button></div><div className="m-account-panel-menu">{[[KeyRound, '修改密码', 'workspace-account-password'], [Mail, '修改注册邮箱', 'workspace-account-email']].map(([Icon, label, route]) => <button type="button" key={route} onClick={() => { store.portalSecurityReturn = 'workspace-home'; setAccountMenu(false); go(route); }}><Icon aria-hidden="true" /><span>{label}</span><ChevronRight aria-hidden="true" /></button>)}</div><div className="m-account-panel-logout"><button type="button" onClick={() => { setAccountMenu(false); setLogout(true); }}><LogOut aria-hidden="true" />退出登录</button></div></div></Overlay>}
   </div>;
 }

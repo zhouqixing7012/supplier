@@ -156,7 +156,7 @@ export function runMotion(update, kind = 'fade', after) {
   };
   if (shade) show(shade, [{ opacity: 1 }, { opacity: 0 }], 180);
   if (kind === 'sheet-close') {
-    show(old, [{ opacity: 1, transform: 'translateY(0)' }, { opacity: 0, transform: `translateY(${old?.dataset.motionHeight || 0}px)` }], 180); return;
+    show(old, oldPanel?.matches('.m-dialog') ? [{ opacity: 1, transform: 'scale(1)' }, { opacity: 0, transform: 'scale(.97)' }] : [{ opacity: 1, transform: 'translateY(0)' }, { opacity: 0, transform: `translateY(${old?.dataset.motionHeight || 0}px)` }], 180); return;
   }
   if (kind === 'record') {
     moveRecords(before);

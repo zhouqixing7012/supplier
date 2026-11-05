@@ -371,17 +371,17 @@
 .m-rating-card-state strong { font-size: 16px; color: var(--m-action); }
 .m-rating-supplier-meta { border-top: 1px solid var(--m-border-subtle); margin-top: 12px; padding-top: 6px; }
 .m-rating-supplier-meta .m-row { padding-inline: 0; }
-.m-unsaved-confirm { text-align: left; font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif; padding: 8px 20px max(20px, env(safe-area-inset-bottom, 0px)); }
+.m-decision-confirm { text-align: left; font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif; padding: 24px; }
 .m-sheet-handle { display: block; width: 36px; height: 4px; border-radius: 4px; background: #d4dce5; margin: 0 auto 24px; }
-.m-unsaved-confirm h2 { margin: 0 0 10px; font-size: 20px; color: var(--m-text); }
-.m-unsaved-confirm p { margin: 0 0 24px; color: var(--m-text-secondary); font-size: 16px; line-height: 1.6; }
-.m-unsaved-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-.m-unsaved-actions button { border: 0; cursor: pointer; font-family: inherit; height: 48px; border-radius: 8px; font-size: 16px; font-weight: 500; }
-.m-unsaved-actions .m-discard-button { background: var(--m-surface); border: 1px solid var(--m-border); color: var(--m-text-secondary); }
-.m-unsaved-actions .m-continue-button { background: var(--m-action); color: #fff; }
-/* 未保存保护由页面外层承载，独立设置底部定位。 */
-.m-overlay:has(.m-unsaved-confirm) { align-items: flex-end; padding: 0; }
-.m-sheet:has(.m-unsaved-confirm) { width: min(100%, 430px); max-height: 90dvh; overflow-y: auto; border-radius: 16px 16px 0 0; }
+.m-decision-confirm h2 { margin: 0 0 10px; font-size: 20px; color: var(--m-text); }
+.m-decision-confirm p { margin: 0 0 24px; color: var(--m-text-secondary); font-size: 14px; line-height: 1.6; }
+.m-decision-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.m-decision-actions button { border: 0; cursor: pointer; font-family: inherit; height: 44px; border-radius: 8px; font-size: 14px; font-weight: 500; }
+.m-decision-actions .m-discard-button { background: var(--m-surface); border: 1px solid var(--m-border); color: var(--m-text-secondary); }
+.m-decision-actions .m-continue-button { background: var(--m-action); color: #fff; }
+/* 离开编辑与退出登录共享居中决策弹窗。 */
+.m-overlay:has(.m-decision-confirm) { align-items: center; padding: 24px; }
+.m-dialog:has(.m-decision-confirm) { width: min(342px, 100%); padding: 0; border-radius: 16px; }
 
 .mobile-page .m-record-actions > .m-edit-icon { display: inline-flex; align-items: center; justify-content: center; min-width: 44px; min-height: 44px; padding: 0 !important; }
 .m-edit-icon svg { width: 18px; height: 18px; }
@@ -407,7 +407,7 @@
 .mobile-page:not(.m-shot) .m-workspace-menu button,
 .mobile-page:not(.m-shot) .m-bottom-nav button { font-size: var(--m-font-body); }
 .mobile-page:not(.m-shot) .m-portal-login-card h2,
-.m-unsaved-confirm h2 { font-size: var(--m-font-page-title); }
+.m-decision-confirm h2 { font-size: var(--m-font-page-title); }
 .mobile-page:not(.m-shot) .m-bank-application > button { font-size: var(--m-font-control); }
 .m-overlay .m-picker-title strong,
 .m-overlay .m-dialog > h2,
@@ -507,19 +507,22 @@
 .m-pricing-warning { margin: 8px 20px 12px; color: #b42318; font-size: 14px; font-weight: 600; line-height: 1.6; }
 
 /* 差旅账单在当前页面选择附件，供应商服务将文件透传至对应差旅接口。 */
-.m-travel-entry-list { display: flex; flex-direction: column; padding: 0; }
-.m-travel-upload-entry { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 8px 12px; min-height: 68px; padding: 12px 0; border-bottom: 1px solid var(--m-border-subtle); }
-.m-travel-upload-entry:last-child { border-bottom: 0; }
-.m-travel-entry-main { display: flex; align-items: center; gap: 12px; min-width: 0; }
-.m-travel-entry-icon { display: grid; place-items: center; flex: 0 0 40px; width: 40px; height: 40px; border-radius: 10px; background: #edf4ff; color: var(--m-action); }
+.m-travel-template { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 8px; margin: 0 0 12px; }
+.m-travel-template p { margin: 0; font-size: 12px; color: var(--m-text-secondary); }
+.mobile-page .m-travel-template button { display: inline-flex; align-items: center; gap: 5px; min-height: 44px; padding: 0; border: 0; background: transparent; color: var(--m-action); font-size: 14px; }
+.m-travel-template svg { width: 17px; height: 17px; }
+.m-travel-entry-list { display: flex; flex-direction: column; gap: 12px; padding: 0 0 4px; }
+.m-travel-upload-entry { position: relative; display: grid; gap: 8px; }
+.m-travel-entry-icon { display: grid; place-items: center; flex: 0 0 40px; width: 40px; height: 40px; border-radius: 10px; background: #e6efff; color: var(--m-action); }
 .m-travel-entry-icon svg { width: 21px; height: 21px; stroke-width: 1.8; }
-.m-travel-entry-copy { display: flex; flex: 1; flex-direction: column; gap: 2px; min-width: 0; }
+.m-travel-entry-copy { display: flex; flex: 1; flex-direction: column; gap: 3px; min-width: 0; text-align: left; }
 .m-travel-entry-copy strong { color: var(--m-text); font-size: 15px; font-weight: 600; line-height: 1.5; }
-.mobile-page .m-travel-upload-button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-width: 104px; min-height: 44px; padding: 0 12px; border: 1px solid var(--m-action); border-radius: 5px; background: #fff; color: var(--m-action); font-size: 14px; cursor: pointer; }
-.mobile-page .m-travel-upload-button svg { width: 17px; height: 17px; }
+.m-travel-entry-copy small { font-size: 12px; color: var(--m-text-secondary); }
+.mobile-page .m-travel-upload-button { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 80px; padding: 14px; border: 1px solid #e2eaf6; border-radius: 12px; background: #f7faff; color: var(--m-action); font-size: 14px; cursor: pointer; }
+.mobile-page .m-travel-upload-button > svg { flex-shrink: 0; width: 20px; height: 20px; }
 .mobile-page .m-travel-upload-button:disabled { opacity: .58; cursor: wait; }
 .mobile-page .m-travel-upload-button:focus-visible { outline: 2px solid var(--m-action); outline-offset: 2px; }
-.mobile-page .m-travel-upload-button:active:not(:disabled) { background: #f2f6ff; }
+.mobile-page .m-travel-upload-button:active:not(:disabled) { background: #edf3ff; }
 .m-travel-upload-spinner { animation: m-travel-upload-spin 1s linear infinite; }
 @keyframes m-travel-upload-spin { to { transform: rotate(360deg); } }
 .m-travel-upload-message, .m-travel-upload-files { grid-column: 1 / -1; margin: 0 0 0 52px; font-size: 12px; line-height: 1.5; overflow-wrap: anywhere; }
@@ -814,3 +817,8 @@
 .mobile-page .m-option-picker.is-simple .m-sheet-options > button { display: flex; align-items: center; justify-content: center; text-align: center; }
 .mobile-page .m-option-picker.is-simple .m-sheet-options > button > span:first-child { text-align: center; }
 .mobile-page:not(.m-shot) .m-option-picker.is-simple .m-sheet-options > button.selected { padding-inline: 12px; border-bottom-color: transparent; border-radius: 12px; background: var(--m-info-surface); color: var(--m-action); font-weight: 600; }
+
+/* 混排只读行与编辑行时，字段名称及值共用同一列。 */
+.mobile-page:not(.m-shot) .m-quote-info .m-field-inline { gap: 8px 0; }
+.mobile-page:not(.m-shot) .m-quote-info .m-field-inline > label { padding-left: 0; }
+.mobile-page:not(.m-shot) .m-order-info-card .m-record-heading { padding: 14px 0 12px; border-bottom: 1px solid var(--m-border-subtle); }

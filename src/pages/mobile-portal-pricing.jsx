@@ -73,17 +73,18 @@ export function PortalPricingDetail({ quote, records, store, go, notify, onPrevi
     guard.accept(); notify(quote ? '报价已提交' : '价税拆分已提交'); go('workspace-tasks');
   };
   return <div className="m-portal-pricing">
-    <section className="m-portal-object-summary" aria-label={quote ? '询价摘要' : '采购订单摘要'}>
+    {quote && <section className="m-portal-object-summary" aria-label={quote ? '询价摘要' : '采购订单摘要'}>
       <div className="m-record-heading"><h2>{quote ? draft.title : draft.number}</h2><StatusTag value={quote ? draft.inquiryStatus : draft.status} /></div>
       {quote && <p className="m-portal-record-number" aria-label="询价单号">{draft.number}</p>}
       {quote && editable && <p className="m-input-note m-quote-deadline">{expired ? '报价已截止' : '报价截止时间：' + draft.end + '，超时自动取消报价资格。'}</p>}
-    </section>
-    {quote ? <Section title="询价资料" collapsible={false}>
+    </section>}
+    {quote ? <Section title="询价资料" className="m-quote-info" collapsible={false}>
       {[['way', '询价类型'], ['buyer', '采购员'], ['unit', '采购单位'], ['type', '采购类型'], ['created', '创建时间'], ['end', '结束时间']].map(([key, label]) => <Row key={key} label={label}>{draft[key] || '—'}</Row>)}
       {editable ? <Field label="税率（%）" inputMode="decimal" value={draft.rate || ''} onChange={changeRate} /> : <Row label="税率（%）">{draft.rate || '—'}</Row>}
       <FileRow label="询价附件" value={draft.attachment} onPreview={onPreview} />
       <Row label="询价说明">{draft.remark || '—'}</Row>
-    </Section> : <Section title="采购订单资料" collapsible={false}>
+    </Section> : <Section className="m-order-info-card" collapsible={false}>
+      <div className="m-record-heading"><h2>{draft.number}</h2><StatusTag value={draft.status} /></div>
       {orderFields.filter(([key]) => key !== 'number').map(([key, label]) => <Row key={key} label={label}>{draft[key] || '—'}</Row>)}
     </Section>}
     {!quote && editable && <p className="m-pricing-warning" role="note">请您按照发票金额填写并检查，否则会影响后续付款！</p>}
