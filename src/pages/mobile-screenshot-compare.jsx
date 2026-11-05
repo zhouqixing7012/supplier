@@ -43,7 +43,7 @@ export function ScreenshotCompare({ state }) {
   const [layerScenes, setLayerScenes] = useState(null);
   const [manual, setManual] = useState('');
   const [failed, setFailed] = useState(false);
-  const [zoom, setZoom] = useState(100);
+  const [zoom, setZoom] = useState(50);
   const scroll = useRef(null);
   const switchRef = useRef(null);
   useLayoutEffect(() => {
@@ -69,7 +69,7 @@ export function ScreenshotCompare({ state }) {
   useEffect(() => { setManual(''); }, [key]);
   const selected = automatic.find(shot => shot.time === manual) || automatic[0];
   const src = selected ? originalScreenshots[selected.filename] : '';
-  useEffect(() => { setFailed(false); setZoom(100); if (scroll.current) scroll.current.scrollTop = 0; }, [src]);
+  useEffect(() => { setFailed(false); if (scroll.current) scroll.current.scrollTop = 0; }, [src]);
   const close = () => { setEnabled(false); switchRef.current?.focus(); };
   return createPortal(<div data-review-ui className="m-screenshot-tools">
     <button ref={switchRef} type="button" className="m-screenshot-toggle" role="switch" aria-checked={enabled} aria-controls="original-screenshot-panel" onClick={() => setEnabled(value => !value)}>原图对照 <span>{enabled ? '开' : '关'}</span></button>
@@ -77,7 +77,7 @@ export function ScreenshotCompare({ state }) {
       <header><strong>原图对照</strong><button type="button" onClick={close} aria-label="关闭原图对照">关闭</button></header>
       <div className="m-screenshot-settings">
         {automatic.length > 0 ? <label>对应截图<select aria-label="选择当前页面对应截图" value={selected?.time || ''} onChange={event => setManual(event.target.value)}>{automatic.map(shot => <option key={shot.time} value={shot.time}>{shot.index}. {shot.title}</option>)}</select></label> : <p>当前页面或状态暂无对应的历史截图。</p>}
-        {selected && <><small>{selected.filename}</small><label>缩放<select aria-label="原图缩放" value={zoom} onChange={event => setZoom(Number(event.target.value))}>{[100, 150, 200].map(value => <option key={value} value={value}>{value}%</option>)}</select></label></>}
+        {selected && <><small>{selected.filename}</small><label>缩放<select aria-label="原图缩放" value={zoom} onChange={event => setZoom(Number(event.target.value))}>{[10, 25, 33, 50, 75, 100, 150, 200].map(value => <option key={value} value={value}>{value}%</option>)}</select></label></>}
         <small>已接入 {Object.keys(originalScreenshots).length}/47 张原图，随当前页面和状态切换。</small>
       </div>
       <div ref={scroll} className="m-screenshot-scroll">
