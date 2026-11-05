@@ -24,7 +24,7 @@ export function MultiAttachmentField({ label, value, onChange, onPreview }) {
       }} />
       <button type="button" className="m-file-select" onClick={() => input.current?.click()}><Plus aria-hidden="true" />添加附件</button>
     </div>
-    {removing !== null && pendingFile && <Confirm text={`确认删除附件「${attachmentName(pendingFile)}」？`} onCancel={() => setRemoving(null)} onConfirm={() => { onChange(files.filter((_, index) => index !== removing)); setRemoving(null); }} />}
+    {removing !== null && pendingFile && <Confirm danger text={`确认删除附件「${attachmentName(pendingFile)}」？`} onCancel={() => setRemoving(null)} onConfirm={() => { onChange(files.filter((_, index) => index !== removing)); setRemoving(null); }} />}
   </div>;
 }
 
@@ -46,6 +46,6 @@ export function SpreadsheetUploadField({ label, value, onChange }) {
     <button type="button" className="m-file-select" onClick={() => document.getElementById(id).click()}><Upload aria-hidden="true" />{value ? '替换文件' : '选择文件'}</button>
     <p id={id + '-hint'} className="m-file-hint">支持xls、xlsx格式</p>
     {invalid && <p id={id + '-error'} className="m-field-error" role="alert">{invalid}</p>}
-    {removing && <Confirm text={'确认移除' + label + '？'} onCancel={() => setRemoving(false)} onConfirm={() => { onChange(''); setError(''); setRemoving(false); }} />}
+    {removing && <Confirm danger text={'确认移除' + label + '？'} onCancel={() => setRemoving(false)} onConfirm={() => { onChange(''); setError(''); setRemoving(false); }} />}
   </div>;
 }

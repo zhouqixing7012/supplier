@@ -305,7 +305,7 @@ body { font-family: "Microsoft YaHei", "Supplier Noto SC", "PingFang SC", Arial,
 .m-android-nav span { width: 17px; height: 17px; border: 2px solid #444; border-radius: 1px; }
 .m-android-nav i { width: 22px; height: 22px; border: 2px solid #444; border-radius: 50%; }
 .m-android-nav b { width: 17px; height: 17px; border-left: 2px solid #444; border-bottom: 2px solid #444; transform: rotate(45deg) skew(8deg, 8deg); }
-.m-toast { position: fixed; z-index: 110; left: 50%; top: 95px; transform: translateX(-50%); width: max-content; max-width: min(370px, 90vw); padding: 10px 16px; border-radius: 5px; background: #333e; color: white; font-size: 14px; text-align: center; box-shadow: 0 2px 7px #0002; }
+.m-toast { line-height: 22px; position: fixed; z-index: 110; left: 50%; top: 50%; transform: translate(-50%, -50%); width: max-content; max-width: min(370px, 90vw); padding: 10px 16px; border-radius: 5px; background: #333e; color: white; font-size: 14px; text-align: center; box-shadow: 0 2px 7px #0002; }
 .m-scene-gallery { max-width: 1060px; margin: auto; padding: 30px 24px; color: #27364b; background: var(--m-surface); min-height: 100dvh; }
 .m-scene-gallery header > a { margin-right: 20px; color: #3378b5; }
 .m-scene-gallery h1 { font-size: 26px; margin-bottom: 10px; }
@@ -626,3 +626,4 @@ body { font-family: "Microsoft YaHei", "Supplier Noto SC", "PingFang SC", Arial,
 .m-date-wheel > button[aria-selected=true] { color: var(--m-action); background: var(--m-info-surface); font-weight: 600; }
 .m-date-shortcuts { border-top: 1px solid var(--m-border); display: flex; }
 .m-date-shortcuts button { flex: 1; min-height: 48px; color: var(--m-action); font-size: 16px; }
+

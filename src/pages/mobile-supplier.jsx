@@ -1,6 +1,6 @@
 import { createSessionId } from './mobile-interaction.jsx';
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { Check, MailPlus, FilePenLine, Landmark, Download, Filter, ListChecks, Plus, Search, Signal, Wifi, Battery, X, MoreHorizontal, CircleUserRound } from 'lucide-react';
+import { Check, MailPlus, FilePenLine, Landmark, Download, Filter, ListChecks, Plus, Search, Signal, Wifi, Battery, X, CircleUserRound } from 'lucide-react';
 import { Actions, RecordCollection, AttachmentViewer, AppliedFilters, Confirm, Empty, Field, FilterButton, Header, RegistrationSteps, Overlay, Row, ScreenshotTip, SearchBox, Section } from './mobile-ui.jsx';
 import { AddressForm, BankCard, BankFields, BasicFields, ContactFields, InviteForm, PermissionForm, ReferenceList, bankError, blankBank, fieldsFor, filledBasic } from './mobile-forms.jsx';
 import { Approval, BankApplication, FilterView, PermissionCard, RatingList, SupplierDetail, SupplierList, Tabs } from './mobile-views.jsx';
@@ -29,6 +29,8 @@ const mobileTitle = scene => {
   if (scene === 'workspace-account') return '供应商协同门户';
   if (scene === 'workspace-account-password') return '修改密码';
   if (scene === 'workspace-tasks') return '采购业务';
+  if (scene === 'workspace-changes') return '资料变更预览';
+  if (scene === 'workspace-approval') return '资料变更审批';
   if (scene === 'workspace-info') return '供应商信息';
   if (scene === 'workspace-travel') return '差旅账单录入';
   if (scene === 'workspace-quote-detail') return '报价详情';
@@ -42,12 +44,20 @@ const mobileTitle = scene => {
   if (scene.startsWith('register')) return scene.includes('edit') ? '修改供应商信息' : '供应商代注册';
   if (scene === 'inviter-batch') return '批量变更邀请人';
   if (scene.startsWith('invite')) return scene.startsWith('inviter') ? '变更邀请人' : '邀请供应商';
+  if (['people', 'people-empty'].includes(scene)) return '选择新邀请人';
+  if (scene === 'bank-select') return '选择开户银行';
+  if (scene === 'branch-select') return '选择银行分行';
+  if (scene === 'permission-form') return '新增供应商权限';
+  if (['expiry', 'address', 'region'].includes(scene)) return '供应商代注册';
   if (scene === 'bank' || scene === 'bank-tip') return '维护银行信息';
   if (scene.startsWith('bank-form')) return '编辑银行账户';
   if (scene.startsWith('permission')) return '维护供应商权限';
   if (scene === 'rating-edit') return '填写供应商评分';
   if (scene === 'rating-detail') return '供应商评分详情';
   if (scene === 'filter') return '筛选供应商';
+  if (['bank-application-form', 'application-empty'].includes(scene)) return '银行信息申请';
+  if (scene === 'bank-application') return '银行信息申请须知';
+  if (scene === 'information-change') return '资料变更对比';
   if (['rating-filter', 'department'].includes(scene)) return '筛选评分';
   return '供应商管理平台';
 };
@@ -106,10 +116,11 @@ function MobileApp() {
   const go = next => interaction.request(() => { if (next === currentRoute.current) return; const previous = currentRoute.current; runMotion(() => { historyIndex.current += 1; history.pushState({ mobileIndex: historyIndex.current }, '', '#/mobile/' + next); currentRoute.current = next; setRoute(next); }, routeMotion(previous, next)); });
   const notify = text => {
     setMessage(text);
+    if (text && /草稿/.test(text)) setResult(null);
     if (text && /^请|错误|不能|只能|必须|已存在|须为/.test(text)) window.dispatchEvent(new CustomEvent('mobile-validation', { detail: text }));
     if (text && /已提交|已保存|已暂存|已导出|修改完成|验证通过|已重新邀请|变更已提交/.test(text)) {
       interaction.clean();
-      if (!/已导出|验证码/.test(text)) setResult({ text, supplier: suppliers.find(x => x.id === selected)?.name });
+      if (!/已导出|验证码|草稿/.test(text)) setResult({ text, supplier: suppliers.find(x => x.id === selected)?.name });
     }
     if (text && /请填写|请选择|请输入|只能|不能|必须|已存在/.test(text)) {
       requestAnimationFrame(() => {
@@ -161,7 +172,6 @@ function MobileSurface({ scene, shot, ratings, setRatings, activeRating, setActi
   const isRegistration = scene.startsWith('register') || ['expiry', 'address', 'region'].includes(scene);
   const [returnPreview, setReturnPreview] = useState(false);
   const [previewTab, setPreviewTab] = useState(0);
-  const [registrationMenu, setRegistrationMenu] = usePanelState(false);
   const [step, setStep] = useState(registrationDraft?.step ?? (scene.includes('contacts') ? 1 : scene.includes('banks') ? 2 : 0));
   const [stepsExpanded, setStepsExpanded] = useState(step === 0);
   const stepScroll = useRef({});
@@ -174,6 +184,9 @@ function MobileSurface({ scene, shot, ratings, setRatings, activeRating, setActi
   const [registerBankPicker, setRegisterBankPicker] = usePanelState(false);
   const [registerBankForm, setRegisterBankForm] = useState(blankBank(basic.supplierName));
   const [saving, setSaving] = useState(false);
+  const [portalErrors, setPortalErrors] = useState({});
+  const changePortal = (key, value) => { setPortal(old => ({ ...old, [key]: value })); setPortalErrors(old => ({ ...old, [key]: undefined })); };
+  const portalError = (key, text) => { setPortalErrors({ [key]: text }); notify(''); };
   const [portalEmail, setPortalEmail] = useState(scene === 'portal-email');
   const [portal, setPortal] = useState({ account: '', password: scene === 'portal-email' ? 'prototype123' : '', captcha: scene === 'portal-email' ? '39qq' : '', email: scene === 'portal-email' ? '675756300@qq.com' : '', code: '' });
   const [countdown, setCountdown] = useState(scene === 'portal-email' ? 55 : 0);
@@ -342,6 +355,7 @@ function MobileSurface({ scene, shot, ratings, setRatings, activeRating, setActi
     const patch = { basic: clone(basic), name: basic.supplierName, type: basic.type, email: basic.registerEmail, code: basic.creditCode || '', banks: clone(registerBanks), contacts: clone(contacts), updated: now() };
     if (editingRegistration && !editingAll) update(patch);
     else { const id = createSessionId(); setSuppliers([{ ...patch, id, status: '草稿', inviter: '陈才慧', mode: '代注册', date: now(), permissions: [], score: '未评分' }, ...suppliers]); select(id); }
+    registrationGuard.accept();
     notify('草稿已保存'); go('mine');
   }
 
@@ -354,7 +368,7 @@ function MobileSurface({ scene, shot, ratings, setRatings, activeRating, setActi
   return <div className={'mobile-page ' + (shot ? 'm-shot ' : '') + (shot?.sourceHeight > 2340 ? 'm-long-shot ' : '') + (listScene ? 'm-list-page' : '')} data-scene={scene}>
     {shot && <div className="m-watermark" aria-hidden="true">{Array.from({ length: 60 }, (_, i) => <span key={i}>{shot.index < 25 ? '孙志强213852' : '陈才慧208660'}</span>)}</div>}
     {shot && <div className="m-status-bar"><span>{shot.time.slice(0, 2)}:{shot.time.slice(2, 4)}</span><div><Signal /><Wifi /><Battery /><small>67</small></div></div>}
-    <Header right={['workspace-home', 'workspace-account'].includes(scene) ? <button type="button" className="m-portal-account-button" aria-label="账户设置" onClick={() => setPortalAccountMenu(true)}><CircleUserRound aria-hidden="true" /></button> : !shot && isRegistration && (!portalRegistration || accountRegistered) ? <button type="button" aria-label="注册更多操作" onClick={() => setRegistrationMenu(true)}><MoreHorizontal /></button> : undefined} hideBack={(portalRegistration && !accountRegistered) || ['workspace-home', 'workspace-account'].includes(scene)} onBack={back} title={shot ? (scene.startsWith('portal') ? '协同门户-登录' : '供应商管理平台') : scene === 'workspace-tasks' ? (views.portalTaskTab ?? 2) < 2 ? '采购报价' : '价税拆分' : mobileTitle(scene)} close={scene.startsWith('portal') ? () => go('query') : undefined} />
+    <Header right={['workspace-home', 'workspace-account'].includes(scene) ? <button type="button" className="m-portal-account-button" aria-label="账户设置" onClick={() => setPortalAccountMenu(true)}><CircleUserRound aria-hidden="true" /></button> : undefined} hideBack={(portalRegistration && !accountRegistered) || ['workspace-home', 'workspace-account'].includes(scene)} onBack={back} title={shot ? (scene.startsWith('portal') ? '协同门户-登录' : '供应商管理平台') : scene === 'workspace-tasks' ? (views.portalTaskTab ?? 2) < 2 ? '采购报价' : '价税拆分' : mobileTitle(scene)} close={scene.startsWith('portal') ? () => go('query') : undefined} />
     {(listScene || ['ratings', 'my-ratings', 'rating-ops', 'bank-application'].includes(scene)) && <Tabs active={tab} onChange={i => go(['query', 'mine', 'my-ratings', 'ratings', 'rating-ops', 'bank-application'][i])} />}
     <SwipeArea active={tab} count={6} onChange={i => { if (listScene || ['ratings', 'my-ratings', 'rating-ops', 'bank-application'].includes(scene)) go(['query', 'mine', 'my-ratings', 'ratings', 'rating-ops', 'bank-application'][i]); }}>
     {listScene && <>
@@ -364,8 +378,8 @@ function MobileSurface({ scene, shot, ratings, setRatings, activeRating, setActi
       {!batch && <div className="m-fab-group">{expanded && <div className="m-fab-menu"><button onClick={() => go('invite')}><span><MailPlus /></span>邀请注册</button><button onClick={() => go('register')}><span><FilePenLine /></span>代注册</button></div>}<button className="m-fab m-fab-blue" aria-label={expanded ? '收起新增入口' : '新增供应商'} onClick={() => setExpanded(!expanded)}>{expanded ? <X /> : <Plus />}</button></div>}
       {batch && <footer className={'m-batch-actions' + (mine ? ' m-batch-actions-mine' : '')}><label className="m-checkbox"><input type="checkbox" aria-label="全选当前结果" disabled={!selectableList.length} checked={selectableList.length > 0 && checked.length === selectableList.length} onChange={e => setChecked(e.target.checked ? selectableList.map(x => x.id) : [])} /><span>{checked.length === selectableList.length && !!selectableList.length && <Check />}</span>全选</label><span>已选 {checked.length} 项</span><div className="m-batch-buttons"><button disabled={!checked.length} className="m-action-danger" onClick={() => { if (!canBatchDelete) return setBatchError({ title: '无法删除', text: '所选记录包含不可删除的状态，仅' + deleteStatuses(mine).join('、') + '可删除，请重新选择。' }); setConfirm({ type: 'delete', ids: [...checked], text: '确认删除所选供应商？' }); }}>删除</button>{mine && <button disabled={!checked.length} onClick={() => { if (!canBatchInviter) return setBatchError({ title: '无法变更邀请人', text: '所选记录包含未审批或已拉黑的供应商，请重新选择已审批且未拉黑的供应商。' }); views.batchInviterIds = [...checked]; listReturn.current = 'mine'; go('inviter-batch'); }}>批量变更邀请人</button>}</div></footer>}
     </>}
-    {(scene === 'filter' || filtering) && <div className={filtering ? 'm-fullscreen-panel' : ''}>{filtering && <Header title="筛选供应商" onBack={() => runMotion(() => setFiltering(false), 'back')} />}<FilterView initial={filters} onApply={v => { if (v.start && v.end && v.start > v.end) return notify('开始时间不能晚于结束时间'); setFilters(v); filtering ? runMotion(() => setFiltering(false), 'back') : go(listReturn.current); }} onCancel={() => filtering ? runMotion(() => setFiltering(false), 'back') : go('query')} /></div>}
-    {scene === 'information-change' && supplier.pendingInformation && supplier.status === '变更中' && <><ChangeComparison before={supplier} after={supplier.pendingInformation} /><Actions items={[{ label: '返回列表', secondary: true, onClick: () => go(listReturn.current) }, { label: '查看审批', onClick: () => go('approval') }]} /></>}
+    {(scene === 'filter' || filtering) && <div className={filtering ? 'm-fullscreen-panel' : ''}>{filtering && <Header title="筛选供应商" onBack={() => runMotion(() => setFiltering(false), 'back')} />}<FilterView initial={filters} onApply={v => { if (v.start && v.end && v.start > v.end) return notify('开始时间不能晚于结束时间'); setFilters(v); if (filtering) runMotion(() => setFiltering(false), 'back'); else { views[listReturn.current] = { ...views[listReturn.current], filters: v }; go(listReturn.current); } }} onCancel={() => filtering ? runMotion(() => setFiltering(false), 'back') : go('query')} /></div>}
+    {scene === 'information-change' && <>{supplier.pendingInformation && supplier.status === '变更中' ? <><ChangeComparison before={supplier} after={supplier.pendingInformation} /><Actions items={[{ label: '返回列表', secondary: true, onClick: () => go(listReturn.current) }, { label: '查看审批', onClick: () => go('approval') }]} /></> : <><Section title="资料变更对比" collapsible={false}><Empty text="暂无待查看的资料变更" /></Section><Actions items={[{ label: '返回列表', onClick: () => go(listReturn.current) }]} /></>}</>}
     {scene.startsWith('detail') && <SupplierDetail supplier={supplier} initialTab={scene === 'detail-bank' ? 3 : ['detail-approval', 'detail-approval-empty'].includes(scene) ? 7 : scene === 'detail-ratings' ? 8 : 0} approvalEmpty={scene === 'detail-approval-empty'} onPreview={preview} ratings={ratings} onScore={() => { setActiveRating(null); setRatingReturn('detail-ratings'); go('rating-edit'); }} onRatingOpen={(record, readOnly) => { setActiveRating(record); setRatingReturn('detail-ratings'); go(readOnly ? 'rating-detail' : 'rating-edit'); }} />}
     {scene.startsWith('approval') && <Approval type={supplier.pendingInformation ? '资料变更' : '注册'} supplier={shot ? { ...supplier, name: '北京初然文化传媒有限公司827583' } : supplier} history={scene === 'approval-history'} number={shot?.time === '194516' ? 'SUP202610140006' : 'SUP202610140004'} showSupplier={!shot || shot.time !== '194516'} />}
     {['bank', 'bank-tip'].includes(scene) && <>
@@ -415,13 +429,12 @@ function MobileSurface({ scene, shot, ratings, setRatings, activeRating, setActi
     {scene === 'supplier-registration-result' && <section className="m-registration-result" aria-label="注册结果">{views.portalRegistrationSubmitted ? <><div className="m-registration-success"><Check aria-hidden="true" /><h2>注册已提交</h2><p>供应商资料已提交，等待审批</p></div><Section title="注册信息"><Row label="供应商名称">{views.portalRegistrationSubmitted.name}</Row><Row label="供应商账号">{views.portalRegistrationSubmitted.account}</Row><Row label="注册邮箱">{views.portalRegistrationSubmitted.email}</Row><Row label="状态">{views.portalRegistrationSubmitted.status}</Row><Row label="提交时间">{views.portalRegistrationSubmitted.submittedAt}</Row></Section></> : <Empty text="暂无注册提交记录" />}<Actions items={[{ label: '返回协同门户', onClick: () => go('portal') }]} /></section>}
     {scene.startsWith('portal') && <div className="m-portal-login"><div className="m-portal-brand"><span className="m-portal-brand-mark">搜狐</span><span>供应商协同门户</span></div><section className="m-portal-login-card" aria-labelledby="portal-login-heading"><h2 id="portal-login-heading">{passwordScreen ? '修改密码' : portalEmail ? '验证注册邮箱' : '用户登录'}</h2><p className="m-portal-intro">{passwordScreen ? '验证注册邮箱后，设置新的登录密码' : portalEmail ? '请使用注册邮箱完成身份验证' : '使用供应商账号登录协同门户'}</p><div className="m-portal-form">
       {!passwordScreen && !portalEmail && <><Field label="账号" required value={portal.account} onChange={account => setPortal({ ...portal, account })} placeholder="请输入登录账号" /><Field label="密码" required type="password" value={portal.password} onChange={password => setPortal({ ...portal, password })} placeholder="请输入登录密码" /><div className="m-captcha-field"><Field label="验证码" required value={portal.captcha} onChange={v => setPortal({ ...portal, captcha: v })} placeholder="请输入验证码" /><span className="m-captcha">{captcha}</span><button onClick={() => { setCaptcha(captcha === 'cbvs' ? '39qq' : 'cbvs'); setPortal({ ...portal, captcha: '' }); }}>换一张</button></div></>}
-      {(portalEmail || passwordScreen) && <><Field label="注册邮箱" required type="email" value={portal.email} onChange={email => setPortal({ ...portal, email })} /><div className="m-login-email-code"><Field label="邮箱验证码" required value={portal.code} onChange={code => setPortal({ ...portal, code })} /><button className="m-send-code" disabled={countdown > 0} onClick={() => { if (!validEmail(portal.email)) return notify('请输入正确的注册邮箱'); setCountdown(60); notify('演示验证码：123456；未发送真实邮件'); }}>{countdown ? countdown + ' s 后可重发' : '发送验证码'}</button></div></>}
+      {(portalEmail || passwordScreen) && <><Field label="注册邮箱" required type="email" error={portalErrors.email} value={portal.email} onChange={email => changePortal('email', email)} /><div className="m-login-email-code"><Field label="邮箱验证码" required error={portalErrors.code} value={portal.code} onChange={code => changePortal('code', code)} /><button className="m-send-code" disabled={countdown > 0} onClick={() => { if (!validEmail(portal.email)) return portalError('email', portal.email ? '请输入正确的注册邮箱' : '请填写注册邮箱'); setPortalErrors({}); setCountdown(60); notify('演示验证码：123456；未发送真实邮件'); }}>{countdown ? countdown + ' s 后可重发' : '发送验证码'}</button></div></>}
       {passwordScreen && <Field label="新密码" required type="password" value={newPassword} onChange={setNewPassword} />}
-      {(!portalEmail || passwordScreen) && <button className="m-forgot-link" onClick={() => { setPasswordScreen(!passwordScreen); setNewPassword(''); }}>{passwordScreen ? '返回登录' : '修改密码'}</button>}<button className="m-login-button" onClick={() => { if (passwordScreen) { if (!validEmail(portal.email)) return notify('请填写注册邮箱'); if (portal.code !== '123456') return notify('邮箱验证码错误'); if (!newPassword) return notify('请输入新密码'); notify('原型演示：密码修改完成，未更新真实账号'); setPasswordScreen(false); } else if (!portalEmail) { if (!portal.account || !portal.password) return notify('请输入账号和密码'); if (portal.captcha.toLowerCase() !== captcha) return notify('图形验证码错误'); setPortalEmail(true); } else { if (!validEmail(portal.email)) return notify('请填写注册邮箱'); if (portal.code !== '123456') return notify('邮箱验证码错误'); views.portalAccount = { account: portal.account || '演示供应商账号', email: portal.email }; portalGuard.accept(); notify(''); go('workspace-home'); } }}>{passwordScreen ? '提交' : portalEmail ? '登录' : '下一步'}</button>
+      {(!portalEmail || passwordScreen) && <button className="m-forgot-link" onClick={() => { setPasswordScreen(!passwordScreen); setNewPassword(''); }}>{passwordScreen ? '返回登录' : '修改密码'}</button>}<button className="m-login-button" onClick={() => { if (passwordScreen) { if (!validEmail(portal.email)) return portalError('email', portal.email ? '请输入正确的注册邮箱' : '请填写注册邮箱'); if (portal.code !== '123456') return portalError('code', portal.code ? '邮箱验证码错误' : '请填写邮箱验证码'); if (!newPassword) return notify('请输入新密码'); notify('原型演示：密码修改完成，未更新真实账号'); setPasswordScreen(false); } else if (!portalEmail) { if (!portal.account || !portal.password) return notify('请输入账号和密码'); if (portal.captcha.toLowerCase() !== captcha) return notify('图形验证码错误'); setPortalEmail(true); } else { if (!validEmail(portal.email)) return portalError('email', portal.email ? '请输入正确的注册邮箱' : '请填写注册邮箱'); if (portal.code !== '123456') return portalError('code', portal.code ? '邮箱验证码错误' : '请填写邮箱验证码'); views.portalAccount = { account: portal.account || '演示供应商账号', email: portal.email }; portalGuard.accept(); notify(''); go('workspace-home'); } }}>{passwordScreen ? '提交' : portalEmail ? '登录' : '下一步'}</button>
     </div></section></div>}
     {scene.startsWith('workspace') && <PortalWorkspace accountMenu={portalAccountMenu} setAccountMenu={setPortalAccountMenu} scene={scene} go={go} notify={notify} store={views} onPreview={preview} />}
     </SwipeArea>
-    {registrationMenu && <Overlay sheet label="注册更多操作" onClose={() => setRegistrationMenu(false)}><div className="m-action-sheet"><button type="button" onClick={() => { setRegistrationMenu(false); go(portalRegistration ? 'portal' : listReturn.current); }}>取消填写</button><button type="button" className="cancel" onClick={() => setRegistrationMenu(false)}>关闭</button></div></Overlay>}
     {exportOpen && <SupplierExport suppliers={matching} initial={filters} query={search} busy={exportBusy} onExport={performExport} onClose={closeExport} />}
     {sheet === 'more' && <Overlay sheet label="更多操作" onClose={() => setSheet(null)}><div className="m-action-sheet">{canChangeSupplier(supplier) && ['修改银行', '分配权限', '变更邀请人'].map((label, i) => <button key={label} onClick={() => { setSheet(null); go(['bank', 'permissions', 'inviter'][i]); }}>{label}</button>)}{canRateSupplier(supplier) && <button onClick={() => { setSheet(null); startScore(supplier); }}>评分</button>}<button onClick={() => { setSheet(null); go('detail-approval'); }}>审批记录</button><button className="cancel" onClick={() => setSheet(null)}>取消</button></div></Overlay>}
     {sheet?.kind === 'attachment' && <AttachmentViewer value={sheet.name} onClose={() => setSheet(null)} />}

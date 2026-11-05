@@ -130,8 +130,6 @@
 .m-shot .m-supplier-kind { margin-left: 0; }
 @media (max-width: 560px) { .m-preview-nav { display: none; } }
 @media (max-width: 360px) {
-  .mobile-page:not(.m-shot) .m-supplier-list { padding-inline: 12px; }
-  .mobile-page:not(.m-shot) .m-section { margin-inline: 12px; }
   .mobile-page:not(.m-shot) .m-supplier-heading { flex-wrap: wrap; }
   .mobile-page:not(.m-shot) .m-supplier-heading h3 { flex-basis: 100%; }
 }
@@ -203,8 +201,6 @@
 .mobile-page:not(.m-shot) .m-field.m-field-inline > .m-field-control { width: auto; flex: 1; min-width: 0; }
 .mobile-page:not(.m-shot) .m-field.m-field-inline > .m-field-error { flex-basis: 100%; }
 .mobile-page:not(.m-shot) .m-field input[readonly] { background: transparent; border: 0; padding: 0; color: var(--m-text); }
-.mobile-page:not(.m-shot) .m-field-inline .m-counter { position: static; display: block; width: auto; text-align: right; }
-.mobile-page:not(.m-shot) .m-field-inline .m-field-control:has(.m-counter) input { padding-right: 0; }
 .mobile-page:not(.m-shot) .m-field-inline .m-field-control:has(.m-field-clear) input { padding-right: 44px; }
 .mobile-page:not(.m-shot) .m-row .m-label { width: 112px; max-width: 44%; }
 .mobile-page:not(.m-shot) .m-row .m-value { flex: 1; min-width: 0; white-space: normal; overflow-wrap: anywhere; }
@@ -665,8 +661,8 @@
 .m-preview-toolbar { display: flex; justify-content: flex-end; padding: 4px 16px; }
 .mobile-page .m-preview-toolbar > button { min-height: 40px; color: var(--m-action); font-size: 14px; }
 .m-registration-preview .m-bank-card { margin-inline: 0; }
-.mobile-page .m-attachment-reference { display: inline-flex; align-items: center; gap: 6px; max-width: 100%; min-height: 36px; color: var(--m-action); font-size: 14px; text-align: left; }
-.m-attachment-reference > img { width: 24px; height: 24px; flex-shrink: 0; }
+.mobile-page .m-attachment-reference { display: inline-flex; align-items: center; justify-content: flex-end; gap: 4px; max-width: 100%; min-height: 44px; color: var(--m-action); font-size: 14px; font-weight: 400; line-height: 20px; text-align: right; }
+.m-attachment-reference > img { width: 16px; height: 16px; flex-shrink: 0; }
 .m-attachment-reference > span { min-width: 0; overflow-wrap: anywhere; }
 .m-attachment-reference > svg { width: 16px; height: 16px; flex-shrink: 0; }
 .mobile-page:not(.m-shot) .m-empty-neutral { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 180px; padding: 20px 16px; gap: 12px; color: var(--m-text-secondary); font-size: 14px; }
@@ -821,3 +817,36 @@
 .mobile-page:not(.m-shot) .m-quote-info .m-field-inline { gap: 8px 0; }
 .mobile-page:not(.m-shot) .m-quote-info .m-field-inline > label { padding-left: 0; }
 .mobile-page:not(.m-shot) .m-order-info-card .m-record-heading { padding: 14px 0 12px; border-bottom: 1px solid var(--m-border-subtle); }
+
+/* 筛选只保留一层轻量白色容器，标签和已选值始终可辨。 */
+.mobile-page:not(.m-shot) .m-filter-view { background: #f2f5fa; padding: 16px 16px 96px; }
+.mobile-page:not(.m-shot) .m-filter-view .m-field { margin: 0 0 12px; padding: 6px 12px; min-height: 52px; border: 0; border-radius: 12px; background: white; }
+.mobile-page:not(.m-shot) .m-filter-view .m-field-inline > label { width: 112px; max-width: 42%; padding-left: 0; color: var(--m-text-secondary); }
+.mobile-page:not(.m-shot) .m-filter-view .m-field-control > :where(input, textarea, .m-select-field) { border: 0; border-radius: 0; background: transparent; box-shadow: none; padding-inline: 0; }
+.mobile-page:not(.m-shot) .m-filter-view .m-field-control > :where(input, textarea, .m-select-field):focus { border: 0; box-shadow: none; }
+.mobile-page:not(.m-shot) .m-filter-view .m-field:focus-within { box-shadow: inset 0 0 0 1px var(--m-action); }
+/* 单行、多行分别预留正文区域，计数均由控件容器定位。 */
+.mobile-page .m-field-inline .m-field-control:has(.m-counter) { position: relative; }
+.mobile-page .m-field-inline .m-field-control > .m-counter { position: absolute; top: 50%; bottom: auto; right: 12px; width: auto; margin: 0; padding: 0; transform: translateY(-50%); font-size: 12px; line-height: 16px; pointer-events: none; }
+.mobile-page:not(.m-shot) .m-field-inline .m-field-control:has(.m-counter) > input { padding-right: 72px; }
+.mobile-page:not(.m-shot) .m-field-inline .m-field-control:has(.m-field-clear):has(.m-counter) > input { padding-right: 108px; }
+.mobile-page .m-field-inline .m-field-control:has(.m-field-clear) > .m-counter { right: 44px; }
+.mobile-page .m-field-block .m-field-control > .m-counter { right: 12px; top: auto; bottom: 8px; transform: none; }
+.mobile-page .m-row > .m-value:has(> .m-attachment-reference) { display: flex; justify-content: flex-end; }
+.m-uploaded-document { display: flex; align-items: center; justify-content: flex-end; gap: 8px; width: 100%; }
+.m-uploaded-document > .m-attachment-reference { flex: 1; min-width: 0; }
+.mobile-page .m-uploaded-document > .m-file-remove { position: static; flex: 0 0 32px; width: 32px; height: 32px; padding: 6px; color: var(--m-text-secondary); }
+.mobile-page .m-uploaded-document > .m-file-remove svg { width: 16px; height: 16px; }
+.mobile-page .m-file-upload-entry { background: transparent; padding-inline: 0; }
+.mobile-page .m-file-upload-entry > .m-attachment-reference { flex: 1; min-width: 0; }
+.mobile-page .m-option-radio[data-selected=true], .mobile-page .selected .m-option-radio { background: var(--m-action); border-color: var(--m-action); }
+.mobile-page .m-option-radio[data-selected=true] svg, .mobile-page .selected .m-option-radio svg { color: white; stroke-width: 2.5; }
+.mobile-page .m-reference-card:has(> input:checked) .m-reference-heading h3 { color: var(--m-action); font-weight: 600; }
+.mobile-page .m-inviter-note { margin: 16px 0 12px; font-size: 14px; line-height: 1.7; color: var(--m-text-secondary); }
+
+.m-decision-actions > .m-continue-button.m-action-danger { color: white !important; background: var(--m-danger-fill); border-color: var(--m-danger-fill); }
+
+.mobile-page:not(.m-shot) .m-filter-view .m-field .m-select-field { padding-inline: 0 !important; }
+.mobile-page:not(.m-shot) .m-filter-view .m-field-control:has(.m-field-clear) > :where(input, textarea) { padding-right: 44px; }
+.mobile-page:not(.m-shot) .m-filter-view .m-field.has-error { box-shadow: inset 0 0 0 1px var(--m-danger-text); }
+.mobile-page:not(.m-shot) .m-filter-view .m-field.has-error .m-field-control { outline: none; }

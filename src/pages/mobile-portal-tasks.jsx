@@ -42,7 +42,7 @@ export function PortalTaskList({ tab, inquiries, orders, store, go }) {
       <Field label="采购类型" options={purchaseTypes} value={draft.type || ''} onChange={value => change('type', value)} />
       <Field label="开始时间" type="date" layout="inline" allowClearDate value={draft.start || ''} onChange={value => change('start', value)} help="筛选创建时间不早于所选日期的单据" />
       <Field label="结束时间" type="date" layout="inline" allowClearDate value={draft.end || ''} error={errors.end} onChange={value => change('end', value)} help="筛选结束时间不晚于所选日期的单据，包含所选日期当天" />
-      <Actions flat items={[{ label: '取消', muted: true, onClick: () => runMotion(() => setOpen(false), 'back') }, { label: '重置', muted: true, onClick: () => { setDraft({}); setErrors({}); } }, { label: '应用筛选', onClick: apply }]} />
+      <Actions flat items={[{ label: '重置', muted: true, onClick: () => { setDraft({}); setErrors({}); } }, { label: '应用筛选', onClick: apply }]} />
     </div></div>}
   </>;
 }

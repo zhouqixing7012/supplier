@@ -427,8 +427,8 @@ try {
     await editor.getByRole('textbox', { name: '税率（%）', exact: true }).fill('13');
     await editor.getByRole('button', { name: '确定', exact: true }).click();
     await page.locator('#root [data-scene="workspace-quote-detail"]').waitFor();
-    assert.ok(await button('预览报价附件B.xlsx').isVisible());
-    assert.equal(await button('预览报价附件A.pdf').count(), 0);
+    assert.ok(await button('查看附件：报价附件B.xlsx').isVisible());
+    assert.equal(await button('查看附件：报价附件A.pdf').count(), 0);
   });
   await check('门户价税订单资料前置及发票金额红字提醒', async () => {
     await goto('mobile/workspace-tax-detail');
