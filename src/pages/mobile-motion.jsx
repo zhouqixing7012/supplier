@@ -6,10 +6,10 @@ let transaction = null;
 const scrollCopies = new WeakMap();
 const running = new Set();
 export const reducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-function play(node, frames, duration, cleanup = () => {}) {
+function play(node, frames, duration, cleanup = () => {}, onFinish = () => {}) {
   const animation = node.animate(frames, { duration, easing: 'cubic-bezier(.2,.8,.2,1)' });
-  const stop = () => { animation.cancel(); cleanup(); running.delete(stop); };
-  running.add(stop); animation.onfinish = stop;
+  const stop = () => { animation.onfinish = null; animation.cancel(); cleanup(); running.delete(stop); };
+  running.add(stop); animation.onfinish = () => { stop(); onFinish(); };
   return stop;
 }
 function ghost(node) {
@@ -119,12 +119,14 @@ export function MotionPresence({ show, children, className = '', compact = false
   return <Tag ref={ref} {...props} className={className} inert={!show} aria-hidden={!show || undefined}>{content.current}</Tag>;
 }
 // 先同步更新真实界面，视觉副本仅负责过渡；副本不接受点击、焦点或业务事件。
-export function runMotion(update, kind = 'fade') {
+export function runMotion(update, kind = 'fade', after) {
   if (transaction) {
     const resolved = resolveMotion(transaction.kind, kind);
     if (resolved !== transaction.kind && !transaction.page) transaction.page = transaction.enabled ? ghost(transaction.scope) : null;
     transaction.kind = resolved;
-    return update();
+    const result = update();
+    after?.();
+    return result;
   }
   for (const stop of [...running]) stop();
   document.documentElement.dataset.mobileMotion = kind;
@@ -145,8 +147,13 @@ export function runMotion(update, kind = 'fade') {
   const originalKind = kind;
   kind = current.kind;
   document.documentElement.dataset.mobileMotion = kind;
-  if (!enabled) return;
-  const show = (node, frames, duration) => { if (node) { document.body.appendChild(node); restoreScrollPositions(scrollCopies.get(node) || []); play(node.firstElementChild || node, frames, duration, () => node.remove()); } };
+  if (!enabled) { after?.(); return; }
+  const show = (node, frames, duration, onFinish) => {
+    if (!node) { onFinish?.(); return; }
+    document.body.appendChild(node);
+    restoreScrollPositions(scrollCopies.get(node) || []);
+    play(node.firstElementChild || node, frames, duration, () => node.remove(), onFinish);
+  };
   if (shade) show(shade, [{ opacity: 1 }, { opacity: 0 }], 180);
   if (kind === 'sheet-close') {
     show(old, [{ opacity: 1, transform: 'translateY(0)' }, { opacity: 0, transform: `translateY(${old?.dataset.motionHeight || 0}px)` }], 180); return;
@@ -170,7 +177,7 @@ export function runMotion(update, kind = 'fade') {
   blocks.filter(n => !n.parentElement.closest('.m-section,.m-supplier-card,.m-detail-summary,.m-portal-home-group')).forEach(node => play(node, [{ opacity: .1 }, { opacity: 1 }], duration));
   if (originalKind === 'sheet-close' || originalKind === 'record') show(originalKind === 'sheet-close' ? old : removedPanels, [{ opacity: 1 }, { opacity: 0, transform: 'translateY(24px)' }], 180);
   show(current.page || old, [{ opacity: 1, transform: 'translateX(0)' }, { opacity: 0, transform: `translateX(${backwards ? distance : -distance * .18}px)` }], duration);
-  show(next, [{ opacity: kind === 'fade' ? 0 : .7, transform: `translateX(${backwards ? -distance * .18 : distance}px)` }, { opacity: 1, transform: 'translateX(0)' }], duration);
+  show(next, [{ opacity: kind === 'fade' ? 0 : .7, transform: `translateX(${backwards ? -distance * .18 : distance}px)` }, { opacity: 1, transform: 'translateX(0)' }], duration, after);
 }
 export function useMotionStructure(ref) {
   useEffect(() => {
