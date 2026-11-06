@@ -19,18 +19,17 @@ const check=async()=>{
  assert.equal(await changed().locator('[data-diff-field="name"]').count(),0);
  assert.equal(await changed().locator('[data-diff-field="proof"]').count(),0);
  assert.equal(await changed().locator('[data-diff-field]').count(),0);assert(await changed().getByText('银行差异测试',{exact:true}).isVisible());assert(await changed().getByText('开户银行',{exact:true}).isVisible());assert(await changed().getByText('银行账号',{exact:true}).isVisible());assert.equal(await changed().getByText('修改前',{exact:true}).count(),0);
- assert(await page.getByText('有1条银行变更待提交审批',{exact:true}).isVisible());
+ assert.equal(await page.locator('.m-bank-pending').count(),0);assert.equal(await button('放弃本次变更').count(),0);assert(await changed().getByText('待提交修改',{exact:true}).isVisible());
  assert(await button('提交审批').isEnabled());
- console.log('PASS complete account card restored, no field diff, pending counts retained');
+ console.log('PASS account card retained, summary and discard removed');
  await page.locator('.m-bank-submit-actions').getByRole('button',{name:'返回',exact:true}).click();await button('继续处理').click();assert(await button('提交审批').isVisible());
  await page.locator('.m-bank-submit-actions').getByRole('button',{name:'返回',exact:true}).click();await button('确认离开').click();await page.waitForURL('**/#/mobile/query');
  await visit('bank');await changed().waitFor();assert(await changed().getByText('银行差异测试',{exact:true}).first().isVisible());
  assert(await page.getByRole('button',{name:'查看附件：新开户证明.pdf',exact:true}).isVisible());
  console.log('PASS leaving keeps pending draft and attachment name across reload');
- await button('放弃本次变更').click();await button('放弃变更').click();assert.equal(await page.locator('[data-bank-change]').count(),0);assert(await button('提交审批').isDisabled());
  await card().getByRole('button',{name:'修改',exact:true}).click();await fill('账户名称','提交测试');await button('保存此账户').click();await button('提交审批').click();await page.waitForURL('**/#/mobile/query');
  const stored=await page.evaluate(()=>Object.keys(localStorage).filter(key=>key.startsWith('supplier:bank-draft:')));assert.equal(stored.length,0);
  assert(await page.locator('.m-supplier-card').filter({hasText:'北京初然文化传媒有限公司733324'}).getByText('变更中',{exact:true}).isVisible());
- console.log('PASS discard restores formal data, submit clears draft and enters approval');
+ console.log('PASS submit clears draft and enters approval');
 };
 try{await check();assert.deepEqual(errors,[]);}catch(e){console.error(e);console.log('ERRORS',errors);console.log('BODY',await page.locator('body').innerText());process.exitCode=1;}finally{await browser.close();await server.close();}

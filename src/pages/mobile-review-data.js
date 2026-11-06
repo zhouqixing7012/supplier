@@ -480,9 +480,9 @@ export const reviewDefinitions = [
   ],
   [
     "prd-3.3",
-    ".m-bank-pending, .m-bank-submit-actions",
+    ".m-bank-submit-actions",
     "3.3 银行变更保存与提交引导优化",
-    "定位：银行保存与审批提交。保存账户后标识待提交及数量，按账户完整核对本次资料，开户证明仅作附件查看。提交审批后进入流程；离开保留，放弃恢复正式资料。",
+    "定位：银行保存与审批提交。保存账户后按账户标识待提交，完整核对本次资料，开户证明仅作附件查看。提交审批后进入流程；离开后保留已保存内容。",
     "docs/mobile-prd.md",
     [
       "bank",
