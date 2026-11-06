@@ -25,7 +25,7 @@ export function FilterButton({ onClick, label = '筛选' }) {
 }
 
 export function ChangeTag({ value }) {
-  return value ? <span className="m-status" data-tone={value === '删除' ? 'danger' : value === '修改' ? 'warning' : 'info'} aria-label={'变更状态：' + value}>{value}</span> : null;
+  return value ? <span className="m-status" data-tone={value.includes('删除') ? 'danger' : value.includes('修改') ? 'warning' : 'info'} aria-label={'变更状态：' + value}>{value}</span> : null;
 }
 
 const statusTone = { '已拉黑': 'danger', '已移除': 'neutral',

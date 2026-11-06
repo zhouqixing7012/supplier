@@ -16,12 +16,12 @@ const check=async()=>{
  await page.getByLabel('开户证明',{exact:true}).setInputFiles({name:'新开户证明.pdf',mimeType:'application/pdf',buffer:Buffer.from('new proof')});
  await button('保存此账户').click();await page.locator('[data-bank-change="修改"]').waitFor();
  const changed=()=>page.locator('[data-bank-change="修改"]');
- assert.equal(await changed().locator('[data-diff-field="name"]').count(),1);
+ assert.equal(await changed().locator('[data-diff-field="name"]').count(),0);
  assert.equal(await changed().locator('[data-diff-field="proof"]').count(),0);
- assert.equal(await changed().locator('[data-diff-field]').count(),1);
+ assert.equal(await changed().locator('[data-diff-field]').count(),0);assert(await changed().getByText('银行差异测试',{exact:true}).isVisible());assert(await changed().getByText('开户银行',{exact:true}).isVisible());assert(await changed().getByText('银行账号',{exact:true}).isVisible());assert.equal(await changed().getByText('修改前',{exact:true}).count(),0);
  assert(await page.getByText('有1条银行变更待提交审批',{exact:true}).isVisible());
  assert(await button('提交审批').isEnabled());
- console.log('PASS account field diff excludes proof and counts pending');
+ console.log('PASS complete account card restored, no field diff, pending counts retained');
  await page.locator('.m-bank-submit-actions').getByRole('button',{name:'返回',exact:true}).click();await button('继续处理').click();assert(await button('提交审批').isVisible());
  await page.locator('.m-bank-submit-actions').getByRole('button',{name:'返回',exact:true}).click();await button('确认离开').click();await page.waitForURL('**/#/mobile/query');
  await visit('bank');await changed().waitFor();assert(await changed().getByText('银行差异测试',{exact:true}).first().isVisible());

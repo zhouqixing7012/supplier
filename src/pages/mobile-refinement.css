@@ -936,10 +936,3 @@
 .m-bank-pending strong { font-weight: 600; }
 .m-bank-pending p { margin: 6px 0 0; font-size: 12px; }
 .m-bank-pending > button { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); min-height: 44px; padding: 0 4px; color: #805916; font-size: 12px; }
-.m-bank-diff-field { padding: 10px 0; border-bottom: 1px solid var(--m-border-subtle); }
-.m-bank-diff-field h4 { margin: 0 0 4px; font-weight: 500; font-size: 14px; }
-.m-bank-diff-field .m-row { padding-inline: 0; }
-.m-bank-diff-field .m-row:last-child .m-value { color: var(--m-action); }
-.m-bank-full-details > summary { min-height: 44px; display: flex; align-items: center; color: var(--m-action); cursor: pointer; font-size: 13px; }
-.m-bank-change-card .m-record-card-body > .m-row { padding-inline: 0; }
-.m-bank-change-card .m-status { flex-shrink: 0; }

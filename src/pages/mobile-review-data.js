@@ -383,31 +383,27 @@ export const reviewDefinitions = [
     ]
   ],
   [
-    "prd-1.22-contacts",
-    "button[aria-label=\"添加联系人\"]",
-    "1.22 添加联系人及银行操作难区分",
-    "定位：添加联系人入口。新增姓名、电话、邮箱、部门、职位、微信、备注；姓名、电话、邮箱按表单必填。保存进入本次联系人列表，取消保留原列表。",
+    "prd-1.22-permissions",
+    "button[aria-label=\"新增权限\"]",
+    "1.22 新增银行及权限图标辨识优化",
+    "定位：新增权限入口。使用清晰的权限业务图标及新增标识，可采用悬浮按钮；避让底部提交和记录操作，点击打开权限表单。",
     "docs/mobile-prd.md",
-    [
-      "register*",
-      "expiry",
-      "address",
-      "region",
-      "workspace-info"
-    ]
+    ["permissions", "permissions-added"]
   ],
   [
     "prd-1.22-bank",
     "button[aria-label=\"添加银行账户\"]",
-    "1.22 添加联系人及银行操作难区分",
-    "定位：添加银行账户入口。进入账户表单，字段和校验按1.4；保存后回银行列表，待提交提醒按3.3。",
+    "1.22 新增银行及权限图标辨识优化",
+    "定位：添加银行账户入口。银行业务图标配合新增标识，可采用悬浮入口；点击进入账户表单，保存回银行列表，待提交提醒按3.3。",
     "docs/mobile-prd.md",
     [
       "register*",
       "expiry",
       "address",
       "region",
-      "workspace-info"
+      "workspace-info",
+      "bank",
+      "bank-tip"
     ]
   ],
   [
@@ -486,7 +482,7 @@ export const reviewDefinitions = [
     "prd-3.3",
     ".m-bank-pending, .m-bank-submit-actions",
     "3.3 银行变更保存与提交引导优化",
-    "定位：银行保存与审批提交。保存账户后标识待提交及数量，按账户纵向核对变化字段，开户证明仅作附件查看。提交审批后进入流程；离开保留，放弃恢复正式资料。",
+    "定位：银行保存与审批提交。保存账户后标识待提交及数量，按账户完整核对本次资料，开户证明仅作附件查看。提交审批后进入流程；离开保留，放弃恢复正式资料。",
     "docs/mobile-prd.md",
     [
       "bank",
