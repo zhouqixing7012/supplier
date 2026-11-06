@@ -312,7 +312,7 @@
 .m-portal-login { padding: 28px 16px 40px; min-height: calc(100dvh - 56px); background: #0347c4 url('/mobile-assets/portal-city.png') center top / 100% auto no-repeat; }
 .m-portal-brand { display: flex; align-items: center; gap: 10px; margin: 0 4px 24px; color: #fff; font-size: 16px; font-weight: 600; }
 .m-portal-brand-mark { display: inline-flex; align-items: center; justify-content: center; width: 52px; height: 32px; border-radius: 6px; background: #ffd400; color: #1d2126; font-weight: 700; }
-.m-portal-login-card { padding: 24px 20px; border: 1px solid var(--m-border); border-radius: 12px; background: var(--m-surface); }
+.m-portal-login-card { padding: 24px 20px; border: 1px solid var(--m-border); border-radius: 12px; background: rgba(255, 255, 255, .88); }
 .m-portal-login-card h2 { margin: 0; color: var(--m-text); font-size: 20px; line-height: 1.5; }
 .m-portal-intro { margin: 8px 0 24px; color: var(--m-text-secondary); font-size: 14px; line-height: 1.6; }
 .m-portal-login .m-portal-form { padding: 0; background: transparent; }
