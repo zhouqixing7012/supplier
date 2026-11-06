@@ -925,3 +925,8 @@
 .mobile-page .m-reference-card:has(> input:checked) .m-reference-heading h3 {
   color: var(--m-text);
 }
+
+
+/* 长附件名按可用宽度省略中间，完整名称保留在提示和预览中。 */
+.mobile-page .m-attachment-reference { width: 100%; min-width: 0; }
+.mobile-page .m-attachment-reference > span { white-space: nowrap; overflow: hidden; overflow-wrap: normal; }

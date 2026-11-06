@@ -13,7 +13,7 @@ import { PortalWorkspace } from './mobile-portal.jsx';
 import { RegistrationPreview } from './mobile-registration-preview.jsx';
 import { SupplierAccountRegistration } from './mobile-account-registration.jsx';
 import { ChangeComparison } from './mobile-changes.jsx';
-import { informationSteps, reinviteCandidates } from './mobile-edit-rules.js';
+import { informationSteps, reinviteCandidates, validEmail, registrationEmailError } from './mobile-edit-rules.js';
 import { PrototypeReview } from './mobile-review.jsx';
 import { ScreenshotCompare } from './mobile-screenshot-compare.jsx';
 import './mobile-supplier.css';
@@ -26,7 +26,6 @@ const clone = value => structuredClone(value);
 const currentInviter = '陈才慧';
 const readRoute = () => decodeURIComponent(window.location.hash.replace(/^#\/mobile\/?/, '')) || 'query';
 const now = () => new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Shanghai' });
-const validEmail = value => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value || '');
 const mobileTitle = scene => {
   if (scene === 'workspace-account-email') return '修改注册邮箱';
   if (scene === 'workspace-account') return '供应商协同门户';
@@ -178,12 +177,11 @@ function MobileSurface({ onComparisonChange, scene, shot, ratings, setRatings, a
   const [returnPreview, setReturnPreview] = useState(false);
   const [previewTab, setPreviewTab] = useState(0);
   const [step, setStep] = useState(registrationDraft?.step ?? (scene.includes('contacts') ? 1 : scene.includes('banks') ? 2 : 0));
-  const [visitedSteps, setVisitedSteps] = useState([0]);
   const [stepsExpanded, setStepsExpanded] = useState(step === 0);
   const stepScroll = useRef({});
-  const changeStep = next => { if (next !== 3) setVisitedSteps(previous => [...new Set([...previous, next])]); stepScroll.current[step] = window.scrollY; runMotion(() => setStep(next), next < step ? 'back' : 'forward', () => setStepsExpanded(next === 0)); };
+  const changeStep = next => { stepScroll.current[step] = window.scrollY; runMotion(() => setStep(next), next < step ? 'back' : 'forward', () => setStepsExpanded(next === 0)); };
   useLayoutEffect(() => { if (isRegistration) window.scrollTo(0, stepScroll.current[step] || 0); }, [step, isRegistration]);
-  const [basic, setBasic] = useState(() => registrationDraft ? clone(registrationDraft.basic) : portalRegistration && registrationInvitation ? { type: registrationInvitation.type, supplierName: registrationInvitation.name, registerEmail: registrationInvitation.email || '' } : scene === 'expiry' ? { ...clone(filledBasic), supplierName: 'Gys', creditCode: 'qqq', establishedAt: '2026-10-14', licenseUntil: '2036-12-31', legalRepresentative: '', companyPhone: '', proof: '' } : shot ? clone(filledBasic) : editingRegistration ? { ...(supplier.basic || {}), type: supplier.type, supplierName: supplier.name, registerEmail: supplier.email, creditCode: supplier.code } : { type: supplierTypes[0], supplierName: '', registerEmail: '' });
+  const [basic, setBasic] = useState(() => registrationDraft ? clone(registrationDraft.basic) : portalRegistration && registrationInvitation ? { type: registrationInvitation.type, supplierName: registrationInvitation.name, registerEmail: registrationInvitation.email || '' } : scene === 'expiry' ? { ...clone(filledBasic), supplierName: 'Gys', creditCode: 'qqq', establishedAt: '2026-10-14', licenseUntil: '2036-12-31', legalRepresentative: '', companyPhone: '', proof: '' } : shot ? clone(filledBasic) : editingRegistration ? { ...(supplier.basic || {}), type: supplier.type, supplierName: supplier.name, registerEmail: supplier.email || supplier.basic?.registerEmail || '', creditCode: supplier.code } : { type: supplierTypes[0], supplierName: '', registerEmail: '' });
   const editSteps = informationSteps(basic.type === supplierTypes[1]);
   const [contacts, setContacts] = useState(() => registrationDraft ? clone(registrationDraft.contacts) : editingRegistration ? clone(supplier.contacts || []) : []);
   const [registerBanks, setRegisterBanks] = useState(() => registrationDraft ? clone(registrationDraft.banks) : scene === 'register-banks' ? [{ ...clone(exampleBank), accountType: '一般账户', name: '1', number: '1', country: '', province: '', city: '', proof: '开户证明.png' }] : editingRegistration ? clone(supplier.banks) : []);
@@ -324,7 +322,7 @@ function MobileSurface({ onComparisonChange, scene, shot, ratings, setRatings, a
     if (target === 0) {
       for (const [key, label, required] of fieldsFor(basic.type)) if (required && !basic[key]?.trim()) return '请填写' + label;
       if ([supplierTypes[0], supplierTypes[3]].includes(basic.type) && !basic.proof) return '请上传证照附件';
-      if (!shot && !validEmail(basic.registerEmail)) return '请输入正确的供应商注册邮箱';
+      if (!shot && registrationEmailError(basic.registerEmail)) return registrationEmailError(basic.registerEmail);
       if (basic.email && !validEmail(basic.email)) return '请输入正确的邮箱格式';
       if (basic.capital && !/^\d+$/.test(basic.capital)) return '注册资金只支持整数';
       if (basic.companyPhone && !/^(1\d{10}|\d{3,4}-?\d{8})$/.test(basic.companyPhone)) return '公司电话须为11位手机号或区号加8位号码';
@@ -339,8 +337,6 @@ function MobileSurface({ onComparisonChange, scene, shot, ratings, setRatings, a
     return '';
   }
   function openInformationPreview() {
-    const missing = editSteps.slice(0, -1).find(index => !visitedSteps.includes(index));
-    if (missing !== undefined) return notify('请先查看' + ['基本信息', '联系人信息', '银行信息'][missing]);
     for (const index of editSteps.slice(0, -1)) {
       const error = registrationStepError(index);
       if (error) { changeStep(index); notify(error); return; }
@@ -357,7 +353,7 @@ function MobileSurface({ onComparisonChange, scene, shot, ratings, setRatings, a
     if (editingAll && !canChangeSupplier(supplier)) return notify('当前状态不能修改全部信息，请返回列表核对');
     if (editingAll) for (const index of editSteps.slice(0, -1)) { const error = registrationStepError(index); if (error) { changeStep(index); notify(error); return; } }
     if (saving) return; setSaving(true);
-    const patch = { name: basic.supplierName, type: basic.type, code: basic.creditCode || '', email: basic.registerEmail || '', contact: contacts[0]?.name || '', phone: contacts[0]?.phone || '', banks: clone(registerBanks), basic: clone(basic), contacts: clone(contacts) };
+    const patch = { name: basic.supplierName, type: basic.type, code: basic.creditCode || '', email: (basic.registerEmail || '').trim(), contact: contacts[0]?.name || '', phone: contacts[0]?.phone || '', banks: clone(registerBanks), basic: { ...clone(basic), registerEmail: (basic.registerEmail || '').trim() }, contacts: clone(contacts) };
     if (portalRegistration) {
       views.portalRegistrationSubmitted = { ...patch, account: views.portalRegistrationAccount?.account, status: '审批中', submittedAt: now() };
       setSuppliers(list => list.map(s => s.id === registrationInvitation?.id ? { ...s, ...patch, account: views.portalRegistrationAccount?.account, status: '审批中', updated: now() } : s));
@@ -383,12 +379,12 @@ function MobileSurface({ onComparisonChange, scene, shot, ratings, setRatings, a
   }
   function saveDraft() {
     if (portalRegistration) {
-      views.portalRegistrationDraft = { basic: clone(basic), contacts: clone(contacts), banks: clone(registerBanks), step };
+      views.portalRegistrationDraft = { basic: { ...clone(basic), registerEmail: (basic.registerEmail || '').trim() }, contacts: clone(contacts), banks: clone(registerBanks), step };
       registrationGuard.accept();
       notify('注册草稿保存成功');
       return;
     }
-    const patch = { basic: clone(basic), name: basic.supplierName, type: basic.type, email: basic.registerEmail, code: basic.creditCode || '', banks: clone(registerBanks), contacts: clone(contacts), updated: now() };
+    const patch = { basic: { ...clone(basic), registerEmail: (basic.registerEmail || '').trim() }, name: basic.supplierName, type: basic.type, email: (basic.registerEmail || '').trim(), code: basic.creditCode || '', banks: clone(registerBanks), contacts: clone(contacts), updated: now() };
     if (editingRegistration && !editingAll) update(patch);
     else { const id = createSessionId(); setSuppliers([{ ...patch, id, status: '草稿', inviter: '陈才慧', mode: '代注册', date: now(), permissions: [], score: '未评分' }, ...suppliers]); select(id); }
     registrationGuard.accept();
@@ -472,7 +468,7 @@ function MobileSurface({ onComparisonChange, scene, shot, ratings, setRatings, a
     }} /> : <Empty text="暂无可注册的邀请信息" />)}
     {isRegistration && (!portalRegistration || accountRegistered) && !['address', 'region'].includes(scene) && <>
       {editingRegistration && <div className="m-form-heading">{editingAll ? '修改全部信息' : '修改草稿'}</div>}
-      {editingAll ? <div className="m-info-edit-tabs"><Tabs variant="pill" items={editSteps.map(index => ['基本信息', '联系人信息', '银行信息', '预览'][index])} active={editSteps.indexOf(step)} onChange={index => { const target = editSteps[index]; if (target === 3) openInformationPreview(); else changeStep(target); }} /></div> : <RegistrationSteps personal={basic.type === supplierTypes[1]} step={step} expanded={stepsExpanded} onExpandedChange={setStepsExpanded} />}
+      <RegistrationSteps personal={basic.type === supplierTypes[1]} step={step} expanded={stepsExpanded} onExpandedChange={setStepsExpanded} />
       {step === 0 && <BasicFields data={basic} setData={setBasic} identityReadOnly={portalRegistration} hideSupplierType={portalRegistration} shot={!!shot} onAddress={() => setAddressOpen(true)} initialDate={scene === 'expiry'} />}
       {step === 1 && <ContactFields contacts={contacts} setContacts={setContacts} />}
       {step === 2 && <RecordCollection title="银行信息" count={registerBanks.length} emptyText="暂无银行信息" addLabel="添加银行账户" onAdd={() => { setEditingBank(-1); setRegisterBankForm(blankBank(basic.supplierName)); setRegisterBankPicker(true); }}>{registerBanks.map((b, i) => <BankCard key={b.id} bank={b} onPreview={() => preview(b.proof)} onEdit={() => { setEditingBank(i); setRegisterBankForm(clone(b)); setRegisterBankPicker(true); }} onDelete={() => setConfirm({ type: 'delete-register-bank', index: i, text: '确认删除银行信息' + (i + 1) + '？' })} />)}</RecordCollection>}

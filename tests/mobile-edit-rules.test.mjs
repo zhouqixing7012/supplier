@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { withAccountBank, reinviteCandidates, informationSteps } from '../src/pages/mobile-edit-rules.js';
+import { withAccountBank, reinviteCandidates, informationSteps, registrationEmailError, validEmail, middleEllipsis } from '../src/pages/mobile-edit-rules.js';
 
 test('选择开户银行立即回填实际国家，并清理原分行省市及保留账户资料', () => {
   const original = { bank: '旧银行', branch: '旧分行', country: '旧国家', province: '旧省', city: '旧市', number: '001234', proof: '证明.pdf', name: '账户名', currency: '美元' };
@@ -28,4 +28,19 @@ test('重新邀请只匹配本人名下同名草稿或注册驳回，支持多�
 test('个人按三步计数，其他供应商按四步计数，预览排在最后', () => {
   assert.deepEqual(informationSteps(true), [0, 2, 3]);
   assert.deepEqual(informationSteps(false), [0, 1, 2, 3]);
+});
+
+
+test('注册邮箱区分空值和错误格式，支持正常企业邮箱及首尾空格', () => {
+  assert.equal(registrationEmailError('  '), '请填写供应商注册邮箱');
+  assert.equal(registrationEmailError('bad-email'), '请输入正确的供应商注册邮箱');
+  for (const email of ['user@company.cn', 'supplier+test@example.com', ' abc@sohu.com ']) assert.equal(registrationEmailError(email), '');
+  assert.equal(validEmail('user name@example.com'), false);
+});
+test('长附件名省略中间，保留前后及扩展名，完整原名保持不变', () => {
+  const name='供应商营业执照完整文件名称20261106最终版.pdf';
+  const shortened=middleEllipsis(name,20);
+  assert(shortened.startsWith('供应商'));assert(shortened.endsWith('.pdf'));assert(shortened.includes('...'));
+  assert(Array.from(shortened).length<=20);assert.equal(middleEllipsis('证明.pdf',20),'证明.pdf');
+  assert.equal(name,'供应商营业执照完整文件名称20261106最终版.pdf');
 });

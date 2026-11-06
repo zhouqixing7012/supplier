@@ -1,3 +1,4 @@
+import { middleEllipsis } from './mobile-edit-rules.js';
 import { createPortal } from 'react-dom';
 import React, { useEffect, useId, useRef, useState } from 'react';
 import { Camera, CalendarDays, FileText, Paperclip, Check, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, HelpCircle, Eye, EyeOff, X, Plus } from 'lucide-react';
@@ -119,18 +120,45 @@ export function Actions({ items, flat = false, className = '' }) {
 }
 
 // 搜索与业务空态共用工作台原始插画资产。
-function SearchEmptyArt() {
+function SearchEmptyArt({ search = false }) {
   const base = '/mobile-assets/workbench/';
-  return <span className="m-search-empty-art" aria-hidden="true"><span className="m-empty-art-group"><span className="m-empty-art-board" /><span className="m-empty-art-mask"><span /></span><img className="m-empty-art-warning" src={base + 'empty-warning.svg'} alt="" /><img className="m-empty-art-clip" src={base + 'empty-clip.svg'} alt="" /><span className="m-empty-art-bar" /><img className="m-empty-art-dots" src={base + 'empty-dots.svg'} alt="" /><img className="m-empty-art-detail" src={base + 'empty-detail.png'} width="34.909" height="46.545" alt="" /></span><span className="m-empty-art-decoration"><img src={base + 'empty-decoration.svg'} alt="" /></span></span>;
+  return <span className={search ? "m-search-empty-art" : "m-search-empty-art m-record-empty-art"} aria-hidden="true"><span className="m-empty-art-group"><span className="m-empty-art-board" /><span className="m-empty-art-mask"><span /></span>{search && <img className="m-empty-art-warning" src={base + 'empty-warning.svg'} alt="" />}<img className="m-empty-art-clip" src={base + 'empty-clip.svg'} alt="" />{search && <><span className="m-empty-art-bar" /><img className="m-empty-art-dots" src={base + 'empty-dots.svg'} alt="" /></>}<img className="m-empty-art-detail" src={base + 'empty-detail.png'} width="34.909" height="46.545" alt="" /></span><span className="m-empty-art-decoration"><img src={base + 'empty-decoration.svg'} alt="" /></span></span>;
 }
 
 export function Empty({ text = '暂无数据', illustration = false, search = false, variant = 'bare' }) {
-  return <div className={`m-empty m-empty-${variant} ${illustration ? 'm-empty-illustrated' : ''} ${search ? 'm-empty-search' : !illustration ? 'm-empty-neutral' : ''}`} role="status">{search || !illustration ? <span className="m-empty-art-frame"><SearchEmptyArt /></span> : illustration && <span className="m-empty-plate"><img src="/mobile-assets/empty-application-source.jpg" alt="" /></span>}<span>{text}</span></div>;
+  return <div className={`m-empty m-empty-${variant} ${illustration ? 'm-empty-illustrated' : ''} ${search ? 'm-empty-search' : !illustration ? 'm-empty-neutral' : ''}`} role="status">{search || !illustration ? <span className="m-empty-art-frame"><SearchEmptyArt search={search} /></span> : illustration && <span className="m-empty-plate"><img src="/mobile-assets/empty-application-source.jpg" alt="" /></span>}<span>{text}</span></div>;
 }
 
 export function AttachmentLink({ value, onPreview }) {
   const [opened, setOpened] = useState(false);
-  return <><button type="button" className="m-attachment-reference" aria-label={'查看附件：' + attachmentName(value)} onClick={() => onPreview ? onPreview(value) : setOpened(true)}><span>{attachmentName(value)}</span><img className="m-attachment-link-icon" src="/mobile-assets/workbench/attachment-link.svg" alt="" width="16" height="16" /></button>{opened && <AttachmentViewer value={value} onClose={() => setOpened(false)} />}</>;
+  const name = attachmentName(value);
+  const [displayName, setDisplayName] = useState(name);
+  const ref = useRef(null);
+  useEffect(() => {
+    let active = true;
+    const fit = () => {
+      const node = ref.current;
+      if (!node || !active) return;
+      const style = getComputedStyle(node);
+      const width = node.clientWidth - parseFloat(style.paddingLeft || 0) - parseFloat(style.paddingRight || 0) - 20;
+      if (width <= 0) return;
+      const context = document.createElement('canvas').getContext('2d');
+      context.font = getComputedStyle(node.querySelector('span')).font;
+      let low = 5, high = Array.from(name).length;
+      if (context.measureText(name).width <= width) { setDisplayName(name); return; }
+      while (low < high) {
+        const middle = Math.ceil((low + high) / 2);
+        if (context.measureText(middleEllipsis(name, middle)).width <= width) low = middle;
+        else high = middle - 1;
+      }
+      setDisplayName(middleEllipsis(name, low));
+    };
+    fit();
+    const observer = new ResizeObserver(fit); observer.observe(ref.current);
+    document.fonts.ready.then(fit);
+    return () => { active = false; observer.disconnect(); };
+  }, [name]);
+  return <><button ref={ref} type="button" className="m-attachment-reference" title={name} aria-label={'查看附件：' + name} onClick={() => onPreview ? onPreview(value) : setOpened(true)}><span>{displayName}</span><img className="m-attachment-link-icon" src="/mobile-assets/workbench/attachment-link.svg" alt="" width="16" height="16" /></button>{opened && <AttachmentViewer value={value} onClose={() => setOpened(false)} />}</>;
 }
 
 export function AttachmentViewer({ value, title = '查看附件', onClose }) {
@@ -280,6 +308,7 @@ export function RegistrationSteps({ personal, step, expanded, onExpandedChange }
     </div>
   </nav>;
 }
+
 
 
 
