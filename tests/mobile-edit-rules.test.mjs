@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { withAccountBank, reinviteCandidates, informationSteps, registrationEmailError, validEmail, middleEllipsis } from '../src/pages/mobile-edit-rules.js';
+import { withAccountBank, reinviteCandidate, informationSteps, registrationEmailError, validEmail, middleEllipsis } from '../src/pages/mobile-edit-rules.js';
 
 test('选择开户银行立即回填实际国家，并清理原分行省市及保留账户资料', () => {
   const original = { bank: '旧银行', branch: '旧分行', country: '旧国家', province: '旧省', city: '旧市', number: '001234', proof: '证明.pdf', name: '账户名', currency: '美元' };
@@ -12,17 +12,14 @@ test('选择开户银行立即回填实际国家，并清理原分行省市及�
   assert.equal(withAccountBank(original, '未知银行', []).country, '');
 });
 
-test('重新邀请只匹配本人名下同名草稿或注册驳回，支持多条候选', () => {
-  const rows = [
-    { id: 'draft', name: ' 同名供应商 ', inviter: '本人', status: '草稿' },
-    { id: 'rejected', name: '同名供应商', inviter: '本人', status: '注册驳回' },
-    { id: 'other-owner', name: '同名供应商', inviter: '他人', status: '草稿' },
-    { id: 'approved', name: '同名供应商', inviter: '本人', status: '已审批' },
-    { id: 'different', name: '同名供应商二', inviter: '本人', status: '草稿' },
-  ];
-  assert.deepEqual(reinviteCandidates(rows, '同名供应商 ', '本人').map(x => x.id), ['draft', 'rejected']);
-  assert.deepEqual(reinviteCandidates(rows, '同名供应商', '本人', 'draft').map(x => x.id), ['rejected']);
-  assert.deepEqual(reinviteCandidates(rows, ' ', '本人'), []);
+test('重新邀请匹配本人名下同名的唯一草稿或注册驳回记录', () => {
+  const draft = { id: 'draft', name: ' 同名供应商 ', inviter: '本人', status: '草稿' };
+  const other = { id: 'other', name: '同名供应商', inviter: '他人', status: '草稿' };
+  assert.equal(reinviteCandidate([other, draft], '同名供应商 ', '本人'), draft);
+  assert.equal(reinviteCandidate([{ ...draft, status: '注册驳回' }], '同名供应商', '本人').id, 'draft');
+  assert.equal(reinviteCandidate([{ ...draft, status: '已审批' }], '同名供应商', '本人'), undefined);
+  assert.equal(reinviteCandidate([draft], '同名供应商', '本人', 'draft'), undefined);
+  assert.equal(reinviteCandidate([draft], ' ', '本人'), undefined);
 });
 
 test('个人按三步计数，其他供应商按四步计数，预览排在最后', () => {

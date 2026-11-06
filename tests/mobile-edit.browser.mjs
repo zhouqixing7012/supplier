@@ -15,12 +15,12 @@ const check=async()=>{
  console.log('PASS rating text controls');
  await visit('invite');await page.getByLabel('供应商类型',{exact:true}).click();await button('企业供应商').click();
  for(const [label,value]of Object.entries({'供应商名称':'代注册草稿','联系人姓名':'测试联系人','邮箱':'test@example.com','手机号':'13800000000'})) await fill(label,value);
- await button('提交').click();await page.getByRole('dialog',{name:'重新邀请提示',exact:true}).waitFor();
- await button('返回修改').click();assert.equal(await page.getByLabel('供应商名称',{exact:true}).inputValue(),'代注册草稿');
+ await button('提交').click();await page.getByRole('dialog',{name:'重新邀请',exact:true}).waitFor();
+ assert.equal(await page.getByRole('dialog',{name:'重新邀请',exact:true}).getByRole('radio').count(),0);assert.equal(await page.getByRole('dialog',{name:'重新邀请',exact:true}).locator('.m-reference-card').count(),0);assert(await page.getByText('您名下存在同名且为草稿或注册驳回的供应商，是否重新进行邀请。',{exact:true}).isVisible());await page.getByRole('dialog',{name:'重新邀请',exact:true}).getByRole('button',{name:'取消',exact:true}).click();assert.equal(await page.getByLabel('供应商名称',{exact:true}).inputValue(),'代注册草稿');
  await button('提交').click();await button('重新邀请').click();await page.waitForURL('**/#/mobile/mine');
  assert.equal(await page.locator('.m-supplier-card').filter({hasText:'代注册草稿'}).count(),1);
  console.log('PASS reinvite prompt, retain form, reuse original');
- await visit('workspace-info');
+ await visit('workspace-info');assert.equal(await page.getByRole('button',{name:'全部标签',exact:true}).count(),0);
  await page.locator('.m-workspace .m-tabs').getByRole('button',{name:'联系人信息',exact:true}).click();await button('修改').click();
  assert(await button('下一步（2/4）').isVisible());assert.equal(await page.locator('.m-info-edit-tabs').count(),0);
  assert((await page.locator('.m-registration-steps').innerText()).includes('第 2 / 4 步'));
@@ -75,7 +75,7 @@ const check=async()=>{
  assert(proto.x+proto.width<=original.x+1);
  await page.getByLabel('供应商类型',{exact:true}).click();await button('企业供应商').click();
  for(const [label,value]of Object.entries({'供应商名称':'代注册草稿','联系人姓名':'测试联系人','邮箱':'test@example.com','手机号':'13800000000'})) await fill(label,value);
- await button('提交').click();await page.getByRole('dialog',{name:'重新邀请提示',exact:true}).waitFor();
+ await button('提交').click();await page.getByRole('dialog',{name:'重新邀请',exact:true}).waitFor();
  await page.getByRole('button',{name:'需求标注：3.2 邀请提交时提供重新邀请指引',exact:true}).waitFor();
  console.log('PASS reinvite review anchors and side-by-side comparison');
  await visit('detail');await page.getByRole('button',{name:'基本信息',exact:true}).click();

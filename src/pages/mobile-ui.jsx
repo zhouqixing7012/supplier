@@ -225,12 +225,12 @@ export function SupplierIdentityCard({ supplier, children, showMeta = true }) {
   return <div className="m-detail-summary"><div className="m-supplier-heading"><h2>{supplier.name}</h2>{supplier.status && <StatusTag value={supplier.status} />}</div>{showMeta && <p className="m-summary-meta"><span>{supplier.type || '—'} · {supplier.mode || '—'}</span></p>}{children}</div>;
 }
 
-export function Confirm({ text, onCancel: cancelOriginal, onConfirm: confirmOriginal, cancelLabel = '取消', confirmLabel = '确认', danger = false, unsaved = false, decision = false, title }) {
+export function Confirm({ text, onCancel: cancelOriginal, onConfirm: confirmOriginal, cancelLabel = '取消', confirmLabel = '确认', danger = false, unsaved = false, decision = false, title, className = '' }) {
   const onCancel = () => runMotion(cancelOriginal, 'sheet-close');
   const onConfirm = () => runMotion(confirmOriginal, 'record');
   const heading = title || (unsaved ? '离开编辑？' : decision ? '退出登录？' : '提示');
   const primaryCancel = unsaved;
-  return <Overlay label={heading} onClose={onCancel}><div className="m-decision-confirm"><h2>{heading}</h2><p>{text}</p><div className="m-decision-actions">
+  return <Overlay label={heading} onClose={onCancel}><div className={'m-decision-confirm ' + className}><h2>{heading}</h2><p>{text}</p><div className="m-decision-actions">
     <button type="button" className="m-discard-button" data-initial-focus={danger ? true : undefined} onClick={primaryCancel ? onConfirm : onCancel}>{primaryCancel ? confirmLabel : cancelLabel}</button>
     <button type="button" className={'m-continue-button' + (danger ? ' m-action-danger' : '')} data-initial-focus={primaryCancel || !danger ? true : undefined} onClick={primaryCancel ? onCancel : onConfirm}>{primaryCancel ? cancelLabel : confirmLabel}</button>
   </div></div></Overlay>;

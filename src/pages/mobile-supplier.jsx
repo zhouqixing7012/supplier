@@ -1,7 +1,7 @@
 import { createSessionId } from './mobile-interaction.jsx';
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Check, MailPlus, FilePenLine, Landmark, Download, Filter, ListChecks, Plus, Search, Signal, Wifi, Battery, X, CircleUserRound } from 'lucide-react';
-import { Actions, RecordCollection, AttachmentViewer, AppliedFilters, Confirm, Empty, Field, FilterButton, Header, RegistrationSteps, Overlay, PickerHeading, Row, ScreenshotTip, SearchBox, Section } from './mobile-ui.jsx';
+import { Actions, RecordCollection, AttachmentViewer, AppliedFilters, Confirm, Empty, Field, FilterButton, Header, RegistrationSteps, Overlay, Row, ScreenshotTip, SearchBox, Section } from './mobile-ui.jsx';
 import { AddressForm, BankCard, BankFields, BasicFields, ContactFields, InviteForm, PermissionForm, ReferenceList, bankError, blankBank, fieldsFor, filledBasic } from './mobile-forms.jsx';
 import { Approval, BankApplication, FilterView, PermissionCard, RatingList, SupplierDetail, SupplierList, Tabs } from './mobile-views.jsx';
 import { bankNames, cooperation, exampleBank, initialSuppliers, screenshotScenes, supplierTypes } from './mobile-data.js';
@@ -13,7 +13,7 @@ import { PortalWorkspace } from './mobile-portal.jsx';
 import { RegistrationPreview } from './mobile-registration-preview.jsx';
 import { SupplierAccountRegistration } from './mobile-account-registration.jsx';
 import { ChangeComparison } from './mobile-changes.jsx';
-import { informationSteps, reinviteCandidates, validEmail, registrationEmailError } from './mobile-edit-rules.js';
+import { informationSteps, reinviteCandidate, validEmail, registrationEmailError } from './mobile-edit-rules.js';
 import { PrototypeReview } from './mobile-review.jsx';
 import { ScreenshotCompare } from './mobile-screenshot-compare.jsx';
 import './mobile-supplier.css';
@@ -395,7 +395,7 @@ function MobileSurface({ onComparisonChange, scene, shot, ratings, setRatings, a
     if (target && !canReinviteSupplier(target)) return notify('当前状态不能重新邀请，请返回列表核对');
     if (target && data.type !== target.type) return notify('供应商类型与原记录不一致，请返回修改');
     const name = data.name.trim();
-    if (data.type !== supplierTypes[1] && (!target || target.name.trim() !== name)
+    if ((!target || target.name.trim() !== name)
       && suppliers.some(record => record.id !== target?.id && record.name.trim() === name)) return notify('供应商名称已存在');
     const invitation = { ...data, name, status: '邀请中', mode: '邀请注册', inviter: target?.inviter || currentInviter, updated: now() };
     if (target) {
@@ -452,9 +452,9 @@ function MobileSurface({ onComparisonChange, scene, shot, ratings, setRatings, a
     {peoplePicker && <div className="m-fullscreen-panel"><Header title="选择新邀请人" onBack={() => setPeoplePicker(false)} /><ReferenceList kind="people" mode="confirm" selected={newInviter} onCancel={() => setPeoplePicker(false)} onConfirm={v => { setNewInviter(v); setPeoplePicker(false); }} /></div>}
     {['invite', 'invite-again'].includes(scene) && <InviteForm initial={scene === 'invite-again' ? { type: supplier.type, name: supplier.name, contact: supplier.contact, email: supplier.email, phone: supplier.phone } : undefined} notify={notify} onCancel={() => go(scene === 'invite-again' ? listReturn.current : 'query')} onSave={data => {
       if (scene === 'invite-again') return submitInvitation(data, supplier);
-      const candidates = reinviteCandidates(suppliers, data.name, currentInviter);
-      if (candidates.length) {
-        setReinvitePrompt({ data: clone(data), ids: candidates.map(record => record.id), selectedId: candidates.length === 1 ? candidates[0].id : '' });
+      const candidate = reinviteCandidate(suppliers, data.name, currentInviter);
+      if (candidate) {
+        setReinvitePrompt({ data: clone(data), recordId: candidate.id });
         return;
       }
       submitInvitation(data);
@@ -493,11 +493,11 @@ function MobileSurface({ onComparisonChange, scene, shot, ratings, setRatings, a
     </div></section></div>}
     {scene.startsWith('workspace') && <PortalWorkspace accountMenu={portalAccountMenu} setAccountMenu={setPortalAccountMenu} scene={scene} go={go} notify={notify} store={views} onPreview={preview} />}
     </SwipeArea>
-    {reinvitePrompt && <Overlay sheet label="重新邀请提示" onClose={() => setReinvitePrompt(null)}><div className="m-reinvite-prompt"><PickerHeading title="发现可重新邀请的供应商" /><p className="m-input-note">您名下存在同名且为草稿或注册驳回的供应商，请选择原记录后重新邀请。</p>{suppliers.filter(record => reinvitePrompt.ids.includes(record.id)).map(record => <label className="m-reference-card" key={record.id}><input type="radio" name="reinvite-supplier" checked={reinvitePrompt.selectedId === record.id} onChange={() => setReinvitePrompt({ ...reinvitePrompt, selectedId: record.id })} /><div><h3>{record.name}</h3><Row label="供应商类型">{record.type}</Row><Row label="当前状态">{record.status}</Row><Row label="邀请人">{record.inviter}</Row></div></label>)}<div className="m-picker-actions"><button type="button" onClick={() => setReinvitePrompt(null)}>返回修改</button><button type="button" className="primary" disabled={!reinvitePrompt.selectedId} onClick={() => {
-      const target = reinviteCandidates(suppliers, reinvitePrompt.data.name, currentInviter).find(record => record.id === reinvitePrompt.selectedId);
-      if (!target) { setReinvitePrompt(null); return notify('该供应商状态或归属已变化，请重新提交邀请信息'); }
+    {reinvitePrompt && <Confirm title="重新邀请" className="m-reinvite-prompt" text="您名下存在同名且为草稿或注册驳回的供应商，是否重新进行邀请。" cancelLabel="取消" confirmLabel="重新邀请" onCancel={() => setReinvitePrompt(null)} onConfirm={() => {
+      const target = reinviteCandidate(suppliers, reinvitePrompt.data.name, currentInviter);
+      if (!target || target.id !== reinvitePrompt.recordId) { setReinvitePrompt(null); return notify('该供应商状态或归属已变化，请重新提交邀请信息'); }
       submitInvitation(reinvitePrompt.data, target);
-    }}>重新邀请</button></div></div></Overlay>}
+    }} />}
     {exportOpen && <SupplierExport suppliers={matching} initial={filters} query={search} busy={exportBusy} onExport={performExport} onClose={closeExport} />}
     {sheet === 'more' && <Overlay sheet label="更多操作" onClose={() => setSheet(null)}><div className="m-action-sheet">{canChangeSupplier(supplier) && ['修改银行', '分配权限', '变更邀请人'].map((label, i) => <button key={label} onClick={() => { setSheet(null); go(['bank', 'permissions', 'inviter'][i]); }}>{label}</button>)}{canRateSupplier(supplier) && <button onClick={() => { setSheet(null); startScore(supplier); }}>评分</button>}<button onClick={() => { setSheet(null); go('detail-approval'); }}>审批记录</button><button className="cancel" onClick={() => setSheet(null)}>取消</button></div></Overlay>}
     {sheet?.kind === 'attachment' && <AttachmentViewer value={sheet.name} onClose={() => setSheet(null)} />}
