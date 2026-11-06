@@ -1,3 +1,5 @@
+import { BankChangeCard } from './mobile-bank-change-view.jsx';
+import { bankChangeCounts, normalizeBankChanges, readBankDraft, writeBankDraft } from './mobile-bank-changes.js';
 import { createSessionId } from './mobile-interaction.jsx';
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Check, MailPlus, FilePenLine, Landmark, Download, Filter, ListChecks, Plus, Search, Signal, Wifi, Battery, X, CircleUserRound } from 'lucide-react';
@@ -123,7 +125,7 @@ function MobileApp() {
     if (text && /^请|错误|不能|只能|必须|已存在|须为/.test(text)) window.dispatchEvent(new CustomEvent('mobile-validation', { detail: text }));
     if (text && /已提交|已保存|已暂存|已导出|修改完成|验证通过|已重新邀请|变更已提交/.test(text)) {
       interaction.clean();
-      if (!/已导出|验证码|草稿/.test(text)) setResult({ text, supplier: suppliers.find(x => x.id === selected)?.name });
+      if (!/已导出|验证码|草稿|待提交审批/.test(text)) setResult({ text, supplier: suppliers.find(x => x.id === selected)?.name });
     }
     if (text && /请填写|请选择|请输入|只能|不能|必须|已存在/.test(text)) {
       requestAnimationFrame(() => {
@@ -158,7 +160,10 @@ function MobileSurface({ onComparisonChange, scene, shot, ratings, setRatings, a
   const [exportBusy, setExportBusy] = useState(false);
   const [tip, setTip] = useState(['bank-tip', 'approval-tip'].includes(scene));
   const [debug, setDebug] = useState(false);
-  const [banks, setBanks] = useState(() => clone(supplier.pendingBanks || supplier.banks));
+  const [banks, setBanks] = useState(() => normalizeBankChanges(supplier.banks, clone(readBankDraft(supplier.id) || supplier.banks)));
+  const bankCounts = bankChangeCounts(supplier.banks, banks);
+  const [bankLeaving, setBankLeaving] = useState(false);
+  const [bankDiscarding, setBankDiscarding] = useState(false);
   const [editingBank, setEditingBank] = useState(-1);
   const [bankForm, setBankForm] = useState(() => scene === 'bank-form-selected' ? { ...clone(exampleBank), name: '', number: '', currency: '', proof: '' } : { ...blankBank(''), accountType: '基本账户' });
   const [showBankForm, setShowBankForm] = usePanelState(false);
@@ -202,10 +207,11 @@ function MobileSurface({ onComparisonChange, scene, shot, ratings, setRatings, a
   const [ratingRange, setRatingRange] = useState(['', '']);
   const portalGuard = useDirtyForm({ portal, newPassword, passwordScreen }, scene.startsWith('portal'));
   const registrationGuard = useDirtyForm({ basic, contacts, registerBanks }, isRegistration && (!portalRegistration || accountRegistered));
-  const bankGuard = useDirtyForm(banks, ['bank', 'bank-tip'].includes(scene));
+  const bankGuard = useDirtyForm(banks, false);
   const bankFormGuard = useDirtyForm(bankForm, showBankForm || scene.startsWith('bank-form'));
   const permissionsGuard = useDirtyForm(permissions, scene.startsWith('permissions'));
   const inviterGuard = useDirtyForm(newInviter, scene.startsWith('inviter'));
+  useBackLayer(['bank', 'bank-tip'].includes(scene), leaveBank);
   useBackLayer(showBankForm, () => bankFormGuard.leave(() => setShowBankForm(false)));
   useBackLayer(!!permissionForm, () => window.dispatchEvent(new CustomEvent('mobile-close-permission')));
   useBackLayer(peoplePicker, () => setPeoplePicker(false));
@@ -291,7 +297,7 @@ function MobileSurface({ onComparisonChange, scene, shot, ratings, setRatings, a
     setActiveRating(null); setRatingReturn(mine ? 'mine' : 'query'); pick(s, 'rating-edit');
   };
   const pick = (s, next) => { listReturn.current = mine ? 'mine' : 'query'; select(s.id); go(next); };
-  const back = () => scene === 'workspace-info' ? window.dispatchEvent(new CustomEvent('mobile-portal-info-back')) : scene.startsWith('workspace-account-') ? go(views.portalSecurityReturn || 'workspace-home') : ['rating-filter', 'department'].includes(scene) ? go(filters.return || 'ratings') : scene === 'workspace-travel' ? go(views.portalTravelReturn || 'workspace-home') : (scene.startsWith('workspace-tax') || scene.startsWith('workspace-quote')) ? go('workspace-tasks') : scene === 'workspace-approval' || scene === 'workspace-changes' ? go('workspace-info') : scene.startsWith('workspace') ? go('workspace-home') : scene.startsWith('portal') && portalEmail && !passwordScreen ? setPortalEmail(false) : ['rating-edit', 'rating-detail'].includes(scene) ? go(ratingReturn) : isRegistration && step > 0 ? changeStep(step === 2 && basic.type === supplierTypes[1] ? 0 : step - 1) : go(portalRegistration || scene === 'supplier-registration-result' ? 'portal' : listReturn.current);
+  const back = () => ['bank', 'bank-tip'].includes(scene) ? leaveBank() : scene === 'workspace-info' ? window.dispatchEvent(new CustomEvent('mobile-portal-info-back')) : scene.startsWith('workspace-account-') ? go(views.portalSecurityReturn || 'workspace-home') : ['rating-filter', 'department'].includes(scene) ? go(filters.return || 'ratings') : scene === 'workspace-travel' ? go(views.portalTravelReturn || 'workspace-home') : (scene.startsWith('workspace-tax') || scene.startsWith('workspace-quote')) ? go('workspace-tasks') : scene === 'workspace-approval' || scene === 'workspace-changes' ? go('workspace-info') : scene.startsWith('workspace') ? go('workspace-home') : scene.startsWith('portal') && portalEmail && !passwordScreen ? setPortalEmail(false) : ['rating-edit', 'rating-detail'].includes(scene) ? go(ratingReturn) : isRegistration && step > 0 ? changeStep(step === 2 && basic.type === supplierTypes[1] ? 0 : step - 1) : go(portalRegistration || scene === 'supplier-registration-result' ? 'portal' : listReturn.current);
   const preview = name => setSheet({ kind: 'attachment', name });
   function runConfirmation() {
     const action = confirm; setConfirm(null);
@@ -309,14 +315,33 @@ function MobileSurface({ onComparisonChange, scene, shot, ratings, setRatings, a
       setSuppliers(suppliers.filter(s => !action.ids.includes(s.id))); setChecked([]); notify('已删除' + targets.length + '家供应商');
     }
     if (action.type === 'delete-register-bank') setRegisterBanks(registerBanks.filter((_, i) => i !== action.index));
-    if (action.type === 'delete-bank') setBanks(banks.flatMap((b, i) => i !== action.index ? [b] : b.change === '新增' ? [] : [{ ...b, change: '删除' }]));
+    if (action.type === 'delete-bank') persistBanks(banks.flatMap((b, i) => i !== action.index ? [b] : b.change === '新增' ? [] : [{ ...b, change: '删除' }]), '账户删除已保存，待提交审批');
     if (action.type === 'delete-permission') setPermissions(permissions.flatMap((p, i) => i !== action.index ? [p] : p.change === '新增' ? [] : [{ ...p, change: '删除' }]));
+  }
+  function persistBanks(entries, message = '账户已保存，待提交审批') {
+    const next = normalizeBankChanges(supplier.banks, entries);
+    try { writeBankDraft(supplier.id, next.some(bank => bank.change) ? next : null); }
+    catch { notify('账户保存失败，请重试'); return false; }
+    setBanks(next); bankGuard.accept(); notify(next.some(bank => bank.change) ? message : '账户已保存，本次资料与原值一致'); return true;
+  }
+  function leaveBank() {
+    if (bankCounts.total) setBankLeaving(true); else go(listReturn.current);
+  }
+  function submitBankChanges() {
+    if (!bankCounts.total) return notify('请先修改银行信息');
+    if (!canChangeSupplier(supplier)) return notify('当前供应商状态不能发起银行变更');
+    for (const bank of banks.filter(record => record.change !== '删除')) { const error = bankError(bank, supplier.type === supplierTypes[0]); if (error) return notify(error); }
+    if (supplier.type === supplierTypes[0] && banks.filter(bank => bank.change !== '删除' && bank.accountType === '基本账户').length !== 1) return notify('企业供应商必须有且只有一个基本账户');
+    try { writeBankDraft(supplier.id, null); } catch { return notify('提交失败，请重试'); }
+    update({ pendingBanks: clone(banks), status: '变更中' });
+    bankGuard.accept(); notify('原型演示：银行变更已提交，等待审批'); go(listReturn.current);
   }
   function saveBank() {
     const error = bankError(bankForm, supplier.type === supplierTypes[0]); if (error) return notify(error);
     if (banks.some((b, i) => i !== editingBank && b.change !== '删除' && b.accountType === '基本账户' && bankForm.accountType === '基本账户')) return notify('基本账户只能有一个');
     const entry = { ...bankForm, id: editingBank < 0 ? createSessionId() : banks[editingBank].id, change: editingBank < 0 || banks[editingBank].change === '新增' ? '新增' : '修改' };
-    bankFormGuard.accept(); setBanks(editingBank < 0 ? [entry, ...banks] : banks.map((b, i) => i === editingBank ? entry : b)); setShowBankForm(false); setEditingBank(-1);
+    if (!persistBanks(editingBank < 0 ? [entry, ...banks] : banks.map((b, i) => i === editingBank ? entry : b))) return;
+    bankFormGuard.accept(); setShowBankForm(false); setEditingBank(-1);
   }
   function registrationStepError(target) {
     if (target === 0) {
@@ -434,10 +459,14 @@ function MobileSurface({ onComparisonChange, scene, shot, ratings, setRatings, a
     {scene.startsWith('approval') && <Approval type={supplier.pendingInformation ? '资料变更' : '注册'} supplier={shot ? { ...supplier, name: '北京初然文化传媒有限公司827583' } : supplier} history={scene === 'approval-history'} number={shot?.time === '194516' ? 'SUP202610140006' : 'SUP202610140004'} showSupplier={!shot || shot.time !== '194516'} />}
     {['bank', 'bank-tip'].includes(scene) && <>
       <Section title="供应商信息"><Row label="供应商名称">{supplier.name}</Row><Row label="供应商类型">{supplier.type}</Row></Section>
-      <RecordCollection title="银行信息" count={banks.length} emptyText="暂无银行信息" addLabel="添加银行账户" onAdd={() => { setEditingBank(-1); setBankForm(blankBank(supplier.name)); setShowBankForm(true); }}>{banks.map((b, i) => <BankCard key={b.id} bank={b} deleteDisabledReason={supplier.type === supplierTypes[0] && b.accountType === '基本账户' && b.change !== '删除' ? '企业供应商的基本账户不可删除' : ''} onPreview={() => preview(b.proof)} onEdit={b.change === '删除' ? undefined : () => { setEditingBank(i); setBankForm(clone(b)); setShowBankForm(true); }} onDelete={supplier.type === supplierTypes[0] && b.accountType === '基本账户' || b.change === '删除' ? undefined : () => setConfirm({ type: 'delete-bank', index: i, text: '是否将该银行账户标记为删除？' })} />)}</RecordCollection>
-      {!showBankForm && <Actions items={[{ label: '取消', onClick: () => go(listReturn.current) }, { label: '提交变更', disabled: !banks.some(b => b.change), onClick: () => { if (!banks.some(x => x.change)) return notify('请先修改银行信息'); if (supplier.type === supplierTypes[0] && banks.filter(b => b.change !== '删除' && b.accountType === '基本账户').length !== 1) return notify('企业供应商必须有且只有一个基本账户'); update({ pendingBanks: clone(banks), status: '变更中' }); notify('原型演示：银行变更已提交，等待审批'); go(listReturn.current); } }]} />}
+      {bankCounts.total > 0 && <aside className="m-bank-pending" role="status"><strong>有{bankCounts.total}条银行变更待提交审批</strong><p>新增{bankCounts.新增}条 · 修改{bankCounts.修改}条 · 删除{bankCounts.删除}条</p><button type="button" onClick={() => setBankDiscarding(true)}>放弃本次变更</button></aside>}
+      <RecordCollection title="银行信息" count={banks.length} emptyText="暂无银行信息" addLabel="添加银行账户" onAdd={() => { setEditingBank(-1); setBankForm(blankBank(supplier.name)); setShowBankForm(true); }}>{banks.map((b, i) => <BankChangeCard key={b.id} before={supplier.banks} bank={b} notify={notify} deleteDisabledReason={supplier.type === supplierTypes[0] && b.accountType === '基本账户' && b.change !== '删除' ? '企业供应商的基本账户不可删除' : ''} onPreview={preview} onEdit={b.change === '删除' ? undefined : () => { setEditingBank(i); setBankForm(clone(b)); setShowBankForm(true); }} onDelete={supplier.type === supplierTypes[0] && b.accountType === '基本账户' || b.change === '删除' ? undefined : () => setConfirm({ type: 'delete-bank', index: i, text: '是否将该银行账户标记为待提交删除？' })} />)}</RecordCollection>
+      {!showBankForm && <Actions className="m-bank-submit-actions" items={[{ label: '返回', secondary: true, onClick: leaveBank }, { label: '提交审批', disabled: !bankCounts.total, onClick: submitBankChanges }]} />}
+      {bankLeaving && <Confirm title="银行变更待提交" text="银行信息尚未提交审批，已保存内容将保留，可稍后继续处理。" cancelLabel="继续处理" confirmLabel="确认离开" onCancel={() => setBankLeaving(false)} onConfirm={() => { setBankLeaving(false); bankGuard.accept(); go(listReturn.current); }} />}
+      {bankDiscarding && <Confirm title="放弃本次变更" text="是否放弃本次全部未提交银行变更？" cancelLabel="继续处理" confirmLabel="放弃变更" danger onCancel={() => setBankDiscarding(false)} onConfirm={() => { try { writeBankDraft(supplier.id, null); } catch { return notify('放弃失败，请重试'); } setBanks(clone(supplier.banks)); bankGuard.accept(); setBankDiscarding(false); notify('已恢复原银行资料'); }} />}
+
     </>}
-    {(scene.startsWith('bank-form') || showBankForm) && <div className={showBankForm ? 'm-fullscreen-panel' : ''}>{showBankForm && <Header title={editingBank < 0 ? "新增银行账户" : "编辑银行账户"} onBack={() => bankFormGuard.leave(() => setShowBankForm(false))} />}<BankFields bank={bankForm} setBank={setBankForm} company={supplier.type === supplierTypes[0]} /><Actions items={[{ label: '取消', onClick: () => showBankForm ? bankFormGuard.leave(() => setShowBankForm(false)) : go('bank') }, { label: '保存此账户', onClick: () => { if (showBankForm) saveBank(); else { const error = bankError(bankForm, supplier.type === supplierTypes[0]); if (error) return notify(error); update({ pendingBanks: [{ ...bankForm, id: createSessionId(), change: '新增' }, ...supplier.banks] }); notify('银行信息已暂存'); go('bank'); } } }]} /></div>}
+    {(scene.startsWith('bank-form') || showBankForm) && <div className={showBankForm ? 'm-fullscreen-panel' : ''}>{showBankForm && <Header title={editingBank < 0 ? "新增银行账户" : "编辑银行账户"} onBack={() => bankFormGuard.leave(() => setShowBankForm(false))} />}<BankFields bank={bankForm} setBank={setBankForm} company={supplier.type === supplierTypes[0]} /><Actions items={[{ label: '取消', onClick: () => showBankForm ? bankFormGuard.leave(() => setShowBankForm(false)) : go('bank') }, { label: '保存此账户', onClick: () => { if (showBankForm) saveBank(); else { const error = bankError(bankForm, supplier.type === supplierTypes[0]); if (error) return notify(error); if (!persistBanks([{ ...bankForm, id: createSessionId(), change: '新增' }, ...banks])) return; bankFormGuard.accept(); go('bank'); } } }]} /></div>}
     {['bank-select', 'branch-select', 'people', 'people-empty'].includes(scene) && <ReferenceList mode={scene.startsWith('people') ? 'confirm' : 'immediate'} kind={scene.startsWith('people') ? 'people' : scene === 'bank-select' ? 'bank' : 'branch'} selected={scene === 'branch-select' ? exampleBank.branch : ''} initialSearch={scene === 'people' ? '周' : ''} onCancel={() => go(scene.startsWith('people') ? 'inviter' : 'bank')} onConfirm={v => { notify('已选择' + v); go(scene.startsWith('people') ? 'inviter-selected' : 'bank-form-selected'); }} />}
     {scene.startsWith('permissions') && <><Section title="供应商信息"><Row label="供应商名称">{supplier.name}</Row><Row label="供应商类型">{supplier.type}</Row></Section><RecordCollection title="分配权限" count={permissions.length} emptyText="暂无权限记录" addLabel="新增权限" onAdd={() => setPermissionForm({ index: -1 })}>{permissions.map((p, i) => <PermissionCard key={p.id} data={p} onEdit={p.change === '删除' ? undefined : () => setPermissionForm({ data: p, index: i })} onDelete={p.change === '删除' ? undefined : () => setConfirm({ type: 'delete-permission', index: i, text: '是否删除该权限？提交后生效。' })} />)}</RecordCollection>{!permissionForm && <Actions items={[{ label: '取消', onClick: () => go('query') }, { label: '提交变更', onClick: () => { if (!permissions.some(p => p.change)) return notify('请先新增、修改或删除权限'); update({ pendingPermissions: clone(permissions), status: '变更中' }); notify('原型演示：权限分配已提交，等待审批'); go(listReturn.current); } }]} />}</>}
     {(scene === 'permission-form' || permissionForm) && <div className={permissionForm ? 'm-fullscreen-panel' : ''}>{permissionForm && <Header title="编辑供应商权限" onBack={() => window.dispatchEvent(new CustomEvent('mobile-close-permission'))} />}<PermissionForm initial={permissionForm?.data} notify={notify} onCancel={() => permissionForm ? setPermissionForm(false) : go('permissions')} onSave={p => { if (permissions.some((x, i) => i !== permissionForm?.index && x.change !== '删除' && x.group === p.group && x.category === p.category)) return notify('该权限已存在'); const next = { ...p, id: permissionForm?.data?.id || createSessionId(), change: permissionForm?.index >= 0 && permissionForm?.data?.change !== '新增' ? '修改' : '新增' }; setPermissions(permissionForm?.index >= 0 ? permissions.map((x, i) => i === permissionForm.index ? next : x) : [next, ...permissions]); permissionForm ? setPermissionForm(false) : go('permissions-added'); }} /></div>}
@@ -471,7 +500,7 @@ function MobileSurface({ onComparisonChange, scene, shot, ratings, setRatings, a
       <RegistrationSteps personal={basic.type === supplierTypes[1]} step={step} expanded={stepsExpanded} onExpandedChange={setStepsExpanded} />
       {step === 0 && <BasicFields data={basic} setData={setBasic} identityReadOnly={portalRegistration} hideSupplierType={portalRegistration} shot={!!shot} onAddress={() => setAddressOpen(true)} initialDate={scene === 'expiry'} />}
       {step === 1 && <ContactFields contacts={contacts} setContacts={setContacts} />}
-      {step === 2 && <RecordCollection title="银行信息" count={registerBanks.length} emptyText="暂无银行信息" addLabel="添加银行账户" onAdd={() => { setEditingBank(-1); setRegisterBankForm(blankBank(basic.supplierName)); setRegisterBankPicker(true); }}>{registerBanks.map((b, i) => <BankCard key={b.id} bank={b} onPreview={() => preview(b.proof)} onEdit={() => { setEditingBank(i); setRegisterBankForm(clone(b)); setRegisterBankPicker(true); }} onDelete={() => setConfirm({ type: 'delete-register-bank', index: i, text: '确认删除银行信息' + (i + 1) + '？' })} />)}</RecordCollection>}
+      {step === 2 && <RecordCollection title="银行信息" count={registerBanks.length} emptyText="暂无银行信息" addLabel="添加银行账户" onAdd={() => { setEditingBank(-1); setRegisterBankForm(blankBank(basic.supplierName)); setRegisterBankPicker(true); }}>{registerBanks.map((b, i) => <BankCard key={b.id} bank={b} onPreview={preview} onEdit={() => { setEditingBank(i); setRegisterBankForm(clone(b)); setRegisterBankPicker(true); }} onDelete={() => setConfirm({ type: 'delete-register-bank', index: i, text: '确认删除银行信息' + (i + 1) + '？' })} />)}</RecordCollection>}
       {step === 3 && <RegistrationPreview supplierFacing={portalRegistration} basic={basic} contacts={contacts} banks={registerBanks} mode={portalRegistration ? '邀请注册' : editingRegistration ? supplier.mode : '代注册'} active={previewTab} onTabChange={setPreviewTab} onEdit={next => { setReturnPreview(true); changeStep(next); }} onPreview={preview}>{editingAll && <ChangeComparison before={supplier} after={{ basic, name: basic.supplierName, email: basic.registerEmail, type: basic.type, contacts, banks: registerBanks }} />}</RegistrationPreview>}
       <Actions className="m-registration-actions" items={editingAll ? [{ label: '取消', secondary: true, onClick: () => registrationGuard.leave(() => go(listReturn.current)) }, { label: step === 3 ? '提交' : '下一步（' + (editSteps.indexOf(step) + 1) + '/' + editSteps.length + '）', disabled: saving, onClick: step === 3 ? submitRegister : nextStep }] : [...(step > 0 ? [{ label: '上一步', secondary: true, onClick: () => { changeStep(step === 2 && basic.type === supplierTypes[1] ? 0 : step - 1); } }] : []), ...(!editingAll ? [{ label: '保存草稿', secondary: true, disabled: saving, onClick: saveDraft }] : []), { label: step === 3 ? (portalRegistration ? '提交注册' : '提交') : returnPreview ? '保存并返回预览' : `下一步（${(basic.type === supplierTypes[1] ? [0, 2, 3] : [0, 1, 2, 3]).indexOf(step) + 1}/${basic.type === supplierTypes[1] ? 3 : 4}）`, disabled: saving, onClick: step === 3 ? submitRegister : nextStep }]} />
     </>}

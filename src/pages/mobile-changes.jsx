@@ -1,11 +1,12 @@
 import React from 'react';
+import { bankChange } from './mobile-bank-changes.js';
 import { Row, Section } from './mobile-ui.jsx';
 import { qualificationFields } from './mobile-qualifications.jsx';
 import { fieldsFor } from './mobile-forms.jsx';
 import { attachmentName } from './mobile-interaction.jsx';
 
 const contactFields = [['name', '姓名'], ['phone', '电话'], ['email', '邮箱'], ['department', '部门'], ['job', '职位'], ['wechat', '微信'], ['note', '备注']];
-const bankFields = [['accountType', '账户类型'], ['bank', '开户银行'], ['branch', '银行分行'], ['country', '国家/地区'], ['province', '省'], ['city', '市'], ['name', '账户名称'], ['number', '银行账号'], ['currency', '币种'], ['proof', '开户证明'], ['note', '备注']];
+const bankFields = [['accountType', '账户类型'], ['bank', '开户银行'], ['branch', '银行分行'], ['country', '国家/地区'], ['province', '省'], ['city', '市'], ['name', '账户名称'], ['number', '银行账号'], ['currency', '币种'], ['note', '备注']];
 const content = value => value ?? '';
 export function informationChanges(before, after) {
   const rows = [];
@@ -36,6 +37,8 @@ export function informationChanges(before, after) {
 }
 export function ChangeComparison({ before, after }) {
   const changes = informationChanges(before, after);
+  if (!changes.length && after.banks?.some(entry => bankChange(before.banks || [], entry).action)) return null;
   return <Section title="修改前后对比" collapsible={false}><div className="m-change-comparison">{changes.length ? changes.map((change, i) => <article key={i}><h3>{change.action && <span>{change.action} · </span>}{change.label}</h3><Row label="修改前">{change.previous || '未填写'}</Row><Row label="修改后">{change.next || (change.action === '删除' ? '已删除' : '未填写')}</Row></article>) : <p>没有信息变更</p>}</div></Section>;
 }
+
 
