@@ -3,12 +3,15 @@ import React, { useEffect, useId, useRef, useState } from 'react';
 import { Check, FileText, ChevronDown, ChevronRight, MoreHorizontal, Plus, Trash2, UserRoundPlus } from 'lucide-react';
 import { QualificationInfo } from './mobile-qualifications.jsx';
 import { Actions, AttachmentLink, PickerHeading, SelectionMark, CardActions, RecordCard, RecordCollection, ChangeTag, Confirm, DateSheet, Empty, Field, Header, OptionSheet, Overlay, Row, SearchBox, Section, UploadField } from './mobile-ui.jsx';
-import { bankNames, branches, people, permissionGroups, supplierTypes, supplierIndustries } from './mobile-data.js';
+import { bankNames, bankDirectory, branches, people, permissionGroups, supplierTypes, supplierIndustries } from './mobile-data.js';
 import { createSessionId, useDirtyForm, useBackLayer, attachmentFiles, attachmentName } from './mobile-interaction.jsx';
+
+import { withAccountBank } from './mobile-edit-rules.js';
 
 export const blankBank = name => ({ accountType: '', bank: '', branch: '', country: '', province: '', city: '', name: name || '', number: '', currency: '', proof: '', note: '' });
 export function bankError(bank, company = true) {
   for (const [key, label] of [['bank', '开户银行'], ['branch', '银行分行'], ['name', '账户名称'], ['number', '银行账号'], ['currency', '币种']]) if (!bank[key]?.trim()) return `请填写${label}`;
+  if (!bank.country?.trim()) return '请选择开户银行以带出开户行所在国家/地区';
   if (company && !bank.accountType) return '请选择账户类型';
   if (company && !bank.proof) return '请上传开户证明';
   return '';
@@ -17,6 +20,10 @@ export function bankError(bank, company = true) {
 export function BankFields({ bank, setBank, company = true, proofRequired = company, onCancel }) {
   const [picker, setPicker] = useState(null);
   const guard = useDirtyForm(bank);
+  useEffect(() => {
+    const country = bankDirectory.find(entry => entry.name === bank.bank)?.country;
+    if (bank.bank && !bank.country && country) setBank({ ...bank, country });
+  }, [bank.bank, bank.country, setBank]);
   useEffect(() => {
     if (!onCancel) return;
     const close = () => guard.leave(onCancel);
@@ -28,14 +35,14 @@ export function BankFields({ bank, setBank, company = true, proofRequired = comp
     {company && <Field label="账户类型" required options={['基本账户', '一般账户']} value={bank.accountType} onChange={v => change('accountType', v)} />}
     <Field label="开户银行" required value={bank.bank} help="开户银行来自银行基础数据，未查询到时请联系业务对接人。" onPick={() => setPicker('bank')} />
     <Field label="银行分行" required value={bank.branch} help="选择开户银行后选择对应分行。" onPick={() => bank.bank ? setPicker('branch') : window.dispatchEvent(new CustomEvent('mobile-validation', { detail: '请先选择开户银行' }))} />
-    <Field label="开户行所在国家/地区" value={bank.country} readOnly />
+    <Field label="开户行所在国家/地区" required value={bank.country} readOnly />
     <Field label="开户所在省" value={bank.province} readOnly /><Field label="开户所在市" value={bank.city} readOnly />
     </Section><Section title="账户信息"><Field label="账户名称" required value={bank.name} onChange={v => change('name', v)} maxLength={100} />
     <Field label="银行账号" required value={bank.number} onChange={v => change('number', v)} maxLength={50} />
     <Field label="币种" required options={['人民币', '美元', '港币']} value={bank.currency} onChange={v => change('currency', v)} />
     </Section><Section title="证明及备注"><UploadField label="开户证明" required={proofRequired} value={bank.proof} onChange={v => change('proof', v)} help="上传银行开户证明；个人供应商可不上传银行卡照片。" />
     <Field label="备注" multiline value={bank.note} onChange={v => change('note', v)} maxLength={400} />
-    </Section>{picker && <Overlay label={picker === 'bank' ? '开户银行' : '银行分行'} onClose={() => setPicker(null)} sheet><PickerHeading title={picker === 'bank' ? '开户银行' : '银行分行'} /><ReferenceList kind={picker} selected={picker === 'bank' ? bank.bank : bank.branch} bank={bank.bank} onCancel={() => setPicker(null)} onConfirm={v => { if (picker === 'bank') setBank({ ...bank, bank: v, branch: '', country: '', province: '', city: '' }); else { const branch = branches.find(x => x.name === v); setBank({ ...bank, branch: v, country: branch?.country || '', province: branch?.province || '', city: branch?.city || '' }); } setPicker(null); }} /></Overlay>}
+    </Section>{picker && <Overlay label={picker === 'bank' ? '开户银行' : '银行分行'} onClose={() => setPicker(null)} sheet><PickerHeading title={picker === 'bank' ? '开户银行' : '银行分行'} /><ReferenceList kind={picker} selected={picker === 'bank' ? bank.bank : bank.branch} bank={bank.bank} onCancel={() => setPicker(null)} onConfirm={v => { if (picker === 'bank') setBank(withAccountBank(bank, v, bankDirectory)); else { const branch = branches.find(x => x.name === v); setBank({ ...bank, branch: v, country: branch?.country || bankDirectory.find(entry => entry.name === bank.bank)?.country || '', province: branch?.province || '', city: branch?.city || '' }); } setPicker(null); }} /></Overlay>}
   </div>;
 }
 
@@ -43,7 +50,7 @@ export function ReferenceList({ kind, selected = '', bank = bankNames[0], onCanc
   const [query, setQuery] = useState(initialSearch);
   const [pending, setPending] = useState(selected);
   const chosen = mode === 'confirm' ? pending : selected;
-  const entries = kind === 'bank' ? bankNames.map(name => ({ name, rows: [['国家（地区）代码', 'CN'], ['国家（地区）', '中国']] })) : kind === 'branch' ? branches.filter(x => x.bank === bank).map(x => ({ name: x.name, rows: [['银行名称', x.bank], ['国家（地区）代码', 'CN'], ['国家（地区）', x.country], ['省份', x.province], ['城市', x.city]] })) : query ? people.filter(x => [x.name, x.userCode, x.phone].some(v => v?.includes(query))).map(x => ({ name: x.name, code: x.userCode, searchText: [x.name, x.userCode, x.phone].join(' '), rows: [['座机', x.phone], ['邮箱', x.email], ['职位', x.job], ['部门', x.department]] })) : [];
+  const entries = kind === 'bank' ? bankDirectory.map(entry => ({ name: entry.name, rows: [['国家（地区）代码', entry.countryCode], ['国家（地区）', entry.country]] })) : kind === 'branch' ? branches.filter(x => x.bank === bank).map(x => ({ name: x.name, rows: [['银行名称', x.bank], ['国家（地区）代码', 'CN'], ['国家（地区）', x.country], ['省份', x.province], ['城市', x.city]] })) : query ? people.filter(x => [x.name, x.userCode, x.phone].some(v => v?.includes(query))).map(x => ({ name: x.name, code: x.userCode, searchText: [x.name, x.userCode, x.phone].join(' '), rows: [['座机', x.phone], ['邮箱', x.email], ['职位', x.job], ['部门', x.department]] })) : [];
   const matches = entries.filter(x => (x.searchText || x.name).includes(query));
   return <div className={'m-reference-list' + (mode === 'confirm' ? ' m-reference-confirm' : '')}><SearchBox value={query} onChange={setQuery} placeholder={kind === 'people' ? '搜索姓名或工号' : '搜索银行或分行名称'} /><div className="m-reference-content">{matches.length ? matches.map(x => <label key={x.name} className="m-reference-card"><input type="radio" name={`reference-${kind}`} value={x.name} checked={chosen === x.name} readOnly onClick={() => mode === 'confirm' ? setPending(x.name) : onConfirm(x.name)} /><div><div className="m-reference-heading"><h3>{x.name}</h3>{kind === 'people' && <span className="m-person-code">{x.code || '—'}</span>}<SelectionMark selected={chosen === x.name} /></div>{x.rows.map(([label, value]) => <Row key={label} label={label} compact>{value}</Row>)}</div></label>) : <Empty search={!!query} text={kind === 'people' && !query ? '请输入姓名搜索人员' : query ? '没有匹配结果，请调整关键词' : kind === 'branch' ? '当前银行没有可用分行，请核对银行或申请补充银行信息' : '暂无可用数据'} />}</div><Actions flat items={[{ label: '取消', muted: true, onClick: onCancel }, ...(mode === 'confirm' ? [{ label: '确认', disabled: !pending, onClick: () => onConfirm(pending) }] : [])]} /></div>;
 }

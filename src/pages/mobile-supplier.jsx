@@ -1,7 +1,7 @@
 import { createSessionId } from './mobile-interaction.jsx';
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Check, MailPlus, FilePenLine, Landmark, Download, Filter, ListChecks, Plus, Search, Signal, Wifi, Battery, X, CircleUserRound } from 'lucide-react';
-import { Actions, RecordCollection, AttachmentViewer, AppliedFilters, Confirm, Empty, Field, FilterButton, Header, RegistrationSteps, Overlay, Row, ScreenshotTip, SearchBox, Section } from './mobile-ui.jsx';
+import { Actions, RecordCollection, AttachmentViewer, AppliedFilters, Confirm, Empty, Field, FilterButton, Header, RegistrationSteps, Overlay, PickerHeading, Row, ScreenshotTip, SearchBox, Section } from './mobile-ui.jsx';
 import { AddressForm, BankCard, BankFields, BasicFields, ContactFields, InviteForm, PermissionForm, ReferenceList, bankError, blankBank, fieldsFor, filledBasic } from './mobile-forms.jsx';
 import { Approval, BankApplication, FilterView, PermissionCard, RatingList, SupplierDetail, SupplierList, Tabs } from './mobile-views.jsx';
 import { bankNames, cooperation, exampleBank, initialSuppliers, screenshotScenes, supplierTypes } from './mobile-data.js';
@@ -13,6 +13,7 @@ import { PortalWorkspace } from './mobile-portal.jsx';
 import { RegistrationPreview } from './mobile-registration-preview.jsx';
 import { SupplierAccountRegistration } from './mobile-account-registration.jsx';
 import { ChangeComparison } from './mobile-changes.jsx';
+import { informationSteps, reinviteCandidates } from './mobile-edit-rules.js';
 import { PrototypeReview } from './mobile-review.jsx';
 import { ScreenshotCompare } from './mobile-screenshot-compare.jsx';
 import './mobile-supplier.css';
@@ -22,6 +23,7 @@ import { runMotion, useMotionStructure, usePanelState, MotionPresence } from './
 import { routeMotion } from './mobile-motion.js';
 
 const clone = value => structuredClone(value);
+const currentInviter = '陈才慧';
 const readRoute = () => decodeURIComponent(window.location.hash.replace(/^#\/mobile\/?/, '')) || 'query';
 const now = () => new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Shanghai' });
 const validEmail = value => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value || '');
@@ -152,6 +154,7 @@ function MobileSurface({ onComparisonChange, scene, shot, ratings, setRatings, a
   useEffect(() => { if (firstBatchQuery.current) { firstBatchQuery.current = false; return; } setChecked([]); }, [search, filters, batchKind]);
   const [sheet, setSheet] = useState(scene === 'query-more' ? 'more' : null);
   const [confirm, setConfirm] = useState(null);
+  const [reinvitePrompt, setReinvitePrompt] = useState(null);
   const [exportOpen, setExportOpen] = useState(scene === 'export');
   const [exportBusy, setExportBusy] = useState(false);
   const [tip, setTip] = useState(['bank-tip', 'approval-tip'].includes(scene));
@@ -175,11 +178,13 @@ function MobileSurface({ onComparisonChange, scene, shot, ratings, setRatings, a
   const [returnPreview, setReturnPreview] = useState(false);
   const [previewTab, setPreviewTab] = useState(0);
   const [step, setStep] = useState(registrationDraft?.step ?? (scene.includes('contacts') ? 1 : scene.includes('banks') ? 2 : 0));
+  const [visitedSteps, setVisitedSteps] = useState([0]);
   const [stepsExpanded, setStepsExpanded] = useState(step === 0);
   const stepScroll = useRef({});
-  const changeStep = next => { stepScroll.current[step] = window.scrollY; runMotion(() => setStep(next), next < step ? 'back' : 'forward', () => setStepsExpanded(next === 0)); };
+  const changeStep = next => { if (next !== 3) setVisitedSteps(previous => [...new Set([...previous, next])]); stepScroll.current[step] = window.scrollY; runMotion(() => setStep(next), next < step ? 'back' : 'forward', () => setStepsExpanded(next === 0)); };
   useLayoutEffect(() => { if (isRegistration) window.scrollTo(0, stepScroll.current[step] || 0); }, [step, isRegistration]);
   const [basic, setBasic] = useState(() => registrationDraft ? clone(registrationDraft.basic) : portalRegistration && registrationInvitation ? { type: registrationInvitation.type, supplierName: registrationInvitation.name, registerEmail: registrationInvitation.email || '' } : scene === 'expiry' ? { ...clone(filledBasic), supplierName: 'Gys', creditCode: 'qqq', establishedAt: '2026-10-14', licenseUntil: '2036-12-31', legalRepresentative: '', companyPhone: '', proof: '' } : shot ? clone(filledBasic) : editingRegistration ? { ...(supplier.basic || {}), type: supplier.type, supplierName: supplier.name, registerEmail: supplier.email, creditCode: supplier.code } : { type: supplierTypes[0], supplierName: '', registerEmail: '' });
+  const editSteps = informationSteps(basic.type === supplierTypes[1]);
   const [contacts, setContacts] = useState(() => registrationDraft ? clone(registrationDraft.contacts) : editingRegistration ? clone(supplier.contacts || []) : []);
   const [registerBanks, setRegisterBanks] = useState(() => registrationDraft ? clone(registrationDraft.banks) : scene === 'register-banks' ? [{ ...clone(exampleBank), accountType: '一般账户', name: '1', number: '1', country: '', province: '', city: '', proof: '开户证明.png' }] : editingRegistration ? clone(supplier.banks) : []);
   const [addressOpen, setAddressOpen] = useState(false);
@@ -288,7 +293,7 @@ function MobileSurface({ onComparisonChange, scene, shot, ratings, setRatings, a
     setActiveRating(null); setRatingReturn(mine ? 'mine' : 'query'); pick(s, 'rating-edit');
   };
   const pick = (s, next) => { listReturn.current = mine ? 'mine' : 'query'; select(s.id); go(next); };
-  const back = () => scene.startsWith('workspace-account-') ? go(views.portalSecurityReturn || 'workspace-home') : ['rating-filter', 'department'].includes(scene) ? go(filters.return || 'ratings') : scene === 'workspace-travel' ? go(views.portalTravelReturn || 'workspace-home') : (scene.startsWith('workspace-tax') || scene.startsWith('workspace-quote')) ? go('workspace-tasks') : scene === 'workspace-approval' || scene === 'workspace-changes' ? go('workspace-info') : scene.startsWith('workspace') ? go('workspace-home') : scene.startsWith('portal') && portalEmail && !passwordScreen ? setPortalEmail(false) : ['rating-edit', 'rating-detail'].includes(scene) ? go(ratingReturn) : isRegistration && step > 0 ? changeStep(step === 2 && basic.type === supplierTypes[1] ? 0 : step - 1) : go(portalRegistration || scene === 'supplier-registration-result' ? 'portal' : listReturn.current);
+  const back = () => scene === 'workspace-info' ? window.dispatchEvent(new CustomEvent('mobile-portal-info-back')) : scene.startsWith('workspace-account-') ? go(views.portalSecurityReturn || 'workspace-home') : ['rating-filter', 'department'].includes(scene) ? go(filters.return || 'ratings') : scene === 'workspace-travel' ? go(views.portalTravelReturn || 'workspace-home') : (scene.startsWith('workspace-tax') || scene.startsWith('workspace-quote')) ? go('workspace-tasks') : scene === 'workspace-approval' || scene === 'workspace-changes' ? go('workspace-info') : scene.startsWith('workspace') ? go('workspace-home') : scene.startsWith('portal') && portalEmail && !passwordScreen ? setPortalEmail(false) : ['rating-edit', 'rating-detail'].includes(scene) ? go(ratingReturn) : isRegistration && step > 0 ? changeStep(step === 2 && basic.type === supplierTypes[1] ? 0 : step - 1) : go(portalRegistration || scene === 'supplier-registration-result' ? 'portal' : listReturn.current);
   const preview = name => setSheet({ kind: 'attachment', name });
   function runConfirmation() {
     const action = confirm; setConfirm(null);
@@ -315,25 +320,42 @@ function MobileSurface({ onComparisonChange, scene, shot, ratings, setRatings, a
     const entry = { ...bankForm, id: editingBank < 0 ? createSessionId() : banks[editingBank].id, change: editingBank < 0 || banks[editingBank].change === '新增' ? '新增' : '修改' };
     bankFormGuard.accept(); setBanks(editingBank < 0 ? [entry, ...banks] : banks.map((b, i) => i === editingBank ? entry : b)); setShowBankForm(false); setEditingBank(-1);
   }
+  function registrationStepError(target) {
+    if (target === 0) {
+      for (const [key, label, required] of fieldsFor(basic.type)) if (required && !basic[key]?.trim()) return '请填写' + label;
+      if ([supplierTypes[0], supplierTypes[3]].includes(basic.type) && !basic.proof) return '请上传证照附件';
+      if (!shot && !validEmail(basic.registerEmail)) return '请输入正确的供应商注册邮箱';
+      if (basic.email && !validEmail(basic.email)) return '请输入正确的邮箱格式';
+      if (basic.capital && !/^\d+$/.test(basic.capital)) return '注册资金只支持整数';
+      if (basic.companyPhone && !/^(1\d{10}|\d{3,4}-?\d{8})$/.test(basic.companyPhone)) return '公司电话须为11位手机号或区号加8位号码';
+      if (suppliers.some(x => x.id !== selectedId && ((basic.type !== supplierTypes[1] && x.name === basic.supplierName) || (basic.creditCode && x.code === basic.creditCode)))) return '供应商名称或证件号码已存在';
+    }
+    if (target === 1 && contacts.some(c => !c.name || !c.phone || !validEmail(c.email))) return '请填写联系人的姓名、电话和正确邮箱';
+    if (target === 2) {
+      if (!registerBanks.length) return '请添加银行信息';
+      if (basic.type === supplierTypes[0] && registerBanks.filter(b => b.accountType === '基本账户').length !== 1) return '企业供应商必须有且只有一个基本账户';
+      for (const b of registerBanks) { const error = bankError(b, basic.type === supplierTypes[0]); if (error) return error; }
+    }
+    return '';
+  }
+  function openInformationPreview() {
+    const missing = editSteps.slice(0, -1).find(index => !visitedSteps.includes(index));
+    if (missing !== undefined) return notify('请先查看' + ['基本信息', '联系人信息', '银行信息'][missing]);
+    for (const index of editSteps.slice(0, -1)) {
+      const error = registrationStepError(index);
+      if (error) { changeStep(index); notify(error); return; }
+    }
+    changeStep(3);
+  }
   function nextStep() {
-    if (step === 0) {
-      for (const [key, label, required] of fieldsFor(basic.type)) if (required && !basic[key]?.trim()) return notify('请填写' + label);
-      if ([supplierTypes[0], supplierTypes[3]].includes(basic.type) && !basic.proof) return notify('请上传证照附件');
-      if (!shot && !validEmail(basic.registerEmail)) return notify('请输入正确的供应商注册邮箱');
-      if (basic.email && !validEmail(basic.email)) return notify('请输入正确的邮箱格式');
-      if (basic.capital && !/^\d+$/.test(basic.capital)) return notify('注册资金只支持整数');
-      if (basic.companyPhone && !/^(1\d{10}|\d{3,4}-?\d{8})$/.test(basic.companyPhone)) return notify('公司电话须为11位手机号或区号加8位号码');
-      if (suppliers.some(x => x.id !== selectedId && ((basic.type !== supplierTypes[1] && x.name === basic.supplierName) || (basic.creditCode && x.code === basic.creditCode)))) return notify('供应商名称或证件号码已存在');
-    }
-    if (step === 1 && contacts.some(c => !c.name || !c.phone || !validEmail(c.email))) return notify('请填写联系人的姓名、电话和正确邮箱');
-    if (step === 2) {
-      if (!registerBanks.length) return notify('请添加银行信息');
-      if (basic.type === supplierTypes[0] && registerBanks.filter(b => b.accountType === '基本账户').length !== 1) return notify('企业供应商必须有且只有一个基本账户');
-      for (const b of registerBanks) { const error = bankError(b, basic.type === supplierTypes[0]); if (error) return notify(error); }
-    }
-    if (returnPreview) { setReturnPreview(false); changeStep(3); } else changeStep(step === 0 && basic.type === supplierTypes[1] ? 2 : step + 1);
+    const error = registrationStepError(step); if (error) return notify(error);
+    const next = step === 0 && basic.type === supplierTypes[1] ? 2 : step + 1;
+    if (editingAll && next === 3) { openInformationPreview(); return; }
+    if (returnPreview) { setReturnPreview(false); changeStep(3); } else changeStep(next);
   }
   function submitRegister() {
+    if (editingAll && !canChangeSupplier(supplier)) return notify('当前状态不能修改全部信息，请返回列表核对');
+    if (editingAll) for (const index of editSteps.slice(0, -1)) { const error = registrationStepError(index); if (error) { changeStep(index); notify(error); return; } }
     if (saving) return; setSaving(true);
     const patch = { name: basic.supplierName, type: basic.type, code: basic.creditCode || '', email: basic.registerEmail || '', contact: contacts[0]?.name || '', phone: contacts[0]?.phone || '', banks: clone(registerBanks), basic: clone(basic), contacts: clone(contacts) };
     if (portalRegistration) {
@@ -371,6 +393,24 @@ function MobileSurface({ onComparisonChange, scene, shot, ratings, setRatings, a
     else { const id = createSessionId(); setSuppliers([{ ...patch, id, status: '草稿', inviter: '陈才慧', mode: '代注册', date: now(), permissions: [], score: '未评分' }, ...suppliers]); select(id); }
     registrationGuard.accept();
     notify('草稿已保存'); go('mine');
+  }
+
+  function submitInvitation(data, target) {
+    if (target && !canReinviteSupplier(target)) return notify('当前状态不能重新邀请，请返回列表核对');
+    if (target && data.type !== target.type) return notify('供应商类型与原记录不一致，请返回修改');
+    const name = data.name.trim();
+    if (data.type !== supplierTypes[1] && (!target || target.name.trim() !== name)
+      && suppliers.some(record => record.id !== target?.id && record.name.trim() === name)) return notify('供应商名称已存在');
+    const invitation = { ...data, name, status: '邀请中', mode: '邀请注册', inviter: target?.inviter || currentInviter, updated: now() };
+    if (target) {
+      setSuppliers(list => list.map(record => record.id === target.id ? { ...record, ...invitation } : record));
+      select(target.id);
+    } else {
+      const record = { ...invitation, id: createSessionId(), date: now(), score: '未评分', code: '', banks: [], permissions: [] };
+      setSuppliers(list => [record, ...list]); select(record.id);
+    }
+    setReinvitePrompt(null); notify(target ? '已重新邀请' : '邀请已提交');
+    go(scene === 'invite-again' ? listReturn.current : 'mine');
   }
 
   function saveRegisterBank() {
@@ -414,7 +454,15 @@ function MobileSurface({ onComparisonChange, scene, shot, ratings, setRatings, a
       </> : <><Empty text="请先从我的邀请选择供应商" /><Actions items={[{ label: '返回我的邀请', onClick: () => go('mine') }]} /></>}
     </>}
     {peoplePicker && <div className="m-fullscreen-panel"><Header title="选择新邀请人" onBack={() => setPeoplePicker(false)} /><ReferenceList kind="people" mode="confirm" selected={newInviter} onCancel={() => setPeoplePicker(false)} onConfirm={v => { setNewInviter(v); setPeoplePicker(false); }} /></div>}
-    {['invite', 'invite-again'].includes(scene) && <InviteForm initial={scene === 'invite-again' ? { type: supplier.type, name: supplier.name, contact: supplier.contact, email: supplier.email, phone: supplier.phone } : undefined} notify={notify} onCancel={() => go(scene === 'invite-again' ? listReturn.current : 'query')} onSave={data => { if (scene === 'invite-again' && !canReinviteSupplier(supplier)) return notify('当前状态不能重新邀请'); if (data.type !== supplierTypes[1] && suppliers.some(s => s.name === data.name && (scene !== 'invite-again' || s.id !== supplier.id))) return notify('供应商名称已存在'); const invitation = { ...data, status: '邀请中', mode: '邀请注册', inviter: '陈才慧', date: now(), updated: now(), score: '未评分', code: '', banks: [], permissions: [] }; if (scene === 'invite-again') setSuppliers(suppliers.map(s => s.id === supplier.id ? { ...s, ...invitation, date: s.date, basic: undefined, contacts: [] } : s)); else setSuppliers([{ ...invitation, id: createSessionId() }, ...suppliers]); notify(scene === 'invite-again' ? '已重新邀请' : '邀请已提交'); go(scene === 'invite-again' ? listReturn.current : 'mine'); }} />}
+    {['invite', 'invite-again'].includes(scene) && <InviteForm initial={scene === 'invite-again' ? { type: supplier.type, name: supplier.name, contact: supplier.contact, email: supplier.email, phone: supplier.phone } : undefined} notify={notify} onCancel={() => go(scene === 'invite-again' ? listReturn.current : 'query')} onSave={data => {
+      if (scene === 'invite-again') return submitInvitation(data, supplier);
+      const candidates = reinviteCandidates(suppliers, data.name, currentInviter);
+      if (candidates.length) {
+        setReinvitePrompt({ data: clone(data), ids: candidates.map(record => record.id), selectedId: candidates.length === 1 ? candidates[0].id : '' });
+        return;
+      }
+      submitInvitation(data);
+    }} />}
     {portalRegistration && !accountRegistered && (registrationInvitation ? <SupplierAccountRegistration invitation={registrationInvitation} accounts={[...suppliers.map(s => s.account).filter(Boolean), ...(views.portalRegisteredAccounts || [])]} onComplete={account => {
       views.portalRegistrationAccount = account;
       views.portalRegisteredAccounts = [...(views.portalRegisteredAccounts || []), account.account];
@@ -424,12 +472,12 @@ function MobileSurface({ onComparisonChange, scene, shot, ratings, setRatings, a
     }} /> : <Empty text="暂无可注册的邀请信息" />)}
     {isRegistration && (!portalRegistration || accountRegistered) && !['address', 'region'].includes(scene) && <>
       {editingRegistration && <div className="m-form-heading">{editingAll ? '修改全部信息' : '修改草稿'}</div>}
-      <RegistrationSteps personal={basic.type === supplierTypes[1]} step={step} expanded={stepsExpanded} onExpandedChange={setStepsExpanded} />
+      {editingAll ? <div className="m-info-edit-tabs"><Tabs variant="pill" items={editSteps.map(index => ['基本信息', '联系人信息', '银行信息', '预览'][index])} active={editSteps.indexOf(step)} onChange={index => { const target = editSteps[index]; if (target === 3) openInformationPreview(); else changeStep(target); }} /></div> : <RegistrationSteps personal={basic.type === supplierTypes[1]} step={step} expanded={stepsExpanded} onExpandedChange={setStepsExpanded} />}
       {step === 0 && <BasicFields data={basic} setData={setBasic} identityReadOnly={portalRegistration} hideSupplierType={portalRegistration} shot={!!shot} onAddress={() => setAddressOpen(true)} initialDate={scene === 'expiry'} />}
       {step === 1 && <ContactFields contacts={contacts} setContacts={setContacts} />}
       {step === 2 && <RecordCollection title="银行信息" count={registerBanks.length} emptyText="暂无银行信息" addLabel="添加银行账户" onAdd={() => { setEditingBank(-1); setRegisterBankForm(blankBank(basic.supplierName)); setRegisterBankPicker(true); }}>{registerBanks.map((b, i) => <BankCard key={b.id} bank={b} onPreview={() => preview(b.proof)} onEdit={() => { setEditingBank(i); setRegisterBankForm(clone(b)); setRegisterBankPicker(true); }} onDelete={() => setConfirm({ type: 'delete-register-bank', index: i, text: '确认删除银行信息' + (i + 1) + '？' })} />)}</RecordCollection>}
       {step === 3 && <RegistrationPreview supplierFacing={portalRegistration} basic={basic} contacts={contacts} banks={registerBanks} mode={portalRegistration ? '邀请注册' : editingRegistration ? supplier.mode : '代注册'} active={previewTab} onTabChange={setPreviewTab} onEdit={next => { setReturnPreview(true); changeStep(next); }} onPreview={preview}>{editingAll && <ChangeComparison before={supplier} after={{ basic, name: basic.supplierName, email: basic.registerEmail, type: basic.type, contacts, banks: registerBanks }} />}</RegistrationPreview>}
-      <Actions className="m-registration-actions" items={[...(step > 0 ? [{ label: '上一步', secondary: true, onClick: () => { changeStep(step === 2 && basic.type === supplierTypes[1] ? 0 : step - 1); } }] : []), ...(!editingAll ? [{ label: '保存草稿', secondary: true, disabled: saving, onClick: saveDraft }] : []), { label: step === 3 ? (portalRegistration ? '提交注册' : '提交') : returnPreview ? '保存并返回预览' : `下一步（${(basic.type === supplierTypes[1] ? [0, 2, 3] : [0, 1, 2, 3]).indexOf(step) + 1}/${basic.type === supplierTypes[1] ? 3 : 4}）`, disabled: saving, onClick: step === 3 ? submitRegister : nextStep }]} />
+      <Actions className="m-registration-actions" items={editingAll ? [{ label: '取消', secondary: true, onClick: () => registrationGuard.leave(() => go(listReturn.current)) }, { label: step === 3 ? '提交' : '下一步（' + (editSteps.indexOf(step) + 1) + '/' + editSteps.length + '）', disabled: saving, onClick: step === 3 ? submitRegister : nextStep }] : [...(step > 0 ? [{ label: '上一步', secondary: true, onClick: () => { changeStep(step === 2 && basic.type === supplierTypes[1] ? 0 : step - 1); } }] : []), ...(!editingAll ? [{ label: '保存草稿', secondary: true, disabled: saving, onClick: saveDraft }] : []), { label: step === 3 ? (portalRegistration ? '提交注册' : '提交') : returnPreview ? '保存并返回预览' : `下一步（${(basic.type === supplierTypes[1] ? [0, 2, 3] : [0, 1, 2, 3]).indexOf(step) + 1}/${basic.type === supplierTypes[1] ? 3 : 4}）`, disabled: saving, onClick: step === 3 ? submitRegister : nextStep }]} />
     </>}
     {addressOpen && <Overlay sheet label="编辑注册地址" onClose={() => window.dispatchEvent(new CustomEvent('mobile-close-address'))}><div className="m-address-editor"><div className="m-picker-title"><strong>编辑注册地址</strong></div><AddressForm initial={basic.address} onConfirm={v => { setBasic({ ...basic, address: v }); setAddressOpen(false); }} onCancel={() => setAddressOpen(false)} /></div></Overlay>}
     {['address', 'region'].includes(scene) && <AddressForm initial={shot ? '云南省/保山市/龙陵县 个哈哈哈哈' : basic.address} startRegion={scene === 'region'} onConfirm={v => { setBasic({ ...basic, address: v }); go('register'); }} onCancel={() => go('register')} />}
@@ -449,6 +497,11 @@ function MobileSurface({ onComparisonChange, scene, shot, ratings, setRatings, a
     </div></section></div>}
     {scene.startsWith('workspace') && <PortalWorkspace accountMenu={portalAccountMenu} setAccountMenu={setPortalAccountMenu} scene={scene} go={go} notify={notify} store={views} onPreview={preview} />}
     </SwipeArea>
+    {reinvitePrompt && <Overlay sheet label="重新邀请提示" onClose={() => setReinvitePrompt(null)}><div className="m-reinvite-prompt"><PickerHeading title="发现可重新邀请的供应商" /><p className="m-input-note">您名下存在同名且为草稿或注册驳回的供应商，请选择原记录后重新邀请。</p>{suppliers.filter(record => reinvitePrompt.ids.includes(record.id)).map(record => <label className="m-reference-card" key={record.id}><input type="radio" name="reinvite-supplier" checked={reinvitePrompt.selectedId === record.id} onChange={() => setReinvitePrompt({ ...reinvitePrompt, selectedId: record.id })} /><div><h3>{record.name}</h3><Row label="供应商类型">{record.type}</Row><Row label="当前状态">{record.status}</Row><Row label="邀请人">{record.inviter}</Row></div></label>)}<div className="m-picker-actions"><button type="button" onClick={() => setReinvitePrompt(null)}>返回修改</button><button type="button" className="primary" disabled={!reinvitePrompt.selectedId} onClick={() => {
+      const target = reinviteCandidates(suppliers, reinvitePrompt.data.name, currentInviter).find(record => record.id === reinvitePrompt.selectedId);
+      if (!target) { setReinvitePrompt(null); return notify('该供应商状态或归属已变化，请重新提交邀请信息'); }
+      submitInvitation(reinvitePrompt.data, target);
+    }}>重新邀请</button></div></div></Overlay>}
     {exportOpen && <SupplierExport suppliers={matching} initial={filters} query={search} busy={exportBusy} onExport={performExport} onClose={closeExport} />}
     {sheet === 'more' && <Overlay sheet label="更多操作" onClose={() => setSheet(null)}><div className="m-action-sheet">{canChangeSupplier(supplier) && ['修改银行', '分配权限', '变更邀请人'].map((label, i) => <button key={label} onClick={() => { setSheet(null); go(['bank', 'permissions', 'inviter'][i]); }}>{label}</button>)}{canRateSupplier(supplier) && <button onClick={() => { setSheet(null); startScore(supplier); }}>评分</button>}<button onClick={() => { setSheet(null); go('detail-approval'); }}>审批记录</button><button className="cancel" onClick={() => setSheet(null)}>取消</button></div></Overlay>}
     {sheet?.kind === 'attachment' && <AttachmentViewer value={sheet.name} onClose={() => setSheet(null)} />}

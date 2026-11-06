@@ -2,6 +2,8 @@
 .m-review-controls, .m-review-marks, .m-review-panel { font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif; font-size: 14px; line-height: 1.6; }
 .m-review-controls { position: fixed; z-index: 1900; left: calc(50% + 287px); top: 16px; width: 264px; display: flex; flex-direction: column; gap: 8px; }
 .m-review-controls[data-panel=true] { display: none; }
+.m-review-controls { pointer-events: none; }
+.m-review-controls > * { pointer-events: auto; }
 .m-review-controls button { font: inherit; cursor: pointer; }
 .m-review-switch { display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 8px 12px; align-self: flex-start; border: 1px solid #e6b8b8; border-radius: 24px; color: #9d2121; background: white; box-shadow: 0 3px 12px #16223a18; }
 .m-review-switch svg { width: 18px; height: 18px; }
@@ -67,9 +69,11 @@
   body.m-screenshot-comparing .m-review-tools svg { width: 13px; height: 13px; }
   body.m-screenshot-comparing .m-review-callout {
     display: block; left: calc(var(--compare-left) + 12px) !important; top: auto !important;
-    bottom: 16px; width: calc(var(--compare-width) - 24px); max-height: 180px;
+    bottom: 96px; width: calc(var(--compare-width) - 24px); max-height: 180px;
     padding: 10px 12px; box-sizing: border-box; background: #fff;
     border: 1px solid #f5b6b2; border-radius: 8px; box-shadow: 0 3px 12px #16223a18;
+    pointer-events: none;
   }
+  body.m-screenshot-comparing .m-review-callout button { pointer-events: auto; }
   body.m-screenshot-comparing .m-review-connector { display: none; }
 }

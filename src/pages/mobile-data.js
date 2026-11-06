@@ -11,6 +11,7 @@ export const permissionGroups = {
   '集团采购部权限': ['产品订购', '宽带采购', '服务采购'], '培训业务权限': ['培训服务', '培训课程'], '撰稿人权限': ['撰稿人'],
 };
 export const bankNames = ['中国农业发展银行', '中国进出口银行', '中国工商银行', '中国农业银行', '中国银行'];
+export const bankDirectory = bankNames.map(name => ({ name, country: '中国', countryCode: 'CN' }));
 export const branches = [
   { name: '中国农业发展银行北京市分行', bank: bankNames[0], country: '中国', province: '北京市', city: '北京市' },
   { name: '中国农业发展银行天津市分行', bank: bankNames[0], country: '中国', province: '天津市', city: '天津市' },

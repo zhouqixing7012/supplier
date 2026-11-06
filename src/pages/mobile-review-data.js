@@ -90,14 +90,12 @@ export const reviewDefinitions = [
   ],
   [
     "prd-1.5",
-    ".m-bank-fields [data-field-label=\"开户所在省\"]",
-    "1.5 草稿修改银行关联地区未回填",
-    "定位：草稿银行的关联地区。进入时回填原银行、分行、国家、省、市；更换分行整体更新地区。取消恢复原账户，保存草稿及再次预览保持一致。",
+    ".m-bank-fields [data-field-label=\"开户行所在国家/地区\"]",
+    "1.5 草稿修改银行国家地区未回填",
+    "定位：我的邀请中草稿供应商的国家/地区。选择开户银行后立即带出该银行所属国家/地区，供保存及提交使用；省市继续由分行带出。",
     "docs/mobile-prd.md",
     [
-      "register-edit",
-      "register-edit-all",
-      "bank*"
+      "register-edit"
     ]
   ],
   [
@@ -112,9 +110,9 @@ export const reviewDefinitions = [
   ],
   [
     "prd-1.6-form",
-    ".m-registration-steps",
+    ".m-info-edit-tabs",
     "1.6 已审批供应商缺少修改全部信息入口",
-    "定位：修改全部信息步骤。个人按基本信息、银行信息、预览三步，其余按四步办理；前后切换保留填写。正式变更生效后同步更新注册邮箱。",
+    "定位：修改全部信息的分步编辑。全部适用页签进入可编辑状态，切换保留本次修改；底部取消和下一步带步骤计数，浏览完整资料后进入预览并统一提交。",
     "docs/mobile-prd.md",
     [
       "register-edit-all"
@@ -144,8 +142,8 @@ export const reviewDefinitions = [
   [
     "prd-1.8-person",
     "[data-field-label=\"业务线联系人\"]",
-    "1.8 供应商评分查询条件填写方式调整",
-    "定位：业务线联系人查询条件。使用选填文本输入，支持修改、清空；与其他已应用条件共同匹配，取消保留原查询。",
+    "1.8 供应商评分查询条件恢复文本输入",
+    "定位：业务线联系人。现有查询支持文本输入，移动端误用无选项下拉；恢复可输入、修改和清空的文本框。",
     "docs/mobile-prd.md",
     [
       "rating-filter",
@@ -155,8 +153,8 @@ export const reviewDefinitions = [
   [
     "prd-1.8-department",
     "[data-field-label=\"所属部门\"]",
-    "1.8 供应商评分查询条件填写方式调整",
-    "定位：所属部门查询条件。使用选填文本输入，按部门文字匹配；再次打开回填原已应用值。",
+    "1.8 供应商评分查询条件恢复文本输入",
+    "定位：所属部门。现有查询支持文本输入，移动端误用无选项下拉；恢复可输入、修改和清空的文本框。",
     "docs/mobile-prd.md",
     [
       "rating-filter",
@@ -434,9 +432,9 @@ export const reviewDefinitions = [
   ],
   [
     "prd-1.24-edit",
-    ".m-actions button",
+    ".m-info-edit-actions button, .m-registration-actions button",
     "1.24 资料编辑状态不明确且缺少取消",
-    "定位：整页取消修改／保存修改。取消并确认放弃后，撤销进入编辑后的全部变化，包含已单条保存的联系人和银行，恢复原附件及已删除记录。保存失败保留本次全部填写。",
+    "定位：整份修改的取消／下一步。各适用页签共用一次编辑，基本信息、联系人、银行浏览完成后进入预览再提交。取消并确认放弃后撤销本次全部修改，包含已单条保存记录。",
     "docs/mobile-prd.md",
     [
       "workspace-info"
@@ -466,22 +464,22 @@ export const reviewDefinitions = [
   ],
   [
     "prd-3.2-entry",
-    ".m-supplier-card .m-card-actions button, .m-action-sheet button",
-    "3.2 重新邀请入口不清楚",
-    "定位：我的邀请重新邀请入口。草稿、注册驳回且有权限时可办理，进入时带入原邀请资料。",
+    "[data-field-label=\"供应商名称\"]",
+    "3.2 邀请提交时提供重新邀请指引",
+    "定位：填写邀请信息后点击提交。检查本人名下同名、草稿或注册驳回的供应商，存在记录时提供重新邀请说明及选择。",
     "docs/mobile-prd.md",
     [
-      "mine*"
+      "invite"
     ]
   ],
   [
     "prd-3.2-form",
-    "[data-field-label=\"联系人姓名\"]",
-    "3.2 重新邀请入口不清楚",
-    "定位：重新邀请表单。核对供应商类型、名称、联系人、邮箱、手机，校验成功后发送；成功进入邀请中，失败保留填写，取消保持原资料。",
+    ".m-reinvite-prompt",
+    "3.2 邀请提交时提供重新邀请指引",
+    "定位：重新邀请提示。选择符合条件的原记录，确认后复用原记录重新发送邀请；返回修改时保留本次填写。",
     "docs/mobile-prd.md",
     [
-      "invite-again"
+      "invite"
     ]
   ],
   [
@@ -564,9 +562,9 @@ const legacyReviewSelectors = {
 export const reviewSelectors = { ...legacyReviewSelectors, ...Object.fromEntries(reviewDefinitions.map(([key, selector]) => [key, selector])) };
 export const reviewActionLabels = {
   'prd-1.1-entry': ['评分'], 'prd-1.6-entry': ['修改全部信息'],
-  'prd-3.2-entry': ['重新邀请'], 'prd-3.5-entry': ['变更邀请人', '批量变更邀请人'],
+  'prd-3.5-entry': ['变更邀请人', '批量变更邀请人'],
   'prd-1.23': ['价税拆分', '查看'],
-  'prd-1.24-view': ['修改'], 'prd-1.24-edit': ['取消修改', '保存修改'],
+  'prd-1.24-view': ['修改'], 'prd-1.24-edit': ['取消'],
 };
 export function reviewAppliesToScope(patterns, scope) {
   return patterns.some(pattern => pattern.endsWith('*') ? scope.startsWith(pattern.slice(0, -1)) : scope === pattern);
