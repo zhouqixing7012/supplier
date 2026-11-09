@@ -105,7 +105,7 @@ export function informationChanges(before, after) {
   return informationChangeGroups(before, after).flatMap(group => group.fields.map(field => ({
     ...field,
     label: group.labelBase + ' / ' + field.label,
-    action: group.action,
+    action: group.action === '变更' ? (group.labelBase === '基本信息' ? '' : '修改') : group.action,
   })));
 }
 
