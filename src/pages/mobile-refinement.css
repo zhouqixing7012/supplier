@@ -1031,7 +1031,8 @@
   gap: 12px;
 }
 
-.mobile-page:not(.m-shot) .m-change-comparison .m-change-group {
+.mobile-page:not(.m-shot) .m-change-comparison .m-change-group,
+.mobile-page:not(.m-shot) .m-bank-change-card {
   display: flex;
   flex-direction: column;
   min-width: 0;
