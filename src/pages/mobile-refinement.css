@@ -932,3 +932,35 @@
 .mobile-page .m-attachment-reference > span { white-space: nowrap; overflow: hidden; overflow-wrap: normal; }
 
 /* 独立银行维护：保存与审批状态分开，按账户逐字段纵向核对。 */
+
+
+/* 修复协同门户登录验证码行：Field 的通用下边距会把输入框单独向上推。 */
+.mobile-page .m-portal-login .m-captcha-field {
+  align-items: end;
+}
+
+.mobile-page .m-portal-login .m-captcha-field .m-field {
+  margin: 0 !important;
+  align-self: end;
+}
+
+.mobile-page .m-portal-login .m-captcha-field .m-captcha {
+  box-sizing: border-box;
+  height: 48px;
+  line-height: 46px;
+  margin: 0;
+  align-self: end;
+}
+
+.mobile-page .m-portal-login .m-captcha-field > button {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  align-self: end;
+  height: 48px;
+  min-height: 48px;
+  margin: 0;
+  padding: 0;
+  line-height: 1;
+}
