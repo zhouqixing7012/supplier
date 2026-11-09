@@ -44,6 +44,7 @@ body,
 body {
   min-width: 320px;
   min-height: 100vh;
+  min-height: 100dvh;
   font-family: "Microsoft YaHei", "PingFang SC", Arial, sans-serif;
   color: var(--foreground);
   background: #fff;
@@ -444,5 +445,157 @@ input {
   *::after {
     scroll-behavior: auto !important;
     transition-duration: 0.01ms !important;
+  }
+}
+
+
+/* 协同门户登录首屏：收敛移动端高度，同时保留短屏和键盘场景下的自然滚动。 */
+.captcha-row {
+  grid-template-columns: minmax(0, 1fr) 88px auto;
+  gap: 8px;
+}
+
+.captcha-refresh {
+  height: 44px !important;
+  min-height: 44px;
+  padding-inline: 8px !important;
+  white-space: nowrap;
+}
+
+@media (max-width: 1100px) {
+  .auth-shell-login {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(min-content, 1fr);
+    min-height: calc(100vh - 52px);
+    min-height: calc(100dvh - 52px);
+  }
+
+  .auth-shell-login .brand-panel {
+    min-height: 176px;
+    padding: 58px 32px 22px;
+  }
+
+  .auth-shell-login .sohu-badge {
+    top: 18px;
+    left: 32px;
+  }
+
+  .auth-shell-login .brand-content {
+    margin: 0;
+  }
+
+  .auth-shell-login .brand-content h1 {
+    font-size: 32px;
+    line-height: 1.12;
+  }
+
+  .auth-shell-login .brand-content p {
+    margin-top: 8px;
+    font-size: 13px;
+    line-height: 1.5;
+  }
+
+  .auth-shell-login .auth-panel {
+    min-height: 0;
+    padding: 24px 24px 28px;
+  }
+
+  .auth-shell-login .auth-card-header {
+    margin-bottom: 20px;
+  }
+
+  .auth-shell-login .auth-form {
+    gap: 14px;
+  }
+}
+
+@media (max-width: 620px) {
+  .auth-shell-login .brand-panel {
+    min-height: 154px;
+    padding: 54px 20px 18px;
+  }
+
+  .auth-shell-login .sohu-badge {
+    top: 14px;
+    left: 20px;
+    width: 78px;
+  }
+
+  .auth-shell-login .brand-content h1 {
+    font-size: 26px;
+    line-height: 1.12;
+  }
+
+  .auth-shell-login .brand-content p {
+    max-width: 36ch;
+    margin-top: 6px;
+    font-size: 12px;
+    line-height: 1.45;
+  }
+
+  .auth-shell-login .auth-panel {
+    padding: 20px 18px 24px;
+  }
+
+  .auth-shell-login .auth-card-header {
+    margin-bottom: 18px;
+  }
+
+  .auth-shell-login .auth-form {
+    gap: 12px;
+  }
+
+  .auth-shell-login .captcha-row {
+    grid-template-columns: minmax(0, 1fr) 76px auto;
+    gap: 8px;
+  }
+
+  .auth-shell-login .captcha-row > input {
+    min-width: 0;
+  }
+
+  .auth-shell-login .captcha-code {
+    height: 44px;
+    font-size: 18px;
+  }
+
+  .auth-shell-login .captcha-refresh {
+    grid-column: auto;
+    justify-self: stretch;
+    min-width: 68px;
+    padding-inline: 6px !important;
+    gap: 4px;
+    font-size: 12px;
+  }
+}
+
+/* 较矮屏幕进一步压缩首屏；不锁死页面高度，键盘弹出时仍可滚动。 */
+@media (max-height: 720px) and (max-width: 1100px) {
+  .auth-shell-login .brand-panel {
+    min-height: 140px;
+    padding-top: 48px;
+    padding-bottom: 14px;
+  }
+
+  .auth-shell-login .brand-content h1 {
+    font-size: 25px;
+  }
+
+  .auth-shell-login .brand-content p {
+    margin-top: 4px;
+    line-height: 1.35;
+  }
+
+  .auth-shell-login .auth-panel {
+    padding-top: 14px;
+    padding-bottom: 18px;
+  }
+
+  .auth-shell-login .auth-card-header {
+    margin-bottom: 14px;
+  }
+
+  .auth-shell-login .auth-form {
+    gap: 10px;
   }
 }
