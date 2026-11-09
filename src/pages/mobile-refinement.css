@@ -964,3 +964,41 @@
   padding: 0;
   line-height: 1;
 }
+
+
+/* 协同门户登录页：扣除原型导航和页面标题栏高度，移除通用页面底部占位。 */
+.mobile-page:not(.m-shot):has(.m-portal-login) {
+  box-sizing: border-box;
+  min-height: calc(100dvh - 35px);
+  padding-bottom: 0;
+}
+
+.mobile-page:not(.m-shot):has(.m-portal-login) .m-portal-login {
+  min-height: calc(100dvh - 91px);
+  padding-bottom: 24px;
+}
+
+/* 矮屏下压缩非必要留白；软键盘出现时仍允许页面按内容自然滚动。 */
+@media (max-height: 720px) {
+  .mobile-page:not(.m-shot):has(.m-portal-login) .m-portal-login {
+    padding-top: 20px;
+    padding-bottom: 16px;
+  }
+
+  .mobile-page:not(.m-shot):has(.m-portal-login) .m-portal-brand {
+    margin-bottom: 16px;
+  }
+
+  .mobile-page:not(.m-shot):has(.m-portal-login) .m-portal-login-card {
+    padding-top: 18px;
+    padding-bottom: 18px;
+  }
+
+  .mobile-page:not(.m-shot):has(.m-portal-login) .m-portal-intro {
+    margin-bottom: 12px;
+  }
+
+  .mobile-page:not(.m-shot):has(.m-portal-login) .m-field {
+    margin-bottom: 12px;
+  }
+}
