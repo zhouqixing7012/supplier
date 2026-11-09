@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { BankCard } from './mobile-forms.jsx';
-import { CardActions, Overlay } from './mobile-ui.jsx';
+import { AttachmentLink, CardActions, Overlay } from './mobile-ui.jsx';
 import { bankChange, bankComparisonFields } from './mobile-bank-changes.js';
 import { attachmentName } from './mobile-interaction.jsx';
 
@@ -41,7 +41,7 @@ export function BankChangeCard({ before, bank, onPreview, onEdit, onDelete, dele
       {fields.map(field => <div className="m-change-diff-row" key={field.key}>
         <span className="m-change-diff-label">{field.label}</span>
         <div className="m-change-diff-values" aria-label={field.label + '修改前后'}>
-          {!deleted && <span className="m-change-value-new">{field.next || (action === '新增' ? '' : '未填写')}</span>}
+          {!deleted && <span className="m-change-value-new">{field.key === 'proof' && bank.proof ? <AttachmentLink value={bank.proof} onPreview={onPreview} /> : field.next || (action === '新增' ? '' : '未填写')}</span>}
           {action !== '新增' && hasValue(field.previous) && <span className="m-change-value-old">{field.previous}</span>}
         </div>
       </div>)}
