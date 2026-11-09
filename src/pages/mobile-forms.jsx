@@ -92,7 +92,7 @@ export const fieldsFor = type => type === supplierTypes[1] ? personalFields : ty
 
 export const filledBasic = { registerEmail: 'supplier@example.com', type: supplierTypes[0], proof: '营业执照.jpg', supplierName: '北京初然文化传媒有限公司483920', creditCode: '73652184MACA1H2A43', establishedAt: '2023-03-07', licenseUntil: '2053-03-06', legalRepresentative: '王嵩涵', companyPhone: '010-52867111', companyType: '有限责任公司', industry: '文化、体育、娱乐业', capital: '100', currency: '人民币', country: '国内', address: '', invoiceAddress: '', website: '', taxpayer: '', businessScope: '', cooperation: '', businessAdvantage: '', remark: '' };
 
-export function BasicFields({ data, setData, shot = false, onAddress, initialDate = false, identityReadOnly = false, hideSupplierType = false }) {
+export function BasicFields({ data, setData, shot = false, onAddress, initialDate = false, identityReadOnly = false, hideSupplierType = false, initialPanel }) {
   const [nextType, setNextType] = useState('');
   const [picker, setPicker] = useState(initialDate ? { key: 'licenseUntil', title: '证件有效期至' } : null);
   const change = (key, value) => setData({ ...data, [key]: value });
@@ -104,16 +104,16 @@ export function BasicFields({ data, setData, shot = false, onAddress, initialDat
   return <>
     {!hideSupplierType && <Field label="供应商类型" required={!identityReadOnly} readOnly={identityReadOnly} options={identityReadOnly ? undefined : supplierTypes} value={data.type} onChange={type => { if (type === data.type) return; if (Object.entries(data).some(([key, value]) => !['type', 'supplierName', 'registerEmail'].includes(key) && value)) setNextType(type); else setData({ type, supplierName: data.supplierName || '', registerEmail: data.registerEmail || '' }); }} />}
     {proof}{fieldsFor(data.type).flatMap(renderField)}
-    <QualificationInfo records={data.qualifications} onChange={qualifications => change('qualifications', qualifications)} />
+    <QualificationInfo initialEditing={initialPanel === 'qualification'} records={data.qualifications} onChange={qualifications => change('qualifications', qualifications)} />
     {nextType && <Confirm text="切换供应商类型会清除不适用的基本信息，是否继续？" onCancel={() => setNextType('')} onConfirm={() => { setData({ type: nextType, supplierName: data.supplierName || '', registerEmail: data.registerEmail || '' }); setNextType(''); }} />}
     {picker && <DateSheet title={picker.title} value={data[picker.key]} onChange={v => change(picker.key, v)} onClose={() => setPicker(null)} allowLong={picker.key === 'licenseUntil'} />}
   </>;
 }
 
-export function ContactFields({ contacts, setContacts }) {
-  const [editing, setEditing] = usePanelState(null);
+export function ContactFields({ contacts, setContacts, initialPanel }) {
+  const [editing, setEditing] = usePanelState(initialPanel === 'contact' ? -1 : null);
   const [removing, setRemoving] = useState(null);
-  const [draft, setDraft] = useState(null);
+  const [draft, setDraft] = useState(() => initialPanel === 'contact' ? { id: createSessionId() } : null);
   const guard = useDirtyForm(draft, editing !== null);
   const close = () => guard.leave(() => setEditing(null));
   useBackLayer(editing !== null, close);

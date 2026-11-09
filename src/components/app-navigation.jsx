@@ -20,6 +20,7 @@ function AppNavigation({ activeKey = 'portal' }) {
 
         <nav className="system-nav-links" aria-label="供应商系统页面导航">
           <a className="system-nav-link" href="#/mobile">移动端</a>
+          <a className="system-nav-link" href="#/mobile/page-map">移动端原型导图</a>
           <a className="system-nav-link" href="#/mobile/portal">协同门户移动端</a>
           <a className="system-nav-link" href="#/mobile/register-supplier">新供应商注册（移动端）</a>
           <a

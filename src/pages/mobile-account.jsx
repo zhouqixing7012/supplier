@@ -6,9 +6,9 @@ const validEmail = value => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value || '');
 const codeLifetime = 5 * 60 * 1000;
 
 // 会话演示验证码自动回填，不发邮件，不修改真实账户凭据。
-export function AccountSecurityForm({ kind, email, onCancel, onComplete }) {
+export function AccountSecurityForm({ kind, email, onCancel, onComplete, initialStep = 0 }) {
   const changingEmail = kind === 'email';
-  const [step, setStep] = useState(0);
+  const [step, setStep] = useState(initialStep);
   const [data, setData] = useState({ newEmail: '', code: '', password: '', confirmation: '' });
   const [errors, setErrors] = useState({});
   const [countdown, setCountdown] = useState(0);

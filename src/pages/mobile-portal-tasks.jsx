@@ -5,14 +5,14 @@ import { useBackLayer } from './mobile-interaction.jsx';
 import { remainingTime } from './mobile-portal-pricing.js';
 import { matchesPortalTask, purchaseTypes } from './mobile-portal-filters.js';
 
-export function PortalTaskList({ tab, inquiries, orders, store, go }) {
+export function PortalTaskList({ tab, inquiries, orders, store, go, initialFilterOpen = false }) {
   const quote = tab < 2;
   const handled = tab % 2 === 1;
   const saved = store.portalTaskViews?.[tab] || {};
   const [query, setQuery] = useState(saved.query || '');
   const [filters, setFilters] = useState(saved.filters || {});
-  const [draft, setDraft] = useState({});
-  const [open, setOpen] = useState(false);
+  const [draft, setDraft] = useState(initialFilterOpen ? filters : {});
+  const [open, setOpen] = useState(initialFilterOpen);
   const [errors, setErrors] = useState({});
   useBackLayer(open, () => runMotion(() => setOpen(false), 'back'));
   const labels = { company: quote ? '采购单位' : '采购公司', type: '采购类型', start: '开始时间', end: '结束时间' };

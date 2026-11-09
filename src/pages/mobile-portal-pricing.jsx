@@ -47,12 +47,15 @@ function LineEditor({ line, index, quote, onCancel, onSave, notify, onPreview })
   </div>;
 }
 
-export function PortalPricingDetail({ quote, records, store, go, notify, onPreview }) {
+export function PortalPricingDetail({ quote, records, store, go, notify, onPreview, mapParams = {} }) {
   const number = new URLSearchParams(window.location.hash.split('?')[1]).get('record');
-  const record = records.find(item => item.number === number) || (!quote && !number ? records[0] : null);
+  const sample = mapParams.map
+    ? records.find(item => (item.status === '已处理') === (Number(mapParams.tab) % 2 === 1))
+    : null;
+  const record = records.find(item => item.number === number) || sample || (!quote && !number ? records[0] : null);
   store.portalTaskTab ??= quote ? (record?.status === '已处理' ? 1 : 0) : (record?.status === '已处理' ? 3 : 2);
   const [draft, setDraft] = useState(() => structuredClone(record || {}));
-  const [editor, setEditor] = useState(null);
+  const [editor, setEditor] = useState(mapParams.panel === 'line' && record?.status === '待处理' && record.lines?.length ? 0 : null);
   const editable = !!record && record.status === '待处理';
   const guard = useDirtyForm(draft, editable);
   const back = () => guard.leave(() => go('workspace-tasks'));

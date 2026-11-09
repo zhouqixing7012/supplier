@@ -9,9 +9,9 @@ export const qualificationFields = [
   ['qualificationNo', '资质编号'], ['issuingUnit', '颁发单位'],
   ['qualificationEffectiveBeginDate', '有效开始日期', 'date'], ['qualificationEffectiveEndDate', '有效结束日期', 'date'],
 ];
-export function QualificationInfo({ records = [], onChange, onPreview }) {
-  const [editing, setEditing] = usePanelState(null);
-  const [draft, setDraft] = useState(null);
+export function QualificationInfo({ records = [], onChange, onPreview, initialEditing = false }) {
+  const [editing, setEditing] = usePanelState(initialEditing ? -1 : null);
+  const [draft, setDraft] = useState(() => initialEditing ? { id: createSessionId() } : null);
   const [removing, setRemoving] = useState(null);
   const guard = useDirtyForm(draft, editing !== null);
   const close = () => guard.leave(() => setEditing(null));
