@@ -206,6 +206,10 @@ function MobileSurface({ onComparisonChange, scene, shot, ratings, setRatings, a
   useLayoutEffect(() => { if (isRegistration) window.scrollTo(0, stepScroll.current[step] || 0); }, [step, isRegistration]);
   const [basic, setBasic] = useState(() => registrationDraft ? clone(registrationDraft.basic) : portalRegistration && registrationInvitation ? { type: registrationInvitation.type, supplierName: registrationInvitation.name, registerEmail: registrationInvitation.email || '' } : scene === 'expiry' ? { ...clone(filledBasic), supplierName: 'Gys', creditCode: 'qqq', establishedAt: '2026-10-14', licenseUntil: '2036-12-31', legalRepresentative: '', companyPhone: '', proof: '' } : shot || (mapParams.map && !editingRegistration && mappedStep === 3) ? clone(filledBasic) : editingRegistration ? { ...(supplier.basic || {}), type: supplier.type, supplierName: supplier.name, registerEmail: supplier.email || supplier.basic?.registerEmail || '', creditCode: supplier.code } : { type: supplierTypes[0], supplierName: '', registerEmail: '' });
   const editSteps = informationSteps(basic.type === supplierTypes[1]);
+  const stepIndex = editSteps.indexOf(step);
+  const previousStepActions = stepIndex > 0 ? [
+    { label: '上一步', secondary: true, onClick: () => changeStep(editSteps[stepIndex - 1]) },
+  ] : [];
   const [contacts, setContacts] = useState(() => registrationDraft ? clone(registrationDraft.contacts) : editingRegistration ? clone(supplier.contacts || []) : []);
   const [registerBanks, setRegisterBanks] = useState(() => registrationDraft ? clone(registrationDraft.banks) : scene === 'register-banks' ? [{ ...clone(exampleBank), accountType: '一般账户', name: '1', number: '1', country: '', province: '', city: '', proof: '开户证明.png' }] : editingRegistration ? clone(supplier.banks) : []);
   const [addressOpen, setAddressOpen] = useState(false);
@@ -519,7 +523,15 @@ function MobileSurface({ onComparisonChange, scene, shot, ratings, setRatings, a
       {step === 1 && <ContactFields initialPanel={mapParams.panel} contacts={contacts} setContacts={setContacts} />}
       {step === 2 && <RecordCollection title="银行信息" count={registerBanks.length} emptyText="暂无银行信息" addLabel="添加银行账户" onAdd={() => { setEditingBank(-1); setRegisterBankForm(blankBank(basic.supplierName)); setRegisterBankPicker(true); }}>{registerBanks.map((b, i) => <BankCard key={b.id} bank={b} onPreview={preview} onEdit={() => { setEditingBank(i); setRegisterBankForm(clone(b)); setRegisterBankPicker(true); }} onDelete={() => setConfirm({ type: 'delete-register-bank', index: i, text: '确认删除银行信息' + (i + 1) + '？' })} />)}</RecordCollection>}
       {step === 3 && <RegistrationPreview supplierFacing={portalRegistration} basic={basic} contacts={contacts} banks={registerBanks} mode={portalRegistration ? '邀请注册' : editingRegistration ? supplier.mode : '代注册'} active={previewTab} onTabChange={setPreviewTab} onEdit={next => { setReturnPreview(true); changeStep(next); }} onPreview={preview}>{editingAll && <ChangeComparison before={supplier} after={{ basic, name: basic.supplierName, email: basic.registerEmail, type: basic.type, contacts, banks: registerBanks }} />}</RegistrationPreview>}
-      <Actions className="m-registration-actions" items={editingAll ? [{ label: '取消', secondary: true, onClick: () => registrationGuard.leave(() => go(returnToList())) }, { label: step === 3 ? '提交' : '下一步（' + (editSteps.indexOf(step) + 1) + '/' + editSteps.length + '）', disabled: saving, onClick: step === 3 ? submitRegister : nextStep }] : [...(step > 0 ? [{ label: '上一步', secondary: true, onClick: () => { changeStep(step === 2 && basic.type === supplierTypes[1] ? 0 : step - 1); } }] : []), ...(!editingAll ? [{ label: '保存草稿', secondary: true, disabled: saving, onClick: saveDraft }] : []), { label: step === 3 ? (portalRegistration ? '提交注册' : '提交') : returnPreview ? '保存并返回预览' : `下一步（${(basic.type === supplierTypes[1] ? [0, 2, 3] : [0, 1, 2, 3]).indexOf(step) + 1}/${basic.type === supplierTypes[1] ? 3 : 4}）`, disabled: saving, onClick: step === 3 ? submitRegister : nextStep }]} />
+      <Actions className="m-registration-actions" items={editingAll ? [
+        { label: '取消', secondary: true, onClick: () => registrationGuard.leave(() => go(returnToList())) },
+        ...previousStepActions,
+        { label: step === 3 ? '提交' : '下一步（' + (stepIndex + 1) + '/' + editSteps.length + '）', disabled: saving, onClick: step === 3 ? submitRegister : nextStep },
+      ] : [
+        ...previousStepActions,
+        { label: '保存草稿', secondary: true, disabled: saving, onClick: saveDraft },
+        { label: step === 3 ? (portalRegistration ? '提交注册' : '提交') : returnPreview ? '保存并返回预览' : `下一步（${stepIndex + 1}/${editSteps.length}）`, disabled: saving, onClick: step === 3 ? submitRegister : nextStep },
+      ]} />
     </>}
     {addressOpen && <Overlay sheet label="编辑注册地址" onClose={() => window.dispatchEvent(new CustomEvent('mobile-close-address'))}><div className="m-address-editor"><div className="m-picker-title"><strong>编辑注册地址</strong></div><AddressForm initial={basic.address} onConfirm={v => { setBasic({ ...basic, address: v }); setAddressOpen(false); }} onCancel={() => setAddressOpen(false)} /></div></Overlay>}
     {['address', 'region'].includes(scene) && <AddressForm initial={shot ? '云南省/保山市/龙陵县 个哈哈哈哈' : basic.address} startRegion={scene === 'region'} onConfirm={v => { setBasic({ ...basic, address: v }); go('register'); }} onCancel={() => go('register')} />}
