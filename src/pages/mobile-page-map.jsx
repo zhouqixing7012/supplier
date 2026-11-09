@@ -208,9 +208,24 @@ export function MobilePageMap({ go }) {
     const element = viewport.current;
     const onWheel = event => {
       event.preventDefault();
-      const bounds = element.getBoundingClientRect();
-      const units = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? element.clientHeight : 1;
-      zoomAt(Math.exp(-event.deltaY * units * 0.0018), { x: event.clientX - bounds.left, y: event.clientY - bounds.top });
+      const mode = event.deltaMode;
+      const dx = event.deltaX * (mode === 1 ? 16 : mode === 2 ? element.clientWidth : 1);
+      const dy = event.deltaY * (mode === 1 ? 16 : mode === 2 ? element.clientHeight : 1);
+
+      // Browsers report trackpad pinch as a wheel event with Ctrl pressed.
+      if (event.ctrlKey || event.metaKey) {
+        const bounds = element.getBoundingClientRect();
+        const amount = Math.max(-50, Math.min(50, dy));
+        zoomAt(Math.exp(-amount * 0.008), { x: event.clientX - bounds.left, y: event.clientY - bounds.top });
+        return;
+      }
+
+      const horizontal = event.shiftKey && dx === 0;
+      setCamera(current => ({
+        ...current,
+        x: current.x - (horizontal ? dy : dx),
+        y: current.y - (horizontal ? 0 : dy),
+      }));
     };
     element.addEventListener('wheel', onWheel, { passive: false });
     return () => element.removeEventListener('wheel', onWheel);
@@ -325,7 +340,7 @@ export function MobilePageMap({ go }) {
         })}
       </div>
     </div>
-    <div className="page-map-hint"><span>拖拽移动 · 滚轮或双指缩放</span></div>
+    <div className="page-map-hint"><span>拖拽或双指滑动平移 · 捏合或 Ctrl / ⌘ + 滚轮缩放</span></div>
     <div className="page-map-tools" role="group" aria-label="画布缩放">
       <button type="button" aria-label="缩小" onClick={() => zoom(1 / 1.2)} disabled={camera.scale <= MIN_SCALE}><Minus size={18} /></button>
       <output aria-label="当前缩放">{Math.round(camera.scale * 100)}%</output>
