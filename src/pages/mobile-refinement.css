@@ -1002,3 +1002,158 @@
     margin-bottom: 12px;
   }
 }
+
+
+/* Figma 191:2898 / 191:3052：供应商资料变更按记录分组，突出新旧值。 */
+.mobile-page:not(.m-shot) .m-section:has(.m-change-comparison) {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  overflow: visible;
+}
+
+.mobile-page:not(.m-shot) .m-section:has(.m-change-comparison) > h2 {
+  margin: 0 16px 10px;
+  padding: 0 0 2px;
+  border: 0;
+  color: #334155;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.mobile-page:not(.m-shot) .m-section:has(.m-change-comparison) > .m-section-content {
+  padding: 0 16px 16px;
+}
+
+.mobile-page:not(.m-shot) .m-change-comparison {
+  display: grid;
+  gap: 12px;
+}
+
+.mobile-page:not(.m-shot) .m-change-comparison .m-change-group {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  gap: 8px;
+  margin: 0;
+  padding: 16px;
+  border: 1px solid #e6edf3;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 3px 12px rgba(24, 42, 68, .025);
+}
+
+.mobile-page:not(.m-shot) .m-change-group-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  min-width: 0;
+  gap: 12px;
+}
+
+.mobile-page:not(.m-shot) .m-change-group-heading h3 {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  color: #1d2126;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 20px;
+  overflow-wrap: anywhere;
+}
+
+.mobile-page:not(.m-shot) .m-change-badge {
+  flex: 0 0 auto;
+  padding: 2px 8px;
+  border: 1px solid #f27d0c;
+  border-radius: 4px;
+  background: #fff7e8;
+  color: #f27d0c;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 16px;
+}
+
+.mobile-page:not(.m-shot) .m-change-badge[data-action="删除"] {
+  border-color: #e5484d;
+  background: #fff0f0;
+  color: #d4383e;
+}
+
+.mobile-page:not(.m-shot) .m-change-group-body {
+  display: grid;
+  min-width: 0;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: #f2f5fa;
+}
+
+.mobile-page:not(.m-shot) .m-change-diff-row {
+  display: grid;
+  grid-template-columns: minmax(64px, 88px) minmax(0, 1fr);
+  align-items: start;
+  min-width: 0;
+  gap: 8px;
+}
+
+.mobile-page:not(.m-shot) .m-change-diff-label {
+  min-width: 0;
+  color: #545b66;
+  font-size: 12px;
+  line-height: 20px;
+  overflow-wrap: anywhere;
+}
+
+.mobile-page:not(.m-shot) .m-change-diff-values {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: flex-end;
+  min-width: 0;
+  gap: 2px 8px;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+.mobile-page:not(.m-shot) .m-change-value-new,
+.mobile-page:not(.m-shot) .m-change-value-old {
+  max-width: 100%;
+  font-size: 14px;
+  line-height: 20px;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.mobile-page:not(.m-shot) .m-change-value-new {
+  color: #f27d0c;
+  font-weight: 500;
+}
+
+.mobile-page:not(.m-shot) .m-change-value-old {
+  color: #848b99;
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
+}
+
+.mobile-page:not(.m-shot) .m-change-empty {
+  margin: 0;
+  padding: 28px 12px;
+  color: var(--m-text-secondary);
+  font-size: 14px;
+  text-align: center;
+}
+
+@media (max-width: 359px) {
+  .mobile-page:not(.m-shot) .m-change-diff-row {
+    grid-template-columns: minmax(58px, 72px) minmax(0, 1fr);
+    gap: 6px;
+  }
+
+  .mobile-page:not(.m-shot) .m-change-group {
+    padding: 12px;
+  }
+}
