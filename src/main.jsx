@@ -61,9 +61,9 @@ function BrandPanel() {
   );
 }
 
-function AuthShell({ title, subtitle, icon, children, className = '' }) {
+function AuthShell({ title, subtitle, icon, children }) {
   return (
-    <main className={["auth-shell", className].filter(Boolean).join(" ")}>
+    <main className="auth-shell">
       <BrandPanel />
       <section className="auth-panel">
         <div className="auth-card">
@@ -145,7 +145,6 @@ function LoginScreen({ go }) {
 
   return (
     <AuthShell
-      className="auth-shell-login"
       title="用户登录"
       subtitle="使用供应商账号登录协同门户"
       icon={<UserRound size={20} />}
