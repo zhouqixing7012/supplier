@@ -6,7 +6,6 @@ import { attachmentName } from './mobile-interaction.jsx';
 
 const valueText = value => value == null ? '' : typeof value === 'object' ? JSON.stringify(value) : String(value);
 const displayValue = (key, value) => key === 'proof' ? valueText(attachmentName(value)) : valueText(value);
-const hasValue = value => valueText(value).trim() !== '';
 const bankFields = [...bankComparisonFields, ['proof', '开户证明']];
 
 function BankFieldValue({ field, raw, value, onPreview }) {
