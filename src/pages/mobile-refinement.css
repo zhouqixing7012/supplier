@@ -1219,3 +1219,57 @@
     padding: 12px;
   }
 }
+
+
+/* 变更对比：字段统一使用同一容器、行结构和对齐方式，只区分值的状态。 */
+.mobile-page:not(.m-shot) .m-change-group-body {
+  display: grid;
+  min-width: 0;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: #f2f5fa;
+}
+
+.mobile-page:not(.m-shot) .m-change-field-row {
+  display: grid;
+  grid-template-columns: minmax(64px, 88px) minmax(0, 1fr);
+  align-items: start;
+  min-width: 0;
+  gap: 8px;
+}
+
+.mobile-page:not(.m-shot) .m-change-field-label {
+  min-width: 0;
+  color: #545b66;
+  font-size: 12px;
+  line-height: 20px;
+  overflow-wrap: anywhere;
+}
+
+.mobile-page:not(.m-shot) .m-change-field-values {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: flex-end;
+  min-width: 0;
+  gap: 2px 8px;
+  color: #1d2126;
+  font-size: 14px;
+  line-height: 20px;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+.mobile-page:not(.m-shot) .m-change-field-values > span {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+@media (max-width: 359px) {
+  .mobile-page:not(.m-shot) .m-change-field-row {
+    grid-template-columns: minmax(58px, 72px) minmax(0, 1fr);
+    gap: 6px;
+  }
+}
