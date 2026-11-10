@@ -622,7 +622,7 @@ function PcAdminApp() {
   const [selectedSupplierIds, setSelectedSupplierIds] = useState([]);
   const [selectedInvitationIds, setSelectedInvitationIds] = useState([]);
   const [activeDetailTab, setActiveDetailTab] = useState('supplier');
-  const [bankDrafts, setBankDrafts] = useState(() => Object.fromEntries(initialSuppliers.map((supplier) => [supplier.id, readBankDraftSafe(supplier.id) || clone(supplier.banks || [])])));
+  const [bankDrafts, setBankDrafts] = useState(() => Object.fromEntries(suppliers.map((supplier) => [supplier.id, readBankDraftSafe(supplier.id) || clone(supplier.banks || [])])));
   const [inviteOpen, setInviteOpen] = useState(false);
   const [inviterOpen, setInviterOpen] = useState(false);
   const [inviterTargetIds, setInviterTargetIds] = useState([]);
@@ -650,7 +650,7 @@ function PcAdminApp() {
     }
   }, [suppliers, messageApi]);
 
-  const currentSupplier = suppliers.find((supplier) => supplier.id === route.id) || suppliers[0];
+  const currentSupplier = route.page === 'detail' ? suppliers.find((supplier) => supplier.id === route.id) : suppliers[0];
   const currentBankEntries = currentSupplier ? (bankDrafts[currentSupplier.id] || currentSupplier.banks || []) : [];
   const originalBanks = currentSupplier?.banks || [];
   const pendingBankCount = currentSupplier ? bankChangeCounts(originalBanks, currentBankEntries).total : 0;
@@ -963,7 +963,7 @@ function PcAdminApp() {
           <main className="pc-main">
             <div className="pc-main-scroll" ref={mainScrollRef} onScroll={(event) => setContentScrolled(event.currentTarget.scrollTop > 0)}>
               <div className="pc-main-content">
-                {route.page === 'detail' && currentSupplier ? (
+                {route.page === 'detail' ? (currentSupplier ? (
                   <SupplierDetailPage
                     supplier={currentSupplier}
                     activeTab={activeDetailTab}
@@ -976,7 +976,7 @@ function PcAdminApp() {
                     onBankReturn={handleBankReturn}
                     onBankSubmit={handleBankSubmit}
                   />
-                ) : route.page === 'invitations' ? (
+                ) : <PcCard><EmptyContent description="供应商记录不存在或已删除" /></PcCard>) : route.page === 'invitations' ? (
                   <MyInvitationsPage
                     filters={invitationFilters}
                     setFilters={setInvitationFilter}
