@@ -1031,23 +1031,44 @@
   gap: 12px;
 }
 
-.mobile-page:not(.m-shot) .m-change-comparison .m-change-group,
-.mobile-page:not(.m-shot) .m-bank-change-card {
+.mobile-page:not(.m-shot) .m-change-comparison .m-change-group {
   display: flex;
   flex-direction: column;
   min-width: 0;
   gap: 8px;
   margin: 0;
   padding: 16px;
+  border-radius: 12px;
+  background: #fff;
+}
+
+.mobile-page:not(.m-shot) .m-bank-change-card {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  gap: 0;
+  margin: 0;
+  padding: 16px;
   border: 1px solid #e6edf3;
   border-radius: 12px;
   background: #fff;
-  box-shadow: 0 3px 12px rgba(24, 42, 68, .025);
+  box-shadow: none;
+}
+
+.mobile-page:not(.m-shot) .m-bank-change-card:has(> .m-card-actions) {
+  padding-bottom: 0;
+}
+
+.mobile-page:not(.m-shot) .m-change-card-content {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  gap: 8px;
 }
 
 .mobile-page:not(.m-shot) .m-change-group-heading {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   min-width: 0;
   gap: 12px;
@@ -1069,19 +1090,31 @@
 .mobile-page:not(.m-shot) .m-change-badge {
   flex: 0 0 auto;
   padding: 2px 8px;
-  border: 1px solid #f27d0c;
+  border: 1px solid currentColor;
   border-radius: 4px;
-  background: #fff7e8;
-  color: #f27d0c;
+  background: var(--m-neutral-surface);
+  color: var(--m-text-secondary);
   font-size: 12px;
   font-weight: 400;
   line-height: 16px;
 }
 
+.mobile-page:not(.m-shot) .m-change-badge[data-action="新增"] {
+  border-color: var(--m-action);
+  background: var(--m-info-surface);
+  color: var(--m-action);
+}
+
+.mobile-page:not(.m-shot) .m-change-badge[data-action="变更"] {
+  border-color: #f27d0c;
+  background: #fff7e8;
+  color: #f27d0c;
+}
+
 .mobile-page:not(.m-shot) .m-change-badge[data-action="删除"] {
-  border-color: #e5484d;
-  background: #fff0f0;
-  color: #d4383e;
+  border-color: var(--m-danger-text);
+  background: var(--m-danger-surface);
+  color: var(--m-danger-text);
 }
 
 .mobile-page:not(.m-shot) .m-change-group-body {
@@ -1104,7 +1137,7 @@
 .mobile-page:not(.m-shot) .m-change-field-label {
   min-width: 0;
   color: #545b66;
-  font-size: 12px;
+  font-size: 14px;
   line-height: 20px;
   overflow-wrap: anywhere;
 }
@@ -1115,7 +1148,7 @@
   align-items: baseline;
   justify-content: flex-end;
   min-width: 0;
-  gap: 2px 8px;
+  gap: 2px 4px;
   color: #1d2126;
   font-size: 14px;
   line-height: 20px;
@@ -1145,6 +1178,7 @@
 
 .mobile-page:not(.m-shot) .m-change-value-old {
   color: #848b99;
+  font-weight: 500;
   text-decoration: line-through;
   text-decoration-thickness: 1px;
 }
@@ -1157,7 +1191,7 @@
   text-align: center;
 }
 
-.mobile-page:not(.m-shot) .m-bank-change-card > .m-record-heading {
+.mobile-page:not(.m-shot) .m-bank-change-card .m-record-heading {
   padding: 0;
   border: 0;
 }
