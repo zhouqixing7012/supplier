@@ -34,14 +34,16 @@ function keyedEntries(entries, prefix) {
   return new Map(entries.map((entry, index) => [entry.id || prefix + '-' + index, { entry, index }]));
 }
 
-function changedFields(definitions, previous, next, action) {
+function recordFields(definitions, previous, next, action) {
   return definitions.map(([key, label]) => {
     const oldValue = displayValue(key, previous?.[key]);
     const newValue = displayValue(key, next?.[key]);
-    const changed = action === '新增' ? hasContent(newValue)
-      : action === '删除' ? hasContent(oldValue)
-        : oldValue !== newValue;
-    return changed ? { key, label, previous: oldValue, next: newValue } : null;
+    const changed = action === '新增' || action === '删除'
+      ? true
+      : oldValue !== newValue;
+    const value = action === '删除' ? oldValue : newValue;
+    if (!hasContent(value) && !hasContent(oldValue) && !hasContent(newValue)) return null;
+    return { key, label, previous: oldValue, next: newValue, value, changed };
   }).filter(Boolean);
 }
 
@@ -60,8 +62,10 @@ export function informationChangeGroups(before, after) {
   const basicDefinitions = new Map([...fieldsFor(previous.type), ...fieldsFor(next.type)].map(([key, label]) => [key, label]));
   basicDefinitions.set('registerEmail', '注册邮箱');
   basicDefinitions.set('proof', '证照附件');
-  const basicFields = changedFields([...basicDefinitions], previous, next, '变更');
-  if (basicFields.length) groups.push({ key: 'basic', title: '基本信息', labelBase: '基本信息', action: '变更', fields: basicFields });
+  const basicFields = recordFields([...basicDefinitions], previous, next, '变更');
+  if (basicFields.some(field => field.changed)) {
+    groups.push({ key: 'basic', title: '基本信息', labelBase: '基本信息', action: '变更', fields: basicFields });
+  }
 
   for (const [property, label, definitions] of [
     ['contacts', '联系人', contactFields],
@@ -82,11 +86,14 @@ export function informationChangeGroups(before, after) {
       if (property === 'banks' && newRecord?.entry.change === '删除' && !oldRecord) continue;
       const markedDeleted = property === 'banks' && explicitBankAction === '删除';
       const currentRecord = markedDeleted ? null : newRecord;
-      const action = !oldRecord ? '新增' : !currentRecord ? '删除' : '变更';
+      const action = !oldRecord ? '新增' : !currentRecord ? '删除'
+        : explicitBankAction === '新增' ? '新增'
+          : '变更';
       const previousEntry = oldRecord?.entry;
       const nextEntry = currentRecord?.entry;
-      const fields = changedFields(definitions, previousEntry, nextEntry, action);
-      if (!fields.length) continue;
+      const fields = recordFields(definitions, previousEntry, nextEntry, action);
+      const changed = action !== '变更' || fields.some(field => field.changed);
+      if (!changed) continue;
       const number = (oldRecord || newRecord).index + 1;
       groups.push({
         key: property + '-' + id,
@@ -102,7 +109,7 @@ export function informationChangeGroups(before, after) {
 
 // 保留原有扁平数据结构，便于其他原型逻辑继续读取字段级变更。
 export function informationChanges(before, after) {
-  return informationChangeGroups(before, after).flatMap(group => group.fields.map(field => ({
+  return informationChangeGroups(before, after).flatMap(group => group.fields.filter(field => field.changed).map(field => ({
     ...field,
     label: group.labelBase + ' / ' + field.label,
     action: group.action === '变更' ? (group.labelBase === '基本信息' ? '' : '修改') : group.action,
@@ -111,6 +118,7 @@ export function informationChanges(before, after) {
 
 function ChangeGroup({ group }) {
   const deleted = group.action === '删除';
+  const added = group.action === '新增';
   return <article className="m-change-group" data-change-action={group.action}>
     <header className="m-change-group-heading">
       <h3>{group.title}</h3>
@@ -120,8 +128,9 @@ function ChangeGroup({ group }) {
       {group.fields.map(field => <div className="m-change-diff-row" key={field.key}>
         <span className="m-change-diff-label">{field.label}</span>
         <div className="m-change-diff-values" aria-label={field.label + '修改前后'}>
-          {!deleted && <span className="m-change-value-new">{field.next || (group.action === '新增' ? '' : '未填写')}</span>}
-          {group.action !== '新增' && hasContent(field.previous) && <span className="m-change-value-old">{field.previous}</span>}
+          {field.changed && !added && !deleted
+            ? <><span className="m-change-value-new">{field.next || '未填写'}</span>{hasContent(field.previous) && <span className="m-change-value-old">{field.previous}</span>}</>
+            : <span className="m-change-value-normal">{field.value || '—'}</span>}
         </div>
       </div>)}
     </div>
