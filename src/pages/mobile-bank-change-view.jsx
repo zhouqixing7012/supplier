@@ -37,8 +37,6 @@ export function BankChangeCard({ before, bank, onPreview, onEdit, onDelete, dele
       changed: modified && valueText(previousRaw) !== valueText(nextRaw),
     };
   });
-  const changedFields = modified ? fields.filter(field => field.changed) : [];
-  const plainFields = modified ? fields.filter(field => !field.changed) : fields;
   const badge = modified ? '变更' : action;
   const showDelete = !!onDelete || (!!onEdit && !!deleteDisabledReason);
 
@@ -47,25 +45,20 @@ export function BankChangeCard({ before, bank, onPreview, onEdit, onDelete, dele
       <h3>{title}</h3>
       <span className="m-change-badge" data-action={badge} aria-label={'变更状态：' + (action === '修改' ? '修改' : action)}>{badge}</span>
     </header>
-    {changedFields.length > 0 && <div className="m-change-group-body">
-      {changedFields.map(field => <div className="m-change-diff-row" key={field.key}>
-        <span className="m-change-diff-label">{field.label}</span>
-        <div className="m-change-diff-values" aria-label={field.label + '修改前后'}>
-          <span className="m-change-value-new"><BankFieldValue field={field} raw={field.nextRaw} value={field.next} onPreview={onPreview} /></span>
-          <span className="m-change-value-old"><BankFieldValue field={field} raw={field.previousRaw} value={field.previous} onPreview={onPreview} /></span>
-        </div>
-      </div>)}
-    </div>}
-    {plainFields.length > 0 && <div className="m-change-plain-list">
-      {plainFields.map(field => {
+    <div className="m-change-group-body">
+      {fields.map(field => {
         const raw = deleted ? field.previousRaw : field.nextRaw;
         const value = deleted ? field.previous : field.next;
-        return <div className="m-change-plain-row" key={field.key}>
-          <span className="m-change-plain-label">{field.label}</span>
-          <span className="m-change-plain-value"><BankFieldValue field={field} raw={raw} value={value} onPreview={onPreview} /></span>
+        return <div className="m-change-field-row" key={field.key}>
+          <span className="m-change-field-label">{field.label}</span>
+          <div className="m-change-field-values" aria-label={field.label + (modified && field.changed ? '修改前后' : '')}>
+            {modified && field.changed
+              ? <><span className="m-change-value-new"><BankFieldValue field={field} raw={field.nextRaw} value={field.next} onPreview={onPreview} /></span><span className="m-change-value-old"><BankFieldValue field={field} raw={field.previousRaw} value={field.previous} onPreview={onPreview} /></span></>
+              : <span className="m-change-value-normal"><BankFieldValue field={field} raw={raw} value={value} onPreview={onPreview} /></span>}
+          </div>
         </div>;
       })}
-    </div>}
+    </div>
     {(onEdit || showDelete) && <CardActions>
       {onEdit && <button type="button" onClick={onEdit}>修改</button>}
       {showDelete && <button type="button" className="m-action-danger" onClick={() => deleteDisabledReason ? setBlockedDelete(true) : onDelete?.()}>删除</button>}
