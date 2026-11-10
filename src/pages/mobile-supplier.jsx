@@ -210,7 +210,9 @@ function MobileSurface({ onComparisonChange, scene, shot, ratings, setRatings, a
   const previousStepActions = stepIndex > 0 ? [
     { label: '上一步', secondary: true, onClick: () => changeStep(editSteps[stepIndex - 1]) },
   ] : [];
-  const [contacts, setContacts] = useState(() => registrationDraft ? clone(registrationDraft.contacts) : editingRegistration ? clone(supplier.contacts || []) : []);
+  const legacyContacts = [supplier.contact, supplier.phone, supplier.email].some(value => String(value || '').trim()) ? [{ id: 'legacy-contact', name: supplier.contact || '', phone: supplier.phone || '', email: supplier.email || '' }] : [];
+  const existingContacts = supplier.contacts?.length ? supplier.contacts : legacyContacts;
+  const [contacts, setContacts] = useState(() => registrationDraft ? clone(registrationDraft.contacts) : editingRegistration ? clone(existingContacts) : []);
   const [registerBanks, setRegisterBanks] = useState(() => registrationDraft ? clone(registrationDraft.banks) : scene === 'register-banks' ? [{ ...clone(exampleBank), accountType: '一般账户', name: '1', number: '1', country: '', province: '', city: '', proof: '开户证明.png' }] : editingRegistration ? clone(supplier.banks) : []);
   const [addressOpen, setAddressOpen] = useState(false);
   const [registerBankPicker, setRegisterBankPicker] = usePanelState(isRegistration && mapParams.panel === 'bank');
