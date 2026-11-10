@@ -14,6 +14,7 @@ export function BankChangeCard({ before, bank, onPreview, onEdit, onDelete, dele
   if (!action) return <BankCard {...{ bank, onPreview, onEdit, onDelete, deleteDisabledReason }} />;
 
   const deleted = action === '删除';
+  const added = action === '新增';
   const titleRecord = deleted ? original : bank;
   const title = [
     titleRecord?.accountType || '银行账户',
@@ -24,10 +25,10 @@ export function BankChangeCard({ before, bank, onPreview, onEdit, onDelete, dele
   const fields = definitions.map(([key, label]) => {
     const previous = displayValue(key, original?.[key]);
     const next = displayValue(key, bank?.[key]);
-    const changed = action === '新增' ? hasValue(next)
-      : deleted ? hasValue(previous)
-        : previous !== next;
-    return changed ? { key, label, previous, next } : null;
+    const changed = added || deleted || previous !== next;
+    const value = deleted ? previous : next;
+    if (!hasValue(value) && !hasValue(previous) && !hasValue(next)) return null;
+    return { key, label, previous, next, value, changed };
   }).filter(Boolean);
   const badge = action === '修改' ? '变更' : action;
   const showDelete = !!onDelete || (!!onEdit && !!deleteDisabledReason);
@@ -41,8 +42,9 @@ export function BankChangeCard({ before, bank, onPreview, onEdit, onDelete, dele
       {fields.map(field => <div className="m-change-diff-row" key={field.key}>
         <span className="m-change-diff-label">{field.label}</span>
         <div className="m-change-diff-values" aria-label={field.label + '修改前后'}>
-          {!deleted && <span className="m-change-value-new">{field.key === 'proof' && bank.proof ? <AttachmentLink value={bank.proof} onPreview={onPreview} /> : field.next || (action === '新增' ? '' : '未填写')}</span>}
-          {action !== '新增' && hasValue(field.previous) && <span className="m-change-value-old">{field.previous}</span>}
+          {field.changed && !added && !deleted
+            ? <><span className="m-change-value-new">{field.next || '未填写'}</span>{hasValue(field.previous) && <span className="m-change-value-old">{field.previous}</span></>}
+            : <span className="m-change-value-normal">{field.key === 'proof' && bank.proof ? <AttachmentLink value={bank.proof} onPreview={onPreview} /> : field.value || '—'}</span>}
         </div>
       </div>)}
     </div>
