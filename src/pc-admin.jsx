@@ -65,7 +65,56 @@ function StatusTag({ value }) {
 function QueryField({ label, children }) {
   const id = useId();
   const control = React.isValidElement(children) ? React.cloneElement(children, { id: children.props.id || id }) : children;
-  return <div className="pc-query-field"><label htmlFor={id} title={label}>{label}</label><div className="pc-query-control">{control}</div></div>;
+  return (
+    <div className="pc-query-item" role="group" aria-label={label}>
+      <Tooltip title={label}>
+        <label htmlFor={id} title={label}>{label}</label>
+      </Tooltip>
+      <div className="pc-query-control">{control}</div>
+    </div>
+  );
+}
+
+function getPcQueryColumns(viewportWidth, contentWidth) {
+  const pageColumns = viewportWidth <= 760 ? 1 : viewportWidth <= 1180 ? 2 : 3;
+  return Math.min(pageColumns, Math.max(1, Math.floor((contentWidth + 24) / 280)));
+}
+
+function PcQueryBar({ children, onSearch, onReset }) {
+  const fields = React.Children.toArray(children);
+  const layoutRef = useRef(null);
+  const [columns, setColumns] = useState(1);
+
+  useEffect(() => {
+    const layout = layoutRef.current;
+    const update = () => {
+      const next = getPcQueryColumns(window.innerWidth, layout?.clientWidth || window.innerWidth);
+      setColumns((current) => current === next ? current : next);
+    };
+    update();
+    const observer = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(update) : null;
+    if (layout) observer?.observe(layout);
+    window.addEventListener('resize', update);
+    return () => {
+      observer?.disconnect();
+      window.removeEventListener('resize', update);
+    };
+  }, []);
+
+  const layoutColumns = fields.length === 1 ? 1 : columns;
+  return (
+    <PcCard className="pc-query-card">
+      <div ref={layoutRef} className="pc-query-grid" style={{ gridTemplateColumns: `repeat(${layoutColumns}, minmax(0, 1fr))` }}>
+        {fields.map((field, index) => (
+          <div key={field.key || index} className="pc-query-field">{field}</div>
+        ))}
+        <div className="pc-query-actions" data-pc-query-actions role="group" aria-label="查询操作" style={{ gridColumn: `${fields.length % layoutColumns + 1} / -1` }}>
+          <Button icon={<RefreshCcw size={14} />} onClick={onReset}>重置</Button>
+          <Button type="primary" icon={<Search size={14} />} onClick={onSearch}>查询</Button>
+        </div>
+      </div>
+    </PcCard>
+  );
 }
 
 function DetailGrid({ fields = [] }) {
@@ -171,7 +220,7 @@ function SupplierQueryPage({ filters, setFilters, onSearch, onReset, rows, selec
             { key: 'banks', label: '修改银行' },
             { key: 'inviter', label: '变更邀请人' },
           ], onClick: ({ key }) => onDetailAction(record, key) }}>
-            <Button size="small">变更 <ChevronDown size={12} /></Button>
+            <Button>变更 <ChevronDown size={14} /></Button>
           </Dropdown>
         )}
       </Space>,
@@ -180,18 +229,29 @@ function SupplierQueryPage({ filters, setFilters, onSearch, onReset, rows, selec
 
   return (
     <div className="pc-page-stack">
-      <PcCard className="pc-query-card">
-        <div className="pc-query-grid">
-          <QueryField label="供应商名称"><Input allowClear value={filters.name} placeholder="请输入供应商名称" onChange={(event) => setFilters('name', event.target.value)} onPressEnter={onSearch} /></QueryField>
-          <QueryField label="供应商类型"><Select allowClear value={filters.type || undefined} placeholder="请选择供应商类型" options={supplierTypes.map((value) => ({ value, label: value }))} onChange={(value) => setFilters('type', value || '')} /></QueryField>
-          <QueryField label="供应商状态"><Select allowClear value={filters.status || undefined} placeholder="请选择供应商状态" options={supplierStates.map((value) => ({ value, label: value }))} onChange={(value) => setFilters('status', value || '')} /></QueryField>
-          <QueryField label="邀请时间（起）"><DatePicker value={filters.start} placeholder="请选择开始日期" format="YYYY-MM-DD" onChange={(value) => setFilters('start', value)} /></QueryField>
-          <QueryField label="邀请时间（止）"><DatePicker value={filters.end} placeholder="请选择结束日期" format="YYYY-MM-DD" onChange={(value) => setFilters('end', value)} /></QueryField>
-          <QueryField label="供应商推荐"><Select allowClear showSearch optionFilterProp="label" value={filters.recommended || undefined} placeholder="请选择供应商推荐" options={supplierIndustries.map((value) => ({ value, label: value }))} onChange={(value) => setFilters('recommended', value || '')} /></QueryField>
-          <QueryField label="邀请人"><Input allowClear value={filters.inviter} placeholder="请输入邀请人" onChange={(event) => setFilters('inviter', event.target.value)} onPressEnter={onSearch} /></QueryField>
-        </div>
-        <div className="pc-query-actions"><Button icon={<RefreshCcw size={14} />} onClick={onReset}>重置</Button><Button type="primary" icon={<Search size={15} />} onClick={onSearch}>查询</Button></div>
-      </PcCard>
+      <PcQueryBar onSearch={onSearch} onReset={onReset}>
+        <QueryField label="供应商名称"><Input allowClear value={filters.name} placeholder="请输入供应商名称" onChange={(event) => setFilters('name', event.target.value)} onPressEnter={onSearch} /></QueryField>
+        <QueryField label="供应商类型"><Select allowClear value={filters.type || undefined} placeholder="请选择供应商类型" options={supplierTypes.map((value) => ({ value, label: value }))} onChange={(value) => setFilters('type', value || '')} /></QueryField>
+        <QueryField label="供应商状态"><Select allowClear value={filters.status || undefined} placeholder="请选择供应商状态" options={supplierStates.map((value) => ({ value, label: value }))} onChange={(value) => setFilters('status', value || '')} /></QueryField>
+        <QueryField label="邀请时间">
+          <DatePicker.RangePicker
+            allowClear
+            allowEmpty={[true, true]}
+            format="YYYY-MM-DD"
+            placeholder={['开始日期', '结束日期']}
+            style={{ width: '100%' }}
+            value={[filters.start, filters.end]}
+            onChange={(dates) => {
+              setFilters('start', dates?.[0] || null);
+              setFilters('end', dates?.[1] || null);
+            }}
+          />
+        </QueryField>
+        <QueryField label="供应商推荐"><Select allowClear showSearch optionFilterProp="label" value={filters.recommended || undefined} placeholder="请选择供应商推荐" options={supplierIndustries.map((value) => ({ value, label: value }))} onChange={(value) => setFilters('recommended', value || '')} /></QueryField>
+        <QueryField label="邀请人"><Input allowClear value={filters.inviter} placeholder="请输入邀请人" onChange={(event) => setFilters('inviter', event.target.value)} onPressEnter={onSearch} /></QueryField>
+      </PcQueryBar>
+
+
 
       <PcCard className="pc-list-card">
         <div className="pc-list-toolbar">
@@ -201,7 +261,7 @@ function SupplierQueryPage({ filters, setFilters, onSearch, onReset, rows, selec
             <Button danger disabled={!selectedIds.length} icon={<Trash2 size={15} />} onClick={() => onDelete(selectedIds, false)}>删除</Button>
             <Button icon={<Download size={15} />} onClick={onExport}>导出</Button>
           </Space>
-          <div className="pc-list-meta"><span>共 <strong>{rows.length}</strong> 家供应商</span><span className="pc-demo-note">演示数据</span></div>
+          <div className="pc-list-meta">共 <strong>{rows.length}</strong> 家供应商</div>
         </div>
         {selectedIds.length > 0 && <div className="pc-batch-bar"><span>已选择 <strong>{selectedIds.length}</strong> 条</span><Button type="link" danger size="small" onClick={() => onDelete(selectedIds, false)}>删除所选</Button><Button type="link" size="small" onClick={() => setSelectedIds([])}>取消选择</Button></div>}
         <PcTable
@@ -255,7 +315,7 @@ function MyInvitationsPage({ filters, setFilters, onSearch, onReset, rows, selec
           if (key === 'reinvite') onReinvite(record);
           if (key === 'delete') onDelete([record.id], true);
         } }}>
-          <Button size="small">变更 <ChevronDown size={12} /></Button>
+          <Button>变更 <ChevronDown size={14} /></Button>
         </Dropdown>;
       },
     },
@@ -263,22 +323,33 @@ function MyInvitationsPage({ filters, setFilters, onSearch, onReset, rows, selec
 
   return (
     <div className="pc-page-stack">
-      <PcCard className="pc-query-card">
-        <div className="pc-query-grid">
-          <QueryField label="供应商名称"><Input allowClear value={filters.name} placeholder="请输入供应商名称" onChange={(event) => setFilters('name', event.target.value)} onPressEnter={onSearch} /></QueryField>
-          <QueryField label="供应商状态"><Select allowClear value={filters.status || undefined} placeholder="请选择供应商状态" options={supplierStates.map((value) => ({ value, label: value }))} onChange={(value) => setFilters('status', value || '')} /></QueryField>
-          <QueryField label="供应商类型"><Select allowClear value={filters.type || undefined} placeholder="请选择供应商类型" options={supplierTypes.map((value) => ({ value, label: value }))} onChange={(value) => setFilters('type', value || '')} /></QueryField>
-          <QueryField label="邀请时间（起）"><DatePicker value={filters.start} placeholder="请选择开始日期" format="YYYY-MM-DD" onChange={(value) => setFilters('start', value)} /></QueryField>
-          <QueryField label="邀请时间（止）"><DatePicker value={filters.end} placeholder="请选择结束日期" format="YYYY-MM-DD" onChange={(value) => setFilters('end', value)} /></QueryField>
-          <QueryField label="注册编号"><Input allowClear value={filters.registrationNumber} placeholder="请输入注册编号" onChange={(event) => setFilters('registrationNumber', event.target.value)} onPressEnter={onSearch} /></QueryField>
-        </div>
-        <div className="pc-query-actions"><Button icon={<RefreshCcw size={14} />} onClick={onReset}>重置</Button><Button type="primary" icon={<Search size={15} />} onClick={onSearch}>查询</Button></div>
-      </PcCard>
+      <PcQueryBar onSearch={onSearch} onReset={onReset}>
+        <QueryField label="供应商名称"><Input allowClear value={filters.name} placeholder="请输入供应商名称" onChange={(event) => setFilters('name', event.target.value)} onPressEnter={onSearch} /></QueryField>
+        <QueryField label="供应商状态"><Select allowClear value={filters.status || undefined} placeholder="请选择供应商状态" options={supplierStates.map((value) => ({ value, label: value }))} onChange={(value) => setFilters('status', value || '')} /></QueryField>
+        <QueryField label="供应商类型"><Select allowClear value={filters.type || undefined} placeholder="请选择供应商类型" options={supplierTypes.map((value) => ({ value, label: value }))} onChange={(value) => setFilters('type', value || '')} /></QueryField>
+        <QueryField label="邀请时间">
+          <DatePicker.RangePicker
+            allowClear
+            allowEmpty={[true, true]}
+            format="YYYY-MM-DD"
+            placeholder={['开始日期', '结束日期']}
+            style={{ width: '100%' }}
+            value={[filters.start, filters.end]}
+            onChange={(dates) => {
+              setFilters('start', dates?.[0] || null);
+              setFilters('end', dates?.[1] || null);
+            }}
+          />
+        </QueryField>
+        <QueryField label="注册编号"><Input allowClear value={filters.registrationNumber} placeholder="请输入注册编号" onChange={(event) => setFilters('registrationNumber', event.target.value)} onPressEnter={onSearch} /></QueryField>
+      </PcQueryBar>
+
+
 
       <PcCard className="pc-list-card">
         <div className="pc-list-toolbar">
           <Space size={8} wrap><Button icon={<Download size={15} />} onClick={onExport}>导出</Button><Button disabled={!selectedIds.length} onClick={() => onChangeInviter(selectedIds)}>邀请人批量变更</Button></Space>
-          <div className="pc-list-meta"><span>共 <strong>{rows.length}</strong> 家供应商</span><span className="pc-demo-note">演示数据</span></div>
+          <div className="pc-list-meta">共 <strong>{rows.length}</strong> 家供应商</div>
         </div>
         {selectedIds.length > 0 && <div className="pc-batch-bar"><span>已选择 <strong>{selectedIds.length}</strong> 条</span><Button type="link" danger size="small" disabled={!allDeletable} onClick={() => onDelete(selectedIds, true)}>删除所选</Button><Button type="link" size="small" onClick={() => setSelectedIds([])}>取消选择</Button></div>}
         <PcTable
@@ -672,7 +743,7 @@ function PcAdminApp() {
     try {
       sessionStorage.setItem('supplier:pc-session:v1', JSON.stringify(suppliers));
     } catch {
-      messageApi.error('本次演示数据无法保存到当前会话。');
+      messageApi.error('当前会话保存失败，请检查浏览器存储后重试。');
     }
   }, [suppliers, messageApi]);
 
@@ -740,7 +811,7 @@ function PcAdminApp() {
           }
           setSuppliers((current) => current.map((record) => record.id === duplicate.id ? { ...record, status: '邀请中', contact: values.contactName.trim(), email: values.contactEmail.trim(), phone: values.contactPhone.trim(), updated: nowText() } : record));
           setInviteOpen(false);
-          messageApi.success('重新邀请已提交（演示数据）');
+          messageApi.success('邀请状态已更新');
         },
       });
       return;
@@ -754,7 +825,7 @@ function PcAdminApp() {
     };
     setSuppliers((current) => [record, ...current]);
     setInviteOpen(false);
-    messageApi.success('邀请已提交（演示数据）');
+    messageApi.success('邀请记录已创建');
   };
 
   const handleReinvite = (record) => Modal.confirm({
@@ -769,7 +840,7 @@ function PcAdminApp() {
         return;
       }
       setSuppliers((current) => current.map((item) => item.id === record.id ? { ...item, status: '邀请中', updated: nowText() } : item));
-      messageApi.success('重新邀请已提交（演示数据）');
+      messageApi.success('邀请状态已更新');
     },
   });
 
@@ -816,7 +887,7 @@ function PcAdminApp() {
     setInviterOpen(false);
     setSelectedInvitationIds([]);
     setSelectedSupplierIds([]);
-    messageApi.success('邀请人已变更（演示数据）');
+    messageApi.success('邀请人已更新');
     return true;
   };
 
@@ -907,7 +978,7 @@ function PcAdminApp() {
         catch { messageApi.error('待提交资料清理失败，本次未提交审批。'); return; }
         setBankDrafts((current) => ({ ...current, [currentSupplier.id]: clone(originalBanks) }));
         setSuppliers((current) => current.map((record) => record.id === currentSupplier.id ? { ...record, status: '变更中', updated: nowText() } : record));
-        messageApi.success('银行信息变更已提交审批（演示数据）');
+        messageApi.success('银行信息变更已记录');
       },
     });
   };
@@ -922,7 +993,7 @@ function PcAdminApp() {
 
   const accountMenu = {
     items: [
-      { key: 'account', label: '演示账号：' + CURRENT_USER, disabled: true },
+      { key: 'account', label: CURRENT_USER, disabled: true },
       { type: 'divider' },
       { key: 'logout', icon: <LogOut size={14} />, label: '返回协同门户' },
     ],
@@ -950,23 +1021,13 @@ function PcAdminApp() {
     }}>
       {contextHolder}
       <div className={'pc-app ' + (collapsed ? 'is-collapsed' : '')} onScrollCapture={onScrollbarActivity}>
-        <header className={'pc-topbar ' + (contentScrolled ? 'is-scrolled' : '')}>
-          <a className="pc-brand" href="#/admin/suppliers" aria-label="搜狐供应商管理平台">
-            <span className="pc-brand-mark"><strong>搜狐</strong><small>SOHU.com</small></span>
-            <span className="pc-brand-name">供应商管理平台</span>
-          </a>
-          <div className="pc-topbar-context"><Breadcrumb items={breadcrumbItems} /></div>
-          <div className="pc-topbar-actions">
-            <Button type="text" icon={<CircleHelp size={16} />} onClick={() => setHelpOpen(true)}>操作指导</Button>
-            <span className="pc-topbar-divider" />
-            <Dropdown menu={accountMenu} trigger={['click']} placement="bottomRight">
-              <button className="pc-user-trigger" type="button" aria-label={'打开账户菜单：' + CURRENT_USER}><Avatar size={28} className="pc-avatar">陈</Avatar><span className="pc-user-name">{CURRENT_USER}</span><ChevronDown size={14} /></button>
-            </Dropdown>
-          </div>
-        </header>
         <div className="pc-workspace">
           <aside className={'pc-sidebar ' + (sidebarScrolled ? 'is-scrolled' : '')}>
-            <div className="pc-sidebar-nav" role="navigation" aria-label="后台主导航" onScroll={(event) => setSidebarScrolled(event.currentTarget.scrollTop > 0)}>
+            <a className="pc-sidebar-brand" href="#/admin/suppliers" aria-label="搜狐供应商管理平台">
+              <img className="pc-sidebar-logo" src="/sohu-logo.svg" alt="搜狐" />
+              <span className="pc-sidebar-brand-label">供应商管理平台</span>
+            </a>
+            <div id="pc-sidebar-navigation" className="pc-sidebar-nav" role="navigation" aria-label="后台主导航" onScroll={(event) => setSidebarScrolled(event.currentTarget.scrollTop > 0)}>
               <div className="pc-menu-group">
                 <div className="pc-menu-group-title"><Building2 size={15} /><span>供应商管理</span></div>
                 <Tooltip title={collapsed ? '供应商查询' : ''} placement="right"><a className={'pc-menu-item ' + (parentPage === 'suppliers' ? 'is-active' : '')} href="#/admin/suppliers" aria-current={parentPage === 'suppliers' ? 'page' : undefined}><ClipboardList size={16} /><span className="pc-menu-label">供应商查询</span></a></Tooltip>
@@ -987,6 +1048,27 @@ function PcAdminApp() {
             </div>
           </aside>
           <main className="pc-main">
+            <header className={'pc-topbar ' + (contentScrolled ? 'is-scrolled' : '')}>
+              <button
+                type="button"
+                className="pc-topbar-collapse"
+                onClick={() => setCollapsed((value) => !value)}
+                aria-label={collapsed ? '展开侧栏' : '收起侧栏'}
+                aria-expanded={!collapsed}
+                aria-controls="pc-sidebar-navigation"
+                title={collapsed ? '展开侧栏' : '收起侧栏'}
+              >
+                {collapsed ? <ChevronsRight size={17} /> : <ChevronsLeft size={17} />}
+              </button>
+              <div className="pc-topbar-context"><Breadcrumb items={breadcrumbItems} /></div>
+              <div className="pc-topbar-actions">
+                <Button className="pc-help-button" type="text" icon={<CircleHelp size={16} />} onClick={() => setHelpOpen(true)}><span className="pc-help-label">操作指导</span></Button>
+                <span className="pc-topbar-divider" />
+                <Dropdown menu={accountMenu} trigger={['click']} placement="bottomRight">
+                  <button className="pc-user-trigger" type="button" aria-label={'打开账户菜单：' + CURRENT_USER}><Avatar size={28} className="pc-avatar">陈</Avatar><span className="pc-user-name">{CURRENT_USER}</span><ChevronDown size={14} /></button>
+                </Dropdown>
+              </div>
+            </header>
             <div className="pc-main-scroll" ref={mainScrollRef} onScroll={(event) => setContentScrolled(event.currentTarget.scrollTop > 0)}>
               <div className="pc-main-content">
                 {route.page === 'detail' ? (currentSupplier ? (
