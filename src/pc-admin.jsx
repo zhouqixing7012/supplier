@@ -58,8 +58,8 @@ function readRoute() {
 }
 
 function StatusTag({ value }) {
-  const tones = { 邀请中: 'info', 注册中: 'info', 审批中: 'info', 已审批: 'success', 草稿: 'default', 注册驳回: 'danger', 变更中: 'warning' };
-  return <Tag bordered={false} className={'pc-status pc-status-' + (tones[value] || 'default')}>{value || '-'}</Tag>;
+  const tones = { 邀请中: 'processing', 注册中: 'processing', 审批中: 'processing', 已审批: 'success', 草稿: 'default', 注册驳回: 'danger', 变更中: 'warning' };
+  return <Tag className={'pc-status pc-status-' + (tones[value] || 'default')}>{value || '-'}</Tag>;
 }
 
 function QueryField({ label, children }) {
@@ -231,13 +231,13 @@ function SupplierQueryPage({ filters, setFilters, onSearch, onReset, rows, selec
     {
       title: '操作', key: 'actions', width: 190, fixed: 'right', align: 'center',
       render: (_, record) => <Space size={8} className="pc-row-actions">
-        <Button type="link" onClick={() => onOpenDetail(record, 'suppliers')}>详情</Button>
+        <Button className="pc-row-action-button" type="link" onClick={() => onOpenDetail(record, 'suppliers')}>详情</Button>
         {canChangeSupplier(record) && (
           <Dropdown menu={{ items: [
             { key: 'banks', label: '修改银行' },
             { key: 'inviter', label: '变更邀请人' },
           ], onClick: ({ key }) => onDetailAction(record, key) }}>
-            <Button type="link">变更 <ChevronDown size={14} /></Button>
+            <Button className="pc-row-action-button" type="link">变更 <ChevronDown size={14} /></Button>
           </Dropdown>
         )}
       </Space>,
@@ -332,7 +332,7 @@ function MyInvitationsPage({ filters, setFilters, onSearch, onReset, rows, selec
           if (key === 'reinvite') onReinvite(record);
           if (key === 'delete') onDelete([record.id], true);
         } }}>
-          <Button type="link">变更 <ChevronDown size={14} /></Button>
+          <Button className="pc-row-action-button" type="link">变更 <ChevronDown size={14} /></Button>
         </Dropdown>;
       },
     },
