@@ -1093,144 +1093,6 @@
   background: #f2f5fa;
 }
 
-.mobile-page:not(.m-shot) .m-change-diff-row {
-  display: grid;
-  grid-template-columns: minmax(64px, 88px) minmax(0, 1fr);
-  align-items: start;
-  min-width: 0;
-  gap: 8px;
-}
-
-.mobile-page:not(.m-shot) .m-change-diff-label {
-  min-width: 0;
-  color: #545b66;
-  font-size: 12px;
-  line-height: 20px;
-  overflow-wrap: anywhere;
-}
-
-.mobile-page:not(.m-shot) .m-change-diff-values {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  justify-content: flex-end;
-  min-width: 0;
-  gap: 2px 8px;
-  text-align: right;
-  overflow-wrap: anywhere;
-}
-
-.mobile-page:not(.m-shot) .m-change-value-new,
-.mobile-page:not(.m-shot) .m-change-value-old {
-  max-width: 100%;
-  font-size: 14px;
-  line-height: 20px;
-  overflow-wrap: anywhere;
-  word-break: break-word;
-}
-
-.mobile-page:not(.m-shot) .m-change-value-new {
-  color: #f27d0c;
-  font-weight: 500;
-}
-
-.mobile-page:not(.m-shot) .m-change-value-old {
-  color: #848b99;
-  text-decoration: line-through;
-  text-decoration-thickness: 1px;
-}
-
-.mobile-page:not(.m-shot) .m-change-empty {
-  margin: 0;
-  padding: 28px 12px;
-  color: var(--m-text-secondary);
-  font-size: 14px;
-  text-align: center;
-}
-
-@media (max-width: 359px) {
-  .mobile-page:not(.m-shot) .m-change-diff-row {
-    grid-template-columns: minmax(58px, 72px) minmax(0, 1fr);
-    gap: 6px;
-  }
-
-  .mobile-page:not(.m-shot) .m-change-group {
-    padding: 12px;
-  }
-}
-
-/* 未变化字段保持普通正文；新增/删除整条记录只显示记录级标签。 */
-.mobile-page:not(.m-shot) .m-change-value-normal {
-  max-width: 100%;
-  color: #1d2126;
-  font-size: 14px;
-  font-weight: 400;
-  line-height: 20px;
-  overflow-wrap: anywhere;
-  word-break: break-word;
-}
-
-
-/* 未变化字段保持普通信息样式；仅变化字段放入灰色对比区域。 */
-.mobile-page:not(.m-shot) .m-change-plain-list {
-  display: grid;
-  min-width: 0;
-  gap: 8px;
-}
-
-.mobile-page:not(.m-shot) .m-change-plain-row {
-  display: grid;
-  grid-template-columns: minmax(64px, 88px) minmax(0, 1fr);
-  align-items: start;
-  min-width: 0;
-  gap: 8px;
-}
-
-.mobile-page:not(.m-shot) .m-change-plain-label {
-  min-width: 0;
-  color: #545b66;
-  font-size: 12px;
-  line-height: 20px;
-  overflow-wrap: anywhere;
-}
-
-.mobile-page:not(.m-shot) .m-change-plain-value {
-  min-width: 0;
-  color: #1d2126;
-  font-size: 14px;
-  line-height: 20px;
-  text-align: right;
-  overflow-wrap: anywhere;
-  word-break: break-word;
-}
-
-.mobile-page:not(.m-shot) .m-bank-change-card > .m-record-heading {
-  padding: 0;
-  border: 0;
-}
-
-@media (max-width: 359px) {
-  .mobile-page:not(.m-shot) .m-change-plain-row {
-    grid-template-columns: minmax(58px, 72px) minmax(0, 1fr);
-    gap: 6px;
-  }
-
-  .mobile-page:not(.m-shot) .m-bank-change-card {
-    padding: 12px;
-  }
-}
-
-
-/* 变更对比：字段统一使用同一容器、行结构和对齐方式，只区分值的状态。 */
-.mobile-page:not(.m-shot) .m-change-group-body {
-  display: grid;
-  min-width: 0;
-  gap: 8px;
-  padding: 8px 12px;
-  border-radius: 8px;
-  background: #f2f5fa;
-}
-
 .mobile-page:not(.m-shot) .m-change-field-row {
   display: grid;
   grid-template-columns: minmax(64px, 88px) minmax(0, 1fr);
@@ -1267,9 +1129,47 @@
   word-break: break-word;
 }
 
+.mobile-page:not(.m-shot) .m-change-value-new,
+.mobile-page:not(.m-shot) .m-change-value-old {
+  max-width: 100%;
+  font-size: 14px;
+  line-height: 20px;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.mobile-page:not(.m-shot) .m-change-value-new {
+  color: #f27d0c;
+  font-weight: 500;
+}
+
+.mobile-page:not(.m-shot) .m-change-value-old {
+  color: #848b99;
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
+}
+
+.mobile-page:not(.m-shot) .m-change-empty {
+  margin: 0;
+  padding: 28px 12px;
+  color: var(--m-text-secondary);
+  font-size: 14px;
+  text-align: center;
+}
+
+.mobile-page:not(.m-shot) .m-bank-change-card > .m-record-heading {
+  padding: 0;
+  border: 0;
+}
+
 @media (max-width: 359px) {
   .mobile-page:not(.m-shot) .m-change-field-row {
     grid-template-columns: minmax(58px, 72px) minmax(0, 1fr);
     gap: 6px;
+  }
+
+  .mobile-page:not(.m-shot) .m-change-group,
+  .mobile-page:not(.m-shot) .m-bank-change-card {
+    padding: 12px;
   }
 }
