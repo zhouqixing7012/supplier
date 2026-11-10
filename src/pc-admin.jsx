@@ -288,7 +288,7 @@ function RegistrationInformation({ supplier }) {
     { label: '邀请时间', value: supplier.date },
     { label: '更新时间', value: supplier.updated },
     { label: '曾用名', value: supplier.supplierFormerName || supplier.formerName, span: 2 },
-    { label: '供应商注册邮箱', value: supplier.email, span: 2 },
+    { label: '供应商注册邮箱', value: supplier.basic?.registerEmail || supplier.registerEmail || supplier.email, span: 2 },
   ]} />;
 }
 
@@ -468,13 +468,13 @@ function SupplierDetailPage({ supplier, activeTab, setActiveTab, bankEntries, pe
         <div className="pc-overview-grid">
           <div><span>供应商名称</span><strong>{supplier.name || '-'}</strong></div>
           <div><span>供应商类型</span><strong>{supplier.type || '-'}</strong></div>
-          <div><span>供应商账号</span><strong>{supplier.supplierAccount || supplier.userCode || supplier.account || '-'}</strong></div>
+          <div><span>供应商账号</span><strong>{supplier.supplierAccount || supplier.userCode || supplier.account || supplier.basic?.supplierAccount || '-'}</strong></div>
           <div><span>供应商状态</span><strong><StatusTag value={supplier.status} /></strong></div>
           <div><span>邀请人</span><strong>{supplier.inviter || '-'}</strong></div>
           <div><span>邀请时间</span><strong>{supplier.date || '-'}</strong></div>
           <div><span>注册方式</span><strong>{supplier.mode || '-'}</strong></div>
-          <div><span>曾用名</span><strong>{supplier.supplierFormerName || supplier.formerName || '-'}</strong></div>
-          <div><span>注册邮箱</span><strong>{supplier.email || '-'}</strong></div>
+          <div><span>曾用名</span><strong>{supplier.supplierFormerName || supplier.formerName || supplier.basic?.formerName || '-'}</strong></div>
+          <div><span>注册邮箱</span><strong>{supplier.basic?.registerEmail || supplier.registerEmail || supplier.email || '-'}</strong></div>
         </div>
       </PcCard>
       <PcCard className="pc-detail-tabs-card">
