@@ -108,7 +108,7 @@ function exportCsv(rows, columns, filename) {
   window.setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-function SupplierQueryPage({ filters, setFilters, onSearch, onReset, rows, selectedIds, setSelectedIds, onInvite, onRegister, onDelete, onExport, onOpenDetail, onChangeInviter }) {
+function SupplierQueryPage({ filters, setFilters, onSearch, onReset, rows, selectedIds, setSelectedIds, onInvite, onRegister, onDelete, onExport, onOpenDetail, onDetailAction }) {
   const activeFilter = Object.values(filters).some((value) => !!value);
   const columns = [
     { title: '供应商名称', dataIndex: 'name', width: 240, render: (name, record) => <Tooltip title={name}><button className="pc-link pc-name-link" onClick={() => onOpenDetail(record, 'suppliers')}>{name}</button></Tooltip> },
@@ -123,7 +123,14 @@ function SupplierQueryPage({ filters, setFilters, onSearch, onReset, rows, selec
       title: '操作', key: 'actions', width: 190, fixed: 'right', align: 'center',
       render: (_, record) => <Space size={8} className="pc-row-actions">
         <Button type="link" size="small" onClick={() => onOpenDetail(record, 'suppliers')}>详情</Button>
-        {canChangeSupplier(record) && <Button type="link" size="small" onClick={() => onChangeInviter([record.id])}>变更邀请人</Button>}
+        {canChangeSupplier(record) && (
+          <Dropdown menu={{ items: [
+            { key: 'banks', label: '修改银行' },
+            { key: 'inviter', label: '变更邀请人' },
+          ], onClick: ({ key }) => onDetailAction(record, key) }}>
+            <Button size="small">变更 <ChevronDown size={12} /></Button>
+          </Dropdown>
+        )}
       </Space>,
     },
   ];
@@ -193,12 +200,21 @@ function MyInvitationsPage({ filters, setFilters, onSearch, onReset, rows, selec
     { title: '更新时间', dataIndex: 'updated', width: 180, align: 'center' },
     {
       title: '操作', key: 'actions', width: 250, fixed: 'right', align: 'center',
-      render: (_, record) => <Space size={8} wrap className="pc-row-actions">
-        <Button type="link" size="small" onClick={() => onOpenDetail(record, 'invitations')}>详情</Button>
-        {canChangeSupplier(record) && <Button type="link" size="small" onClick={() => onChangeInviter([record.id])}>变更邀请人</Button>}
-        {canReinviteSupplier(record) && <Button type="link" size="small" onClick={() => onReinvite(record)}>重新邀请</Button>}
-        {canDeleteSupplier(record, true) && <Button type="link" danger size="small" onClick={() => onDelete([record.id], true)}>删除</Button>}
-      </Space>,
+      render: (_, record) => {
+        const items = [
+          ...(canChangeSupplier(record) ? [{ key: 'inviter', label: '变更邀请人' }] : []),
+          ...(canReinviteSupplier(record) ? [{ key: 'reinvite', label: '重新邀请' }] : []),
+          ...(canDeleteSupplier(record, true) ? [{ key: 'delete', label: '删除', danger: true }] : []),
+        ];
+        if (!items.length) return '—';
+        return <Dropdown menu={{ items, onClick: ({ key }) => {
+          if (key === 'inviter') onChangeInviter([record.id]);
+          if (key === 'reinvite') onReinvite(record);
+          if (key === 'delete') onDelete([record.id], true);
+        } }}>
+          <Button size="small">变更 <ChevronDown size={12} /></Button>
+        </Dropdown>;
+      },
     },
   ];
 
@@ -451,16 +467,17 @@ function SupplierDetailPage({ supplier, activeTab, setActiveTab, bankEntries, pe
   ];
   return (
     <div className="pc-page-stack">
-      <PcCard className="pc-detail-summary">
-        <div className="pc-detail-identity">
-          <div className="pc-detail-name">{supplier.name}</div>
-          <Space size={8} wrap><StatusTag value={supplier.status} /><span className="pc-detail-meta">{supplier.type}</span><span className="pc-detail-meta">{supplier.mode || '—'}</span></Space>
-        </div>
-        <div className="pc-summary-meta">
+      <PcCard className="pc-detail-overview">
+        <SectionHeading title="基本信息" />
+        <div className="pc-overview-grid">
+          <div><span>供应商名称</span><strong>{supplier.name || '—'}</strong></div>
+          <div><span>供应商类型</span><strong>{supplier.type || '—'}</strong></div>
+          <div><span>供应商账号</span><strong>{supplier.supplierAccount || supplier.userCode || supplier.account || '—'}</strong></div>
+          <div><span>供应商状态</span><strong><StatusTag value={supplier.status} /></strong></div>
           <div><span>邀请人</span><strong>{supplier.inviter || '—'}</strong></div>
           <div><span>邀请时间</span><strong>{supplier.date || '—'}</strong></div>
-          <div><span>更新时间</span><strong>{supplier.updated || '—'}</strong></div>
-          <div><span>供应商账号</span><strong>{supplier.supplierAccount || supplier.userCode || '—'}</strong></div>
+          <div><span>注册方式</span><strong>{supplier.mode || '—'}</strong></div>
+          <div><span>曾用名</span><strong>{supplier.supplierFormerName || supplier.formerName || '—'}</strong></div>
           <div><span>注册邮箱</span><strong>{supplier.email || '—'}</strong></div>
         </div>
       </PcCard>
@@ -662,10 +679,10 @@ function PcAdminApp() {
     if (window.location.hash === '#' + path) { setRoute(readRoute()); return; }
     window.location.hash = path;
   };
-  const openDetail = (supplier, fromPage) => {
+  const openDetail = (supplier, fromPage, tab = 'supplier') => {
     detailReturnPage.current = fromPage;
     if (mainScrollRef.current) scrollPositions.current[fromPage] = mainScrollRef.current.scrollTop;
-    setActiveDetailTab('supplier');
+    setActiveDetailTab(tab);
     navigate('/admin/suppliers/' + encodeURIComponent(supplier.id));
   };
   const backFromDetail = () => navigate(detailReturnPage.current === 'invitations' ? '/admin/invitations' : '/admin/suppliers');
@@ -759,6 +776,10 @@ function PcAdminApp() {
   };
 
   const openInviter = (ids) => { setInviterTargetIds(ids); setInviterOpen(true); };
+  const handleSupplierAction = (record, key) => {
+    if (key === 'inviter') openInviter([record.id]);
+    else openDetail(record, 'suppliers', key);
+  };
   const handleInviterSubmit = (newInviter) => {
     const targets = suppliers.filter((record) => inviterTargetIds.includes(record.id));
     const invalid = targets.filter((record) => !canChangeSupplier(record));
@@ -984,7 +1005,7 @@ function PcAdminApp() {
                     onDelete={handleDelete}
                     onExport={handleExportSuppliers}
                     onOpenDetail={openDetail}
-                    onChangeInviter={openInviter}
+                    onDetailAction={handleSupplierAction}
                   />
                 )}
               </div>
