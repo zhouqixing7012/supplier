@@ -1040,7 +1040,7 @@ function PcAdminApp() {
         <div className="pc-workspace">
           <aside className={'pc-sidebar ' + (sidebarScrolled ? 'is-scrolled' : '')}>
             <a className="pc-sidebar-brand" href="#/admin/suppliers" aria-label="搜狐供应商管理平台">
-              <img className="pc-sidebar-logo" src="/sohu-logo.svg" alt="搜狐" />
+              <img className="pc-sidebar-logo" src="/sohu-logo.png" alt="搜狐" />
               <span className="pc-sidebar-brand-label">供应商管理平台</span>
             </a>
             <div id="pc-sidebar-navigation" className="pc-sidebar-nav" role="navigation" aria-label="后台主导航" onScroll={(event) => setSidebarScrolled(event.currentTarget.scrollTop > 0)}>

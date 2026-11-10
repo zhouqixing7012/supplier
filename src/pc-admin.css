@@ -1030,3 +1030,132 @@ body:has(.pc-app) .ant-dropdown .ant-dropdown-menu-item { min-height: 34px; bord
   padding-inline: 8px;
   font-size: 14px;
 }
+
+
+/* 防止窄容器、长文本和带菜单操作在 flex / grid 中互相挤压 */
+.pc-detail-identity {
+  flex-wrap: wrap;
+  align-items: center;
+  row-gap: 8px;
+}
+.pc-detail-identity-main {
+  flex: 1 1 320px;
+  max-width: 100%;
+}
+.pc-detail-identity-main h1 {
+  flex: 0 1 auto;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+.pc-detail-identity-status {
+  max-width: 100%;
+  flex-wrap: wrap;
+}
+.pc-detail-identity-status .pc-status { flex: 0 0 auto; }
+
+.pc-row-actions {
+  display: inline-flex;
+  min-width: 0;
+  max-width: 100%;
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.pc-row-actions .ant-space-item {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+}
+.pc-row-actions .ant-dropdown,
+.pc-row-actions .ant-dropdown-trigger {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+}
+.pc-row-actions .pc-row-action-button {
+  display: inline-flex;
+  min-width: 72px;
+  max-width: 100%;
+  height: 32px;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding-inline: 8px;
+  line-height: 20px;
+  white-space: nowrap;
+}
+.pc-row-actions .pc-row-action-button > svg {
+  display: block;
+  flex: 0 0 auto;
+  margin: 0;
+}
+
+.pc-table .ant-table-cell {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+.pc-table .ant-table-tbody > tr > td {
+  height: auto;
+  min-height: 40px;
+  line-height: 20px;
+}
+.pc-table .ant-table-cell .pc-row-actions { white-space: nowrap; }
+
+.pc-modal-record {
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 6px 16px;
+}
+.pc-modal-record span:first-child {
+  min-width: 0;
+  flex: 1 1 160px;
+  overflow-wrap: anywhere;
+}
+.pc-modal-record span:last-child {
+  min-width: 0;
+  flex: 1 1 180px;
+  overflow-wrap: anywhere;
+  text-align: right;
+}
+.pc-bank-field { min-width: 0; }
+.pc-bank-field > label {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+.pc-upload-control { min-width: 0; flex-wrap: wrap; }
+.pc-upload-name {
+  min-width: 0;
+  max-width: 100%;
+  flex: 1 1 160px;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+.pc-topbar-context { flex: 1 1 0; }
+.pc-topbar-actions { min-width: 0; flex: 0 0 auto; }
+.pc-user-trigger { min-width: 0; max-width: 160px; }
+.pc-user-name {
+  display: block;
+  min-width: 0;
+  max-width: 104px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pc-sidebar-brand { min-width: 0; }
+.pc-sidebar-logo { width: 50px; height: auto; flex: 0 0 50px; object-fit: contain; }
+.pc-sidebar-brand-label { min-width: 0; flex: 1 1 auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+@media (max-width: 760px) {
+  .pc-detail-identity { align-items: flex-start; flex-direction: column; }
+  .pc-detail-identity-main { flex: 1 1 auto; }
+  .pc-detail-identity-status { align-self: flex-start; }
+  .pc-modal-record span:last-child { text-align: left; }
+  .pc-topbar-actions { gap: 6px; padding-inline: 8px; }
+}
