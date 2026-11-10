@@ -1,6 +1,6 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { Avatar, Breadcrumb, Button, ConfigProvider, DatePicker, Dropdown, Empty, Form, Input, Modal, Select, Space, Table, Tabs, Tag, Tooltip, message } from 'antd';
-import { Building2, ChevronDown, ChevronsLeft, ChevronsRight, CircleHelp, ClipboardList, Download, LayoutDashboard, LogOut, Plus, Search, Trash2, UserRound, UserRoundPlus } from 'lucide-react';
+import { Building2, ChevronDown, ChevronsLeft, ChevronsRight, CircleHelp, ClipboardList, Download, LayoutDashboard, LogOut, Plus, RefreshCcw, Search, Trash2, UserRound, UserRoundPlus } from 'lucide-react';
 import { bankDirectory, branches, cooperation, initialSuppliers, people, supplierIndustries, supplierStates, supplierTypes } from './pages/mobile-data.js';
 import { bankChange, bankChangeCounts, normalizeBankChanges, readBankDraft, writeBankDraft } from './pages/mobile-bank-changes.js';
 import { blankBank, bankError, fieldsFor } from './pages/mobile-forms.jsx';
@@ -24,6 +24,31 @@ const dateText = (value) => value && typeof value.format === 'function' ? value.
 const valueOrDash = (value) => value === null || value === undefined || value === '' ? '-' : value;
 const readBankDraftSafe = (id) => { try { return readBankDraft(id); } catch { return null; } };
 
+function useScrollbarActivity() {
+  const timers = useRef(new Map());
+  useEffect(() => () => {
+    timers.current.forEach((timer, element) => {
+      window.clearTimeout(timer);
+      element.classList.remove('is-scroll-active');
+    });
+    timers.current.clear();
+  }, []);
+  return useCallback((event) => {
+    const target = event.target;
+    if (!(target instanceof HTMLElement)) return;
+    const regions = new Set([target, target.closest('.ant-table-wrapper')]);
+    regions.forEach((element) => {
+      if (!element) return;
+      window.clearTimeout(timers.current.get(element));
+      element.classList.add('is-scroll-active');
+      timers.current.set(element, window.setTimeout(() => {
+        element.classList.remove('is-scroll-active');
+        timers.current.delete(element);
+      }, 600));
+    });
+  }, []);
+}
+
 function readRoute() {
   const path = window.location.hash.replace(/^#/, '') || '/admin/suppliers';
   const detail = path.match(/^\/admin\/suppliers\/([^/?]+)/);
@@ -38,7 +63,9 @@ function StatusTag({ value }) {
 }
 
 function QueryField({ label, children }) {
-  return <div className="pc-query-field"><label>{label}</label><div className="pc-query-control">{children}</div></div>;
+  const id = useId();
+  const control = React.isValidElement(children) ? React.cloneElement(children, { id: children.props.id || id }) : children;
+  return <div className="pc-query-field"><label htmlFor={id} title={label}>{label}</label><div className="pc-query-control">{control}</div></div>;
 }
 
 function DetailGrid({ fields = [] }) {
@@ -79,21 +106,18 @@ function PcCard({ className = '', children }) {
   return <section className={'pc-card ' + className}>{children}</section>;
 }
 
+function PcTable({ columns = [], className = '', size = 'small', bordered = true, ...props }) {
+  const normalizedColumns = columns.map((column) => (
+    column.dataIndex && column.ellipsis === undefined ? { ...column, ellipsis: true } : column
+  ));
+  const classes = [...new Set(['pc-table', ...className.split(/\s+/).filter(Boolean)])].join(' ');
+  return <Table {...props} columns={normalizedColumns} className={classes} size={size} bordered={bordered} />;
+}
+
 function SectionHeading({ title, extra }) {
   return <div className="pc-section-heading"><h3>{title}</h3>{extra}</div>;
 }
 
-function PageHeading({ title, description, extra }) {
-  return (
-    <div className="pc-page-heading">
-      <div className="pc-page-heading-copy">
-        <h1>{title}</h1>
-        {description && <p>{description}</p>}
-      </div>
-      {extra && <div className="pc-page-heading-extra">{extra}</div>}
-    </div>
-  );
-}
 
 function EmptyContent({ description = '暂无数据' }) {
   return <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={description} className="pc-empty" />;
@@ -137,7 +161,7 @@ function SupplierQueryPage({ filters, setFilters, onSearch, onReset, rows, selec
     { title: '邀请人', dataIndex: 'inviter', width: 110 },
     { title: '邀请时间', dataIndex: 'date', width: 180, align: 'center' },
     { title: '更新时间', dataIndex: 'updated', width: 180, align: 'center' },
-    { title: '评分', dataIndex: 'score', width: 100, align: 'center', render: (value) => value || '未评分' },
+    { title: '评分', dataIndex: 'score', width: 100, align: 'right', render: (value) => value || '未评分' },
     {
       title: '操作', key: 'actions', width: 190, fixed: 'right', align: 'center',
       render: (_, record) => <Space size={8} className="pc-row-actions">
@@ -156,7 +180,6 @@ function SupplierQueryPage({ filters, setFilters, onSearch, onReset, rows, selec
 
   return (
     <div className="pc-page-stack">
-      <PageHeading title="供应商查询" description="查询和维护平台内的供应商资料、合作状态及相关信息。" />
       <PcCard className="pc-query-card">
         <div className="pc-query-grid">
           <QueryField label="供应商名称"><Input allowClear value={filters.name} placeholder="请输入供应商名称" onChange={(event) => setFilters('name', event.target.value)} onPressEnter={onSearch} /></QueryField>
@@ -167,7 +190,7 @@ function SupplierQueryPage({ filters, setFilters, onSearch, onReset, rows, selec
           <QueryField label="供应商推荐"><Select allowClear showSearch optionFilterProp="label" value={filters.recommended || undefined} placeholder="请选择供应商推荐" options={supplierIndustries.map((value) => ({ value, label: value }))} onChange={(value) => setFilters('recommended', value || '')} /></QueryField>
           <QueryField label="邀请人"><Input allowClear value={filters.inviter} placeholder="请输入邀请人" onChange={(event) => setFilters('inviter', event.target.value)} onPressEnter={onSearch} /></QueryField>
         </div>
-        <div className="pc-query-actions"><Button onClick={onReset}>重置</Button><Button type="primary" icon={<Search size={15} />} onClick={onSearch}>查询</Button></div>
+        <div className="pc-query-actions"><Button icon={<RefreshCcw size={14} />} onClick={onReset}>重置</Button><Button type="primary" icon={<Search size={15} />} onClick={onSearch}>查询</Button></div>
       </PcCard>
 
       <PcCard className="pc-list-card">
@@ -181,7 +204,7 @@ function SupplierQueryPage({ filters, setFilters, onSearch, onReset, rows, selec
           <div className="pc-list-meta"><span>共 <strong>{rows.length}</strong> 家供应商</span><span className="pc-demo-note">演示数据</span></div>
         </div>
         {selectedIds.length > 0 && <div className="pc-batch-bar"><span>已选择 <strong>{selectedIds.length}</strong> 条</span><Button type="link" danger size="small" onClick={() => onDelete(selectedIds, false)}>删除所选</Button><Button type="link" size="small" onClick={() => setSelectedIds([])}>取消选择</Button></div>}
-        <Table
+        <PcTable
           rowKey="id"
           className="pc-table"
           bordered
@@ -240,7 +263,6 @@ function MyInvitationsPage({ filters, setFilters, onSearch, onReset, rows, selec
 
   return (
     <div className="pc-page-stack">
-      <PageHeading title="我的邀请" description="查看本人邀请的供应商，跟进注册进度并维护邀请信息。" />
       <PcCard className="pc-query-card">
         <div className="pc-query-grid">
           <QueryField label="供应商名称"><Input allowClear value={filters.name} placeholder="请输入供应商名称" onChange={(event) => setFilters('name', event.target.value)} onPressEnter={onSearch} /></QueryField>
@@ -250,7 +272,7 @@ function MyInvitationsPage({ filters, setFilters, onSearch, onReset, rows, selec
           <QueryField label="邀请时间（止）"><DatePicker value={filters.end} placeholder="请选择结束日期" format="YYYY-MM-DD" onChange={(value) => setFilters('end', value)} /></QueryField>
           <QueryField label="注册编号"><Input allowClear value={filters.registrationNumber} placeholder="请输入注册编号" onChange={(event) => setFilters('registrationNumber', event.target.value)} onPressEnter={onSearch} /></QueryField>
         </div>
-        <div className="pc-query-actions"><Button onClick={onReset}>重置</Button><Button type="primary" icon={<Search size={15} />} onClick={onSearch}>查询</Button></div>
+        <div className="pc-query-actions"><Button icon={<RefreshCcw size={14} />} onClick={onReset}>重置</Button><Button type="primary" icon={<Search size={15} />} onClick={onSearch}>查询</Button></div>
       </PcCard>
 
       <PcCard className="pc-list-card">
@@ -259,7 +281,7 @@ function MyInvitationsPage({ filters, setFilters, onSearch, onReset, rows, selec
           <div className="pc-list-meta"><span>共 <strong>{rows.length}</strong> 家供应商</span><span className="pc-demo-note">演示数据</span></div>
         </div>
         {selectedIds.length > 0 && <div className="pc-batch-bar"><span>已选择 <strong>{selectedIds.length}</strong> 条</span><Button type="link" danger size="small" disabled={!allDeletable} onClick={() => onDelete(selectedIds, true)}>删除所选</Button><Button type="link" size="small" onClick={() => setSelectedIds([])}>取消选择</Button></div>}
-        <Table
+        <PcTable
           rowKey="id"
           className="pc-table"
           bordered
@@ -284,7 +306,7 @@ function MyInvitationsPage({ filters, setFilters, onSearch, onReset, rows, selec
 
 function SupplierInformation({ supplier }) {
   const basic = supplier.basic || {};
-  const fields = fieldsFor(supplier.type).map(([key, label, required, kind]) => ({
+  const fields = fieldsFor(supplier.type).filter(([key]) => key !== 'supplierName').map(([key, label, required, kind]) => ({
     label,
     value: key === 'supplierName' ? supplier.name : key === 'creditCode' ? (basic[key] || supplier.code) : key === 'industry' ? (basic[key] || supplier.industry) : basic[key],
     span: kind === 'textarea' ? 3 : kind === 'address' ? 2 : 1,
@@ -297,7 +319,6 @@ function RegistrationInformation({ supplier }) {
   return <DetailGrid fields={[
     { label: '供应商账号', value: supplier.supplierAccount || supplier.userCode || supplier.account },
     { label: '注册方式', value: supplier.mode },
-    { label: '供应商状态', value: <StatusTag value={supplier.status} /> },
     { label: '邀请人', value: supplier.inviter },
     { label: '邀请时间', value: supplier.date },
     { label: '更新时间', value: supplier.updated },
@@ -313,7 +334,7 @@ function ContactsTab({ supplier }) {
       : []
   );
   if (!contacts.length) return <EmptyContent description="暂无联系人信息" />;
-  return <Table className="pc-table" bordered size="small" rowKey={(record) => record.id || record.name} dataSource={contacts} pagination={false} columns={[
+  return <PcTable className="pc-table" bordered size="small" rowKey={(record) => record.id || record.name} dataSource={contacts} pagination={false} columns={[
     { title: '联系人姓名', dataIndex: 'name', width: 160 },
     { title: '联系人电话', dataIndex: 'phone', width: 180 },
     { title: '联系人邮箱', dataIndex: 'email', width: 240 },
@@ -336,7 +357,7 @@ function BankInfoTab({ supplier, entries, onAdd, onEdit, onDelete, onReturn, onS
     { title: '账户名称', dataIndex: 'name', width: 170 },
     { title: '银行账号', dataIndex: 'number', width: 190 },
     { title: '币种', dataIndex: 'currency', width: 90, align: 'center' },
-    { title: '开户证明', dataIndex: 'proof', width: 170, render: (value) => value ? <span className="pc-attachment-name">{value}</span> : '-' },
+    { title: '开户证明', dataIndex: 'proof', width: 170, render: (value) => value ? <span className="pc-attachment-name" title={value}>{value}</span> : '-' },
     { title: '备注', dataIndex: 'note', width: 180 },
     {
       title: '变更状态', key: 'change', width: 130, align: 'center',
@@ -367,7 +388,7 @@ function BankInfoTab({ supplier, entries, onAdd, onEdit, onDelete, onReturn, onS
         {canEdit && <Button type="primary" icon={<Plus size={15} />} onClick={onAdd}>添加银行</Button>}
       </div>
       {entries.length ? (
-        <Table
+        <PcTable
           className="pc-table"
           bordered
           size="small"
@@ -386,7 +407,7 @@ function BankInfoTab({ supplier, entries, onAdd, onEdit, onDelete, onReturn, onS
 function PermissionsTab({ supplier }) {
   const records = supplier.permissions || [];
   if (!records.length) return <EmptyContent description="暂无权限记录" />;
-  return <Table className="pc-table" bordered size="small" rowKey="id" dataSource={records} pagination={false} columns={[
+  return <PcTable className="pc-table" bordered size="small" rowKey="id" dataSource={records} pagination={false} columns={[
     { title: '所属权限', dataIndex: 'group', width: 220 },
     { title: '权限分类', dataIndex: 'category', width: 240 },
     { title: '备注', dataIndex: 'note' },
@@ -396,7 +417,7 @@ function PermissionsTab({ supplier }) {
 function FinanceOUTab({ supplier }) {
   const records = supplier.financeOus || [];
   if (!records.length) return <EmptyContent description="暂无财务OU信息" />;
-  return <Table className="pc-table" bordered size="small" rowKey="id" dataSource={records} pagination={false} scroll={{ x: 'max-content' }} columns={[
+  return <PcTable className="pc-table" bordered size="small" rowKey="id" dataSource={records} pagination={false} scroll={{ x: 'max-content' }} columns={[
     { title: '财务OU名称', dataIndex: 'orgName', width: 280 },
     { title: '负债账户', dataIndex: 'liabilityAccount', width: 300 },
     { title: '预付款账户', dataIndex: 'prepayAccount', width: 300 },
@@ -407,7 +428,7 @@ function FinanceOUTab({ supplier }) {
 function BlacklistTab({ supplier }) {
   const records = supplier.blacklistRecords || [];
   if (!records.length) return <EmptyContent description="暂无黑名单操作记录" />;
-  return <Table className="pc-table" bordered size="small" rowKey="id" dataSource={records} pagination={false} scroll={{ x: 'max-content' }} columns={[
+  return <PcTable className="pc-table" bordered size="small" rowKey="id" dataSource={records} pagination={false} scroll={{ x: 'max-content' }} columns={[
     { title: '操作状态', dataIndex: 'status', width: 110, align: 'center', render: (value) => <StatusTag value={value} /> },
     { title: '拉黑操作人', dataIndex: 'applyUser', width: 170 },
     { title: '拉黑操作时间', dataIndex: 'applyTime', width: 180, align: 'center' },
@@ -425,18 +446,18 @@ function ApprovalTab({ supplier }) {
     <div className="pc-approval-tab">
       {history.length > 0 && <div className="pc-section-block">
         <SectionHeading title="历史审批记录" />
-        <Table className="pc-table" bordered size="small" rowKey="number" dataSource={history} pagination={false} columns={[
+        <PcTable className="pc-table" bordered size="small" rowKey="number" dataSource={history} pagination={false} columns={[
           { title: '审批单号', dataIndex: 'number', width: 220 },
           { title: '审批类型', dataIndex: 'type', width: 150 },
           { title: '审批状态', dataIndex: 'status', width: 110, align: 'center', render: (value) => <StatusTag value={value} /> },
           { title: '发起人', dataIndex: 'initiator', width: 160 },
           { title: '发起时间', dataIndex: 'startedAt', width: 180, align: 'center' },
-          { title: '审批节点数', width: 110, align: 'center', render: (_, record) => record.nodes?.length || 0 },
+          { title: '审批节点数', width: 110, align: 'right', render: (_, record) => record.nodes?.length || 0 },
         ]} />
       </div>}
       {nodes.length > 0 && <div className="pc-section-block">
         <SectionHeading title="当前审批进度" />
-        <Table className="pc-table" bordered size="small" rowKey="id" dataSource={nodes} pagination={false} columns={[
+        <PcTable className="pc-table" bordered size="small" rowKey="id" dataSource={nodes} pagination={false} columns={[
           { title: '审批环节', dataIndex: 'name', width: 150 },
           { title: '审批人', dataIndex: 'person', width: 170 },
           { title: '审批状态', dataIndex: 'status', width: 110, align: 'center', render: (value) => <StatusTag value={value} /> },
@@ -452,14 +473,14 @@ function ApprovalTab({ supplier }) {
 function CooperationTab({ supplier }) {
   const records = cooperation.filter((record) => record.name === supplier.name);
   if (!records.length) return <EmptyContent description="暂无合作信息及评分记录" />;
-  return <Table className="pc-table" bordered size="small" rowKey="id" dataSource={records} pagination={false} scroll={{ x: 'max-content' }} columns={[
+  return <PcTable className="pc-table" bordered size="small" rowKey="id" dataSource={records} pagination={false} scroll={{ x: 'max-content' }} columns={[
     { title: '合作类型', dataIndex: 'type', width: 150 },
     { title: '合作内容', dataIndex: 'content', width: 240 },
     { title: '业务线联系人', dataIndex: 'person', width: 150 },
     { title: '所属部门', dataIndex: 'department', width: 280 },
     { title: '合作时间', dataIndex: 'date', width: 140, align: 'center' },
     { title: '评分时间', dataIndex: 'rated', width: 180, align: 'center' },
-    { title: '评价得分', dataIndex: 'score', width: 110, align: 'center' },
+    { title: '评价得分', dataIndex: 'score', width: 110, align: 'right' },
   ]} />;
 }
 
@@ -477,19 +498,13 @@ function SupplierDetailPage({ supplier, activeTab, setActiveTab, bankEntries, pe
   ];
   return (
     <div className="pc-page-stack">
-      <PageHeading title="供应商详情" description="查看供应商档案、账户资料、审批记录及合作信息。" />
       <PcCard className="pc-detail-overview">
-        <SectionHeading title="基本信息" />
-        <div className="pc-overview-grid">
-          <div><span>供应商名称</span><strong>{supplier.name || '-'}</strong></div>
-          <div><span>供应商类型</span><strong>{supplier.type || '-'}</strong></div>
-          <div><span>供应商账号</span><strong>{supplier.supplierAccount || supplier.userCode || supplier.account || supplier.basic?.supplierAccount || '-'}</strong></div>
-          <div><span>供应商状态</span><strong><StatusTag value={supplier.status} /></strong></div>
-          <div><span>邀请人</span><strong>{supplier.inviter || '-'}</strong></div>
-          <div><span>邀请时间</span><strong>{supplier.date || '-'}</strong></div>
-          <div><span>注册方式</span><strong>{supplier.mode || '-'}</strong></div>
-          <div><span>曾用名</span><strong>{supplier.supplierFormerName || supplier.formerName || supplier.basic?.formerName || '-'}</strong></div>
-          <div><span>注册邮箱</span><strong>{supplier.basic?.registerEmail || supplier.registerEmail || supplier.email || '-'}</strong></div>
+        <div className="pc-detail-identity">
+          <div className="pc-detail-identity-main">
+            <h1>{supplier.name || '供应商详情'}</h1>
+            <Tag bordered={false} className="pc-detail-type">{supplier.type || '未知类型'}</Tag>
+          </div>
+          <div className="pc-detail-identity-status"><span>供应商状态</span><StatusTag value={supplier.status} /></div>
         </div>
       </PcCard>
       <PcCard className="pc-detail-tabs-card">
@@ -518,7 +533,6 @@ function BankModal({ open, supplier, bank, onCancel, onSave }) {
       onCancel={onCancel}
       maskClosable={false}
       className="pc-modal"
-      styles={{ body: { maxHeight: 'calc(100vh - 190px)', overflowY: 'auto', padding: '16px 20px' } }}
       footer={[<Button key="cancel" onClick={onCancel}>取消</Button>, <Button key="save" type="primary" onClick={() => onSave(draft)}>保存此账户</Button>]}
     >
       <div className="pc-bank-form-grid">
@@ -547,7 +561,7 @@ function BankModal({ open, supplier, bank, onCancel, onSave }) {
           <label>{company && <em>*</em>}开户证明</label>
           <div className="pc-upload-control">
             <label className="pc-upload-button"><Plus size={15} /><span>{draft.proof ? '替换文件' : '上传文件'}</span><input type="file" onChange={(event) => change('proof', event.target.files?.[0]?.name || '')} /></label>
-            <span className="pc-upload-name">{draft.proof || '未上传'}</span>
+            <span className="pc-upload-name" title={draft.proof || undefined}>{draft.proof || '未上传'}</span>
           </div>
         </div>
         <div className="pc-bank-field pc-bank-field-wide"><label>备注</label><Input.TextArea value={draft.note} maxLength={400} rows={3} placeholder="请输入备注" onChange={(event) => change('note', event.target.value)} /></div>
@@ -640,6 +654,7 @@ function PcAdminApp() {
   const [bankModal, setBankModal] = useState(null);
   const [helpOpen, setHelpOpen] = useState(false);
   const [messageApi, contextHolder] = message.useMessage();
+  const onScrollbarActivity = useScrollbarActivity();
 
   useEffect(() => {
     const onHashChange = () => setRoute(readRoute());
@@ -934,7 +949,7 @@ function PcAdminApp() {
       },
     }}>
       {contextHolder}
-      <div className={'pc-app ' + (collapsed ? 'is-collapsed' : '')}>
+      <div className={'pc-app ' + (collapsed ? 'is-collapsed' : '')} onScrollCapture={onScrollbarActivity}>
         <header className={'pc-topbar ' + (contentScrolled ? 'is-scrolled' : '')}>
           <a className="pc-brand" href="#/admin/suppliers" aria-label="搜狐供应商管理平台">
             <span className="pc-brand-mark"><strong>搜狐</strong><small>SOHU.com</small></span>
@@ -945,13 +960,13 @@ function PcAdminApp() {
             <Button type="text" icon={<CircleHelp size={16} />} onClick={() => setHelpOpen(true)}>操作指导</Button>
             <span className="pc-topbar-divider" />
             <Dropdown menu={accountMenu} trigger={['click']} placement="bottomRight">
-              <button className="pc-user-trigger" type="button" aria-label="打开账户菜单"><Avatar size={28} className="pc-avatar">陈</Avatar><ChevronDown size={14} /></button>
+              <button className="pc-user-trigger" type="button" aria-label={'打开账户菜单：' + CURRENT_USER}><Avatar size={28} className="pc-avatar">陈</Avatar><span className="pc-user-name">{CURRENT_USER}</span><ChevronDown size={14} /></button>
             </Dropdown>
           </div>
         </header>
         <div className="pc-workspace">
           <aside className={'pc-sidebar ' + (sidebarScrolled ? 'is-scrolled' : '')}>
-            <div className="pc-sidebar-nav" onScroll={(event) => setSidebarScrolled(event.currentTarget.scrollTop > 0)}>
+            <div className="pc-sidebar-nav" role="navigation" aria-label="后台主导航" onScroll={(event) => setSidebarScrolled(event.currentTarget.scrollTop > 0)}>
               <div className="pc-menu-group">
                 <div className="pc-menu-group-title"><Building2 size={15} /><span>供应商管理</span></div>
                 <Tooltip title={collapsed ? '供应商查询' : ''} placement="right"><a className={'pc-menu-item ' + (parentPage === 'suppliers' ? 'is-active' : '')} href="#/admin/suppliers" aria-current={parentPage === 'suppliers' ? 'page' : undefined}><ClipboardList size={16} /><span className="pc-menu-label">供应商查询</span></a></Tooltip>
