@@ -16,10 +16,6 @@ export const branches = [
   { name: '中国农业发展银行北京市分行', bank: bankNames[0], country: '中国', province: '北京市', city: '北京市' },
   { name: '中国农业发展银行天津市分行', bank: bankNames[0], country: '中国', province: '天津市', city: '天津市' },
   { name: '中国农业发展银行河北省分行', bank: bankNames[0], country: '中国', province: '河北省', city: '石家庄市' },
-  { name: '演示分行（北京）', bank: bankNames[1], country: '中国', province: '北京市', city: '北京市' },
-  { name: '演示分行（上海）', bank: bankNames[2], country: '中国', province: '上海市', city: '上海市' },
-  { name: '演示分行（广州）', bank: bankNames[3], country: '中国', province: '广东省', city: '广州市' },
-  { name: '演示分行（深圳）', bank: bankNames[4], country: '中国', province: '广东省', city: '深圳市' },
 ];
 export const people = [
   { name: '周秋珍', userCode: 'MOCK-001', phone: '021-23081605', email: 'qiuzhenzhou@sohu-lab.com', job: '总经理（销售）', department: '广告营销部_华东区域' },
