@@ -3,7 +3,7 @@ body:has(.pc-app) { min-width: 320px; min-height: 100vh; margin: 0; background: 
 .pc-app, .pc-app * { box-sizing: border-box; }
 .pc-app { --pc-blue: #145CFF; --pc-blue-soft: #E5F1FF; --pc-page: #F2F5FA; --pc-border: #D3D9E5; --pc-divider: #edf0f3; --pc-text: #1D2126; --pc-subtext: #545B66; --pc-muted: #848B99; min-height: 100vh; background: var(--pc-page); color: var(--pc-text); font-family: "PingFang SC", "Microsoft YaHei", Arial, sans-serif; font-size: 14px; }
 
-.pc-user-trigger { display: inline-flex; min-width: 36px; height: 36px; align-items: center; justify-content: center; gap: 5px; padding: 0 2px; border: 0; border-radius: 4px; background: transparent; color: var(--pc-subtext); cursor: pointer; }
+.pc-user-trigger { display: inline-flex; min-width: 36px; height: 32px; align-items: center; justify-content: center; gap: 5px; padding: 0 2px; border: 0; border-radius: 4px; background: transparent; color: var(--pc-subtext); cursor: pointer; }
 .pc-user-trigger:hover { background: #F2F5FA; }
 .pc-avatar { background: #E5F1FF !important; color: #145CFF !important; font-size: 13px !important; font-weight: 600; }
 
@@ -46,7 +46,7 @@ body:has(.pc-app) { min-width: 320px; min-height: 100vh; margin: 0; background: 
 .pc-link:hover { color: #0D42D2; text-decoration: underline; text-underline-offset: 3px; }
 .pc-name-link { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pc-row-actions { justify-content: center; white-space: nowrap; }
-.pc-row-actions .ant-btn { padding-inline: 2px; font-size: 13px; }
+.pc-row-actions .ant-btn { min-width: 72px; height: 32px; padding-inline: 8px; font-size: 14px; }
 .pc-status { margin: 0; padding: 2px 8px; border-radius: 4px; font-size: 12px; line-height: 18px; }
 .pc-status-default { background: #F2F5FA; color: #545B66; }
 .pc-status-info { background: #E5F1FF; color: #145CFF; }
@@ -290,6 +290,14 @@ body:has(.pc-app) { min-width: 320px; min-height: 100vh; margin: 0; background: 
 .pc-table .ant-table-tbody > tr.ant-table-row-selected > td { background: #F3F8FF; }
 .pc-table .ant-table-cell { vertical-align: middle; }
 .pc-table .ant-table-cell-ellipsis { white-space: nowrap; }
+.pc-table-full-text {
+  display: inline-block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: bottom;
+  white-space: nowrap;
+}
 .pc-table .ant-table-cell-fix-right,
 .pc-table .ant-table-cell-fix-left { background: #fff; }
 .pc-table .ant-table-cell-fix-right-first::after { box-shadow: inset -8px 0 8px -8px rgba(29, 33, 38, .12); }
