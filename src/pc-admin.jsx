@@ -68,7 +68,7 @@ function QueryField({ label, children }) {
   return (
     <div className="pc-query-item" role="group" aria-label={label}>
       <Tooltip title={label}>
-        <label htmlFor={id} title={label}>{label}</label>
+        <label htmlFor={id} title={label} tabIndex={label.length > 6 ? 0 : undefined}>{label}</label>
       </Tooltip>
       <div className="pc-query-control">{control}</div>
     </div>
@@ -155,10 +155,27 @@ function PcCard({ className = '', children }) {
   return <section className={'pc-card ' + className}>{children}</section>;
 }
 
+function withPcTableFullText(columns = []) {
+  return columns.map((column) => {
+    if (!column) return column;
+    if (column.children) return { ...column, children: withPcTableFullText(column.children) };
+    const normalized = column.dataIndex && column.ellipsis === undefined ? { ...column, ellipsis: true } : column;
+    if (!normalized.ellipsis || normalized.ellipsis?.showTitle === false) return normalized;
+    const render = normalized.render;
+    return {
+      ...normalized,
+      render: (value, record, index) => {
+        const content = render ? render(value, record, index) : value;
+        return typeof content === 'string' || typeof content === 'number'
+          ? <Tooltip title={String(content)} trigger={['hover', 'focus']}><span tabIndex={0} className="pc-table-full-text">{content}</span></Tooltip>
+          : content;
+      },
+    };
+  });
+}
+
 function PcTable({ columns = [], className = '', size = 'small', bordered = true, ...props }) {
-  const normalizedColumns = columns.map((column) => (
-    column.dataIndex && column.ellipsis === undefined ? { ...column, ellipsis: true } : column
-  ));
+  const normalizedColumns = withPcTableFullText(columns);
   const classes = [...new Set(['pc-table', ...className.split(/\s+/).filter(Boolean)])].join(' ');
   return <Table {...props} columns={normalizedColumns} className={classes} size={size} bordered={bordered} />;
 }
@@ -214,13 +231,13 @@ function SupplierQueryPage({ filters, setFilters, onSearch, onReset, rows, selec
     {
       title: '操作', key: 'actions', width: 190, fixed: 'right', align: 'center',
       render: (_, record) => <Space size={8} className="pc-row-actions">
-        <Button type="link" size="small" onClick={() => onOpenDetail(record, 'suppliers')}>详情</Button>
+        <Button type="link" onClick={() => onOpenDetail(record, 'suppliers')}>详情</Button>
         {canChangeSupplier(record) && (
           <Dropdown menu={{ items: [
             { key: 'banks', label: '修改银行' },
             { key: 'inviter', label: '变更邀请人' },
           ], onClick: ({ key }) => onDetailAction(record, key) }}>
-            <Button>变更 <ChevronDown size={14} /></Button>
+            <Button type="link">变更 <ChevronDown size={14} /></Button>
           </Dropdown>
         )}
       </Space>,
@@ -1064,7 +1081,7 @@ function PcAdminApp() {
                 <Button className="pc-help-button" type="text" icon={<CircleHelp size={16} />} onClick={() => setHelpOpen(true)}><span className="pc-help-label">操作指导</span></Button>
                 <span className="pc-topbar-divider" />
                 <Dropdown menu={accountMenu} trigger={['click']} placement="bottomRight">
-                  <button className="pc-user-trigger" type="button" aria-label={'打开账户菜单：' + CURRENT_USER}><Avatar size={28} className="pc-avatar">陈</Avatar><span className="pc-user-name">{CURRENT_USER}</span><ChevronDown size={14} /></button>
+                  <button className="pc-user-trigger" type="button" aria-label={'打开账户菜单：' + CURRENT_USER}><Avatar size={28} className="pc-avatar">{CURRENT_USER.slice(0, 1)}</Avatar><span className="pc-user-name">{CURRENT_USER}</span><ChevronDown size={14} /></button>
                 </Dropdown>
               </div>
             </header>
