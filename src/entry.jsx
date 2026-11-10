@@ -1,4 +1,4 @@
-const getMode = () => window.location.hash.startsWith('#/mobile') ? 'mobile' : window.location.hash.startsWith('#/register/') ? 'register' : 'portal';
+const getMode = () => window.location.hash.startsWith('#/mobile') ? 'mobile' : window.location.hash.startsWith('#/register/') ? 'register' : window.location.hash.startsWith('#/admin') ? 'admin' : 'portal';
 const initialMode = getMode();
 
 window.addEventListener('hashchange', () => {
@@ -11,6 +11,7 @@ window.addEventListener('hashchange', () => {
 const loaders = {
   mobile: () => import('./mobile-entry.jsx'),
   register: () => import('./register-entry.jsx'),
+  admin: () => import('./pc-entry.jsx'),
   portal: () => import('./main.jsx'),
 };
 
