@@ -155,32 +155,27 @@ function FieldValue({ field, raw, value, onPreview }) {
 }
 
 function ChangeGroup({ group, onPreview }) {
-  const changedFields = group.action === '变更' ? group.fields.filter(field => field.changed) : [];
-  const plainFields = group.action === '变更' ? group.fields.filter(field => !field.changed) : group.fields;
+  const deleted = group.action === '删除';
+  const modified = group.action === '变更';
   return <article className="m-change-group" data-change-action={group.action}>
     <header className="m-change-group-heading">
       <h3>{group.title}</h3>
       <span className="m-change-badge" data-action={group.action} aria-label={'变更状态：' + group.action}>{group.action}</span>
     </header>
-    {changedFields.length > 0 && <div className="m-change-group-body">
-      {changedFields.map(field => <div className="m-change-diff-row" key={field.key}>
-        <span className="m-change-diff-label">{field.label}</span>
-        <div className="m-change-diff-values" aria-label={field.label + '修改前后'}>
-          <span className="m-change-value-new"><FieldValue field={field} raw={field.nextRaw} value={field.next} onPreview={onPreview} /></span>
-          <span className="m-change-value-old"><FieldValue field={field} raw={field.previousRaw} value={field.previous} onPreview={onPreview} /></span>
-        </div>
-      </div>)}
-    </div>}
-    {plainFields.length > 0 && <div className="m-change-plain-list">
-      {plainFields.map(field => {
-        const raw = group.action === '删除' ? field.previousRaw : field.nextRaw;
-        const value = group.action === '删除' ? field.previous : field.next;
-        return <div className="m-change-plain-row" key={field.key}>
-          <span className="m-change-plain-label">{field.label}</span>
-          <span className="m-change-plain-value"><FieldValue field={field} raw={raw} value={value} onPreview={onPreview} /></span>
+    <div className="m-change-group-body">
+      {group.fields.map(field => {
+        const raw = deleted ? field.previousRaw : field.nextRaw;
+        const value = deleted ? field.previous : field.next;
+        return <div className="m-change-field-row" key={field.key}>
+          <span className="m-change-field-label">{field.label}</span>
+          <div className="m-change-field-values" aria-label={field.label + (modified && field.changed ? '修改前后' : '')}>
+            {modified && field.changed
+              ? <><span className="m-change-value-new"><FieldValue field={field} raw={field.nextRaw} value={field.next} onPreview={onPreview} /></span><span className="m-change-value-old"><FieldValue field={field} raw={field.previousRaw} value={field.previous} onPreview={onPreview} /></span></>
+              : <span className="m-change-value-normal"><FieldValue field={field} raw={raw} value={value} onPreview={onPreview} /></span>}
+          </div>
         </div>;
       })}
-    </div>}
+    </div>
   </article>;
 }
 
