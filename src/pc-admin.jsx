@@ -8,6 +8,13 @@ import { canChangeSupplier, canDeleteSupplier, canReinviteSupplier } from './pag
 import { reinviteCandidate } from './pages/mobile-edit-rules.js';
 
 const CURRENT_USER = '陈才慧';
+const pcBranches = [
+  ...branches,
+  { name: '演示分行（北京）', bank: bankDirectory[1]?.name, country: '中国', province: '北京市', city: '北京市' },
+  { name: '演示分行（上海）', bank: bankDirectory[2]?.name, country: '中国', province: '上海市', city: '上海市' },
+  { name: '演示分行（广州）', bank: bankDirectory[3]?.name, country: '中国', province: '广东省', city: '广州市' },
+  { name: '演示分行（深圳）', bank: bankDirectory[4]?.name, country: '中国', province: '广东省', city: '深圳市' },
+].filter((item) => item.bank);
 const EMPTY_SUPPLIER_FILTERS = { name: '', type: '', status: '', recommended: '', inviter: '', start: null, end: null };
 const EMPTY_INVITATION_FILTERS = { name: '', status: '', type: '', registrationNumber: '', start: null, end: null };
 const clone = (value) => JSON.parse(JSON.stringify(value));
@@ -485,8 +492,8 @@ function BankModal({ open, supplier, bank, onCancel, onSave }) {
     setDraft(bank ? { ...bank } : { ...blankBank(supplier?.name || ''), id: newId() });
   }, [open, bank, supplier?.name]);
   const change = (key, value) => setDraft((current) => ({ ...current, [key]: value }));
-  const branchOptions = branches.filter((item) => item.bank === draft.bank).map((item) => ({ value: item.name, label: item.name }));
-  const selectedBranch = branches.find((item) => item.name === draft.branch);
+  const branchOptions = pcBranches.filter((item) => item.bank === draft.bank).map((item) => ({ value: item.name, label: item.name }));
+  const selectedBranch = pcBranches.find((item) => item.name === draft.branch);
   return (
     <Modal
       open={open}
@@ -511,7 +518,7 @@ function BankModal({ open, supplier, bank, onCancel, onSave }) {
         <div className="pc-bank-field">
           <label><em>*</em>银行分行</label>
           <Select showSearch optionFilterProp="label" value={draft.branch || undefined} placeholder={draft.bank ? '请选择银行分行' : '请先选择开户银行'} disabled={!draft.bank} options={branchOptions} onChange={(value) => {
-            const branch = branches.find((item) => item.name === value);
+            const branch = pcBranches.find((item) => item.name === value);
             setDraft((current) => ({ ...current, branch: value, country: branch?.country || current.country, province: branch?.province || '', city: branch?.city || '' }));
           }} />
         </div>
