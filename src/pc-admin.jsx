@@ -231,13 +231,13 @@ function SupplierQueryPage({ filters, setFilters, onSearch, onReset, rows, selec
     {
       title: '操作', key: 'actions', width: 190, fixed: 'right', align: 'center',
       render: (_, record) => <Space size={8} className="pc-row-actions">
-        <Button className="pc-row-action-button" type="link" onClick={() => onOpenDetail(record, 'suppliers')}>详情</Button>
+        <Button className="pc-row-action-button" type="link" size="small" onClick={() => onOpenDetail(record, 'suppliers')}>详情</Button>
         {canChangeSupplier(record) && (
-          <Dropdown menu={{ items: [
+          <Dropdown trigger={['click']} menu={{ items: [
             { key: 'banks', label: '修改银行' },
             { key: 'inviter', label: '变更邀请人' },
           ], onClick: ({ key }) => onDetailAction(record, key) }}>
-            <Button className="pc-row-action-button" type="link">变更 <ChevronDown size={14} /></Button>
+            <Button className="pc-row-action-button" type="link" size="small">变更 <ChevronDown size={14} /></Button>
           </Dropdown>
         )}
       </Space>,
@@ -252,6 +252,7 @@ function SupplierQueryPage({ filters, setFilters, onSearch, onReset, rows, selec
         <QueryField label="供应商状态"><Select allowClear value={filters.status || undefined} placeholder="请选择供应商状态" options={supplierStates.map((value) => ({ value, label: value }))} onChange={(value) => setFilters('status', value || '')} /></QueryField>
         <QueryField label="邀请时间">
           <DatePicker.RangePicker
+            className="pc-query-range"
             allowClear
             allowEmpty={[true, true]}
             format="YYYY-MM-DD"
@@ -327,12 +328,12 @@ function MyInvitationsPage({ filters, setFilters, onSearch, onReset, rows, selec
           ...(canDeleteSupplier(record, true) ? [{ key: 'delete', label: '删除', danger: true }] : []),
         ];
         if (!items.length) return '-';
-        return <Dropdown menu={{ items, onClick: ({ key }) => {
+        return <Dropdown trigger={['click']} menu={{ items, onClick: ({ key }) => {
           if (key === 'inviter') onChangeInviter([record.id]);
           if (key === 'reinvite') onReinvite(record);
           if (key === 'delete') onDelete([record.id], true);
         } }}>
-          <Button className="pc-row-action-button" type="link">变更 <ChevronDown size={14} /></Button>
+          <Button className="pc-row-action-button" type="link" size="small">变更 <ChevronDown size={14} /></Button>
         </Dropdown>;
       },
     },
@@ -346,6 +347,7 @@ function MyInvitationsPage({ filters, setFilters, onSearch, onReset, rows, selec
         <QueryField label="供应商类型"><Select allowClear value={filters.type || undefined} placeholder="请选择供应商类型" options={supplierTypes.map((value) => ({ value, label: value }))} onChange={(value) => setFilters('type', value || '')} /></QueryField>
         <QueryField label="邀请时间">
           <DatePicker.RangePicker
+            className="pc-query-range"
             allowClear
             allowEmpty={[true, true]}
             format="YYYY-MM-DD"
