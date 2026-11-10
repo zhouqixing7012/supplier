@@ -1159,3 +1159,13 @@ body:has(.pc-app) .ant-dropdown .ant-dropdown-menu-item { min-height: 34px; bord
   .pc-modal-record span:last-child { text-align: left; }
   .pc-topbar-actions { gap: 6px; padding-inline: 8px; }
 }
+
+
+@media (max-width: 960px) {
+  .pc-sidebar-logo { width: 48px; flex-basis: 48px; }
+}
+@media (max-width: 520px) {
+  .pc-user-name,
+  .pc-topbar-divider,
+  .pc-help-label { display: none; }
+}
