@@ -102,6 +102,6 @@
 
 - src/entry.jsx 识别 #/admin 并动态加载 src/pc-entry.jsx；PC入口独立加载 Ant Design reset 和 src/pc-admin.css，与移动端样式隔离。
 - src/pc-admin.jsx 负责PC页面路由、侧栏与顶栏、供应商查询、我的邀请、供应商详情、银行信息维护及页面级演示状态。
-- PC页面复用 mobile-data.js、mobile-rules.js、mobile-edit-rules.js、mobile-bank-changes.js、mobile-forms.jsx 中的数据、权限判断、重复邀请判断、银行变更暂存、字段定义及校验规则。
+- PC页面复用 mobile-data.js 中的供应商与银行基础目录，以及 mobile-rules.js、mobile-edit-rules.js、mobile-bank-changes.js、mobile-forms.jsx 中的权限判断、重复邀请判断、银行变更暂存、字段定义及校验规则；PC演示分行选项独立维护，不扩充移动端分行目录。
 - 银行待提交资料由 mobile-bank-changes.js 使用浏览器本地存储维护；供应商列表演示状态保存在当前浏览器会话。
 - PC管理平台当前覆盖截图对应的供应商查询、我的邀请、供应商详情和新增银行弹窗；其他菜单按实际页面完成情况逐步开放，不使用无功能占位菜单。
