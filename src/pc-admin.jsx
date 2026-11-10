@@ -83,6 +83,18 @@ function SectionHeading({ title, extra }) {
   return <div className="pc-section-heading"><h3>{title}</h3>{extra}</div>;
 }
 
+function PageHeading({ title, description, extra }) {
+  return (
+    <div className="pc-page-heading">
+      <div className="pc-page-heading-copy">
+        <h1>{title}</h1>
+        {description && <p>{description}</p>}
+      </div>
+      {extra && <div className="pc-page-heading-extra">{extra}</div>}
+    </div>
+  );
+}
+
 function EmptyContent({ description = '暂无数据' }) {
   return <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={description} className="pc-empty" />;
 }
@@ -144,6 +156,7 @@ function SupplierQueryPage({ filters, setFilters, onSearch, onReset, rows, selec
 
   return (
     <div className="pc-page-stack">
+      <PageHeading title="供应商查询" description="查询和维护平台内的供应商资料、合作状态及相关信息。" />
       <PcCard className="pc-query-card">
         <div className="pc-query-grid">
           <QueryField label="供应商名称"><Input allowClear value={filters.name} placeholder="请输入供应商名称" onChange={(event) => setFilters('name', event.target.value)} onPressEnter={onSearch} /></QueryField>
@@ -165,7 +178,7 @@ function SupplierQueryPage({ filters, setFilters, onSearch, onReset, rows, selec
             <Button danger disabled={!selectedIds.length} icon={<Trash2 size={15} />} onClick={() => onDelete(selectedIds, false)}>删除</Button>
             <Button icon={<Download size={15} />} onClick={onExport}>导出</Button>
           </Space>
-          <span className="pc-demo-note">演示数据</span>
+          <div className="pc-list-meta"><span>共 <strong>{rows.length}</strong> 家供应商</span><span className="pc-demo-note">演示数据</span></div>
         </div>
         {selectedIds.length > 0 && <div className="pc-batch-bar"><span>已选择 <strong>{selectedIds.length}</strong> 条</span><Button type="link" danger size="small" onClick={() => onDelete(selectedIds, false)}>删除所选</Button><Button type="link" size="small" onClick={() => setSelectedIds([])}>取消选择</Button></div>}
         <Table
@@ -227,6 +240,7 @@ function MyInvitationsPage({ filters, setFilters, onSearch, onReset, rows, selec
 
   return (
     <div className="pc-page-stack">
+      <PageHeading title="我的邀请" description="查看本人邀请的供应商，跟进注册进度并维护邀请信息。" />
       <PcCard className="pc-query-card">
         <div className="pc-query-grid">
           <QueryField label="供应商名称"><Input allowClear value={filters.name} placeholder="请输入供应商名称" onChange={(event) => setFilters('name', event.target.value)} onPressEnter={onSearch} /></QueryField>
@@ -242,7 +256,7 @@ function MyInvitationsPage({ filters, setFilters, onSearch, onReset, rows, selec
       <PcCard className="pc-list-card">
         <div className="pc-list-toolbar">
           <Space size={8} wrap><Button icon={<Download size={15} />} onClick={onExport}>导出</Button><Button disabled={!selectedIds.length} onClick={() => onChangeInviter(selectedIds)}>邀请人批量变更</Button></Space>
-          <span className="pc-demo-note">演示数据</span>
+          <div className="pc-list-meta"><span>共 <strong>{rows.length}</strong> 家供应商</span><span className="pc-demo-note">演示数据</span></div>
         </div>
         {selectedIds.length > 0 && <div className="pc-batch-bar"><span>已选择 <strong>{selectedIds.length}</strong> 条</span><Button type="link" danger size="small" disabled={!allDeletable} onClick={() => onDelete(selectedIds, true)}>删除所选</Button><Button type="link" size="small" onClick={() => setSelectedIds([])}>取消选择</Button></div>}
         <Table
@@ -463,6 +477,7 @@ function SupplierDetailPage({ supplier, activeTab, setActiveTab, bankEntries, pe
   ];
   return (
     <div className="pc-page-stack">
+      <PageHeading title="供应商详情" description="查看供应商档案、账户资料、审批记录及合作信息。" />
       <PcCard className="pc-detail-overview">
         <SectionHeading title="基本信息" />
         <div className="pc-overview-grid">
