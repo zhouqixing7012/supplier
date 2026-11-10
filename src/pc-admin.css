@@ -46,13 +46,13 @@ body:has(.pc-app) { min-width: 320px; min-height: 100vh; margin: 0; background: 
 .pc-link:hover { color: #0D42D2; text-decoration: underline; text-underline-offset: 3px; }
 .pc-name-link { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pc-row-actions { justify-content: center; white-space: nowrap; }
-.pc-row-actions .ant-btn { min-width: 72px; height: 32px; padding-inline: 8px; font-size: 14px; }
-.pc-status { margin: 0; padding: 2px 8px; border-radius: 4px; font-size: 12px; line-height: 18px; }
-.pc-status-default { background: #F2F5FA; color: #545B66; }
-.pc-status-info { background: #E5F1FF; color: #145CFF; }
-.pc-status-success { background: #E9F7EF; color: #16834A; }
-.pc-status-warning { background: #FFF3E5; color: #C86A08; }
-.pc-status-danger { background: #FDECEC; color: #D9363E; }
+
+
+
+
+
+
+
 .pc-detail-tabs-card { padding: 0 16px 16px; }
 .pc-detail-tabs .ant-tabs-nav { margin: 0 0 16px; }
 .pc-detail-tabs .ant-tabs-tab { padding: 14px 0 12px; color: #545B66; font-size: 14px; }
@@ -317,24 +317,13 @@ body:has(.pc-app) { min-width: 320px; min-height: 100vh; margin: 0; background: 
 .pc-link:hover { color: #0D42D2; text-decoration: underline; }
 .pc-name-link { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pc-row-actions { justify-content: center; gap: 8px; white-space: nowrap; }
-.pc-row-actions .ant-btn { height: 28px; padding-inline: 6px; font-size: 13px; }
-.pc-status {
-  display: inline-flex;
-  min-height: 22px;
-  align-items: center;
-  margin: 0;
-  padding: 2px 8px;
-  border: 1px solid transparent;
-  border-radius: 4px;
-  font-size: 12px;
-  font-weight: 500;
-  line-height: 18px;
-}
-.pc-status-default { border-color: #E8ECF3; background: #F2F5FA; color: #545B66; }
-.pc-status-info { border-color: #C2DCFF; background: #E5F1FF; color: #145CFF; }
-.pc-status-success { border-color: #C7EAD6; background: #E9F7EF; color: #16834A; }
-.pc-status-warning { border-color: #F9D8B4; background: #FFF3E5; color: #C86A08; }
-.pc-status-danger { border-color: #F6C7C8; background: #FDECEC; color: #D9363E; }
+
+
+
+
+
+
+
 
 /* 详情页只保留对象识别信息；具体字段在所属资料页签中展示一次。 */
 .pc-detail-overview { padding: 14px 18px; }
@@ -1016,4 +1005,28 @@ body:has(.pc-app) .ant-dropdown .ant-dropdown-menu-item { min-height: 34px; bord
     animation-duration: .01ms !important;
     animation-iteration-count: 1 !important;
   }
+}
+
+.pc-status {
+  display: inline-flex;
+  min-height: 24px;
+  align-items: center;
+  margin: 0;
+  padding: 2px 8px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  font-size: 12px;
+  line-height: 18px;
+  white-space: nowrap;
+}
+.pc-status-default { border-color: #d9d9d9; background: #fafafa; color: #595959; }
+.pc-status-info, .pc-status-processing { border-color: #91caff; background: #e6f4ff; color: #0958d9; }
+.pc-status-success { border-color: #b7eb8f; background: #f6ffed; color: #389e0d; }
+.pc-status-warning { border-color: #ffd591; background: #fff7e6; color: #d46b08; }
+.pc-status-danger { border-color: #ffa39e; background: #fff1f0; color: #cf1322; }
+.pc-row-actions .ant-btn, .pc-row-action-button {
+  min-width: 72px;
+  height: 32px;
+  padding-inline: 8px;
+  font-size: 14px;
 }
