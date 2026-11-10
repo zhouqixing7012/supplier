@@ -63,14 +63,14 @@ body:has(.pc-app) { min-width: 320px; min-height: 100vh; margin: 0; background: 
 }
 .pc-row-actions .pc-row-action-button {
   display: inline-flex;
-  min-width: 72px;
+  min-width: 0;
   max-width: 100%;
-  height: 32px;
+  height: 24px;
   align-items: center;
   justify-content: center;
   gap: 4px;
-  padding-inline: 8px;
-  line-height: 20px;
+  padding-inline: 0;
+  line-height: 22px;
   white-space: nowrap;
 }
 
@@ -885,6 +885,27 @@ body:has(.pc-app) .ant-dropdown .ant-dropdown-menu-item { min-height: 34px; bord
   border-color: var(--pc-blue) !important;
   box-shadow: 0 0 0 2px rgba(20, 92, 255, .10) !important;
 }
+/* 日期范围控件在三列窄容器中允许两个日期输入等比例收缩，避免占位文字互相挤压。 */
+.pc-query-range.ant-picker-range {
+  display: flex;
+  min-width: 0;
+}
+.pc-query-range .ant-picker-input {
+  min-width: 0;
+  flex: 1 1 0;
+}
+.pc-query-range .ant-picker-input > input {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pc-query-range .ant-picker-range-separator {
+  flex: 0 0 auto;
+  padding-inline: 4px;
+}
+.pc-query-range .ant-picker-suffix { flex: 0 0 auto; }
+
 .pc-query-actions {
   display: flex;
   min-width: 0;
@@ -1054,9 +1075,54 @@ body:has(.pc-app) .ant-dropdown .ant-dropdown-menu-item { min-height: 34px; bord
 .pc-status-success { border-color: #b7eb8f; background: #f6ffed; color: #389e0d; }
 .pc-status-warning { border-color: #ffd591; background: #fff7e6; color: #d46b08; }
 .pc-status-danger { border-color: #ffa39e; background: #fff1f0; color: #cf1322; }
-.pc-row-actions .ant-btn, .pc-row-action-button {
-  min-width: 72px;
-  height: 32px;
-  padding-inline: 8px;
+.pc-row-actions .ant-btn,
+.pc-row-actions .pc-row-action-button {
+  min-width: 0;
+  height: 24px;
+  padding-inline: 0;
   font-size: 14px;
+  line-height: 22px;
+}
+
+
+/* 所有详情、表格、表单与工具栏的可收缩边界统一明确，避免长文本覆盖相邻内容。 */
+.pc-detail-grid,
+.pc-detail-pair,
+.pc-detail-label,
+.pc-detail-value,
+.pc-query-grid,
+.pc-query-field,
+.pc-query-item,
+.pc-query-control,
+.pc-list-toolbar,
+.pc-bank-form-grid,
+.pc-bank-field,
+.pc-upload-control,
+.pc-upload-name,
+.pc-modal-record,
+.pc-topbar-context,
+.pc-topbar-actions {
+  min-width: 0;
+}
+.pc-detail-pair > *,
+.pc-detail-label,
+.pc-detail-value,
+.pc-bank-field > label,
+.pc-readonly-value,
+.pc-upload-name,
+.pc-modal-record span,
+.pc-section-heading h3 {
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+.pc-detail-value,
+.pc-readonly-value {
+  white-space: normal;
+  line-height: 20px;
+}
+.pc-row-actions .ant-space-item,
+.pc-row-actions .ant-dropdown,
+.pc-row-actions .ant-dropdown-trigger {
+  min-width: 0;
+  flex: 0 0 auto;
 }
