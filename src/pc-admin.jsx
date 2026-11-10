@@ -332,7 +332,7 @@ function MyInvitationsPage({ filters, setFilters, onSearch, onReset, rows, selec
           if (key === 'reinvite') onReinvite(record);
           if (key === 'delete') onDelete([record.id], true);
         } }}>
-          <Button>变更 <ChevronDown size={14} /></Button>
+          <Button type="link">变更 <ChevronDown size={14} /></Button>
         </Dropdown>;
       },
     },
