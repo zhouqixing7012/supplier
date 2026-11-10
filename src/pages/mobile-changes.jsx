@@ -23,10 +23,14 @@ const basicProfile = profile => ({
 
 function entriesFor(profile, property) {
   if (property === 'qualifications') return profile?.basic?.qualifications || profile?.qualifications || [];
-  if (Array.isArray(profile?.[property])) return profile[property];
-  if (property === 'contacts' && [profile?.contact, profile?.phone, profile?.email].some(hasContent)) {
-    return [{ id: 'legacy-contact', name: profile.contact, phone: profile.phone, email: profile.email }];
+  if (property === 'contacts') {
+    if (Array.isArray(profile?.contacts) && profile.contacts.length) return profile.contacts;
+    if ([profile?.contact, profile?.phone, profile?.email].some(hasContent)) {
+      return [{ id: 'legacy-contact', name: profile.contact, phone: profile.phone, email: profile.email }];
+    }
+    return Array.isArray(profile?.contacts) ? profile.contacts : [];
   }
+  if (Array.isArray(profile?.[property])) return profile[property];
   return [];
 }
 
