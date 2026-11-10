@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Avatar, Breadcrumb, Button, ConfigProvider, DatePicker, Dropdown, Empty, Form, Input, Modal, Select, Space, Table, Tabs, Tag, Tooltip, message } from 'antd';
-import { ArrowRight, Building2, ChevronDown, ChevronsLeft, ChevronsRight, CircleHelp, ClipboardList, Download, LayoutDashboard, LogOut, Plus, Search, Trash2, UserRound, UserRoundPlus } from 'lucide-react';
+import { Building2, ChevronDown, ChevronsLeft, ChevronsRight, CircleHelp, ClipboardList, Download, LayoutDashboard, LogOut, Plus, Search, Trash2, UserRound, UserRoundPlus } from 'lucide-react';
 import { bankDirectory, branches, cooperation, initialSuppliers, people, supplierIndustries, supplierStates, supplierTypes } from './pages/mobile-data.js';
 import { bankChange, bankChangeCounts, normalizeBankChanges, readBankDraft, writeBankDraft } from './pages/mobile-bank-changes.js';
 import { blankBank, bankError, fieldsFor } from './pages/mobile-forms.jsx';
@@ -14,7 +14,7 @@ const clone = (value) => JSON.parse(JSON.stringify(value));
 const newId = () => 'pc-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 7);
 const nowText = () => new Date().toLocaleString('zh-CN', { hour12: false }).replaceAll('/', '-');
 const dateText = (value) => value && typeof value.format === 'function' ? value.format('YYYY-MM-DD') : '';
-const valueOrDash = (value) => value === null || value === undefined || value === '' ? '—' : value;
+const valueOrDash = (value) => value === null || value === undefined || value === '' ? '-' : value;
 const readBankDraftSafe = (id) => { try { return readBankDraft(id); } catch { return null; } };
 
 function readRoute() {
@@ -27,7 +27,7 @@ function readRoute() {
 
 function StatusTag({ value }) {
   const tones = { 邀请中: 'info', 注册中: 'info', 审批中: 'info', 已审批: 'success', 草稿: 'default', 注册驳回: 'danger', 变更中: 'warning' };
-  return <Tag bordered={false} className={'pc-status pc-status-' + (tones[value] || 'default')}>{value || '—'}</Tag>;
+  return <Tag bordered={false} className={'pc-status pc-status-' + (tones[value] || 'default')}>{value || '-'}</Tag>;
 }
 
 function QueryField({ label, children }) {
@@ -190,11 +190,11 @@ function MyInvitationsPage({ filters, setFilters, onSearch, onReset, rows, selec
   const allDeletable = selectedRecords.length > 0 && selectedRecords.every((record) => canDeleteSupplier(record, true));
   const columns = [
     { title: '供应商名称', dataIndex: 'name', width: 230, render: (name, record) => <Tooltip title={name}><button className="pc-link pc-name-link" onClick={() => onOpenDetail(record, 'invitations')}>{name}</button></Tooltip> },
-    { title: '证件号码', dataIndex: 'code', width: 180, render: (value) => value || '—' },
+    { title: '证件号码', dataIndex: 'code', width: 180, render: (value) => value || '-' },
     { title: '供应商类型', dataIndex: 'type', width: 130 },
-    { title: '联系人姓名', dataIndex: 'contact', width: 120, render: (value) => value || '—' },
-    { title: '联系人邮箱', dataIndex: 'email', width: 200, render: (value) => value || '—' },
-    { title: '联系人电话', dataIndex: 'phone', width: 150, render: (value) => value || '—' },
+    { title: '联系人姓名', dataIndex: 'contact', width: 120, render: (value) => value || '-' },
+    { title: '联系人邮箱', dataIndex: 'email', width: 200, render: (value) => value || '-' },
+    { title: '联系人电话', dataIndex: 'phone', width: 150, render: (value) => value || '-' },
     { title: '审批状态', dataIndex: 'status', width: 110, align: 'center', render: (value) => <StatusTag value={value} /> },
     { title: '邀请时间', dataIndex: 'date', width: 180, align: 'center' },
     { title: '更新时间', dataIndex: 'updated', width: 180, align: 'center' },
@@ -206,7 +206,7 @@ function MyInvitationsPage({ filters, setFilters, onSearch, onReset, rows, selec
           ...(canReinviteSupplier(record) ? [{ key: 'reinvite', label: '重新邀请' }] : []),
           ...(canDeleteSupplier(record, true) ? [{ key: 'delete', label: '删除', danger: true }] : []),
         ];
-        if (!items.length) return '—';
+        if (!items.length) return '-';
         return <Dropdown menu={{ items, onClick: ({ key }) => {
           if (key === 'inviter') onChangeInviter([record.id]);
           if (key === 'reinvite') onReinvite(record);
@@ -265,7 +265,7 @@ function SupplierInformation({ supplier }) {
   const basic = supplier.basic || {};
   const fields = fieldsFor(supplier.type).map(([key, label, required, kind]) => ({
     label,
-    value: key === 'supplierName' ? supplier.name : key === 'creditCode' ? (basic[key] || supplier.code) : basic[key],
+    value: key === 'supplierName' ? supplier.name : key === 'creditCode' ? (basic[key] || supplier.code) : key === 'industry' ? (basic[key] || supplier.industry) : basic[key],
     span: kind === 'textarea' ? 3 : kind === 'address' ? 2 : 1,
   }));
   if (basic.proof) fields.push({ label: '证照附件', value: basic.proof, span: 3 });
@@ -311,25 +311,25 @@ function BankInfoTab({ supplier, entries, onAdd, onEdit, onDelete, onReturn, onS
     { title: '开户银行', dataIndex: 'bank', width: 180 },
     { title: '银行分行', dataIndex: 'branch', width: 200 },
     { title: '开户行所在国家/地区', dataIndex: 'country', width: 150 },
-    { title: '开户所在省/市', width: 140, render: (_, record) => [record.province, record.city].filter(Boolean).join(' / ') || '—' },
+    { title: '开户所在省/市', width: 140, render: (_, record) => [record.province, record.city].filter(Boolean).join(' / ') || '-' },
     { title: '账户名称', dataIndex: 'name', width: 170 },
     { title: '银行账号', dataIndex: 'number', width: 190 },
     { title: '币种', dataIndex: 'currency', width: 90, align: 'center' },
-    { title: '开户证明', dataIndex: 'proof', width: 170, render: (value) => value ? <span className="pc-attachment-name">{value}</span> : '—' },
+    { title: '开户证明', dataIndex: 'proof', width: 170, render: (value) => value ? <span className="pc-attachment-name">{value}</span> : '-' },
     { title: '备注', dataIndex: 'note', width: 180 },
     {
       title: '变更状态', key: 'change', width: 130, align: 'center',
       render: (_, record) => {
         const action = bankChange(original, record).action;
         const labels = { 新增: '待提交新增', 修改: '待提交修改', 删除: '待提交删除' };
-        return action ? <Tag bordered={false} className={'pc-change-tag pc-change-' + action}>{labels[action]}</Tag> : '—';
+        return action ? <Tag bordered={false} className={'pc-change-tag pc-change-' + action}>{labels[action]}</Tag> : '-';
       },
     },
     {
       title: '操作', key: 'actions', width: 140, fixed: 'right', align: 'center',
       render: (_, record) => {
         const action = bankChange(original, record).action;
-        if (!canEdit || action === '删除') return '—';
+        if (!canEdit || action === '删除') return '-';
         return <Space size={8}><Button type="link" size="small" onClick={() => onEdit(record)}>修改</Button><Button type="link" danger size="small" onClick={() => onDelete(record)}>删除</Button></Space>;
       },
     },
@@ -355,17 +355,6 @@ function BankInfoTab({ supplier, entries, onAdd, onEdit, onDelete, onReturn, onS
           columns={columns}
           pagination={false}
           scroll={{ x: 'max-content' }}
-          expandable={{
-            rowExpandable: (record) => bankChange(original, record).action === '修改',
-            expandedRowRender: (record) => <div className="pc-bank-diff">{bankChange(original, record).fields.map((field) => (
-              <div className="pc-bank-diff-row" key={field.key}>
-                <span className="pc-bank-diff-label">{field.label}</span>
-                <span className="pc-bank-diff-before">{field.previous || '—'}</span>
-                <ArrowRight size={14} />
-                <strong className="pc-bank-diff-after">{field.next || '—'}</strong>
-              </div>
-            ))}</div>,
-          }}
         />
       ) : <EmptyContent description="暂无银行信息" />}
       {pendingCount > 0 && <div className="pc-bank-footer"><Button onClick={onReturn}>返回</Button><Button type="primary" onClick={onSubmit}>提交审批</Button></div>}
@@ -470,15 +459,15 @@ function SupplierDetailPage({ supplier, activeTab, setActiveTab, bankEntries, pe
       <PcCard className="pc-detail-overview">
         <SectionHeading title="基本信息" />
         <div className="pc-overview-grid">
-          <div><span>供应商名称</span><strong>{supplier.name || '—'}</strong></div>
-          <div><span>供应商类型</span><strong>{supplier.type || '—'}</strong></div>
-          <div><span>供应商账号</span><strong>{supplier.supplierAccount || supplier.userCode || supplier.account || '—'}</strong></div>
+          <div><span>供应商名称</span><strong>{supplier.name || '-'}</strong></div>
+          <div><span>供应商类型</span><strong>{supplier.type || '-'}</strong></div>
+          <div><span>供应商账号</span><strong>{supplier.supplierAccount || supplier.userCode || supplier.account || '-'}</strong></div>
           <div><span>供应商状态</span><strong><StatusTag value={supplier.status} /></strong></div>
-          <div><span>邀请人</span><strong>{supplier.inviter || '—'}</strong></div>
-          <div><span>邀请时间</span><strong>{supplier.date || '—'}</strong></div>
-          <div><span>注册方式</span><strong>{supplier.mode || '—'}</strong></div>
-          <div><span>曾用名</span><strong>{supplier.supplierFormerName || supplier.formerName || '—'}</strong></div>
-          <div><span>注册邮箱</span><strong>{supplier.email || '—'}</strong></div>
+          <div><span>邀请人</span><strong>{supplier.inviter || '-'}</strong></div>
+          <div><span>邀请时间</span><strong>{supplier.date || '-'}</strong></div>
+          <div><span>注册方式</span><strong>{supplier.mode || '-'}</strong></div>
+          <div><span>曾用名</span><strong>{supplier.supplierFormerName || supplier.formerName || '-'}</strong></div>
+          <div><span>注册邮箱</span><strong>{supplier.email || '-'}</strong></div>
         </div>
       </PcCard>
       <PcCard className="pc-detail-tabs-card">
@@ -527,8 +516,8 @@ function BankModal({ open, supplier, bank, onCancel, onSave }) {
           }} />
         </div>
         <div className="pc-bank-field"><label><em>*</em>开户行所在国家/地区</label><div className="pc-readonly-value">{draft.country || '选择开户银行后自动带出'}</div></div>
-        <div className="pc-bank-field"><label>开户所在省</label><div className="pc-readonly-value">{draft.province || '—'}</div></div>
-        <div className="pc-bank-field"><label>开户所在市</label><div className="pc-readonly-value">{draft.city || '—'}</div></div>
+        <div className="pc-bank-field"><label>开户所在省</label><div className="pc-readonly-value">{draft.province || '-'}</div></div>
+        <div className="pc-bank-field"><label>开户所在市</label><div className="pc-readonly-value">{draft.city || '-'}</div></div>
         <div className="pc-bank-field"><label><em>*</em>账户名称</label><Input value={draft.name} maxLength={100} placeholder="请输入账户名称" onChange={(event) => change('name', event.target.value)} /></div>
         <div className="pc-bank-field"><label><em>*</em>银行账号</label><Input value={draft.number} maxLength={50} placeholder="请输入银行账号" onChange={(event) => change('number', event.target.value)} /></div>
         <div className="pc-bank-field"><label><em>*</em>币种</label><Select value={draft.currency || undefined} placeholder="请选择币种" options={['人民币', '美元', '港币'].map((value) => ({ value, label: value }))} onChange={(value) => change('currency', value)} /></div>
@@ -578,7 +567,7 @@ function InviterModal({ open, ids, suppliers, onCancel, onSubmit }) {
       <Button key="submit" type="primary" onClick={() => form.submit()}>确认变更</Button>,
     ]}>
       <div className="pc-modal-summary">本次变更 <strong>{targets.length}</strong> 家供应商的邀请人</div>
-      <div className="pc-modal-records">{targets.map((record) => <div className="pc-modal-record" key={record.id}><span>{record.name}</span><span>原邀请人：{record.inviter || '—'}</span></div>)}</div>
+      <div className="pc-modal-records">{targets.map((record) => <div className="pc-modal-record" key={record.id}><span>{record.name}</span><span>原邀请人：{record.inviter || '-'}</span></div>)}</div>
       <Form form={form} layout="vertical" onFinish={(values) => onSubmit(values.inviter)} className="pc-inviter-form">
         <Form.Item name="inviter" label="新邀请人" rules={[{ required: true, message: '请选择新邀请人' }]}>
           <Select showSearch optionFilterProp="label" placeholder="请选择新邀请人" options={people.map((person) => ({ value: person.name, label: person.name + ' · ' + person.userCode + ' · ' + person.department }))} />
