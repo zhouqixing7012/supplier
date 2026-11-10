@@ -10,10 +10,10 @@ import { reinviteCandidate } from './pages/mobile-edit-rules.js';
 const CURRENT_USER = '陈才慧';
 const pcBranches = [
   ...branches,
-  { name: '演示分行（北京）', bank: bankDirectory[1]?.name, country: '中国', province: '北京市', city: '北京市' },
-  { name: '演示分行（上海）', bank: bankDirectory[2]?.name, country: '中国', province: '上海市', city: '上海市' },
-  { name: '演示分行（广州）', bank: bankDirectory[3]?.name, country: '中国', province: '广东省', city: '广州市' },
-  { name: '演示分行（深圳）', bank: bankDirectory[4]?.name, country: '中国', province: '广东省', city: '深圳市' },
+  { name: '北京市分行', bank: bankDirectory[1]?.name, country: '中国', province: '北京市', city: '北京市' },
+  { name: '上海市分行', bank: bankDirectory[2]?.name, country: '中国', province: '上海市', city: '上海市' },
+  { name: '广州市分行', bank: bankDirectory[3]?.name, country: '中国', province: '广东省', city: '广州市' },
+  { name: '深圳市分行', bank: bankDirectory[4]?.name, country: '中国', province: '广东省', city: '深圳市' },
 ].filter((item) => item.bank);
 const EMPTY_SUPPLIER_FILTERS = { name: '', type: '', status: '', recommended: '', inviter: '', start: null, end: null };
 const EMPTY_INVITATION_FILTERS = { name: '', status: '', type: '', registrationNumber: '', start: null, end: null };
@@ -638,7 +638,6 @@ function BankModal({ open, supplier, bank, onCancel, onSave }) {
         <div className="pc-bank-field pc-bank-field-wide"><label>备注</label><Input.TextArea value={draft.note} maxLength={400} rows={3} placeholder="请输入备注" onChange={(event) => change('note', event.target.value)} /></div>
       </div>
       {selectedBranch && <div className="pc-form-help">已根据所选分行带出开户地区信息。</div>}
-      <div className="pc-form-help">当前为演示资料，附件仅记录本次选择的文件名。</div>
     </Modal>
   );
 }
@@ -867,7 +866,7 @@ function PcAdminApp() {
         setSuppliers((current) => current.filter((record) => !ids.includes(record.id)));
         setSelectedSupplierIds([]);
         setSelectedInvitationIds([]);
-        messageApi.success('已删除所选演示记录');
+        messageApi.success('已删除所选供应商');
       },
     });
   };
