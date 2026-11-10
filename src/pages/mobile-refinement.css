@@ -1158,3 +1158,14 @@
     padding: 12px;
   }
 }
+
+/* 未变化字段保持普通正文；新增/删除整条记录只显示记录级标签。 */
+.mobile-page:not(.m-shot) .m-change-value-normal {
+  max-width: 100%;
+  color: #1d2126;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 20px;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
