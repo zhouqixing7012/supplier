@@ -1,5 +1,14 @@
 #root:has(.pc-app) { min-height: 100vh; }
-body:has(.pc-app) { min-width: 320px; min-height: 100vh; margin: 0; background: #F2F5FA; color: #1D2126; font-family: "PingFang SC", "Microsoft YaHei", Arial, sans-serif; font-size: 14px; }
+body:has(.pc-app) {
+  --pc-font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", SimHei, Arial, sans-serif;
+  min-width: 320px;
+  min-height: 100vh;
+  margin: 0;
+  background: #F2F5FA;
+  color: #1D2126;
+  font-family: var(--pc-font-family);
+  font-size: 14px;
+}
 .pc-app, .pc-app * { box-sizing: border-box; }
 
 .pc-user-trigger { display: inline-flex; align-items: center; justify-content: center; border: 0; background: transparent; color: var(--pc-subtext); cursor: pointer; }
@@ -8,7 +17,6 @@ body:has(.pc-app) { min-width: 320px; min-height: 100vh; margin: 0; background: 
 
 .pc-collapse-button { display: flex; width: 100%; align-items: center; padding: 0 12px; border: 0; background: transparent; cursor: pointer; text-align: left; }
 .pc-collapse-button:focus-visible, .pc-link:focus-visible, .pc-user-trigger:focus-visible { outline: 2px solid rgba(20, 92, 255, 0.42); outline-offset: 2px; }
-/* 空态跟随表格可视宽度，冻结列与横向滚动不改变居中基准。 */
 .pc-link { padding: 0; border: 0; background: transparent; cursor: pointer; text-align: left; }
 .pc-link:hover { text-underline-offset: 3px; }
 .pc-row-actions {
@@ -47,63 +55,49 @@ body:has(.pc-app) { min-width: 320px; min-height: 100vh; margin: 0; background: 
  .pc-summary-meta { justify-content: flex-start; } }
 @media (max-width: 960px) {
   .pc-collapse-button { justify-content: center; padding: 0; }
-  .pc-main-content { padding: 16px; }
   .pc-detail-summary { align-items: flex-start; flex-direction: column; }
   .pc-summary-meta { width: 100%; justify-content: flex-start; }
 }
-@media (max-width: 760px) {
-
-  .pc-bank-form-grid, .pc-form-grid { grid-template-columns: minmax(0, 1fr); }
-  .pc-bank-field-wide { grid-column: auto; }
-  .pc-bank-field { grid-template-columns: 104px minmax(0, 1fr); }
-  .pc-modal-record { flex-direction: column; gap: 3px; }
-}
-@media (prefers-reduced-motion: reduce) { .pc-app *, .pc-app *::before, .pc-app *::after { scroll-behavior: auto !important; transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; } }
 .pc-app.is-collapsed .pc-menu-label { display: none; }
 .pc-app.is-collapsed .pc-collapse-button { justify-content: center; padding: 0; }
 
 /* PC 管理平台：对齐 MMP 桌面端视觉与交互基线 */
-.pc-app {
+:is(.pc-app, .pc-modal, .pc-confirm) {
   --pc-blue: var(--ant-color-primary, #145CFF);
   --pc-blue-pressed: var(--ant-color-primary-active, #0D42D2);
   --pc-blue-soft: var(--ant-color-primary-bg, #E5F1FF);
   --pc-page: var(--ant-color-bg-layout, #F2F5FA);
+  --pc-surface: var(--ant-color-bg-container, #fff);
   --pc-border: var(--ant-color-border, #D3D9E5);
   --pc-divider: var(--ant-color-border-secondary, #E2E6F0);
   --pc-text: var(--ant-color-text, #1D2126);
   --pc-subtext: var(--ant-color-text-secondary, #545B66);
   --pc-muted: var(--ant-color-text-tertiary, #848B99);
+  --pc-error: var(--ant-color-error, #EC221F);
 }
 
 .pc-app {
   background: var(--pc-page);
   color: var(--pc-text);
-  font-family: "PingFang SC", "Microsoft YaHei", Arial, sans-serif;
+  font-family: var(--pc-font-family);
   font-size: 14px;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
 
 .pc-user-trigger { min-width: 0; max-width: 160px; height: 36px; gap: 8px; padding: 0 8px; border-radius: 4px; }
-.pc-user-trigger:hover { background: #F2F5FA; }
-.pc-user-name { display: block; min-width: 0; max-width: 104px; overflow: hidden; color: #545B66; font-size: 13px; font-weight: 500; text-overflow: ellipsis; white-space: nowrap; }
+.pc-user-trigger:hover { background: var(--pc-page); }
+.pc-user-name { display: block; min-width: 0; max-width: 104px; overflow: hidden; color: var(--pc-subtext); font-size: 13px; font-weight: 500; text-overflow: ellipsis; white-space: nowrap; }
 .pc-avatar { width: 28px; height: 28px; }
 .pc-collapse-button {
   gap: 12px;
-  color: #545B66;
+  color: var(--pc-subtext);
 }
-.pc-collapse-button:hover { background: #F2F5FA; color: var(--pc-blue); }
-.pc-collapse-button:hover svg, .pc-collapse-button:focus-visible svg {
-  animation: pc-nav-icon-dwell 720ms cubic-bezier(.2,.8,.2,1) 1s both;
+.pc-collapse-button:hover { background: var(--pc-page); color: var(--pc-blue); }
+.pc-main-content { width: 100%; min-width: 0; padding: 16px; }
+@media (min-width: 768px) {
+  .pc-main-content { padding: 24px; }
 }
-
-@keyframes pc-nav-icon-dwell {
-  0%, 100% { transform: translateY(0) rotate(0); }
-  28% { transform: translateY(-2px) rotate(-7deg); }
-  58% { transform: translateY(0) rotate(3deg); }
-}
-
-.pc-main-content { width: 100%; min-width: 0; padding: 20px 20px 24px; }
 .pc-page-stack { display: flex; min-width: 0; flex-direction: column; gap: 16px; }
 
 /* 列表工具栏、批量状态和表格采用同一信息密度。 */
@@ -143,7 +137,7 @@ body:has(.pc-app) { min-width: 320px; min-height: 100vh; margin: 0; background: 
   min-width: 0;
   overflow-wrap: anywhere;
   margin: 0;
-  color: #1D2126;
+  color: var(--pc-text);
   font-size: 16px;
   font-weight: 600;
   line-height: 22px;
@@ -154,12 +148,12 @@ body:has(.pc-app) { min-width: 320px; min-height: 100vh; margin: 0; background: 
   border: 1px solid #C2DCFF;
   border-radius: 4px;
   background: #E5F1FF;
-  color: #145CFF;
+  color: var(--pc-blue);
   font-size: 12px;
   line-height: 18px;
 }
 .pc-detail-identity-status { display: inline-flex; max-width: 100%; flex: 0 0 auto; flex-wrap: wrap; align-items: center; gap: 8px; }
-.pc-detail-identity-status > span:not(.pc-status) { color: #848B99; font-size: 12px; }
+.pc-detail-identity-status > span:not(.pc-status) { color: var(--pc-muted); font-size: 12px; }
 .pc-detail-tabs .ant-tabs-nav {
   position: sticky;
   z-index: 5;
@@ -169,7 +163,7 @@ body:has(.pc-app) { min-width: 320px; min-height: 100vh; margin: 0; background: 
 }
 .pc-detail-tabs .ant-tabs-nav::before { border-bottom-color: #E8ECF3; }
 .pc-detail-tabs .ant-tabs-nav-wrap { min-width: 0; }
-.pc-detail-tabs .ant-tabs-tab { padding: 12px 0; color: #545B66; font-size: 14px; }
+.pc-detail-tabs .ant-tabs-tab { padding: 12px 0; color: var(--pc-subtext); font-size: 14px; }
 .pc-detail-tabs .ant-tabs-tab-active .ant-tabs-tab-btn { color: var(--pc-blue); font-weight: 600; }
 .pc-detail-tabs .ant-tabs-ink-bar { height: 2px; border-radius: 2px; }
 .pc-detail-tabs .ant-tabs-content-holder { min-width: 0; }
@@ -179,14 +173,14 @@ body:has(.pc-app) { min-width: 320px; min-height: 100vh; margin: 0; background: 
 /* 银行信息与表单 */
 .pc-bank-tab { min-width: 0; }
 .pc-change-tag { margin: 0; padding: 2px 7px; border-radius: 4px; font-size: 12px; }
-.pc-change-新增 { background: #E5F1FF; color: #145CFF; }
+.pc-change-新增 { background: #E5F1FF; color: var(--pc-blue); }
 .pc-change-修改 { background: #FFF3E5; color: #C86A08; }
 .pc-change-删除 { background: #FDECEC; color: #D9363E; }
 .pc-attachment-name { color: var(--pc-blue); }
 .pc-bank-footer {
   position: sticky;
   z-index: 8;
-  bottom: -16px;
+  bottom: 0;
   display: flex;
   min-height: 60px;
   align-items: center;
@@ -194,17 +188,16 @@ body:has(.pc-app) { min-width: 320px; min-height: 100vh; margin: 0; background: 
   gap: 12px;
   margin: 16px -16px -16px;
   padding: 10px 16px;
-  border-top: 1px solid var(--pc-divider);
-  background: rgba(255, 255, 255, .98);
+  background: var(--pc-surface);
 }
 .pc-bank-form-grid, .pc-form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 24px; row-gap: 16px; }
 .pc-bank-field { display: grid; min-width: 0; grid-template-columns: 112px minmax(0, 1fr); align-items: center; gap: 8px; }
-.pc-bank-field > label { color: #545B66; font-size: 14px; text-align: right; }
-.pc-bank-field > label em { margin-right: 4px; color: #EC221F; font-style: normal; }
+.pc-bank-field > label { color: var(--pc-subtext); font-size: 14px; text-align: right; }
+.pc-bank-field > label em { margin-right: 4px; color: var(--pc-error); font-style: normal; }
 .pc-bank-field .ant-input, .pc-bank-field .ant-select { width: 100%; }
 .pc-bank-field-wide { grid-column: 1 / -1; align-items: start; }
 .pc-bank-field-wide > label { padding-top: 6px; }
-.pc-readonly-value { display: flex; min-height: 32px; align-items: center; padding: 0 11px; color: #545B66; }
+.pc-readonly-value { display: flex; min-height: 32px; align-items: center; padding: 0 11px; color: var(--pc-subtext); }
 .pc-upload-control { display: flex; min-width: 0; align-items: center; gap: 12px; }
 .pc-upload-button {
   position: relative;
@@ -224,15 +217,15 @@ body:has(.pc-app) { min-width: 320px; min-height: 100vh; margin: 0; background: 
 .pc-upload-button:hover { border-color: var(--pc-blue); background: #F3F8FF; }
 .pc-upload-button input { position: absolute; width: 1px; height: 1px; overflow: hidden; opacity: 0; }
 .pc-upload-button:focus-within { outline: 2px solid rgba(20, 92, 255, .22); outline-offset: 2px; }
-.pc-upload-name { min-width: 0; overflow: hidden; color: #545B66; text-overflow: ellipsis; white-space: nowrap; }
-.pc-form-help { margin-top: 12px; color: #848B99; font-size: 12px; }
+.pc-upload-name { min-width: 0; overflow: hidden; color: var(--pc-subtext); text-overflow: ellipsis; white-space: nowrap; }
+.pc-form-help { margin-top: 12px; color: var(--pc-muted); font-size: 12px; }
 .pc-form-grid .ant-form-item { margin-bottom: 0; }
-.pc-form-grid .ant-form-item-label > label, .pc-inviter-form .ant-form-item-label > label { color: #545B66; font-size: 14px; }
+.pc-form-grid .ant-form-item-label > label, .pc-inviter-form .ant-form-item-label > label { color: var(--pc-subtext); font-size: 14px; }
 
 /* 弹窗与确认框：统一固定标题/操作区，正文独立滚动。 */
 .pc-modal .ant-form-item-label { padding-bottom: 6px; }
-.pc-modal .ant-form-item-label > label { color: #545B66; font-size: 14px; }
-.pc-modal-summary { margin-bottom: 12px; color: #545B66; }
+.pc-modal .ant-form-item-label > label { color: var(--pc-subtext); font-size: 14px; }
+.pc-modal-summary { margin-bottom: 12px; color: var(--pc-subtext); }
 .pc-modal-summary strong { color: var(--pc-blue); }
 .pc-modal-records {
   display: flex;
@@ -247,8 +240,8 @@ body:has(.pc-app) { min-width: 320px; min-height: 100vh; margin: 0; background: 
   background: #F7F9FC;
 }
 .pc-modal-record { display: flex; justify-content: space-between; gap: 16px; color: #2C3038; font-size: 13px; }
-.pc-modal-record span:last-child { color: #848B99; }
-.pc-help-content { display: flex; flex-direction: column; gap: 12px; color: #545B66; line-height: 1.7; }
+.pc-modal-record span:last-child { color: var(--pc-muted); }
+.pc-help-content { display: flex; flex-direction: column; gap: 12px; color: var(--pc-subtext); line-height: 1.7; }
 .pc-help-content p { margin: 0; }
 .pc-invite-form { padding-top: 2px; }
 body:has(.pc-app) .ant-dropdown .ant-dropdown-menu {
@@ -267,35 +260,10 @@ body:has(.pc-app) .ant-dropdown .ant-dropdown-menu-item { min-height: 34px; bord
   outline-offset: 2px;
 }
 .pc-app ::selection { background: rgba(20, 92, 255, .18); color: #17204D; }
-@media (max-width: 960px) {
-  .pc-collapse-button { justify-content: center; padding: 0; }
-  .pc-main-content { padding: 18px 16px 24px; }
-}
 @media (max-width: 760px) {
 
   .pc-detail-identity { align-items: flex-start; flex-direction: column; gap: 8px; }
   .pc-detail-identity-status { align-self: flex-start; }
-  .pc-detail-tabs .ant-tabs-nav { overflow-x: auto; }
-  .pc-detail-tabs .ant-tabs-tab { flex: 0 0 auto; }
-
-  .pc-bank-form-grid, .pc-form-grid { grid-template-columns: minmax(0, 1fr); }
-  .pc-bank-field-wide { grid-column: auto; }
-  .pc-bank-field { grid-template-columns: 104px minmax(0, 1fr); }
-  .pc-modal-record { flex-direction: column; gap: 3px; }
-}
-@media (max-width: 520px) {
-  .pc-main-content { padding: 12px 10px 18px; }
-
-  .pc-user-name, .pc-topbar-divider { display: none; }
-
-}
-@media (prefers-reduced-motion: reduce) {
-  .pc-app *, .pc-app *::before, .pc-app *::after {
-    scroll-behavior: auto !important;
-    transition-duration: .01ms !important;
-    animation-duration: .01ms !important;
-    animation-iteration-count: 1 !important;
-  }
 }
 
 /* PC后台框架与查询区按MMP桌面端公共结构统一 */
@@ -404,10 +372,10 @@ body:has(.pc-app) .ant-dropdown .ant-dropdown-menu-item { min-height: 34px; bord
   border: 0;
   border-radius: 4px;
   background: transparent;
-  color: #545B66;
+  color: var(--pc-subtext);
   cursor: pointer;
 }
-.pc-topbar-collapse:hover { background: #F2F5FA; color: var(--pc-blue); }
+.pc-topbar-collapse:hover { background: var(--pc-page); color: var(--pc-blue); }
 .pc-topbar-collapse:focus-visible { outline: 2px solid rgba(20, 92, 255, .42); outline-offset: 2px; }
 .pc-topbar-context {
   display: flex;
@@ -499,43 +467,13 @@ body:has(.pc-app) .ant-dropdown .ant-dropdown-menu-item { min-height: 34px; bord
   align-items: center;
   gap: 4px;
   margin-left: auto;
-  color: #848B99;
+  color: var(--pc-muted);
   font-size: 12px;
   white-space: nowrap;
 }
-.pc-list-meta strong { color: #545B66; font-weight: 600; font-variant-numeric: tabular-nums; }
+.pc-list-meta strong { color: var(--pc-subtext); font-weight: 600; font-variant-numeric: tabular-nums; }
 
 /* 文本容器允许收缩和换行，避免固定标签列挤压相邻内容 */
-.pc-section-heading {
-  display: flex;
-  min-width: 0;
-  min-height: 36px;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px 12px;
-  margin-bottom: 12px;
-}
-.pc-section-heading h3 {
-  display: flex;
-  min-width: 0;
-  align-items: center;
-  gap: 8px;
-  margin: 0;
-  color: #2C3038;
-  font-size: 14px;
-  font-weight: 600;
-  line-height: 20px;
-  overflow-wrap: anywhere;
-}
-.pc-section-heading h3::before {
-  width: 4px;
-  height: 14px;
-  flex: 0 0 4px;
-  border-radius: 3px;
-  background: var(--pc-blue);
-  content: "";
-}
 .pc-bank-summary {
   display: flex;
   min-width: 0;
@@ -547,21 +485,16 @@ body:has(.pc-app) .ant-dropdown .ant-dropdown-menu-item { min-height: 34px; bord
   margin-bottom: 12px;
 }
 .pc-bank-summary-copy { display: flex; min-width: 0; flex-wrap: wrap; align-items: center; gap: 8px 14px; }
-.pc-bank-summary-copy strong { color: #2C3038; font-size: 14px; font-weight: 600; overflow-wrap: anywhere; }
-.pc-bank-summary-copy span { color: #C86A08; font-size: 13px; }
+.pc-bank-summary-copy .pc-section-card-title { margin: 0; }
+.pc-bank-summary-copy .pc-bank-pending { color: var(--pc-warning-text); font-size: 13px; }
 .pc-bank-summary-copy span b { font-variant-numeric: tabular-nums; }
-.pc-bank-summary-copy .pc-muted { color: #848B99; }
+.pc-bank-summary-copy .pc-muted { color: var(--pc-muted); }
 .pc-modal-record { min-width: 0; }
 .pc-modal-record span { min-width: 0; overflow-wrap: anywhere; }
 .pc-modal-record span:last-child { flex: 1 1 auto; text-align: right; }
 
-/* 断点沿用MMP页面宽度规则，并在实际内容容器更窄时继续减列 */
-@media (max-width: 960px) {
-  .pc-collapse-button { justify-content: center; padding: 0; }
-  .pc-main-content { padding: 18px 16px 24px; }
-}
+/* 窄窗口下保留操作和表单的可用宽度。 */
 @media (max-width: 760px) {
-  .pc-main-content { padding: 14px 12px 20px; }
   .pc-list-toolbar { align-items: flex-start; flex-direction: column; }
   .pc-list-meta { align-self: flex-end; margin-left: 0; }
   .pc-detail-tabs .ant-tabs-nav { overflow-x: auto; }
@@ -572,7 +505,6 @@ body:has(.pc-app) .ant-dropdown .ant-dropdown-menu-item { min-height: 34px; bord
   .pc-modal-record { flex-direction: column; gap: 3px; }
 }
 @media (max-width: 520px) {
-  .pc-main-content { padding: 12px 10px 18px; }
   .pc-topbar-context { padding-inline: 8px; }
   .pc-topbar-actions { gap: 6px; padding-inline: 8px; }
   .pc-user-name, .pc-topbar-divider, .pc-help-label { display: none; }
@@ -608,8 +540,7 @@ body:has(.pc-app) .ant-dropdown .ant-dropdown-menu-item { min-height: 34px; bord
 .pc-bank-field > label,
 .pc-readonly-value,
 .pc-upload-name,
-.pc-modal-record span,
-.pc-section-heading h3 {
+.pc-modal-record span {
   overflow-wrap: anywhere;
   word-break: normal;
 }
@@ -626,8 +557,5 @@ body:has(.pc-app) .ant-dropdown .ant-dropdown-menu-item { min-height: 34px; bord
 
 .pc-sidebar-nav .ant-menu { border-inline-end: 0; }
 .pc-app.is-collapsed .pc-sidebar-nav .ant-menu-inline-collapsed { width: 64px; }
-.pc-detail-grid dt { white-space: normal !important; overflow-wrap: anywhere; }
-.pc-detail-grid dd { overflow-wrap: anywhere; }
-.pc-detail-grid dd > div { min-width: 0; width: 100%; }
 .pc-detail-tabs-card > .ant-card-body { padding-block-start: 0; }
 

@@ -65,7 +65,7 @@ export function ApprovalTaskList({ tasks, processed, onOpen, view, setView }) {
       <QueryItem label="供应商名称或审批单号"><Input allowClear value={query} onChange={(event) => setQuery(event.target.value)}
         onPressEnter={() => setView({ query: query.trim() })} /></QueryItem>
     </QueryBar>
-    <Card size="small"><PcTable rowKey="number" scroll={{ x: 'max-content' }} columns={taskColumns}
+    <Card size="small"><PcTable rowKey="number" scroll={{ x: 'max-content' }} columns={taskColumns} filtered={Boolean(view.query)}
       dataSource={rows.map((task) => ({ ...task, supplier: task.profile.basic.supplierName }))} /></Card>
   </div>;
 }

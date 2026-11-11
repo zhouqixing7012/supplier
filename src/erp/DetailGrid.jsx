@@ -90,11 +90,10 @@ export function DetailGrid({
     { length: normalizedColumns },
     () => `${normalizedLabelWidth} minmax(0, 1fr)`
   ).join(' ');
-  const scrollClassName = minWidth ? 'overflow-x-auto' : '';
   const rows = layoutDetailChildren(children, normalizedColumns, completeRows);
 
   return (
-    <div className={`w-full ${scrollClassName} ${className}`.trim()}>
+    <div className={className || undefined} style={{ width: '100%', minWidth: 0, overflowX: minWidth ? 'auto' : undefined }}>
       <DetailGridContext.Provider value={{ columns: normalizedColumns }}>
         <dl
           style={{
@@ -155,6 +154,7 @@ export function DetailItem({ label, children, span = 1 }) {
       <dt
         data-prototype-bindable="detail-field"
         data-prototype-label={prototypeLabel}
+        title={prototypeLabel}
         style={{
           ...cellBaseStyle,
           gridColumn: isFullRow ? '1 / 2' : slot ? `${slot.column} / span 1` : undefined,
@@ -165,7 +165,7 @@ export function DetailItem({ label, children, span = 1 }) {
           whiteSpace: 'nowrap',
         }}
       >
-        {label}
+        <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>{label}</span>
       </dt>
       <dd
         data-prototype-detail-value={prototypeLabel}
@@ -175,10 +175,10 @@ export function DetailItem({ label, children, span = 1 }) {
           gridRow: slot?.row,
           background: token.colorBgContainer,
           color: token.colorText,
-          wordBreak: 'break-word',
+          overflowWrap: 'anywhere',
         }}
       >
-        <div className="min-w-0 w-full">{children}</div>
+        <div style={{ minWidth: 0, width: '100%' }}>{children}</div>
       </dd>
     </>
   );

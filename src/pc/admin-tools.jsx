@@ -74,6 +74,9 @@ export function RatingPage({ mode, records, suppliers, currentUser, onSave, expo
   const change = (key, value) => setFilter((current) => ({ ...current, [key]: value }));
   const excluded = (applied.excluded || '').split(/[\n#]/).map((name) => name.trim()).filter(Boolean);
   const [start, end] = applied.created || [];
+  const filtered = operations
+    ? Boolean(start || end || excluded.length)
+    : Boolean(applied.name?.trim() || applied.person?.trim() || applied.department?.trim() || applied.type);
   const rows = records.filter((row) => {
     if (operations) return row.contract && row.status === '未评分' && !row.approvalNumber &&
       !excluded.includes(row.person) && (!start || row.created.slice(0, 10) >= start.format('YYYY-MM-DD')) &&
@@ -109,7 +112,7 @@ export function RatingPage({ mode, records, suppliers, currentUser, onSave, expo
       <Button disabled title="批量发起评分服务待接入">批量发起评分</Button>
     </Space> : !mine && <Button type="primary" icon={<Plus size={14} />} onClick={() => setEditing({})}>新增评分</Button>}>
       {mine && <Tabs activeKey={status} onChange={setStatus} items={['全部', '未评分', '已评分'].map((key) => ({ key, label: key }))} />}
-      <PcTable rowKey="id" dataSource={rows} columns={tableColumns} scroll={{ x: 'max-content' }} />
+      <PcTable rowKey="id" dataSource={rows} columns={tableColumns} scroll={{ x: 'max-content' }} filtered={filtered} />
     </Card>
     {editing && <RatingModal editing={editing} suppliers={suppliers} currentUser={currentUser} onClose={() => setEditing(null)}
       onSave={(row) => { onSave(row); setEditing(null); }} />}
@@ -205,7 +208,7 @@ export function BlacklistPage({ suppliers, onOpen }) {
     <QueryBar onQuery={() => setApplied(query)} onReset={() => { setApplied(''); setQuery(''); }}>
       <QueryItem label="供应商名称"><Input allowClear value={query} onChange={(event) => setQuery(event.target.value)} onPressEnter={() => setApplied(query)} /></QueryItem>
     </QueryBar>
-    <Card size="small"><PcTable rowKey="id" dataSource={rows} scroll={{ x: 'max-content' }} columns={[
+    <Card size="small"><PcTable rowKey="id" dataSource={rows} scroll={{ x: 'max-content' }} filtered={Boolean(applied.trim())} columns={[
       { title: '供应商名称', width: 210, render: (_, row) => <Button type="link" size="small" onClick={() => onOpen(row.supplier)}>{row.supplier.name}</Button> },
       ...columns([['status', '操作状态', 110], ['applyUser', '拉黑操作人', 150], ['applyTime', '拉黑时间', 170], ['applyReason', '拉黑原因', 200],
         ['removeUser', '移除操作人', 150], ['removeTime', '移除时间', 170], ['removeReason', '移除原因', 200]]),

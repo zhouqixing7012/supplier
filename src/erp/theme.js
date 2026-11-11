@@ -6,7 +6,7 @@ const erpTheme = {
     colorText: '#1D2126', colorTextSecondary: '#545B66', colorTextTertiary: '#848B99',
     colorBorder: '#D3D9E5', colorBorderSecondary: '#E2E6F0',
     colorBgLayout: '#F2F5FA', colorBgContainer: '#FFFFFF',
-    fontSize: 14,
+    fontSize: 14, fontFamily: 'var(--pc-font-family)',
   },
 };
 export default erpTheme;

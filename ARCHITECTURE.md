@@ -25,6 +25,7 @@
 - `src/main.jsx`：协同门户登录、邮箱验证、60 天改密、主动修改密码页面。
 - `src/portal-entry.jsx`：PC 门户 ERP 工作区入口，读取原型会话账号，管理工作区路由与退出。`src/pc/portal-session.js` 保存会话内的演示账号。
 - `src/pages/bank-application.js`：管理平台两端共用的银行申请须知、字段定义及必填提示。
+- `src/erp/FixedActionBar.jsx`：根据所属正文容器的滚动和尺寸变化维护固定操作区的边界状态。
 - `src/pc/workspace-links.js`：PC 管理平台与门户工作区共用的账户菜单「其他功能」入口。
 - `src/pages/supplier-register.jsx`：代注册 React 主页面；四类供应商通过配置数组定义字段顺序，统一由 Ant Design 组件渲染。
 - `src/pages/supplier-register.css`：代注册页面布局、步骤条、上传区和响应式规则；不使用整体缩放或截图比例画布。

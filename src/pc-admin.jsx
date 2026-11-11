@@ -1,8 +1,10 @@
+import FixedActionBar from './erp/FixedActionBar.jsx';
+import SectionCardTitle from './erp/SectionCardTitle.jsx';
 import { otherWorkspaceFeatures } from './pc/workspace-links.js';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Avatar, Breadcrumb, Button, Card, ConfigProvider, DatePicker, Dropdown, Form, Input, Menu, Select, Space, Tabs, Tag, Tooltip, App } from 'antd-pc';
 import zhCN from 'antd-pc/es/locale/zh_CN';
-import { Building2, ChevronDown, ChevronRight, ChevronsLeft, ChevronsRight, CircleHelp, Download, ClipboardList, Plus, Trash2, UserRoundPlus } from 'lucide-react';
+import { ChevronDown, ChevronRight, CircleHelp, Download, Plus, Trash2, UserRoundPlus } from 'lucide-react';
 import { bankDirectory, branches, cooperation, initialSuppliers, people, supplierIndustries, supplierStates, supplierTypes } from './pages/mobile-data.js';
 import { bankChange, bankChangeCounts, normalizeBankChanges, readBankDraft, writeBankDraft } from './pages/mobile-bank-changes.js';
 import { blankBank, bankError, fieldsFor } from './pages/mobile-forms.jsx';
@@ -16,6 +18,7 @@ import { ApprovalTaskDetail, ApprovalTaskList, createApprovalTask, initialApprov
 import { BankApplicationPage, BlacklistPage, ManualSyncPage, RatingPage } from './pc/admin-tools.jsx';
 import { initialRatings } from './pages/mobile-workflows.jsx';
 import erpTheme from './erp/theme.js';
+import DelayedNavIcon from './erp/DelayedNavIcon.jsx';
 import QueryBar, { QueryItem } from './erp/QueryBar.jsx';
 import { DetailGrid, DetailItem } from './erp/DetailGrid.jsx';
 import { PcTable, EmptyContent, StatusTag, PcModal } from './erp/components.jsx';
@@ -38,8 +41,8 @@ const approvalItems = [
   { key: 'approval-processed', label: '已审批任务' },
 ];
 const menuItems = [
-  { key: 'management', label: '供应商管理', icon: <Building2 size={16} />, children: managementItems },
-  { key: 'approvals', label: '审批任务管理', icon: <ClipboardList size={16} />, children: approvalItems },
+  { key: 'management', label: '供应商管理', kind: 'supplier', children: managementItems },
+  { key: 'approvals', label: '审批任务管理', kind: 'approval', children: approvalItems },
 ];
 const menuLabels = Object.fromEntries([...managementItems, ...approvalItems].map(({ key, label }) => [key, label]));
 const approvalPages = new Set(approvalItems.map(({ key }) => key));
@@ -126,10 +129,10 @@ function readRoute() {
   return { page: 'suppliers' };
 }
 
-function SupplierFields({ fields }) {
+function SupplierFields({ fields, labelWidth }) {
   const compact = useMediaMatch(compactDetail);
   return (
-    <DetailGrid columns={compact ? 1 : 3} labelWidth={compact ? 84 : 96} className="pc-detail-grid">
+    <DetailGrid columns={compact ? 1 : 3} labelWidth={labelWidth} className="pc-detail-grid">
       {fields.map((field) => (
         <DetailItem key={field.label} label={field.label} span={field.span}>
           {valueOrDash(field.value)}
@@ -137,10 +140,6 @@ function SupplierFields({ fields }) {
       ))}
     </DetailGrid>
   );
-}
-
-function SectionHeading({ title, extra }) {
-  return <div className="pc-section-heading"><h3>{title}</h3>{extra}</div>;
 }
 
 function isDateInRange(value, start, end) {
@@ -173,7 +172,7 @@ function exportCsv(rows, columns, filename) {
 }
 
 function SupplierQueryPage({ filters, setFilters, onSearch, onReset, rows, selectedIds, setSelectedIds, onInvite, onRegister, onQuickCreate, onDelete, onExport, onOpenDetail, onDetailAction }) {
-  const activeFilter = Object.values(filters).some((value) => !!value);
+  const activeFilter = Object.values(filters).some((value) => typeof value === 'string' ? Boolean(value.trim()) : Boolean(value));
   const columns = [
     { title: '供应商名称', dataIndex: 'name', width: 240, render: (name, record) => <Tooltip title={name}><button className="pc-link pc-name-link" onClick={() => onOpenDetail(record, 'suppliers')}>{name}</button></Tooltip> },
     { title: '供应商类型', dataIndex: 'type', width: 130 },
@@ -251,7 +250,7 @@ function SupplierQueryPage({ filters, setFilters, onSearch, onReset, rows, selec
           }}
           pagination={{ defaultPageSize: 10, showSizeChanger: true, pageSizeOptions: [10, 20, 50], showTotal: (total) => '共 ' + total + ' 条', position: ['bottomRight'] }}
           scroll={{ x: 'max-content' }}
-          locale={{ emptyText: <EmptyContent description={activeFilter ? '暂无匹配结果' : '暂无数据'} /> }}
+          filtered={activeFilter}
           onChange={() => setSelectedIds([])}
         />
       </Card>
@@ -260,7 +259,7 @@ function SupplierQueryPage({ filters, setFilters, onSearch, onReset, rows, selec
 }
 
 function MyInvitationsPage({ filters, setFilters, onSearch, onReset, rows, selectedIds, setSelectedIds, onOpenDetail, onChangeInviter, onReinvite, onModifyProfile, onDelete, onExport }) {
-  const activeFilter = Object.values(filters).some((value) => !!value);
+  const activeFilter = Object.values(filters).some((value) => typeof value === 'string' ? Boolean(value.trim()) : Boolean(value));
   const selectedRecords = rows.filter((record) => selectedIds.includes(record.id));
   const allDeletable = selectedRecords.length > 0 && selectedRecords.every((record) => canDeleteSupplier(record, true));
   const columns = [
@@ -344,7 +343,7 @@ function MyInvitationsPage({ filters, setFilters, onSearch, onReset, rows, selec
           }}
           pagination={{ defaultPageSize: 10, showSizeChanger: true, pageSizeOptions: [10, 20, 50], showTotal: (total) => '共 ' + total + ' 条', position: ['bottomRight'] }}
           scroll={{ x: 'max-content' }}
-          locale={{ emptyText: <EmptyContent description={activeFilter ? '暂无匹配结果' : '暂无数据'} /> }}
+          filtered={activeFilter}
           onChange={() => setSelectedIds([])}
         />
       </Card>
@@ -364,7 +363,7 @@ function SupplierInformation({ supplier }) {
 }
 
 function RegistrationInformation({ supplier }) {
-  return <SupplierFields fields={[
+  return <SupplierFields labelWidth={128} fields={[
     { label: '供应商账号', value: supplier.supplierAccount || supplier.userCode || supplier.account },
     { label: '注册方式', value: supplier.mode },
     { label: '邀请人', value: supplier.inviter },
@@ -429,8 +428,8 @@ function BankInfoTab({ supplier, entries, onAdd, onEdit, onDelete, onReturn, onS
     <div className="pc-bank-tab">
       <div className="pc-bank-summary">
         <div className="pc-bank-summary-copy">
-          <strong>银行信息</strong>
-          {pendingCount > 0 && <span>有 <b>{pendingCount}</b> 条银行变更待提交审批</span>}
+          <SectionCardTitle>银行信息</SectionCardTitle>
+          {pendingCount > 0 && <span className="pc-bank-pending">有 <b>{pendingCount}</b> 条银行变更待提交审批</span>}
           {supplier.status === '变更中' && <span className="pc-muted">银行信息变更已提交审批</span>}
         </div>
         {canEdit && <Button type="primary" icon={<Plus size={15} />} onClick={onAdd}>添加银行</Button>}
@@ -447,7 +446,7 @@ function BankInfoTab({ supplier, entries, onAdd, onEdit, onDelete, onReturn, onS
           scroll={{ x: 'max-content' }}
         />
       ) : <EmptyContent description="暂无银行信息" />}
-      {pendingCount > 0 && <div className="pc-bank-footer"><Button onClick={onReturn}>返回</Button><Button type="primary" onClick={onSubmit}>提交审批</Button></div>}
+      {pendingCount > 0 && <FixedActionBar className="pc-bank-footer"><Button onClick={onReturn}>返回</Button><Button type="primary" onClick={onSubmit}>提交审批</Button></FixedActionBar>}
     </div>
   );
 }
@@ -517,7 +516,7 @@ function ApprovalTab({ supplier }) {
   return (
     <div className="pc-approval-tab">
       {history.length > 0 && <div className="pc-section-block">
-        <SectionHeading title="历史审批记录" />
+        <SectionCardTitle>历史审批记录</SectionCardTitle>
         <PcTable className="pc-table" bordered size="small" rowKey="number" dataSource={history} pagination={false} columns={[
           { title: '审批单号', dataIndex: 'number', width: 220 },
           { title: '审批类型', dataIndex: 'type', width: 150 },
@@ -528,7 +527,7 @@ function ApprovalTab({ supplier }) {
         ]} />
       </div>}
       {nodes.length > 0 && <div className="pc-section-block">
-        <SectionHeading title="当前审批进度" />
+        <SectionCardTitle>当前审批进度</SectionCardTitle>
         <PcTable className="pc-table" bordered size="small" rowKey="id" dataSource={nodes} pagination={false} columns={[
           { title: '审批环节', dataIndex: 'name', width: 150 },
           { title: '审批人', dataIndex: 'person', width: 170 },
@@ -701,6 +700,11 @@ function SupplierAdmin() {
   const compact = useMediaMatch(compactSidebar);
   const [sidebarPreference, setSidebarPreference] = useState(null);
   const collapsed = sidebarPreference ?? compact;
+  const sidebarItems = useMemo(() => menuItems.map(({ kind, label, ...item }) => ({
+    ...item, label, 'aria-label': label,
+    icon: <DelayedNavIcon kind={kind} tooltip={collapsed ? label : undefined} />,
+  })), [collapsed]);
+  const sidebarToggleLabel = collapsed ? '展开侧栏' : '收起侧栏';
   const [openMenuKeys, setOpenMenuKeys] = useState(['management', 'approvals']);
   const toggleSidebar = () => setSidebarPreference(!collapsed);
   const [sidebarScrolled, setSidebarScrolled] = useState(false);
@@ -1111,34 +1115,30 @@ function SupplierAdmin() {
             </a>
             <nav id="pc-sidebar-navigation" className="pc-sidebar-nav" aria-label="后台主导航"
               onScroll={(event) => setSidebarScrolled(event.currentTarget.scrollTop > 0)}>
-              <Menu mode="inline" inlineCollapsed={collapsed} items={menuItems}
+              <Menu tooltip={{ trigger: ['hover', 'focus'] }} mode="inline" inlineCollapsed={collapsed} items={sidebarItems}
                 selectedKeys={[parentPage]} openKeys={collapsed ? undefined : openMenuKeys}
                 onOpenChange={(keys) => { if (!collapsed) setOpenMenuKeys(keys); }}
                 onClick={({ key }) => navigateFromMenu(key)}
               />
             </nav>
             <div className="pc-sidebar-footer">
-              <Tooltip title={collapsed ? '展开侧栏' : '收起侧栏'} placement="right">
-                <button type="button" className="pc-collapse-button" onClick={toggleSidebar} aria-label={collapsed ? '展开侧栏' : '收起侧栏'}>
-                  {collapsed ? <ChevronsRight size={17} /> : <ChevronsLeft size={17} />}
-                  <span className="pc-menu-label">{collapsed ? '展开侧栏' : '收起侧栏'}</span>
+              <Tooltip title={sidebarToggleLabel} trigger={['hover', 'focus']} placement="right">
+                <button type="button" className="pc-collapse-button" onClick={toggleSidebar} aria-label={sidebarToggleLabel}
+                  aria-expanded={!collapsed} aria-controls="pc-sidebar-navigation">
+                  <DelayedNavIcon kind={collapsed ? 'open' : 'close'} size={18} />
+                  <span className="pc-menu-label" aria-hidden={collapsed}>{sidebarToggleLabel}</span>
                 </button>
               </Tooltip>
             </div>
           </aside>
           <main className="pc-main">
             <header className="pc-topbar">
-              <button
-                type="button"
-                className="pc-topbar-collapse"
-                onClick={toggleSidebar}
-                aria-label={collapsed ? '展开侧栏' : '收起侧栏'}
-                aria-expanded={!collapsed}
-                aria-controls="pc-sidebar-navigation"
-                title={collapsed ? '展开侧栏' : '收起侧栏'}
-              >
-                {collapsed ? <ChevronsRight size={17} /> : <ChevronsLeft size={17} />}
-              </button>
+              <Tooltip title={sidebarToggleLabel} trigger={['hover', 'focus']} placement="bottom">
+                <button type="button" className="pc-topbar-collapse" onClick={toggleSidebar} aria-label={sidebarToggleLabel}
+                  aria-expanded={!collapsed} aria-controls="pc-sidebar-navigation">
+                  <DelayedNavIcon kind={collapsed ? 'open' : 'close'} size={18} />
+                </button>
+              </Tooltip>
               <div className="pc-topbar-context"><Breadcrumb items={breadcrumbItems} separator={<ChevronRight size={14} aria-hidden="true" />} /></div>
               <div className="pc-topbar-actions">
                 <Button className="pc-help-button" type="text" icon={<CircleHelp size={16} />} onClick={() => setHelpOpen(true)}><span className="pc-help-label">操作指导</span></Button>
@@ -1148,8 +1148,8 @@ function SupplierAdmin() {
                 </Dropdown>
               </div>
             </header>
-            <div className="pc-main-scroll" ref={mainScrollRef}>
-              <div className="pc-main-content">
+            <div className="pc-main-scroll" ref={mainScrollRef} data-pc-scroll-region>
+              <div className="pc-main-content" data-pc-scroll-content>
                 {isApprovalPage ? (isApprovalDetail
                   ? <ApprovalTaskDetail key={route.id + route.page} task={approvalTask} approver={CURRENT_USER}
                     onBack={() => navigate('/admin/' + route.page)} onComplete={completeApproval} />

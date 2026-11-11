@@ -72,7 +72,7 @@ export function QueryItem({ label, children, labelWidth = 84 }) {
 
   return (
     <div
-      className="mmp-query-item flex items-center gap-2 min-w-0"
+      className="mmp-query-item"
       data-prototype-bindable="query-condition"
       data-prototype-label={prototypeLabel}
       role="group"
@@ -81,7 +81,7 @@ export function QueryItem({ label, children, labelWidth = 84 }) {
       <Tooltip title={label}>
         <label
           htmlFor={control?.props?.id}
-          className="mmp-query-label shrink-0 text-right text-sm text-gray-600"
+          className="mmp-query-label"
           style={{ width: labelWidth }}
           title={prototypeLabel}
           tabIndex={prototypeLabel?.length > 6 ? 0 : undefined}
@@ -89,7 +89,7 @@ export function QueryItem({ label, children, labelWidth = 84 }) {
           {label}
         </label>
       </Tooltip>
-      <div className="flex-1 min-w-0">
+      <div className="mmp-query-control">
         {control}
       </div>
     </div>

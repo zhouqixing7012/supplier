@@ -1,7 +1,8 @@
 import { otherWorkspaceFeatures } from './workspace-links.js';
 import React, { useEffect, useRef, useState } from 'react';
 import { Alert, App, Avatar, Breadcrumb, Button, Card, Dropdown, Form, Input, Menu, Space, Tabs, Typography } from 'antd-pc';
-import { Building2, Calculator, ChevronDown, ChevronRight, ClipboardList, Plane } from 'lucide-react';
+import { ChevronDown, ChevronRight } from 'lucide-react';
+import DelayedNavIcon from '../erp/DelayedNavIcon.jsx';
 import { EmptyContent, StatusTag } from '../erp/components.jsx';
 import { createPortalInquiries, createPortalOrders } from '../pages/mobile-portal-records.js';
 import { filledBasic } from '../pages/mobile-forms.jsx';
@@ -10,14 +11,14 @@ import { PortalPricing, PortalTasks } from './portal-pricing.jsx';
 import { SupplierProfileEditor, SupplierSnapshot } from './record-editor.jsx';
 
 const sections = [
-  { key: 'profile', label: '供应商信息管理', icon: <Building2 size={16} /> },
-  { key: 'quotes', label: '采购报价管理', icon: <ClipboardList size={16} />, children: [
+  { key: 'profile', label: '供应商信息管理', icon: <DelayedNavIcon kind="supplier" /> },
+  { key: 'quotes', label: '采购报价管理', icon: <DelayedNavIcon kind="approval" />, children: [
     { key: 'quotes-pending', label: '报价管理待处理' }, { key: 'quotes-processed', label: '报价管理已处理' },
   ] },
-  { key: 'tax', label: '采购价税拆分', icon: <Calculator size={16} />, children: [
+  { key: 'tax', label: '采购价税拆分', icon: <DelayedNavIcon kind="tax" />, children: [
     { key: 'tax-pending', label: '价税拆分待处理' }, { key: 'tax-processed', label: '价税拆分已处理' },
   ] },
-  { key: 'travel', label: '差旅账单录入', icon: <Plane size={16} /> },
+  { key: 'travel', label: '差旅账单录入', icon: <DelayedNavIcon kind="travel" /> },
 ];
 const accountItems = [
   { key: 'password', label: '修改密码' }, { key: 'register-email', label: '修改注册邮箱' },

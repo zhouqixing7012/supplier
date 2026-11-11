@@ -1,6 +1,7 @@
 /* 后台导航边界与原生滚动条共用一套视觉；移动端及独立页面保持各自样式。 */
 :is(.pc-app, .pc-modal, .pc-confirm) {
   --mmp-navigation-divider: #edf0f3;
+  --pc-warning-text: #d46b08;
   --mmp-scrollbar-page-size: 8px;
   --mmp-scrollbar-sidebar-size: 6px;
   --mmp-scrollbar-horizontal-size: 8px;
@@ -163,30 +164,9 @@
 .pc-confirm .ant-modal-confirm-paragraph { display: flex; flex-direction: column; }
 .pc-confirm .ant-modal-confirm-content { overflow-y: auto; min-height: 0; }
 .pc-confirm .ant-modal-confirm-title, .pc-confirm .ant-modal-confirm-btns { flex-shrink: 0; }
-.pc-table .ant-table-tbody > tr:not(.ant-table-placeholder):not(.ant-table-measure-row) > td { min-height: 40px; }
-.pc-table .ant-table-cell { min-width: 0; overflow-wrap: anywhere; word-break: normal; }
-.pc-table .ant-table-cell-fix-right, .pc-table .ant-table-cell-fix-left { background: #fff; }
-.pc-table .ant-table-container { container-type: inline-size; }
-.pc-table .ant-table-placeholder > .ant-table-cell { padding-inline: 0 !important; }
-.pc-table .ant-table-placeholder .ant-table-expanded-row-fixed {
-  width: 100cqw !important;
-  margin-inline: 0 !important;
-  padding-inline: 0 !important;
-}
-.pc-table .ant-table-placeholder .pc-empty {
-  position: sticky;
-  inset-inline-start: 0;
-  width: 100cqw;
-  margin: 24px 0;
-}
-.pc-empty .ant-empty-image {
-  display: flex;
-  height: 90px;
-  align-items: center;
-  justify-content: center;
-}
-.pc-empty .ant-empty-image img { display: block; width: auto; max-width: 100%; object-fit: contain; }
-/* 普通桌面表格的展示出口，专属报告不添加此作用域。多行及编辑控件可自然撑高。 */
+/* 普通桌面表格的展示出口，多行及编辑控件可自然撑高。 */
+.pc-table { min-width: 0; }
+.pc-table .ant-table-thead > tr > th { white-space: nowrap; }
 .pc-table .ant-table-thead > tr > th,
 .pc-table .ant-table-tbody > tr:not(.ant-table-placeholder):not(.ant-table-measure-row) > td {
   height: var(--mmp-table-row-height, 40px);
@@ -194,9 +174,26 @@
   font-size: 14px;
   line-height: 20px;
 }
-.pc-table .ant-table-placeholder .ant-empty {
-  margin-block: 24px;
+.pc-table .ant-table-cell { min-width: 0; overflow-wrap: anywhere; word-break: normal; vertical-align: middle; }
+.pc-table .ant-table-cell-fix-right, .pc-table .ant-table-cell-fix-left { background: var(--ant-color-bg-container, #fff); }
+
+/* 空态以整张表格的可视宽度居中，冻结列及横向滚动不改变定位基准。 */
+.pc-table .ant-table-container { container-type: inline-size; }
+.pc-table .ant-table-placeholder > .ant-table-cell { padding-inline: 0 !important; }
+.pc-table .ant-table-placeholder .ant-table-expanded-row-fixed {
+  width: 100cqw !important;
+  margin-inline: 0 !important;
+  padding-inline: 0 !important;
+  box-sizing: border-box;
 }
+.pc-table .ant-table-placeholder .ant-empty {
+  position: sticky;
+  inset-inline-start: 0;
+  width: 100cqw;
+  margin: 24px 0;
+  box-sizing: border-box;
+}
+.pc-empty .ant-empty-image img { display: block; width: auto; max-width: 100%; object-fit: contain; }
 .pc-table-full-text {
   display: block;
   overflow: hidden;
@@ -208,31 +205,26 @@
   outline-offset: -2px;
 }
 
-/* 空态以整张表格的可视宽度居中，横向滚动及冻结列不改变定位基准。 */
-.pc-table .ant-table-container {
-  container-type: inline-size;
+.pc-section-card-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 12px;
+  color: var(--ant-color-text, #1d2126);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
 }
-.pc-table .ant-table-placeholder > .ant-table-cell {
-  padding-inline: 0 !important;
-}
-.pc-table .ant-table-placeholder .ant-table-expanded-row-fixed {
-  width: 100cqw !important;
-  margin-inline: 0 !important;
-  padding-inline: 0 !important;
-  box-sizing: border-box;
-}
-.pc-table .ant-table-placeholder .ant-empty {
-  position: sticky;
-  left: 0;
-  width: 100cqw;
-  margin-inline: 0;
-  box-sizing: border-box;
+.pc-section-card-marker {
+  flex: 0 0 4px;
+  height: 16px;
+  border-radius: 4px;
+  background: var(--ant-color-primary, #145cff);
 }
 
-.pc-table { min-width: 0; }
-.pc-table .ant-table-thead > tr > th { white-space: nowrap; }
-.pc-table .ant-table-cell { min-width: 0; overflow-wrap: anywhere; vertical-align: middle; }
-.pc-empty .ant-empty-image img { display: block; width: auto; max-width: 100%; object-fit: contain; }
+.pc-fixed-action-bar[data-scroll-divider="true"] {
+  box-shadow: inset 0 1px var(--mmp-navigation-divider);
+}
 
 .ant-tag.pc-status {
   display: inline-flex;
@@ -248,7 +240,7 @@
 .pc-status.pc-status-default { border-color: #d9d9d9; background: #fafafa; color: #595959; }
 .pc-status.pc-status-info, .pc-status.pc-status-processing { border-color: #91caff; background: #e6f4ff; color: #0958d9; }
 .pc-status.pc-status-success { border-color: #b7eb8f; background: #f6ffed; color: #389e0d; }
-.pc-status.pc-status-warning { border-color: #ffd591; background: #fff7e6; color: #d46b08; }
+.pc-status.pc-status-warning { border-color: #ffd591; background: #fff7e6; color: var(--pc-warning-text, #d46b08); }
 .pc-status.pc-status-danger { border-color: #ffa39e; background: #fff1f0; color: #cf1322; }
 
 .mmp-query-item { display: flex; align-items: center; gap: 8px; }

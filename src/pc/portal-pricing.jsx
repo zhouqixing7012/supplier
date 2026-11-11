@@ -25,7 +25,8 @@ export function PortalTasks({ quote, records, status, view, setView, onOpen }) {
     if (start && end && start > end) return message.error('结束时间不能早于开始时间');
     setView({ query, type, company, start, end });
   };
-  const filtered = records.filter((record) => record.status === status && matchesPortalTask(record, view.query, view));
+  const rows = records.filter((record) => record.status === status && matchesPortalTask(record, view.query, view));
+  const filtered = Boolean(view.query?.trim() || view.type || view.company?.trim() || view.start || view.end);
   const columns = [
     { title: quote ? '询价单号' : '订单编号', dataIndex: 'number', width: 168, render: (number) =>
       <Button type="link" size="small" onClick={() => onOpen(number)}>{number}</Button> },
@@ -46,8 +47,7 @@ export function PortalTasks({ quote, records, status, view, setView, onOpen }) {
       <QueryItem label="开始时间"><Input type="date" value={start} onChange={(e) => setStart(e.target.value)} /></QueryItem>
       <QueryItem label="结束时间"><Input type="date" value={end} onChange={(e) => setEnd(e.target.value)} /></QueryItem>
     </QueryBar>
-    <Card size="small"><PcTable rowKey="number" dataSource={filtered} columns={columns} scroll={{ x: 'max-content' }}
-      locale={{ emptyText: <EmptyContent description={view.query || view.type || view.company || view.start || view.end ? '暂无匹配结果' : '暂无数据'} /> }} /></Card>
+    <Card size="small"><PcTable rowKey="number" dataSource={rows} columns={columns} scroll={{ x: 'max-content' }} filtered={filtered} /></Card>
   </div>;
 }
 

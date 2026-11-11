@@ -1,0 +1,36 @@
+.pc-delayed-nav-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  line-height: 0;
+  --pc-nav-icon-duration: 700ms;
+  --pc-nav-icon-stagger: 60ms;
+  --pc-nav-icon-ease: cubic-bezier(0.2, 0, 0, 1);
+}
+.pc-delayed-nav-icon svg { display: block; }
+
+@media (prefers-reduced-motion: no-preference) and (hover: hover) and (pointer: fine) {
+  .pc-delayed-nav-icon.is-playing .pc-nav-icon-tile,
+  .pc-delayed-nav-icon[data-icon-motion="tax"].is-playing svg > path {
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: pc-nav-icon-tile var(--pc-nav-icon-duration) var(--pc-nav-icon-ease) both;
+    animation-delay: calc(var(--pc-nav-part-index, 0) * var(--pc-nav-icon-stagger));
+  }
+  .pc-delayed-nav-icon[data-icon-motion="open"] { --pc-nav-icon-shift: 3px; }
+  .pc-delayed-nav-icon[data-icon-motion="close"] { --pc-nav-icon-shift: -3px; }
+  .pc-delayed-nav-icon[data-icon-motion="travel"] { --pc-nav-icon-shift: 2px; }
+  .pc-delayed-nav-icon.is-playing .pc-nav-icon-arrow,
+  .pc-delayed-nav-icon[data-icon-motion="travel"].is-playing svg > path {
+    animation: pc-nav-icon-arrow var(--pc-nav-icon-duration) var(--pc-nav-icon-ease) both;
+  }
+}
+@keyframes pc-nav-icon-tile {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  25%, 45% { transform: scale(0.65); opacity: 0.45; }
+}
+@keyframes pc-nav-icon-arrow {
+  0%, 100% { transform: translateX(0); }
+  35%, 60% { transform: translateX(var(--pc-nav-icon-shift)); }
+}
