@@ -419,9 +419,10 @@ function ContactsTab({ supplier }) {
   ]} scroll={{ x: 'max-content' }} />;
 }
 
-function BankInfoTab({ supplier, entries, onAdd, onEdit, onDelete, onReturn, onSubmit, pendingCount }) {
+function BankInfoTab({ supplier, entries, onAdd, onEdit, onDelete, onReturn, onSubmit, pendingCount, pendingApproval }) {
   const original = supplier.banks || [];
   const canEdit = canChangeSupplier(supplier);
+  const counts = bankChangeCounts(original, entries);
   const comparison = entries.flatMap((entry) => {
     const { action, fields } = bankChange(original, entry);
     return action === '修改' ? fields.map((field) => ({ ...field, key: entry.id + ':' + field.key, account: entry.bank + ' · 尾号 ' + String(entry.number).slice(-4) })) : [];
@@ -460,8 +461,8 @@ function BankInfoTab({ supplier, entries, onAdd, onEdit, onDelete, onReturn, onS
       <div className="pc-bank-summary">
         <div className="pc-bank-summary-copy">
           <SectionCardTitle>银行信息</SectionCardTitle>
-          {pendingCount > 0 && <span className="pc-bank-pending">有 <b>{pendingCount}</b> 条银行变更待提交审批</span>}
-          {supplier.status === '变更中' && <span className="pc-muted">银行信息变更已提交审批</span>}
+          {pendingCount > 0 && <span className="pc-bank-pending">有 <b>{pendingCount}</b> 条银行变更待提交审批（新增 {counts.新增}、修改 {counts.修改}、删除 {counts.删除}）</span>}
+          {pendingApproval && <span className="pc-muted">银行信息变更已提交审批</span>}
         </div>
         {canEdit && <Button type="primary" icon={<Plus size={15} />} onClick={onAdd}>添加银行</Button>}
       </div>
@@ -599,7 +600,7 @@ function SupplierDetailPage({ supplier, ratings, maintenanceTask, onOpenMaintena
   const tabs = [
     { key: 'supplier', label: '供应商信息', children: <SupplierInformation supplier={supplier} /> },
     { key: 'contacts', label: '联系人信息', children: <ContactsTab supplier={supplier} /> },
-    { key: 'banks', label: '银行信息', children: <BankInfoTab supplier={supplier} entries={bankEntries} pendingCount={pendingBankCount} onAdd={onBankAdd} onEdit={onBankEdit} onDelete={onBankDelete} onReturn={onBankReturn} onSubmit={onBankSubmit} /> },
+    { key: 'banks', label: '银行信息', children: <BankInfoTab supplier={supplier} entries={bankEntries} pendingCount={pendingBankCount} pendingApproval={maintenanceTask?.type === '银行信息变更' && maintenanceTask.status === '待审批'} onAdd={onBankAdd} onEdit={onBankEdit} onDelete={onBankDelete} onReturn={onBankReturn} onSubmit={onBankSubmit} /> },
     { key: 'permissions', label: '分配权限', children: <PermissionsTab key={supplier.id} supplier={supplier} onSave={onPermissionsSave} /> },
     { key: 'finance', label: '财务OU', children: <FinanceOUTab supplier={supplier} /> },
     { key: 'blacklist', label: '黑名单操作记录', children: <BlacklistTab supplier={supplier} /> },

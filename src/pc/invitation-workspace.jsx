@@ -52,7 +52,7 @@ export function InviterChangePage({ targets, batch, onBack, check, onSubmit, lea
       centered: true, className: 'pc-confirm', width: 610, title: '确认变更邀请人？',
       content: <><p>新邀请人：{person.name}（{person.userCode}）</p><PcTable rowKey="id" dataSource={selected} pagination={false}
         scroll={{ x: 'max-content', y: 230 }} columns={supplierColumns.slice(0, 3)} /></>,
-      okText: '确认变更', cancelText: '继续修改',
+      okText: '确认变更', cancelText: '取消', onCancel: onBack,
       onOk: () => setResults(onSubmit(ids, person)),
     });
   };
