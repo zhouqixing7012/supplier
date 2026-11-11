@@ -51,6 +51,7 @@ PC 门户认证：`src/entry.jsx` → `src/main.jsx` → `src/components/ui/*`�
 - `#/mobile` 和其下的页面、截图目录及单张状态属于移动端模块；逐张映射见 `docs/mobile-screenshot-coverage.md`。
 - 移动端与电脑端之间切换会重载；移动端内部通过 Hash 更新并保留本次会话的演示记录。
 
+- 无 Hash 和 `#/` 默认加载 PC 管理平台的供应商查询。
 - `#/login`、`#/email`、`#/upgrade`、`#/forgot` 属于 PC 门户认证模块，`#/portal/*` 属于 PC 门户工作区。
 - `#/register/company`、`#/register/personal`、`#/register/government`、`#/register/foreign` 为历史链接，进入 PC 管理平台的代注册工作区并选中对应类型。
 - 工作区右上角账户菜单提供跨端原型入口。

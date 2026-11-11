@@ -80,30 +80,11 @@ input {
 
 .sohu-badge {
   position: absolute;
-  top: clamp(28px, 4vw, 48px);
+  top: clamp(28px, 4.5vw, 64px);
   left: clamp(28px, 4.5vw, 64px);
+  display: block;
   width: 88px;
-  padding: 8px 8px 7px;
-  border: 1px solid rgba(15, 23, 42, 0.7);
-  background: #ffd400;
-  color: #111111;
-  text-align: center;
-  line-height: 1;
-}
-
-.sohu-badge strong {
-  display: block;
-  margin-left: 4px;
-  font-family: "Songti SC", SimSun, serif;
-  font-size: 19px;
-  letter-spacing: 5px;
-}
-
-.sohu-badge span {
-  display: block;
-  margin-top: 5px;
-  font-size: 9px;
-  letter-spacing: 1.6px;
+  height: auto;
 }
 
 .brand-content {
@@ -211,6 +192,11 @@ input {
 
 .auth-form input:hover {
   border-color: #a8b6c8;
+}
+
+.auth-form input:focus {
+  border-color: var(--ring);
+  outline: none;
 }
 
 .password-field,

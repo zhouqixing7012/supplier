@@ -14,7 +14,7 @@ function AppNavigation({ activeKey = 'portal' }) {
     <header className="system-nav-shell">
       <div className="system-nav">
         <a className="system-nav-brand" href="#/login" aria-label="返回搜狐供应商系统协同门户">
-          <span className="system-nav-brand-mark">搜狐</span>
+          <img className="system-nav-brand-mark" src={import.meta.env.BASE_URL + 'sohu-logo.png'} alt="搜狐" />
           <span className="system-nav-brand-name">供应商系统</span>
         </a>
 

@@ -31,7 +31,7 @@ export function SupplierAccountRegistration({ invitation, accounts, onComplete }
     onComplete({ account });
   };
   return <div className="m-portal-login m-supplier-account-registration">
-    <div className="m-portal-brand"><span className="m-portal-brand-mark">搜狐</span><span>供应商协同门户</span></div>
+    <div className="m-portal-brand"><img className="m-portal-brand-mark" src={import.meta.env.BASE_URL + 'sohu-logo.png'} alt="搜狐" /><span>供应商协同门户</span></div>
     <section className="m-portal-login-card" aria-labelledby="supplier-account-heading">
       <h2 id="supplier-account-heading">账号注册</h2>
       <div className="m-signup-identity"><Row label="供应商名称">{invitation.name}</Row></div>

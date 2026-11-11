@@ -43,7 +43,6 @@ body:has(.pc-app) { min-width: 320px; min-height: 100vh; margin: 0; background: 
 .pc-modal-record { flex-wrap: wrap; align-items: flex-start; }
 .pc-modal-record span:first-child { min-width: 0; flex: 1 1 160px; overflow-wrap: anywhere; }
 .pc-modal-record span:last-child { min-width: 0; overflow-wrap: anywhere; }
-.pc-app :focus-visible { outline-color: rgba(20, 92, 255, 0.42); outline-offset: 2px; }
 @media (max-width: 1180px) {
  .pc-summary-meta { justify-content: flex-start; } }
 @media (max-width: 960px) {
@@ -260,15 +259,13 @@ body:has(.pc-app) .ant-dropdown .ant-dropdown-menu {
 }
 body:has(.pc-app) .ant-dropdown .ant-dropdown-menu-item { min-height: 34px; border-radius: 4px; font-size: 14px; }
 
-/* 浏览器表面也纳入统一规范：焦点、选区和滚动条状态。 */
+/* 表单焦点由 Ant Design 提供，外描边仅用于其他键盘入口。 */
 .pc-app button:focus-visible,
 .pc-app a:focus-visible,
-.pc-app input:focus-visible,
-.pc-app [tabindex]:focus-visible {
+.pc-app [tabindex]:not(:is(input, textarea, select, .ant-input-affix-wrapper, .ant-picker, .ant-select)):focus-visible {
   outline: 2px solid rgba(20, 92, 255, .45);
   outline-offset: 2px;
 }
-.pc-app :focus:not(:focus-visible) { outline: none; }
 .pc-app ::selection { background: rgba(20, 92, 255, .18); color: #17204D; }
 @media (max-width: 960px) {
   .pc-collapse-button { justify-content: center; padding: 0; }

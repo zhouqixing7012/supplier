@@ -45,10 +45,7 @@ function useHashScreen() {
 function BrandPanel() {
   return (
     <section className="brand-panel" aria-label="搜狐供应商协同门户">
-      <div className="sohu-badge">
-        <strong>搜 狐</strong>
-        <span>SOHU.com</span>
-      </div>
+      <img className="sohu-badge" src={import.meta.env.BASE_URL + 'sohu-logo.png'} alt="搜狐" />
 
       <div className="brand-content">
         <h1>
