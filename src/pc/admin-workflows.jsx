@@ -5,7 +5,7 @@ import { people, permissionGroups, supplierTypes } from '../pages/mobile-data.js
 
 const options = (values) => values.map((value) => ({ value }));
 const departments = [...new Set(people.map((person) => person.department).filter(Boolean))];
-const demoCompanies = ['演示采购公司', '演示付款公司'];
+export const demoCompanies = ['演示采购公司', '演示付款公司'];
 const demoEntities = ['演示业务实体'];
 
 export function QuickSupplierModal({ onCancel, onSave }) {

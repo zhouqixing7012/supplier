@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Alert, App, Avatar, Breadcrumb, Button, Card, Form, Input, Menu, Space, Tabs, Typography } from 'antd-pc';
-import { Building2, Calculator, ChevronRight, ClipboardList, Plane, UserRound } from 'lucide-react';
+import { Alert, App, Avatar, Breadcrumb, Button, Card, Dropdown, Form, Input, Menu, Space, Tabs, Typography } from 'antd-pc';
+import { Building2, Calculator, ChevronDown, ChevronRight, ClipboardList, Plane } from 'lucide-react';
 import { EmptyContent, StatusTag } from '../erp/components.jsx';
 import { createPortalInquiries, createPortalOrders } from '../pages/mobile-portal-records.js';
 import { filledBasic } from '../pages/mobile-forms.jsx';
@@ -10,14 +10,20 @@ import { SupplierProfileEditor, SupplierSnapshot } from './record-editor.jsx';
 
 const sections = [
   { key: 'profile', label: '供应商信息管理', icon: <Building2 size={16} /> },
-  { key: 'quotes', label: '采购报价管理', icon: <ClipboardList size={16} /> },
-  { key: 'tax', label: '采购价税拆分', icon: <Calculator size={16} /> },
-  { key: 'travel', label: '差旅账单录入', icon: <Plane size={16} /> },
-  { key: 'account', label: '账户设置', icon: <UserRound size={16} />, children: [
-    { key: 'password', label: '修改密码' }, { key: 'register-email', label: '修改注册邮箱' },
+  { key: 'quotes', label: '采购报价管理', icon: <ClipboardList size={16} />, children: [
+    { key: 'quotes-pending', label: '报价管理待处理' }, { key: 'quotes-processed', label: '报价管理已处理' },
   ] },
+  { key: 'tax', label: '采购价税拆分', icon: <Calculator size={16} />, children: [
+    { key: 'tax-pending', label: '价税拆分待处理' }, { key: 'tax-processed', label: '价税拆分已处理' },
+  ] },
+  { key: 'travel', label: '差旅账单录入', icon: <Plane size={16} /> },
 ];
-const sectionLabels = Object.fromEntries(sections.flatMap(({ key, label, children }) => [[key, label], ...(children || []).map((item) => [item.key, item.label])]));
+const accountItems = [
+  { key: 'password', label: '修改密码' }, { key: 'register-email', label: '修改注册邮箱' },
+  { type: 'divider' }, { key: 'logout', label: '退出登录' },
+];
+const sectionLabels = Object.fromEntries([...sections.flatMap(({ key, label, children }) =>
+  [[key, label], ...(children || []).map((item) => [item.key, item.label])]), ...accountItems.map(({ key, label }) => [key, label])]);
 const travelTypes = [['train', '火车账单'], ['hotel', '酒店账单'], ['flight', '飞机账单'], ['rental', '租车账单']];
 const initialProfile = () => ({
   type: filledBasic.type,
@@ -138,8 +144,11 @@ export function PortalWorkspace({ screen, recordNumber, go, account, onLogout })
   const editingProfile = screen === 'profile-edit';
   const reviewingProfile = screen === 'profile-approval';
   const section = editingProfile || reviewingProfile ? 'profile' : screen;
-  const quote = section === 'quotes';
-  const tasks = quote || section === 'tax';
+  const quote = section === 'quotes' || section.startsWith('quotes-');
+  const tasks = quote || section === 'tax' || section.startsWith('tax-');
+  const base = quote ? 'quotes' : 'tax';
+  const taskSection = tasks ? base + (section.endsWith('-processed') ? '-processed' : '-pending') : section;
+  const taskStatus = taskSection.endsWith('-processed') ? '已处理' : '待处理';
   const records = quote ? inquiries : orders;
   const setRecords = quote ? setInquiries : setOrders;
   const selected = records.find((item) => item.number === recordNumber);
@@ -150,6 +159,12 @@ export function PortalWorkspace({ screen, recordNumber, go, account, onLogout })
     else action();
   };
   const switchSection = (key) => leavePage(() => go(workspacePath(key)));
+  const accountMenu = { items: accountItems, onClick: ({ key }) => {
+    if (key !== 'logout') return switchSection(key);
+    leavePage(() => modal.confirm({
+      centered: true, className: 'pc-confirm', title: '确认退出协同门户？', okText: '退出登录', cancelText: '取消', onOk: onLogout,
+    }));
+  } };
 
   useEffect(() => { if (scroll.current) scroll.current.scrollTop = 0; }, [screen, recordNumber]);
 
@@ -160,18 +175,20 @@ export function PortalWorkspace({ screen, recordNumber, go, account, onLogout })
           <img className="pc-sidebar-logo" src={import.meta.env.BASE_URL + 'sohu-logo.png'} alt="搜狐" />
           <span className="pc-sidebar-brand-label">供应商协同门户</span>
         </a>
-        <nav className="pc-sidebar-nav" aria-label="协同门户导航"><Menu mode="inline" items={sections} selectedKeys={[section]} defaultOpenKeys={['account']} onClick={({ key }) => switchSection(key)} /></nav>
+        <nav className="pc-sidebar-nav" aria-label="协同门户导航"><Menu mode="inline" items={sections} selectedKeys={[taskSection]} defaultOpenKeys={['quotes', 'tax']} onClick={({ key }) => switchSection(key)} /></nav>
       </aside>
       <main className="pc-main">
         <header className="pc-topbar">
           <div className="pc-topbar-context"><Breadcrumb separator={<ChevronRight size={14} />} items={[
             { title: '协同门户' },
-            { title: recordNumber ? <Button type="link" size="small" onClick={() => switchSection(section)}>{sectionLabels[section]}</Button> : sectionLabels[section] },
+            ...(tasks ? [{ title: sectionLabels[base] }] : []),
+            { title: recordNumber ? <Button type="link" size="small" onClick={() => switchSection(taskSection)}>{sectionLabels[taskSection]}</Button> : sectionLabels[taskSection] },
             ...(recordNumber ? [{ title: recordNumber }] : editingProfile || reviewingProfile ? [{ title: editingProfile ? '修改资料' : '审批记录' }] : []),
           ]} /></div>
-          <div className="pc-topbar-actions"><Avatar size={28} className="pc-avatar">{account?.slice(0, 1) || '供'}</Avatar><Button type="text" onClick={() => leavePage(() => modal.confirm({
-            centered: true, className: 'pc-confirm', title: '确认退出协同门户？', okText: '退出登录', cancelText: '取消', onOk: onLogout,
-          }))}>退出登录</Button></div>
+          <div className="pc-topbar-actions"><Dropdown menu={accountMenu} trigger={['click']} placement="bottomRight">
+            <button className="pc-user-trigger" type="button" aria-label="打开账户菜单"><Avatar size={28} className="pc-avatar">{account?.slice(0, 1) || '供'}</Avatar>
+              <span className="pc-user-name">{profile.basic.supplierName}</span><ChevronDown size={14} /></button>
+          </Dropdown></div>
         </header>
         <div className="pc-main-scroll" ref={scroll}><div className="pc-main-content pc-register">
           {section === 'profile' && !editingProfile && !reviewingProfile && <div className="pc-page-stack">
@@ -197,13 +214,13 @@ export function PortalWorkspace({ screen, recordNumber, go, account, onLogout })
             {pending && <SupplierSnapshot profile={pending} />}
             <div className="pc-workflow-actions"><Button onClick={() => go('portal/profile')}>返回</Button></div>
           </div>}
-          {tasks && (recordNumber ? <PortalPricing leaveRef={pricingLeave} key={screen + recordNumber} quote={quote} record={selected} onBack={() => go(workspacePath(section))}
+          {tasks && (recordNumber ? <PortalPricing leaveRef={pricingLeave} key={taskSection + recordNumber} quote={quote} record={selected} onBack={() => go(workspacePath(taskSection))}
             onSubmit={(draft) => {
               setRecords((current) => current.map((item) => item.number === draft.number ? draft : item));
-              setViews({ ...views, [section]: { ...views[section], status: '已处理' } });
-              go(workspacePath(section));
-            }} /> : <PortalTasks key={section} quote={quote} records={records} view={views[section] || {}}
-            setView={(view) => setViews({ ...views, [section]: view })} onOpen={(number) => go(workspacePath(section) + '/' + encodeURIComponent(number))} />)}
+              go(workspacePath(base + '-processed'));
+            }} /> : <PortalTasks key={taskSection} quote={quote} records={records} status={taskStatus} view={views[taskSection] || {}}
+            setView={(view) => setViews((current) => ({ ...current, [taskSection]: view }))}
+            onOpen={(number) => go(workspacePath(taskSection) + '/' + encodeURIComponent(number))} />)}
           {section === 'travel' && <TravelPage />}
           {['password', 'register-email'].includes(section) && <SecurityPage key={section} email={section === 'register-email'} initialEmail={profile.basic.registerEmail}
             onEmailChange={(email) => {

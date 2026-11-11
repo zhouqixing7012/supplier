@@ -12,3 +12,7 @@
 .pc-auth-brand img { width: 50px; height: auto; }
 .pc-auth-card .ant-alert { margin-block-end: 16px; }
 .pc-auth-links { margin-block-start: 16px; }
+.pc-approval-history .ant-steps { margin-bottom: 16px; }
+.pc-approval-assignment { margin-top: 16px; }
+.pc-approval-assignment .ant-form-item { margin-bottom: 0; }
+#approval-permissions .ant-alert { margin-bottom: 12px; }

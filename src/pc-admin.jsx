@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Avatar, Breadcrumb, Button, Card, ConfigProvider, DatePicker, Dropdown, Form, Input, Menu, Select, Space, Tabs, Tag, Tooltip, App } from 'antd-pc';
 import zhCN from 'antd-pc/es/locale/zh_CN';
-import { Building2, ChevronDown, ChevronRight, ChevronsLeft, ChevronsRight, CircleHelp, Download, LayoutDashboard, LogOut, Plus, Trash2, UserRoundPlus } from 'lucide-react';
+import { Building2, ChevronDown, ChevronRight, ChevronsLeft, ChevronsRight, CircleHelp, Download, ClipboardList, LogOut, Plus, Trash2, UserRoundPlus } from 'lucide-react';
 import { bankDirectory, branches, cooperation, initialSuppliers, people, supplierIndustries, supplierStates, supplierTypes } from './pages/mobile-data.js';
 import { bankChange, bankChangeCounts, normalizeBankChanges, readBankDraft, writeBankDraft } from './pages/mobile-bank-changes.js';
 import { blankBank, bankError, fieldsFor } from './pages/mobile-forms.jsx';
@@ -11,21 +11,38 @@ import { reinviteCandidate } from './pages/mobile-edit-rules.js';
 import { SupplierRegisterPage, registerTypeFromHash } from './pages/supplier-register.jsx';
 import { PermissionModal, QuickSupplierModal } from './pc/admin-workflows.jsx';
 import { SupplierProfileEditor, SupplierSnapshot } from './pc/record-editor.jsx';
+import { ApprovalTaskDetail, ApprovalTaskList, createApprovalTask, initialApprovalTasks } from './pc/approval-workspace.jsx';
+import { BankApplicationPage, BlacklistPage, ManualSyncPage, RatingPage } from './pc/admin-tools.jsx';
+import { initialRatings } from './pages/mobile-workflows.jsx';
 import erpTheme from './erp/theme.js';
 import QueryBar, { QueryItem } from './erp/QueryBar.jsx';
 import { DetailGrid, DetailItem } from './erp/DetailGrid.jsx';
 import { PcTable, EmptyContent, StatusTag, PcModal } from './erp/components.jsx';
 
-const menuItems = [
-  { key: 'management', label: '供应商管理', icon: <Building2 size={16} />, children: [
-    { key: 'suppliers', label: '供应商查询' },
-    { key: 'invitations', label: '我的邀请' },
-  ] },
-  { key: 'portal', label: '协同门户', icon: <LayoutDashboard size={16} />, children: [
-    { key: 'login', label: '协同门户登录' },
-  ] },
+const managementItems = [
+  { key: 'suppliers', label: '供应商查询' },
+  { key: 'assign-ou', label: '分配OU（已下线）', disabled: true },
+  { key: 'invitations', label: '我的邀请' },
+  { key: 'blacklist', label: '黑名单管理' },
+  { key: 'quick-create', label: '快速创建供应商' },
+  { key: 'login', label: '协同门户—登录' },
+  { key: 'my-ratings', label: '我的评分' },
+  { key: 'ratings', label: '供应商评分' },
+  { key: 'manual-sync', label: '供应商运维-手动同步' },
+  { key: 'rating-operations', label: '供应商运维-评分查询' },
+  { key: 'bank-applications', label: '银行信息申请' },
 ];
-const menuRoutes = { suppliers: '/admin/suppliers', invitations: '/admin/invitations', login: '/login' };
+const approvalItems = [
+  { key: 'approval-pending', label: '待审批任务' },
+  { key: 'approval-processed', label: '已审批任务' },
+];
+const menuItems = [
+  { key: 'management', label: '供应商管理', icon: <Building2 size={16} />, children: managementItems },
+  { key: 'approvals', label: '审批任务管理', icon: <ClipboardList size={16} />, children: approvalItems },
+];
+const menuLabels = Object.fromEntries([...managementItems, ...approvalItems].map(({ key, label }) => [key, label]));
+const approvalPages = new Set(approvalItems.map(({ key }) => key));
+const ratingPages = new Set(['my-ratings', 'ratings', 'rating-operations']);
 const compactSidebar = '(max-width: 960px)';
 const compactDetail = '(max-width: 760px)';
 
@@ -42,6 +59,14 @@ function useMediaMatch(query) {
 }
 
 const CURRENT_USER = '陈才慧';
+const CURRENT_DEPARTMENT = people.find((person) => person.name === CURRENT_USER)?.department || '集团总部.ERP部.平台技术部';
+const approvalStorageKey = 'supplier:pc-approval-tasks:v1';
+const profileOf = (record) => ({
+  type: record.type,
+  basic: { supplierName: record.name, creditCode: record.code, registerEmail: record.email, ...record.basic },
+  contacts: record.contacts || (record.contact ? [{ id: 'legacy-contact', name: record.contact, phone: record.phone, email: record.email }] : []),
+  banks: record.banks || [],
+});
 const pcBranches = [
   ...branches,
   { name: '北京市分行', bank: bankDirectory[1]?.name, country: '中国', province: '北京市', city: '北京市' },
@@ -88,6 +113,10 @@ function readRoute() {
   if (path === '/admin/register' || path.startsWith('/register/')) {
     return { page: 'register', type: registerTypeFromHash(path) };
   }
+  const approval = path.match(/^\/admin\/(approval-pending|approval-processed)(?:\/([^/?]+))?$/);
+  if (approval) return { page: approval[1], id: approval[2] && decodeURIComponent(approval[2]) };
+  const page = path.split('/')[2];
+  if (['blacklist', 'manual-sync', 'bank-applications'].includes(page) || ratingPages.has(page)) return { page };
   const edit = path.match(/^\/admin\/suppliers\/([^/?]+)\/edit$/);
   if (edit) return { page: 'profile-edit', id: decodeURIComponent(edit[1]) };
   const detail = path.match(/^\/admin\/suppliers\/([^/?]+)/);
@@ -125,7 +154,8 @@ function isDateInRange(value, start, end) {
 function exportCsv(rows, columns, filename) {
   const escape = (value) => {
     const text = String(value ?? '');
-    return '"' + text.replaceAll('"', '""') + '"';
+    const safeText = /^[=+@-]/.test(text) ? "'" + text : text;
+    return '"' + safeText.replaceAll('"', '""') + '"';
   };
   const header = columns.map((column) => escape(column.title)).join(',');
   const body = rows.map((row) => columns.map((column) => escape(typeof column.value === 'function' ? column.value(row) : row[column.dataIndex])).join(','));
@@ -670,7 +700,7 @@ function SupplierAdmin() {
   const compact = useMediaMatch(compactSidebar);
   const [sidebarPreference, setSidebarPreference] = useState(null);
   const collapsed = sidebarPreference ?? compact;
-  const [openMenuKeys, setOpenMenuKeys] = useState(['management']);
+  const [openMenuKeys, setOpenMenuKeys] = useState(['management', 'approvals']);
   const toggleSidebar = () => setSidebarPreference(!collapsed);
   const [sidebarScrolled, setSidebarScrolled] = useState(false);
   const mainScrollRef = useRef(null);
@@ -685,6 +715,19 @@ function SupplierAdmin() {
       return clone(initialSuppliers);
     }
   });
+  const [approvalTasks, setApprovalTasks] = useState(() => {
+    try {
+      const saved = sessionStorage.getItem(approvalStorageKey);
+      return saved ? JSON.parse(saved) : initialApprovalTasks();
+    } catch {
+      return initialApprovalTasks();
+    }
+  });
+  const [approvalViews, setApprovalViews] = useState({});
+  const [ratings, setRatings] = useState(() => initialRatings.map((row) => ({
+    ...row, contract: row.status === '未评分', created: row.date + ' 18:52:32',
+  })));
+  const [bankApplications, setBankApplications] = useState([]);
   const [supplierFilters, setSupplierFilters] = useState({ ...EMPTY_SUPPLIER_FILTERS });
   const [appliedSupplierFilters, setAppliedSupplierFilters] = useState({ ...EMPTY_SUPPLIER_FILTERS });
   const [invitationFilters, setInvitationFilters] = useState({ ...EMPTY_INVITATION_FILTERS });
@@ -712,7 +755,7 @@ function SupplierAdmin() {
 
   useEffect(() => {
     const titles = { detail: '供应商详情', register: '代注册', 'profile-edit': '修改全部信息' };
-    const pageTitle = titles[route.page];
+    const pageTitle = titles[route.page] || menuLabels[route.page];
     document.title = pageTitle ? pageTitle + ' - 搜狐供应商管理平台' : '搜狐供应商管理平台';
     if (!mainScrollRef.current) return;
     mainScrollRef.current.scrollTop = route.id ? 0 : (scrollPositions.current[route.page] || 0);
@@ -725,6 +768,11 @@ function SupplierAdmin() {
       messageApi.error('当前会话保存失败，请检查浏览器存储后重试。');
     }
   }, [suppliers, messageApi]);
+
+  useEffect(() => {
+    try { sessionStorage.setItem(approvalStorageKey, JSON.stringify(approvalTasks)); }
+    catch { messageApi.error('审批任务会话保存失败，请检查浏览器存储后重试。'); }
+  }, [approvalTasks, messageApi]);
 
   const currentSupplier = route.id ? suppliers.find((supplier) => supplier.id === route.id) : suppliers[0];
   const currentBankEntries = currentSupplier ? (bankDrafts[currentSupplier.id] || currentSupplier.banks || []) : [];
@@ -761,7 +809,7 @@ function SupplierAdmin() {
     setActiveDetailTab(tab);
     navigate('/admin/suppliers/' + encodeURIComponent(supplier.id));
   };
-  const backFromDetail = () => navigate(route.page === 'profile-edit' || detailReturnPage.current === 'invitations' ? '/admin/invitations' : '/admin/suppliers');
+  const backFromDetail = () => navigate('/admin/' + (route.page === 'profile-edit' ? 'invitations' : detailReturnPage.current));
   const setSupplierFilter = (key, value) => setSupplierFilters((current) => ({ ...current, [key]: value }));
   const setInvitationFilter = (key, value) => setInvitationFilters((current) => ({ ...current, [key]: value }));
   const applySupplierFilters = () => { setAppliedSupplierFilters({ ...supplierFilters }); setSelectedSupplierIds([]); };
@@ -936,6 +984,13 @@ function SupplierAdmin() {
     } else backFromDetail();
   };
 
+  const enqueueApproval = (type, record, profile, before) => {
+    const task = createApprovalTask({
+      number: 'MOCK-SUP-' + newId().slice(3).toUpperCase(), type, applicant: CURRENT_USER,
+      submittedAt: nowText(), profile, before, permissions: record.permissions, affiliation: record.department,
+    });
+    setApprovalTasks((current) => [task, ...current]);
+  };
   const handleBankSubmit = () => {
     if (!currentSupplier || !canChangeSupplier(currentSupplier)) { messageApi.error('当前供应商状态不支持银行信息变更，请刷新资料后重试。'); return; }
     const counts = bankChangeCounts(originalBanks, currentBankEntries);
@@ -957,6 +1012,8 @@ function SupplierAdmin() {
         catch { messageApi.error('待提交资料清理失败，本次未提交审批。'); return; }
         setBankDrafts((current) => ({ ...current, [currentSupplier.id]: clone(originalBanks) }));
         setSuppliers((current) => current.map((record) => record.id === currentSupplier.id ? { ...record, status: '变更中', updated: nowText() } : record));
+        const before = profileOf(latest);
+        enqueueApproval('银行信息变更', latest, { ...before, banks: activeEntries }, before);
         messageApi.success('银行信息变更已记录');
       },
     });
@@ -970,6 +1027,7 @@ function SupplierAdmin() {
       email: profile.basic.registerEmail || '', contact: profile.contacts[0]?.name || '', phone: profile.contacts[0]?.phone || '',
       date: time, updated: time, inviter: CURRENT_USER, score: '未评分', permissions: extra.permissions || [] };
     setSuppliers((current) => [record, ...current]);
+    if (mode === '代注册') enqueueApproval('注册', record, profileOf(record));
     messageApi.success('演示供应商记录已创建');
     return record;
   };
@@ -981,9 +1039,13 @@ function SupplierAdmin() {
     setQuickOpen(false);
     resetSupplierFilters();
   };
-  const navigateFromMenu = (path) => {
-    if (profileLeave.current) profileLeave.current.leave(() => navigate(path));
-    else navigate(path);
+  const navigateFromMenu = (key) => {
+    const action = () => {
+      if (key === 'quick-create') setQuickOpen(true);
+      else navigate(key === 'login' ? '/login' : '/admin/' + key);
+    };
+    if (profileLeave.current) profileLeave.current.leave(action);
+    else action();
   };
   const editProfile = (record) => {
     if (record.inviter !== CURRENT_USER || !canChangeSupplier(record)) return messageApi.warning('当前供应商资料不可修改');
@@ -995,6 +1057,7 @@ function SupplierAdmin() {
     const latest = suppliers.find((record) => record.id === route.id);
     if (!latest || latest.inviter !== CURRENT_USER || !canChangeSupplier(latest)) return messageApi.error('供应商状态已变化，当前不可提交变更');
     setSuppliers((current) => current.map((record) => record.id === latest.id ? { ...record, status: '变更中', pendingProfile: profile, updated: nowText() } : record));
+    enqueueApproval('资料变更', latest, profile, profileOf(latest));
     messageApi.success('演示资料变更已进入待审批状态');
     backFromDetail();
   };
@@ -1007,10 +1070,22 @@ function SupplierAdmin() {
   const isDetail = route.page === 'detail';
   const isRegister = route.page === 'register';
   const parentPage = isProfileEdit ? 'invitations' : isDetail ? detailReturnPage.current : isRegister ? 'suppliers' : route.page;
+  const isApprovalPage = approvalPages.has(parentPage);
+  const isApprovalDetail = isApprovalPage && !!route.id;
+  const processed = route.page === 'approval-processed';
+  const approvalTask = isApprovalDetail ? approvalTasks.find((item) => item.number === route.id && (item.status !== '待审批') === processed) : null;
+  const completeApproval = (decision) => {
+    setApprovalTasks((current) => current.map((item) => item.number === route.id && item.status === '待审批'
+      ? { ...item, ...decision, handledAt: nowText() } : item));
+    navigate('/admin/approval-processed/' + encodeURIComponent(route.id));
+    messageApi.success('本次演示审批任务已办理');
+  };
   const breadcrumbItems = [
-    { title: <a href="#/admin/suppliers">供应商管理</a> },
-    { title: isDetail || isRegister || isProfileEdit ? <a href={parentPage === 'invitations' ? '#/admin/invitations' : '#/admin/suppliers'}>{parentPage === 'invitations' ? '我的邀请' : '供应商查询'}</a> : route.page === 'invitations' ? '我的邀请' : '供应商查询' },
+    { title: isApprovalPage ? '审批任务管理' : '供应商管理' },
+    { title: isDetail || isRegister || isProfileEdit || isApprovalDetail
+      ? <a href={'#/admin/' + parentPage}>{menuLabels[parentPage]}</a> : menuLabels[parentPage] },
   ];
+  if (isApprovalDetail) breadcrumbItems.push({ title: route.id });
   if (isProfileEdit) breadcrumbItems.push({ title: '修改全部信息' });
   if (isRegister) breadcrumbItems.push({ title: '代注册' });
   if (isDetail) breadcrumbItems.push({ title: currentSupplier?.name || '供应商详情' });
@@ -1038,7 +1113,7 @@ function SupplierAdmin() {
               <Menu mode="inline" inlineCollapsed={collapsed} items={menuItems}
                 selectedKeys={[parentPage]} openKeys={collapsed ? undefined : openMenuKeys}
                 onOpenChange={(keys) => { if (!collapsed) setOpenMenuKeys(keys); }}
-                onClick={({ key }) => navigateFromMenu(menuRoutes[key])}
+                onClick={({ key }) => navigateFromMenu(key)}
               />
             </nav>
             <div className="pc-sidebar-footer">
@@ -1074,13 +1149,26 @@ function SupplierAdmin() {
             </header>
             <div className="pc-main-scroll" ref={mainScrollRef}>
               <div className="pc-main-content">
-                {isProfileEdit ? (
+                {isApprovalPage ? (isApprovalDetail
+                  ? <ApprovalTaskDetail key={route.id + route.page} task={approvalTask} approver={CURRENT_USER}
+                    onBack={() => navigate('/admin/' + route.page)} onComplete={completeApproval} />
+                  : <ApprovalTaskList key={route.page} tasks={approvalTasks} processed={processed}
+                    view={approvalViews[route.page] || {}} setView={(view) => setApprovalViews((current) => ({ ...current, [route.page]: view }))}
+                    onOpen={(number) => navigate('/admin/' + route.page + '/' + encodeURIComponent(number))} />
+                ) : ratingPages.has(route.page) ? (
+                  <RatingPage key={route.page} mode={route.page} records={ratings} suppliers={suppliers} currentUser={CURRENT_USER}
+                    onSave={(row) => setRatings((current) => current.some((item) => item.id === row.id)
+                      ? current.map((item) => item.id === row.id ? row : item) : [row, ...current])} exportRows={exportCsv} />
+                ) : route.page === 'blacklist' ? (
+                  <BlacklistPage suppliers={suppliers} onOpen={(supplier) => openDetail(supplier, 'blacklist', 'blacklist')} />
+                ) : route.page === 'manual-sync' ? <ManualSyncPage />
+                : route.page === 'bank-applications' ? (
+                  <BankApplicationPage currentUser={CURRENT_USER} department={CURRENT_DEPARTMENT} records={bankApplications}
+                    onSave={(record) => { setBankApplications((current) => [record, ...current]); messageApi.success('申请信息已暂存'); }} />
+                ) : isProfileEdit ? (
                   currentSupplier && currentSupplier.inviter === CURRENT_USER && canChangeSupplier(currentSupplier)
-                    ? <SupplierProfileEditor key={currentSupplier.id} leaveRef={profileLeave} profile={{
-                      type: currentSupplier.type,
-                      basic: { supplierName: currentSupplier.name, creditCode: currentSupplier.code, registerEmail: currentSupplier.email, ...currentSupplier.basic },
-                      contacts: currentSupplier.contacts || [], banks: currentSupplier.banks || [],
-                    }} onCancel={backFromDetail} onSubmit={submitProfile} />
+                    ? <SupplierProfileEditor key={currentSupplier.id} leaveRef={profileLeave} profile={profileOf(currentSupplier)}
+                      onCancel={backFromDetail} onSubmit={submitProfile} />
                     : <Card size="small"><EmptyContent description="当前供应商资料不可修改" /><Button onClick={backFromDetail}>返回</Button></Card>
                 ) : route.page === 'detail' ? (currentSupplier ? (
                   <SupplierDetailPage

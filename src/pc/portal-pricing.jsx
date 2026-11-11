@@ -1,5 +1,5 @@
 import React, { useImperativeHandle, useState } from 'react';
-import { Alert, App, Button, Card, Input, Select, Space, Tabs, Typography, Upload } from 'antd-pc';
+import { Alert, App, Button, Card, Input, Select, Space, Typography, Upload } from 'antd-pc';
 import { Plus } from 'lucide-react';
 import QueryBar, { QueryItem } from '../erp/QueryBar.jsx';
 import { DetailGrid, DetailItem } from '../erp/DetailGrid.jsx';
@@ -14,7 +14,7 @@ const taxLines = [['material', '物料编码', 145], ['name', '物料名称', 15
 const fileList = (value) => (Array.isArray(value) ? value : value ? [value] : []).map((file, index) =>
   typeof file === 'string' ? { uid: 'existing-' + index, name: file } : file);
 
-export function PortalTasks({ quote, records, view, setView, onOpen }) {
+export function PortalTasks({ quote, records, status, view, setView, onOpen }) {
   const [query, setQuery] = useState(view.query || '');
   const [type, setType] = useState(view.type);
   const [company, setCompany] = useState(view.company || '');
@@ -23,9 +23,8 @@ export function PortalTasks({ quote, records, view, setView, onOpen }) {
   const { message } = App.useApp();
   const apply = () => {
     if (start && end && start > end) return message.error('结束时间不能早于开始时间');
-    setView({ status, query, type, company, start, end });
+    setView({ query, type, company, start, end });
   };
-  const status = view.status || '待处理';
   const filtered = records.filter((record) => record.status === status && matchesPortalTask(record, view.query, view));
   const columns = [
     { title: quote ? '询价单号' : '订单编号', dataIndex: 'number', width: 168, render: (number) =>
@@ -40,11 +39,7 @@ export function PortalTasks({ quote, records, view, setView, onOpen }) {
       <Button type="link" size="small" onClick={() => onOpen(row.number)}>{quote ? '报价' : '价税拆分'}</Button> }] : []),
   ];
   return <div className="pc-page-stack">
-    <Card size="small" className="pc-detail-tabs-card">
-      <Tabs className="pc-detail-tabs" activeKey={status} onChange={(next) => setView({ ...view, status: next })}
-        items={['待处理', '已处理'].map((key) => ({ key, label: key }))} />
-    </Card>
-    <QueryBar onQuery={apply} onReset={() => { setQuery(''); setType(undefined); setCompany(''); setStart(''); setEnd(''); setView({ status }); }}>
+    <QueryBar onQuery={apply} onReset={() => { setQuery(''); setType(undefined); setCompany(''); setStart(''); setEnd(''); setView({}); }}>
       <QueryItem label={quote ? '询价单号' : '订单编号'}><Input allowClear value={query} onChange={(e) => setQuery(e.target.value)} onPressEnter={apply} /></QueryItem>
       <QueryItem label="采购类型"><Select allowClear value={type} options={purchaseTypes.map((value) => ({ value }))} onChange={setType} /></QueryItem>
       <QueryItem label={quote ? '采购单位' : '采购公司'}><Input allowClear value={company} onChange={(e) => setCompany(e.target.value)} onPressEnter={apply} /></QueryItem>

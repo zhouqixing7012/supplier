@@ -2,7 +2,7 @@ import React from 'react';
 import { Empty, Modal, Table, Tag, Tooltip } from 'antd-pc';
 
 export function StatusTag({ value }) {
-  const tones = { 邀请中: 'processing', 注册中: 'processing', 审批中: 'processing', 已审批: 'success', 草稿: 'default', 注册驳回: 'danger', 变更中: 'warning' };
+  const tones = { 邀请中: 'processing', 注册中: 'processing', 审批中: 'processing', 已审批: 'success', 草稿: 'default', 注册驳回: 'danger', 变更中: 'warning', 待审批: 'processing', 同意: 'success', 驳回: 'danger', 未评分: 'default', 已评分: 'success' };
   return <Tag className={'pc-status pc-status-' + (tones[value] || 'default')}>{value || '-'}</Tag>;
 }
 

@@ -11,7 +11,7 @@ import './pages/supplier-register.css';
 import './pc/workflows.css';
 
 const authTitles = { login: '用户登录', email: '邮箱验证', upgrade: '修改密码', forgot: '找回密码' };
-const workspaceRoutes = ['profile', 'profile-edit', 'profile-approval', 'quotes', 'tax', 'travel', 'password', 'register-email'];
+const workspaceRoutes = ['profile', 'profile-edit', 'profile-approval', 'quotes', 'quotes-pending', 'quotes-processed', 'tax', 'tax-pending', 'tax-processed', 'travel', 'password', 'register-email'];
 const readPath = () => window.location.hash.replace(/^#\/?/, '').split('/');
 
 function AuthPage({ screen, account, setAccount, go, onLogin }) {

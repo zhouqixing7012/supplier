@@ -18,8 +18,8 @@ function FileField({ value, onChange, id }) {
   </Upload>{value && <span>{value} <Button type="link" size="small" onClick={() => onChange('')}>移除</Button></span>}</Space>;
 }
 
-export function RecordFields({ fields, value }) {
-  return <DetailGrid>{fields.map(([key, label, , control]) =>
+export function RecordFields({ fields, value, columns = 3 }) {
+  return <DetailGrid columns={columns} className="pc-detail-grid">{fields.map(([key, label, , control]) =>
     <DetailItem key={key} label={label} span={control === 'textarea' ? 3 : undefined}>{valueText(value[key])}</DetailItem>
   )}</DetailGrid>;
 }
@@ -35,8 +35,9 @@ function FormFields({ fields }) {
   </Form.Item>);
 }
 
-export function RecordTable({ fields, records, onEdit, onRemove, canRemove }) {
+export function RecordTable({ fields, records, onEdit, onRemove, canRemove, numbered = false }) {
   const columns = fields.map(([dataIndex, title]) => ({ dataIndex, title, width: 132, render: valueText }));
+  if (numbered) columns.unshift({ title: '序号', width: 60, align: 'center', render: (_, row, index) => index + 1 });
   if (onEdit) columns.push({ key: 'actions', title: '操作', width: 100, fixed: 'right', render: (_, row, index) =>
     <Space size={4}><Button size="small" type="link" onClick={() => onEdit(index)}>编辑</Button>{(!canRemove || canRemove(row)) && <Button size="small" type="link" danger onClick={() => onRemove(index)}>删除</Button>}</Space> });
   return <PcTable rowKey={(row) => row.id || row.rowKey} columns={columns} dataSource={records.map((row, index) => ({ ...row, rowKey: index }))} pagination={false} scroll={{ x: 'max-content' }} />;
@@ -95,14 +96,20 @@ export function RecordCollectionEditor({ bank = false, qualification = false, ty
   </Card>;
 }
 
-export function SupplierSnapshot({ profile, section }) {
+export function SupplierSnapshot({ profile, section, approval = false }) {
+  const basicFields = approval ? [
+    ['type', '供应商类型'],
+    ...([supplierTypes[0], supplierTypes[3]].includes(profile.type) ? [['proof', profile.type === supplierTypes[0] ? '营业执照' : '证书']] : []),
+    ...fieldsFor(profile.type),
+  ] : profileFields(profile.type);
+  const qualifications = profile.basic.qualifications || [];
   return <div className="pc-page-stack">
-    {(!section || section === 'basic') && <Card size="small" title="基本信息"><RecordFields fields={profileFields(profile.type)} value={profile.basic} /></Card>}
-    {(!section || section === 'basic' || section === 'collections') && profile.basic.qualifications?.length > 0 && <Card size="small" title="资质信息">
-      <RecordTable fields={qualificationFields} records={profile.basic.qualifications} />
+    {(!section || section === 'basic') && <Card size="small" title={approval ? "供应商信息" : "基本信息"}><RecordFields columns={approval ? 2 : 3} fields={basicFields} value={{ ...profile.basic, type: profile.type }} /></Card>}
+    {(!section || section === 'basic' || section === 'collections') && (approval || qualifications.length > 0) && <Card size="small" title={approval ? "资质信息（选填）" : "资质信息"}>
+      <RecordTable fields={qualificationFields} records={qualifications} numbered={approval} />
     </Card>}
-    {(!section || section === 'contacts' || section === 'collections') && profile.type !== supplierTypes[1] && <Card size="small" title="联系人信息"><RecordTable fields={contactFields} records={profile.contacts} /></Card>}
-    {(!section || section === 'banks' || section === 'collections') && <Card size="small" title="银行信息"><RecordTable fields={bankFields} records={profile.banks} /></Card>}
+    {(!section || section === 'contacts' || section === 'collections') && profile.type !== supplierTypes[1] && <Card size="small" title="联系人信息"><RecordTable fields={approval ? contactFields.filter(([key]) => key !== 'gender') : contactFields} records={profile.contacts || []} numbered={approval} /></Card>}
+    {(!section || section === 'banks' || section === 'collections') && <Card size="small" title="银行信息"><RecordTable fields={bankFields} records={profile.banks || []} numbered={approval} /></Card>}
   </div>;
 }
 
