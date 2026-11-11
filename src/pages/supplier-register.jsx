@@ -1,5 +1,8 @@
 import React, { useState } from 'react';
 import { App, Button, Card, DatePicker, Form, Input, Select, Space, Steps, Tabs, Typography, Upload } from 'antd-pc';
+import { RecordCollectionEditor, RecordFields, SupplierSnapshot } from '../pc/record-editor.jsx';
+import { bankError } from './mobile-forms.jsx';
+import { supplierTypes } from './mobile-data.js';
 import { Plus } from 'lucide-react';
 import './supplier-register.css';
 
@@ -19,8 +22,9 @@ const FOUR_STEPS = [
   { title: '预览提交' },
 ];
 
-const TWO_STEPS = [
+const PERSONAL_STEPS = [
   { title: '基本信息', description: '证件、联系方式、合作内容等' },
+  { title: '银行信息', description: '银行账号、开户证明等' },
   { title: '预览提交' },
 ];
 
@@ -60,7 +64,6 @@ const PAGE_CONFIG = {
     upload: {
       label: '营业执照',
       required: true,
-      note: '请先上传营业执照，企业信息可自动填充',
     },
     fields: [
       { key: 'supplierName', label: '供应商名称', required: true, placeholder: '请输入供应商名称' },
@@ -96,7 +99,7 @@ const PAGE_CONFIG = {
   },
   personal: {
     label: '个人供应商',
-    steps: TWO_STEPS,
+    steps: PERSONAL_STEPS,
     fields: [
       {
         key: 'certificateType', label: '证件类型', required: true, type: 'select', placeholder: '请选择证件类型', full: true,
@@ -212,11 +215,11 @@ function FieldControl({ field, value, onChange, ...controlProps }) {
   return <Input {...props} type={field.type === 'email' ? 'email' : 'text'} placeholder={field.placeholder} />;
 }
 
-function UploadField({ upload }) {
+function UploadField({ upload, file, setFile }) {
   return (
     <Form.Item label={upload.label} required={upload.required} className="pc-register-wide">
       <Space orientation="vertical" size={4}>
-        <Upload beforeUpload={() => false} maxCount={1} accept=".jpg,.jpeg,.png,.pdf">
+        <Upload beforeUpload={() => false} fileList={file} onChange={({ fileList }) => setFile(fileList)} maxCount={1} accept=".jpg,.jpeg,.png,.pdf">
           <Button icon={<Plus size={14} />}>上传{upload.label}</Button>
         </Upload>
         {upload.note && <Typography.Text type="danger">{upload.note}</Typography.Text>}
@@ -231,23 +234,61 @@ export function registerTypeFromHash(path) {
   return Object.hasOwn(PAGE_CONFIG, type) ? type : 'company';
 }
 
-export function SupplierRegisterPage({ initialType = 'company', onBack }) {
+export function SupplierRegisterPage({ initialType = 'company', onBack, onSubmit }) {
   const [type, setType] = useState(initialType);
+  const [step, setStep] = useState(0);
+  const [basic, setBasic] = useState({});
+  const [file, setFile] = useState([]);
+  const [contacts, setContacts] = useState([]);
+  const [banks, setBanks] = useState([]);
+  const [qualifications, setQualifications] = useState([]);
   const { message } = App.useApp();
   const config = PAGE_CONFIG[type];
   const tabItems = TYPE_OPTIONS.map(({ value, label }) => ({ key: value, label }));
+  const title = config.steps[step].title;
+  const supplierType = supplierTypes[TYPE_OPTIONS.findIndex((option) => option.value === type)];
+  const preview = Object.fromEntries(config.fields.map((field) => {
+    const value = basic[field.key];
+    const label = field.options?.find((item) => item.value === value)?.label;
+    return [field.key, label || (value?.format ? value.format('YYYY-MM-DD') : value?.detail || value)];
+  }));
+  const next = () => {
+    if (title === '银行信息') {
+      if (!banks.length) return message.error('请至少添加一条有效银行账户');
+      const error = banks.map((bank) => bankError(bank, type === 'company')).find(Boolean);
+      if (error) return message.error(error);
+      if (type === 'company' && banks.filter((bank) => bank.accountType === '基本账户').length !== 1) {
+        return message.error('企业供应商有效银行账户必须且只能有一个基本账户');
+      }
+    }
+    setStep(step + 1);
+  };
+  const back = () => step > 0 ? setStep(step - 1) : onBack();
+  const changeType = (value) => {
+    setType(value);
+    setStep(0);
+    setBasic({});
+    setFile([]);
+    setContacts([]);
+    setBanks([]);
+    setQualifications([]);
+  };
 
   return (
     <div className="pc-page-stack pc-register">
       <Card size="small" className="pc-detail-tabs-card">
-        <Tabs activeKey={type} items={tabItems} onChange={setType} className="pc-detail-tabs" />
-        <Steps current={0} items={config.steps} responsive size="small" />
+        <Tabs activeKey={type} items={tabItems.map((item) => ({ ...item, disabled: step > 0 }))} onChange={changeType} className="pc-detail-tabs" />
+        <Steps current={step} items={config.steps} responsive size="small" />
       </Card>
-      <Card size="small" title="基本信息">
-        <Form key={type} className="pc-register-form" layout="horizontal" labelAlign="right"
-          onFinish={() => message.success('基本信息校验通过')}>
+      {step === 0 && <Card size="small" title="基本信息">
+        <Form key={type} className="pc-register-form" layout="horizontal" labelAlign="right" initialValues={basic}
+          onFinish={(value) => {
+            if (config.upload?.required && !file.length) return message.error('请上传' + config.upload.label);
+            setBasic(value);
+            next();
+          }}>
           <div className="pc-register-grid">
-            {config.upload && <UploadField upload={config.upload} />}
+            {config.upload && <UploadField upload={config.upload} file={file} setFile={setFile} />}
             {config.fields.map((field) => (
               <Form.Item
                 key={field.key}
@@ -267,7 +308,29 @@ export function SupplierRegisterPage({ initialType = 'company', onBack }) {
             <Button type="primary" htmlType="submit">下一步</Button>
           </div>
         </Form>
-      </Card>
+      </Card>}
+      {step === 0 && <RecordCollectionEditor qualification type={supplierType} records={qualifications} onChange={setQualifications} />}
+      {title === '联系人信息' && <RecordCollectionEditor type={supplierType} records={contacts} onChange={setContacts} />}
+      {title === '银行信息' && <RecordCollectionEditor bank type={supplierType} records={banks} onChange={setBanks} />}
+      {title === '预览提交' && <>
+        <Card size="small" title="基本信息"><RecordFields fields={config.fields.map(({ key, label }) => [key, label])} value={preview} /></Card>
+        <SupplierSnapshot profile={{ type: supplierType, basic: { ...preview, qualifications }, contacts, banks }} section="collections" />
+      </>}
+      {step > 0 && <div className="pc-register-actions">
+        <Button onClick={back}>上一步</Button>
+        {title === '预览提交' ? <Button type="primary" onClick={() => onSubmit({
+          type: supplierType, basic: {
+            ...preview,
+            supplierName: preview.supplierName || preview.name,
+            creditCode: preview.creditCode || preview.certificateNumber,
+            establishedAt: preview.establishedAt || preview.certificateStart,
+            licenseUntil: preview.licenseUntil || preview.certificateEnd,
+            proof: file[0]?.name,
+            qualifications,
+          },
+          contacts, banks,
+        })}>提交</Button> : <Button type="primary" onClick={next}>下一步</Button>}
+      </div>}
     </div>
   );
 }

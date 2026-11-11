@@ -1,461 +1,112 @@
 import React, { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { toast } from 'sonner';
-import {
-  ArrowLeft,
-  Eye,
-  EyeOff,
-  LockKeyhole,
-  Mail,
-  RefreshCw,
-  ShieldCheck,
-  UserRound,
-} from 'lucide-react';
+import { Alert, App, Button, Card, ConfigProvider, Form, Input, Space, Typography } from 'antd-pc';
+import zhCN from 'antd-pc/es/locale/zh_CN';
+import 'antd-pc/dist/reset.css';
+import erpTheme from './erp/theme.js';
+import { PortalWorkspace } from './pc/portal-workspace.jsx';
+import './erp/presentation.css';
+import './pc-admin.css';
+import './pages/supplier-register.css';
+import './pc/workflows.css';
 
-import { AppNavigation } from '@/components/app-navigation';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Toaster } from '@/components/ui/sonner';
-import './styles.css';
+const authTitles = { login: '用户登录', email: '邮箱验证', upgrade: '修改密码', forgot: '找回密码' };
+const workspaceRoutes = ['profile', 'profile-edit', 'profile-approval', 'quotes', 'tax', 'travel', 'password', 'register-email'];
+const readPath = () => window.location.hash.replace(/^#\/?/, '').split('/');
 
-const screens = ['login', 'email', 'upgrade', 'forgot'];
-
-function useHashScreen() {
-  const read = () => {
-    const value = window.location.hash.replace('#/', '').trim();
-    return screens.includes(value) ? value : 'login';
-  };
-
-  const [screen, setScreen] = useState(read);
-
+function AuthPage({ screen, account, setAccount, go, onLogin }) {
+  const { message } = App.useApp();
+  const [form] = Form.useForm();
+  const [sent, setSent] = useState('');
+  const [retryIn, setRetryIn] = useState(0);
   useEffect(() => {
-    const onHash = () => setScreen(read());
-    window.addEventListener('hashchange', onHash);
-    return () => window.removeEventListener('hashchange', onHash);
+    if (!retryIn) return;
+    const timer = window.setTimeout(() => setRetryIn(retryIn - 1), 1000);
+    return () => window.clearTimeout(timer);
+  }, [retryIn]);
+  const isLogin = screen === 'login';
+  const verifyLogin = screen === 'email';
+  const submit = (values) => {
+    if (isLogin) {
+      if (values.captcha !== '1234') return form.setFields([{ name: 'captcha', errors: ['请输入演示图形验证码 1234'] }]);
+      const name = values.account.trim();
+      if (!name) return form.setFields([{ name: 'account', errors: ['请输入账号'] }]);
+      if (name.toLowerCase() === 'noemail') return message.warning('当前账号未维护注册邮箱，请联系搜狐业务对接人补充');
+      setAccount(name);
+      if (name.toLowerCase() === 'oldpwd') {
+        message.warning('为保障账号安全，请先修改密码');
+        go('upgrade');
+      } else go('email');
+      return;
+    }
+    if (sent !== values.email || values.code !== '1234') return form.setFields([{ name: 'code', errors: ['请先获取演示验证码，并输入 1234'] }]);
+    if (verifyLogin) onLogin();
+    else {
+      message.success('演示密码校验通过');
+      go('login');
+    }
+  };
+  return <main className="pc-auth-page">
+    <Card className="pc-auth-card" title={<span className="pc-auth-brand"><img src={import.meta.env.BASE_URL + 'sohu-logo.png'} alt="搜狐" />供应商协同门户</span>}>
+      <Typography.Title level={4}>{authTitles[screen]}</Typography.Title>
+      <Alert type="info" showIcon title={isLogin ? '原型演示，图形验证码为 1234' : '原型演示，获取验证码后使用 1234 校验'} />
+      <Form form={form} layout="vertical" initialValues={{ account }} onFinish={submit}>
+        {screen !== 'email' && <Form.Item name="account" label="账号" rules={[{ required: true }]}><Input autoComplete="username" readOnly={screen === 'upgrade'} /></Form.Item>}
+        {isLogin ? <>
+          <Form.Item name="password" label="密码" rules={[{ required: true }]}><Input.Password autoComplete="current-password" /></Form.Item>
+          <Form.Item name="captcha" label="图形验证码" rules={[{ required: true }]}><Input autoComplete="off" /></Form.Item>
+        </> : <>
+          <Form.Item name="email" label="注册邮箱" rules={[{ required: true, type: 'email' }]}><Input /></Form.Item>
+          <Form.Item label="邮箱验证码" required>
+            <Space.Compact block>
+              <Form.Item name="code" noStyle rules={[{ required: true }]}><Input aria-label="邮箱验证码" /></Form.Item>
+              <Button disabled={retryIn > 0} onClick={async () => {
+                try {
+                  const { email } = await form.validateFields(['email']);
+                  setSent(email);
+                  setRetryIn(60);
+                  message.info('演示验证码为 1234');
+                } catch { /* 字段错误由表单展示。 */ }
+              }}>{retryIn ? retryIn + ' 秒后重发' : '获取验证码'}</Button>
+            </Space.Compact>
+          </Form.Item>
+          {!verifyLogin && <>
+            <Form.Item name="password" label="新密码" rules={[{ required: true }]}><Input.Password autoComplete="new-password" /></Form.Item>
+            <Form.Item name="confirm" label="确认密码" dependencies={['password']} rules={[{ required: true }, ({ getFieldValue }) => ({
+              validator: (_, value) => !value || value === getFieldValue('password') ? Promise.resolve() : Promise.reject(new Error('两次输入的密码不一致')),
+            })]}><Input.Password autoComplete="new-password" /></Form.Item>
+          </>}
+        </>}
+        <Space wrap>
+          {isLogin ? <Button type="link" onClick={() => go('forgot')}>修改密码</Button> : <Button onClick={() => go('login')}>返回</Button>}
+          <Button type="primary" htmlType="submit">{isLogin ? '登录' : verifyLogin ? '验证并登录' : '提交'}</Button>
+        </Space>
+      </Form>
+      {isLogin && <div className="pc-auth-links"><Space><a href="#/admin/suppliers">供应商管理平台</a><a href="#/mobile">移动端原型</a></Space></div>}
+    </Card>
+  </main>;
+}
+
+export function PortalApp() {
+  const [path, setPath] = useState(readPath);
+  const [account, setAccount] = useState('');
+  const [signedIn, setSignedIn] = useState(false);
+  const go = (next) => { window.location.hash = '/' + next; };
+  useEffect(() => {
+    const update = () => setPath(readPath());
+    window.addEventListener('hashchange', update);
+    return () => window.removeEventListener('hashchange', update);
   }, []);
-
-  const go = (next) => {
-    window.location.hash = `/${next}`;
-  };
-
-  return [screen, go];
+  const screen = path[0] === 'portal' && workspaceRoutes.includes(path[1]) ? path[1] : 'profile';
+  const auth = Object.hasOwn(authTitles, path[0]) && (path[0] !== 'email' || account) ? path[0] : 'login';
+  const workspace = path[0] === 'portal' && signedIn;
+  return <ConfigProvider locale={zhCN} theme={erpTheme}><App>
+    {workspace ? <PortalWorkspace screen={screen} recordNumber={path[2] && decodeURIComponent(path[2])} go={go} account={account}
+      onLogout={() => { setSignedIn(false); setAccount(''); go('login'); }} />
+      : <AuthPage key={auth} screen={auth} account={account} setAccount={setAccount} go={go}
+        onLogin={() => { setSignedIn(true); go('portal/profile'); }} />}
+  </App></ConfigProvider>;
 }
 
-function BrandPanel() {
-  return (
-    <section className="brand-panel" aria-label="搜狐供应商协同门户">
-      <div className="sohu-badge">
-        <strong>搜 狐</strong>
-        <span>SOHU.com</span>
-      </div>
-
-      <div className="brand-content">
-        <h1>
-          搜狐供应商
-          <br />
-          协同门户
-        </h1>
-        <p>安全、便捷地完成供应商账号验证与协同操作</p>
-      </div>
-    </section>
-  );
-}
-
-function AuthShell({ title, subtitle, icon, children }) {
-  return (
-    <main className="auth-shell">
-      <BrandPanel />
-      <section className="auth-panel">
-        <div className="auth-card">
-          <header className="auth-card-header">
-            <div className="auth-icon">{icon}</div>
-            <div>
-              <h2>{title}</h2>
-              {subtitle && <p>{subtitle}</p>}
-            </div>
-          </header>
-          {children}
-        </div>
-      </section>
-    </main>
-  );
-}
-
-function FormField({ label, required = false, children }) {
-  return (
-    <label className="form-field">
-      <span className="field-title">
-        {required && <em>*</em>}
-        {label}
-      </span>
-      {children}
-    </label>
-  );
-}
-
-function PasswordField({ value, onChange, placeholder = '请输入密码' }) {
-  const [visible, setVisible] = useState(false);
-
-  return (
-    <div className="password-field">
-      <Input
-        type={visible ? 'text' : 'password'}
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        placeholder={placeholder}
-        autoComplete="current-password"
-      />
-      <button
-        className="password-toggle"
-        type="button"
-        aria-label={visible ? '隐藏密码' : '显示密码'}
-        onClick={() => setVisible((current) => !current)}
-      >
-        {visible ? <EyeOff size={18} /> : <Eye size={18} />}
-      </button>
-    </div>
-  );
-}
-
-function LoginScreen({ go }) {
-  const [account, setAccount] = useState('');
-  const [password, setPassword] = useState('');
-  const [captcha, setCaptcha] = useState('');
-
-  const onSubmit = (event) => {
-    event.preventDefault();
-    const key = account.trim().toLowerCase();
-
-    if (key === 'noemail') {
-      toast.warning('当前账号未维护注册邮箱，暂时无法登录。', {
-        description: '为保障账号安全，请联系搜狐业务对接人补充注册邮箱后重新登录。',
-        duration: 5000,
-      });
-      return;
-    }
-
-    if (key === 'oldpwd') {
-      toast.warning('为保障账号安全，请先修改密码。');
-      go('upgrade');
-      return;
-    }
-
-    go('email');
-  };
-
-  return (
-    <AuthShell
-      title="用户登录"
-      subtitle="使用供应商账号登录协同门户"
-      icon={<UserRound size={20} />}
-    >
-      <form className="auth-form" onSubmit={onSubmit}>
-        <FormField label="账号" required>
-          <Input
-            value={account}
-            onChange={(event) => setAccount(event.target.value)}
-            placeholder="请输入登录账号"
-            autoComplete="username"
-          />
-        </FormField>
-
-        <FormField label="密码" required>
-          <PasswordField value={password} onChange={setPassword} />
-        </FormField>
-
-        <FormField label="验证码" required>
-          <div className="captcha-row">
-            <Input
-              value={captcha}
-              onChange={(event) => setCaptcha(event.target.value)}
-              placeholder="请输入验证码"
-            />
-            <div className="captcha-code">YHJV</div>
-            <Button type="button" variant="ghost" size="sm" className="captcha-refresh">
-              <RefreshCw size={14} />
-              换一张
-            </Button>
-          </div>
-        </FormField>
-
-        <div className="form-tools">
-          <Button type="button" variant="link" className="password-link" onClick={() => go('forgot')}>
-            修改密码
-          </Button>
-        </div>
-
-        <Button type="submit" size="lg" className="submit-button">
-          登录
-        </Button>
-      </form>
-    </AuthShell>
-  );
-}
-
-function EmailScreen({ go }) {
-  const [email, setEmail] = useState('');
-  const [code, setCode] = useState('');
-  const [countdown, setCountdown] = useState(0);
-
-  useEffect(() => {
-    if (!countdown) return undefined;
-    const timer = window.setInterval(() => {
-      setCountdown((current) => Math.max(current - 1, 0));
-    }, 1000);
-    return () => window.clearInterval(timer);
-  }, [countdown]);
-
-  const sendCode = () => {
-    setCountdown(60);
-    toast.success('验证码已发送');
-  };
-
-  const onSubmit = (event) => {
-    event.preventDefault();
-    toast.success('登录成功');
-  };
-
-  return (
-    <AuthShell
-      title="安全验证"
-      subtitle="请输入注册邮箱及邮箱验证码"
-      icon={<ShieldCheck size={20} />}
-    >
-      <form className="auth-form" onSubmit={onSubmit}>
-        <FormField label="注册邮箱" required>
-          <div className="input-with-icon">
-            <Mail size={17} />
-            <Input
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              placeholder="请输入注册邮箱"
-              type="email"
-            />
-          </div>
-        </FormField>
-
-        <FormField label="邮箱验证码" required>
-          <div className="verify-row">
-            <Input
-              value={code}
-              onChange={(event) => setCode(event.target.value)}
-              placeholder="请输入验证码"
-              maxLength={6}
-            />
-            <Button
-              type="button"
-              variant="outline"
-              disabled={countdown > 0}
-              onClick={sendCode}
-            >
-              {countdown > 0 ? `${countdown}s 后重发` : '获取验证码'}
-            </Button>
-          </div>
-        </FormField>
-
-        <div className="action-row">
-          <Button type="button" variant="outline" size="lg" onClick={() => go('login')}>
-            <ArrowLeft size={16} />
-            返回
-          </Button>
-          <Button type="submit" size="lg" className="submit-button compact-submit">
-            确定
-          </Button>
-        </div>
-      </form>
-    </AuthShell>
-  );
-}
-
-function UpgradeScreen({ go }) {
-  const [email, setEmail] = useState('');
-  const [code, setCode] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirm, setConfirm] = useState('');
-  const [countdown, setCountdown] = useState(0);
-
-  useEffect(() => {
-    if (!countdown) return undefined;
-    const timer = window.setInterval(() => {
-      setCountdown((current) => Math.max(current - 1, 0));
-    }, 1000);
-    return () => window.clearInterval(timer);
-  }, [countdown]);
-
-  const sendCode = () => {
-    setCountdown(60);
-    toast.success('验证码已发送');
-  };
-
-  const onSubmit = (event) => {
-    event.preventDefault();
-    toast.success('密码修改成功');
-    window.setTimeout(() => go('login'), 600);
-  };
-
-  return (
-    <AuthShell
-      title="修改密码"
-      subtitle="请完成密码修改后重新登录"
-      icon={<LockKeyhole size={20} />}
-    >
-      <form className="auth-form" onSubmit={onSubmit}>
-        <FormField label="账号" required>
-          <Input value="oldpwd" readOnly className="read-only-input" />
-        </FormField>
-
-        <FormField label="注册邮箱" required>
-          <Input
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            placeholder="请输入注册邮箱"
-            type="email"
-          />
-        </FormField>
-
-        <FormField label="邮箱验证码" required>
-          <div className="verify-row">
-            <Input
-              value={code}
-              onChange={(event) => setCode(event.target.value)}
-              placeholder="请输入验证码"
-              maxLength={6}
-            />
-            <Button
-              type="button"
-              variant="outline"
-              disabled={countdown > 0}
-              onClick={sendCode}
-            >
-              {countdown > 0 ? `${countdown}s 后重发` : '发送验证码'}
-            </Button>
-          </div>
-        </FormField>
-
-        <FormField label="新密码" required>
-          <PasswordField value={password} onChange={setPassword} placeholder="请输入新密码" />
-        </FormField>
-
-        <FormField label="确认密码" required>
-          <PasswordField value={confirm} onChange={setConfirm} placeholder="请再次输入新密码" />
-        </FormField>
-
-        <div className="action-row">
-          <Button type="button" variant="outline" size="lg" onClick={() => go('login')}>
-            返回
-          </Button>
-          <Button type="submit" size="lg" className="submit-button compact-submit">
-            提交
-          </Button>
-        </div>
-      </form>
-    </AuthShell>
-  );
-}
-
-function ForgotScreen({ go }) {
-  const [account, setAccount] = useState('');
-  const [email, setEmail] = useState('');
-  const [code, setCode] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirm, setConfirm] = useState('');
-  const [countdown, setCountdown] = useState(0);
-
-  useEffect(() => {
-    if (!countdown) return undefined;
-    const timer = window.setInterval(() => {
-      setCountdown((current) => Math.max(current - 1, 0));
-    }, 1000);
-    return () => window.clearInterval(timer);
-  }, [countdown]);
-
-  const onSubmit = (event) => {
-    event.preventDefault();
-    toast.success('密码修改成功');
-  };
-
-  return (
-    <AuthShell
-      title="修改密码"
-      subtitle="通过注册邮箱验证身份"
-      icon={<LockKeyhole size={20} />}
-    >
-      <form className="auth-form" onSubmit={onSubmit}>
-        <FormField label="账号" required>
-          <Input
-            value={account}
-            onChange={(event) => setAccount(event.target.value)}
-            placeholder="请输入登录账号"
-          />
-        </FormField>
-
-        <FormField label="注册邮箱" required>
-          <Input
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            placeholder="请输入注册邮箱"
-            type="email"
-          />
-        </FormField>
-
-        <FormField label="邮箱验证码" required>
-          <div className="verify-row">
-            <Input
-              value={code}
-              onChange={(event) => setCode(event.target.value)}
-              placeholder="请输入验证码"
-            />
-            <Button
-              type="button"
-              variant="outline"
-              disabled={countdown > 0}
-              onClick={() => {
-                setCountdown(60);
-                toast.success('验证码已发送');
-              }}
-            >
-              {countdown > 0 ? `${countdown}s 后重发` : '发送验证码'}
-            </Button>
-          </div>
-        </FormField>
-
-        <FormField label="新密码" required>
-          <PasswordField value={password} onChange={setPassword} placeholder="请输入新密码" />
-        </FormField>
-
-        <FormField label="确认密码" required>
-          <PasswordField value={confirm} onChange={setConfirm} placeholder="请再次输入新密码" />
-        </FormField>
-
-        <div className="action-row">
-          <Button type="button" variant="outline" size="lg" onClick={() => go('login')}>
-            返回
-          </Button>
-          <Button type="submit" size="lg" className="submit-button compact-submit">
-            提交
-          </Button>
-        </div>
-      </form>
-    </AuthShell>
-  );
-}
-
-function App() {
-  const [screen, go] = useHashScreen();
-
-  let page;
-  if (screen === 'email') page = <EmailScreen go={go} />;
-  else if (screen === 'upgrade') page = <UpgradeScreen go={go} />;
-  else if (screen === 'forgot') page = <ForgotScreen go={go} />;
-  else page = <LoginScreen go={go} />;
-
-  return (
-    <>
-      <AppNavigation activeKey="portal" />
-      <Toaster />
-      {page}
-    </>
-  );
-}
-
-createRoot(document.getElementById('root')).render(<App />);
+const root = document.getElementById('root');
+if (root) createRoot(root).render(<PortalApp />);

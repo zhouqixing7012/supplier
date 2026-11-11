@@ -1,0 +1,14 @@
+.pc-workflow-grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); }
+.pc-workflow-actions { display: flex; justify-content: center; padding-block: 4px 12px; }
+.pc-auth-page {
+  display: grid;
+  min-height: 100dvh;
+  place-items: center;
+  padding: 24px;
+  background: var(--ant-color-bg-layout, #F2F5FA);
+}
+.pc-auth-card { width: min(100%, 460px); }
+.pc-auth-brand { display: flex; align-items: center; gap: 12px; }
+.pc-auth-brand img { width: 50px; height: auto; }
+.pc-auth-card .ant-alert { margin-block-end: 16px; }
+.pc-auth-links { margin-block-start: 16px; }

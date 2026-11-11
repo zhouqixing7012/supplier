@@ -9,6 +9,8 @@ import { canChangeSupplier, canDeleteSupplier, canReinviteSupplier } from './pag
 import { reinviteCandidate } from './pages/mobile-edit-rules.js';
 
 import { SupplierRegisterPage, registerTypeFromHash } from './pages/supplier-register.jsx';
+import { PermissionModal, QuickSupplierModal } from './pc/admin-workflows.jsx';
+import { SupplierProfileEditor, SupplierSnapshot } from './pc/record-editor.jsx';
 import erpTheme from './erp/theme.js';
 import QueryBar, { QueryItem } from './erp/QueryBar.jsx';
 import { DetailGrid, DetailItem } from './erp/DetailGrid.jsx';
@@ -86,6 +88,8 @@ function readRoute() {
   if (path === '/admin/register' || path.startsWith('/register/')) {
     return { page: 'register', type: registerTypeFromHash(path) };
   }
+  const edit = path.match(/^\/admin\/suppliers\/([^/?]+)\/edit$/);
+  if (edit) return { page: 'profile-edit', id: decodeURIComponent(edit[1]) };
   const detail = path.match(/^\/admin\/suppliers\/([^/?]+)/);
   if (detail) return { page: 'detail', id: decodeURIComponent(detail[1]) };
   if (path.startsWith('/admin/invitations')) return { page: 'invitations' };
@@ -137,7 +141,7 @@ function exportCsv(rows, columns, filename) {
   window.setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-function SupplierQueryPage({ filters, setFilters, onSearch, onReset, rows, selectedIds, setSelectedIds, onInvite, onRegister, onDelete, onExport, onOpenDetail, onDetailAction }) {
+function SupplierQueryPage({ filters, setFilters, onSearch, onReset, rows, selectedIds, setSelectedIds, onInvite, onRegister, onQuickCreate, onDelete, onExport, onOpenDetail, onDetailAction }) {
   const activeFilter = Object.values(filters).some((value) => !!value);
   const columns = [
     { title: '供应商名称', dataIndex: 'name', width: 240, render: (name, record) => <Tooltip title={name}><button className="pc-link pc-name-link" onClick={() => onOpenDetail(record, 'suppliers')}>{name}</button></Tooltip> },
@@ -153,6 +157,7 @@ function SupplierQueryPage({ filters, setFilters, onSearch, onReset, rows, selec
       render: (_, record) => canChangeSupplier(record) ? (
         <Dropdown trigger={['click']} menu={{ items: [
           { key: 'banks', label: '修改银行' },
+          { key: 'permissions', label: '分配权限' },
           { key: 'inviter', label: '变更邀请人' },
         ], onClick: ({ key }) => onDetailAction(record, key) }}>
           <Button className="pc-row-action-button" type="link" size="small">变更 <ChevronDown size={14} /></Button>
@@ -193,6 +198,7 @@ function SupplierQueryPage({ filters, setFilters, onSearch, onReset, rows, selec
           <Space size={8} wrap>
             <Button type="primary" icon={<UserRoundPlus size={15} />} onClick={onInvite}>邀请注册</Button>
             <Button onClick={onRegister}>代注册</Button>
+            <Button onClick={onQuickCreate}>快速创建供应商</Button>
             <Button danger disabled={!selectedIds.length} icon={<Trash2 size={15} />} onClick={() => onDelete(selectedIds, false)}>删除</Button>
             <Button icon={<Download size={15} />} onClick={onExport}>导出</Button>
           </Space>
@@ -222,7 +228,7 @@ function SupplierQueryPage({ filters, setFilters, onSearch, onReset, rows, selec
   );
 }
 
-function MyInvitationsPage({ filters, setFilters, onSearch, onReset, rows, selectedIds, setSelectedIds, onOpenDetail, onChangeInviter, onReinvite, onDelete, onExport }) {
+function MyInvitationsPage({ filters, setFilters, onSearch, onReset, rows, selectedIds, setSelectedIds, onOpenDetail, onChangeInviter, onReinvite, onModifyProfile, onDelete, onExport }) {
   const activeFilter = Object.values(filters).some((value) => !!value);
   const selectedRecords = rows.filter((record) => selectedIds.includes(record.id));
   const allDeletable = selectedRecords.length > 0 && selectedRecords.every((record) => canDeleteSupplier(record, true));
@@ -237,17 +243,21 @@ function MyInvitationsPage({ filters, setFilters, onSearch, onReset, rows, selec
     { title: '邀请时间', dataIndex: 'date', width: 180, align: 'center' },
     { title: '更新时间', dataIndex: 'updated', width: 180, align: 'center' },
     {
-      title: '操作', key: 'actions', width: 88, fixed: 'right', align: 'center',
+      title: '操作', key: 'actions', width: 112, fixed: 'right', align: 'center',
       render: (_, record) => {
         const items = [
-          ...(canChangeSupplier(record) ? [{ key: 'inviter', label: '变更邀请人' }] : []),
+          ...(canChangeSupplier(record) ? [{ key: 'inviter', label: '变更邀请人' }, { key: 'profile', label: '修改全部信息' }] : []),
           ...(canReinviteSupplier(record) ? [{ key: 'reinvite', label: '重新邀请' }] : []),
           ...(canDeleteSupplier(record, true) ? [{ key: 'delete', label: '删除', danger: true }] : []),
         ];
         if (!items.length) return '-';
+        if (canReinviteSupplier(record)) return <Space size={4} className="pc-row-actions">
+          <Button className="pc-row-action-button" type="link" size="small" onClick={() => onReinvite(record)}>重新邀请</Button>
+          {canDeleteSupplier(record, true) && <Button className="pc-row-action-button" type="link" danger size="small" onClick={() => onDelete([record.id], true)}>删除</Button>}
+        </Space>;
         return <Dropdown trigger={['click']} menu={{ items, onClick: ({ key }) => {
           if (key === 'inviter') onChangeInviter([record.id]);
-          if (key === 'reinvite') onReinvite(record);
+          if (key === 'profile') onModifyProfile(record);
           if (key === 'delete') onDelete([record.id], true);
         } }}>
           <Button className="pc-row-action-button" type="link" size="small">变更 <ChevronDown size={14} /></Button>
@@ -411,14 +421,38 @@ function BankInfoTab({ supplier, entries, onAdd, onEdit, onDelete, onReturn, onS
   );
 }
 
-function PermissionsTab({ supplier }) {
-  const records = supplier.permissions || [];
-  if (!records.length) return <EmptyContent description="暂无权限记录" />;
-  return <PcTable className="pc-table" bordered size="small" rowKey="id" dataSource={records} pagination={false} columns={[
+function PermissionsTab({ supplier, onSave }) {
+  const { modal } = App.useApp();
+  const original = supplier.permissions || [];
+  const [records, setRecords] = useState(original);
+  const [editor, setEditor] = useState(null);
+  const editable = canChangeSupplier(supplier);
+  const changed = records !== original && JSON.stringify(records) !== JSON.stringify(original);
+  const columns = [
     { title: '所属权限', dataIndex: 'group', width: 220 },
     { title: '权限分类', dataIndex: 'category', width: 240 },
     { title: '备注', dataIndex: 'note' },
-  ]} />;
+  ];
+  if (editable) columns.push({ title: '操作', key: 'action', width: 100, render: (_, row) => <Space size={4}>
+    <Button type="link" size="small" onClick={() => setEditor({ row })}>修改</Button>
+    <Button type="link" size="small" danger onClick={() => modal.confirm({
+      centered: true, className: 'pc-confirm', title: '删除权限', content: row.group + ' / ' + row.category,
+      okText: '删除', cancelText: '取消', okButtonProps: { danger: true },
+      onOk: () => setRecords(records.filter((item) => item.id !== row.id)),
+    })}>删除</Button>
+  </Space> });
+  return <div className="pc-page-stack">
+    {editable && <div><Button onClick={() => setEditor({})}>添加权限</Button></div>}
+    <PcTable rowKey="id" dataSource={records} pagination={false} columns={columns} />
+    {editable && changed && <div className="pc-workflow-actions"><Space>
+      <Button onClick={() => setRecords(original)}>取消变更</Button>
+      <Button type="primary" onClick={() => onSave(records)}>提交变更</Button>
+    </Space></div>}
+    {editor && <PermissionModal initial={editor.row} existing={records} onCancel={() => setEditor(null)} onSave={(row) => {
+      setRecords(editor.row ? records.map((item) => item.id === row.id ? row : item) : [...records, row]);
+      setEditor(null);
+    }} />}
+  </div>;
 }
 
 function FinanceOUTab({ supplier }) {
@@ -491,15 +525,18 @@ function CooperationTab({ supplier }) {
   ]} />;
 }
 
-function SupplierDetailPage({ supplier, activeTab, setActiveTab, bankEntries, pendingBankCount, onBankAdd, onBankEdit, onBankDelete, onBankReturn, onBankSubmit }) {
+function SupplierDetailPage({ supplier, activeTab, setActiveTab, bankEntries, pendingBankCount, onBankAdd, onBankEdit, onBankDelete, onBankReturn, onBankSubmit, onPermissionsSave }) {
   const tabs = [
     { key: 'supplier', label: '供应商信息', children: <SupplierInformation supplier={supplier} /> },
     { key: 'contacts', label: '联系人信息', children: <ContactsTab supplier={supplier} /> },
     { key: 'banks', label: '银行信息', children: <BankInfoTab supplier={supplier} entries={bankEntries} pendingCount={pendingBankCount} onAdd={onBankAdd} onEdit={onBankEdit} onDelete={onBankDelete} onReturn={onBankReturn} onSubmit={onBankSubmit} /> },
-    { key: 'permissions', label: '分配权限', children: <PermissionsTab supplier={supplier} /> },
+    { key: 'permissions', label: '分配权限', children: <PermissionsTab key={supplier.id} supplier={supplier} onSave={onPermissionsSave} /> },
     { key: 'finance', label: '财务OU', children: <FinanceOUTab supplier={supplier} /> },
     { key: 'blacklist', label: '黑名单操作记录', children: <BlacklistTab supplier={supplier} /> },
-    { key: 'approval', label: '审批记录', children: <ApprovalTab supplier={supplier} /> },
+    { key: 'approval', label: '审批记录', children: <div className="pc-page-stack">
+      {supplier.pendingProfile && <Card size="small" title="待审批资料"><SupplierSnapshot profile={supplier.pendingProfile} /></Card>}
+      <ApprovalTab supplier={supplier} />
+    </div> },
     { key: 'cooperation', label: '合作信息及评分', children: <CooperationTab supplier={supplier} /> },
     { key: 'registration', label: '注册信息', children: <RegistrationInformation supplier={supplier} /> },
   ];
@@ -657,6 +694,8 @@ function SupplierAdmin() {
   const [activeDetailTab, setActiveDetailTab] = useState('supplier');
   const [bankDrafts, setBankDrafts] = useState(() => Object.fromEntries(suppliers.map((supplier) => [supplier.id, readBankDraftSafe(supplier.id) || clone(supplier.banks || [])])));
   const [inviteOpen, setInviteOpen] = useState(false);
+  const [quickOpen, setQuickOpen] = useState(false);
+  const profileLeave = useRef(null);
   const [inviterOpen, setInviterOpen] = useState(false);
   const [inviterTargetIds, setInviterTargetIds] = useState([]);
   const [bankModal, setBankModal] = useState(null);
@@ -672,11 +711,11 @@ function SupplierAdmin() {
   }, []);
 
   useEffect(() => {
-    const titles = { detail: '供应商详情', register: '代注册' };
+    const titles = { detail: '供应商详情', register: '代注册', 'profile-edit': '修改全部信息' };
     const pageTitle = titles[route.page];
     document.title = pageTitle ? pageTitle + ' - 搜狐供应商管理平台' : '搜狐供应商管理平台';
     if (!mainScrollRef.current) return;
-    mainScrollRef.current.scrollTop = route.page === 'detail' ? 0 : (scrollPositions.current[route.page] || 0);
+    mainScrollRef.current.scrollTop = route.id ? 0 : (scrollPositions.current[route.page] || 0);
   }, [route.page, route.id]);
 
   useEffect(() => {
@@ -687,7 +726,7 @@ function SupplierAdmin() {
     }
   }, [suppliers, messageApi]);
 
-  const currentSupplier = route.page === 'detail' ? suppliers.find((supplier) => supplier.id === route.id) : suppliers[0];
+  const currentSupplier = route.id ? suppliers.find((supplier) => supplier.id === route.id) : suppliers[0];
   const currentBankEntries = currentSupplier ? (bankDrafts[currentSupplier.id] || currentSupplier.banks || []) : [];
   const originalBanks = currentSupplier?.banks || [];
   const pendingBankCount = currentSupplier ? bankChangeCounts(originalBanks, currentBankEntries).total : 0;
@@ -722,7 +761,7 @@ function SupplierAdmin() {
     setActiveDetailTab(tab);
     navigate('/admin/suppliers/' + encodeURIComponent(supplier.id));
   };
-  const backFromDetail = () => navigate(detailReturnPage.current === 'invitations' ? '/admin/invitations' : '/admin/suppliers');
+  const backFromDetail = () => navigate(route.page === 'profile-edit' || detailReturnPage.current === 'invitations' ? '/admin/invitations' : '/admin/suppliers');
   const setSupplierFilter = (key, value) => setSupplierFilters((current) => ({ ...current, [key]: value }));
   const setInvitationFilter = (key, value) => setInvitationFilters((current) => ({ ...current, [key]: value }));
   const applySupplierFilters = () => { setAppliedSupplierFilters({ ...supplierFilters }); setSelectedSupplierIds([]); };
@@ -923,13 +962,56 @@ function SupplierAdmin() {
     });
   };
 
+  const createSupplier = (profile, mode, extra = {}) => {
+    const name = profile.basic.supplierName.trim();
+    const code = profile.basic.creditCode?.trim() || '';
+    const time = nowText();
+    const record = { ...profile, ...extra, id: newId(), name, code, mode, status: mode === '代注册' ? '审批中' : '已审批',
+      email: profile.basic.registerEmail || '', contact: profile.contacts[0]?.name || '', phone: profile.contacts[0]?.phone || '',
+      date: time, updated: time, inviter: CURRENT_USER, score: '未评分', permissions: extra.permissions || [] };
+    setSuppliers((current) => [record, ...current]);
+    messageApi.success('演示供应商记录已创建');
+    return record;
+  };
+  const saveQuickSupplier = ({ name, type, code, address, company, department, entity, liabilityAccount, prepayAccount, permissions }) => {
+    if (type !== supplierTypes[1] && suppliers.some((record) => record.name === name.trim())) return messageApi.error('已存在同名供应商');
+    createSupplier({ type, basic: { supplierName: name, creditCode: code, address }, contacts: [], banks: [] }, '快速注册', {
+      company, department, permissions, financeOus: entity ? [{ id: newId(), orgName: entity, liabilityAccount, prepayAccount, address }] : [],
+    });
+    setQuickOpen(false);
+    resetSupplierFilters();
+  };
+  const navigateFromMenu = (path) => {
+    if (profileLeave.current) profileLeave.current.leave(() => navigate(path));
+    else navigate(path);
+  };
+  const editProfile = (record) => {
+    if (record.inviter !== CURRENT_USER || !canChangeSupplier(record)) return messageApi.warning('当前供应商资料不可修改');
+    detailReturnPage.current = 'invitations';
+    if (mainScrollRef.current) scrollPositions.current.invitations = mainScrollRef.current.scrollTop;
+    navigate('/admin/suppliers/' + encodeURIComponent(record.id) + '/edit');
+  };
+  const submitProfile = (profile) => {
+    const latest = suppliers.find((record) => record.id === route.id);
+    if (!latest || latest.inviter !== CURRENT_USER || !canChangeSupplier(latest)) return messageApi.error('供应商状态已变化，当前不可提交变更');
+    setSuppliers((current) => current.map((record) => record.id === latest.id ? { ...record, status: '变更中', pendingProfile: profile, updated: nowText() } : record));
+    messageApi.success('演示资料变更已进入待审批状态');
+    backFromDetail();
+  };
+  const savePermissions = (permissions) => {
+    if (!currentSupplier || !canChangeSupplier(currentSupplier)) return messageApi.error('当前供应商不可变更权限');
+    setSuppliers((current) => current.map((record) => record.id === currentSupplier.id ? { ...record, permissions, updated: nowText() } : record));
+    messageApi.success('演示权限已更新');
+  };
+  const isProfileEdit = route.page === 'profile-edit';
   const isDetail = route.page === 'detail';
   const isRegister = route.page === 'register';
-  const parentPage = isDetail ? detailReturnPage.current : isRegister ? 'suppliers' : route.page;
+  const parentPage = isProfileEdit ? 'invitations' : isDetail ? detailReturnPage.current : isRegister ? 'suppliers' : route.page;
   const breadcrumbItems = [
     { title: <a href="#/admin/suppliers">供应商管理</a> },
-    { title: isDetail || isRegister ? <a href={parentPage === 'invitations' ? '#/admin/invitations' : '#/admin/suppliers'}>{parentPage === 'invitations' ? '我的邀请' : '供应商查询'}</a> : route.page === 'invitations' ? '我的邀请' : '供应商查询' },
+    { title: isDetail || isRegister || isProfileEdit ? <a href={parentPage === 'invitations' ? '#/admin/invitations' : '#/admin/suppliers'}>{parentPage === 'invitations' ? '我的邀请' : '供应商查询'}</a> : route.page === 'invitations' ? '我的邀请' : '供应商查询' },
   ];
+  if (isProfileEdit) breadcrumbItems.push({ title: '修改全部信息' });
   if (isRegister) breadcrumbItems.push({ title: '代注册' });
   if (isDetail) breadcrumbItems.push({ title: currentSupplier?.name || '供应商详情' });
 
@@ -956,7 +1038,7 @@ function SupplierAdmin() {
               <Menu mode="inline" inlineCollapsed={collapsed} items={menuItems}
                 selectedKeys={[parentPage]} openKeys={collapsed ? undefined : openMenuKeys}
                 onOpenChange={(keys) => { if (!collapsed) setOpenMenuKeys(keys); }}
-                onClick={({ key }) => navigate(menuRoutes[key])}
+                onClick={({ key }) => navigateFromMenu(menuRoutes[key])}
               />
             </nav>
             <div className="pc-sidebar-footer">
@@ -992,7 +1074,15 @@ function SupplierAdmin() {
             </header>
             <div className="pc-main-scroll" ref={mainScrollRef}>
               <div className="pc-main-content">
-                {route.page === 'detail' ? (currentSupplier ? (
+                {isProfileEdit ? (
+                  currentSupplier && currentSupplier.inviter === CURRENT_USER && canChangeSupplier(currentSupplier)
+                    ? <SupplierProfileEditor key={currentSupplier.id} leaveRef={profileLeave} profile={{
+                      type: currentSupplier.type,
+                      basic: { supplierName: currentSupplier.name, creditCode: currentSupplier.code, registerEmail: currentSupplier.email, ...currentSupplier.basic },
+                      contacts: currentSupplier.contacts || [], banks: currentSupplier.banks || [],
+                    }} onCancel={backFromDetail} onSubmit={submitProfile} />
+                    : <Card size="small"><EmptyContent description="当前供应商资料不可修改" /><Button onClick={backFromDetail}>返回</Button></Card>
+                ) : route.page === 'detail' ? (currentSupplier ? (
                   <SupplierDetailPage
                     supplier={currentSupplier}
                     activeTab={activeDetailTab}
@@ -1004,6 +1094,7 @@ function SupplierAdmin() {
                     onBankDelete={handleBankDelete}
                     onBankReturn={handleBankReturn}
                     onBankSubmit={handleBankSubmit}
+                    onPermissionsSave={savePermissions}
                   />
                 ) : <Card size="small"><EmptyContent description="供应商记录不存在或已删除" /></Card>) : route.page === 'invitations' ? (
                   <MyInvitationsPage
@@ -1017,6 +1108,7 @@ function SupplierAdmin() {
                     onOpenDetail={openDetail}
                     onChangeInviter={openInviter}
                     onReinvite={handleReinvite}
+                    onModifyProfile={editProfile}
                     onDelete={handleDelete}
                     onExport={handleExportInvitations}
                   />
@@ -1032,6 +1124,7 @@ function SupplierAdmin() {
                         selectedIds={selectedSupplierIds}
                         setSelectedIds={setSelectedSupplierIds}
                         onInvite={() => setInviteOpen(true)}
+                        onQuickCreate={() => setQuickOpen(true)}
                         onRegister={() => {
                           scrollPositions.current.suppliers = mainScrollRef.current?.scrollTop || 0;
                           navigate('/admin/register');
@@ -1042,7 +1135,11 @@ function SupplierAdmin() {
                         onDetailAction={handleSupplierAction}
                       />
                     </div>
-                    {isRegister && <SupplierRegisterPage key={route.type} initialType={route.type} onBack={() => navigate('/admin/suppliers')} />}
+                    {isRegister && <SupplierRegisterPage key={route.type} initialType={route.type} onBack={() => navigate('/admin/suppliers')} onSubmit={(profile) => {
+                      createSupplier(profile, '代注册');
+                      resetSupplierFilters();
+                      navigate('/admin/suppliers');
+                    }} />}
                   </>
                 )}
               </div>
@@ -1050,6 +1147,7 @@ function SupplierAdmin() {
           </main>
         </div>
       </div>
+      {quickOpen && <QuickSupplierModal onCancel={() => setQuickOpen(false)} onSave={saveQuickSupplier} />}
       <InvitationModal open={inviteOpen} onCancel={() => setInviteOpen(false)} onSubmit={handleInviteSubmit} />
       <InviterModal open={inviterOpen} ids={inviterTargetIds} suppliers={suppliers} onCancel={() => setInviterOpen(false)} onSubmit={handleInviterSubmit} />
       <BankModal open={!!bankModal} supplier={currentSupplier} bank={bankModal?.bank} onCancel={() => setBankModal(null)} onSave={handleBankSave} />

@@ -1,6 +1,6 @@
 # 供应商系统原型
 
-React + Vite 的可点击原型，当前包含协同门户登录安全升级和供应商代注册基础信息页面。
+React + Vite 的可点击原型，包含 PC 供应商管理平台、PC 供应商协同门户及移动端原型。
 
 移动端原型入口为 `#/mobile`，原页面状态目录为 `#/mobile/scenes`，覆盖提供的 47 张截图。逐张入口见 [截图覆盖表](docs/mobile-screenshot-coverage.md)，规则与范围见 [移动端原型 PRD](docs/mobile-prd.md)，演示限制见 [工程说明](docs/mobile-prototype.md)。
 
@@ -8,9 +8,9 @@ React + Vite 的可点击原型，当前包含协同门户登录安全升级和�
 
 ## 页面导航
 
-协同门户和四类代注册页面共用顶部“供应商系统”导航，可在页面内直接切换：
+PC 供应商管理平台和协同门户使用 ERP 公共主题。代注册历史链接进入管理平台工作区：
 
-- `#/login`：协同门户
+- `#/login`：PC 协同门户，登录后进入资料管理、采购报价、采购价税拆分及差旅账单
 - `#/register/company`：企业代注册
 - `#/register/personal`：个人代注册
 - `#/register/government`：政府机构或社团代注册
@@ -25,7 +25,7 @@ React + Vite 的可点击原型，当前包含协同门户登录安全升级和�
 - 60 天改密：登录账号填写 `oldpwd` 后点击登录，Warning Toast 提示修改密码，并进入修改密码流程。
 - 正常登录：其他账号登录后进入注册邮箱 + 邮箱验证码校验页面。
 - 主动修改密码：通过注册邮箱和邮箱验证码修改密码。
-- 视觉采用深蓝品牌区 + 白色操作区的克制双栏布局，不使用装饰性网格、玻璃卡片或营销式大标题。
+- 原型登录使用页面显示的演示验证码 1234；邮箱校验前先点击获取演示验证码。
 
 ### 供应商代注册
 
@@ -40,8 +40,7 @@ React + Vite 的可点击原型，当前包含协同门户登录安全升级和�
 - React 19
 - Vite 7
 - Tailwind CSS 4
-- 登录模块：shadcn/ui + Radix UI + Sonner
-- 代注册模块：Ant Design + Ant Design Icons
+- PC 管理平台和协同门户：Ant Design 6.4.5、ERP 主题及公共组件
 - 页面视觉与响应式优化：项目内 Impeccable 4.1.3
 
 代注册模块使用 Ant Design `Form`、`Row`、`Col`、`Input`、`Select`、`DatePicker`、`Upload`、`Steps`、`Tabs`、`Tooltip`、`Button`、`Breadcrumb` 等组件。
@@ -68,26 +67,9 @@ npm run test:mobile
 
 验证运行生产构建，请先执行 `npm run build`。当前脚本为 `tests/mobile.interaction.mjs`；历史 `mobile.smoke.mjs` 保留用于追溯。测试会自动启动本地服务，结果和截图输出至 `test-output/mobile-interaction`，该目录不提交。
 
-## 已完成
+## PC 覆盖及联调边界
 
-- [x] 协同门户登录、安全验证和修改密码原型
-- [x] Sonner Warning / Success Toast
-- [x] 历史数据无邮箱阻断提示
-- [x] 60 天密码修改流程
-- [x] 注册邮箱 + 邮箱验证码登录
-- [x] 企业/个人/政府机构或社团/国外供应商代注册基础信息页
-- [x] 代注册模块 React + Ant Design 重构
-- [x] 供应商注册邮箱必填字段及 Tooltip
-- [x] 协同门户与四类代注册页面统一顶部导航
-- [x] 代注册页面移除截图比例约束并改为完整响应式布局
-- [x] 协同门户 Impeccable polish
-
-## 待办
-
-- [ ] 对接真实登录、邮箱验证码和账号状态接口
-- [ ] 对接代注册表单真实数据、OCR、地址、下一步流程
-- [ ] 实现审批通过后将新增字段赋值给供应商正式注册邮箱
-
+现系统导出与原型逐项对应关系见 [PC 页面覆盖表](docs/pc-coverage.md)。真实认证、审批和数据服务按现系统接口联调。
 
 ## 移动端适配修复
 
@@ -103,10 +85,8 @@ npm run test:mobile
 
 ## PC供应商管理平台
 
-访问入口：
+- `#/admin/suppliers` 供应商查询，支持邀请注册、代注册、快速创建及资料维护。
+- `#/admin/invitations` 我的邀请，支持重新邀请、变更邀请人及修改全部信息。
+- `#/admin/suppliers/:id` 供应商详情，从列表点击供应商名称进入。
 
-- #/admin/suppliers：供应商查询。
-- #/admin/invitations：我的邀请。
-- #/admin/suppliers/:id：供应商详情，从列表点击名称或详情进入。
-
-本轮包含供应商筛选与列表、邀请注册弹窗、代注册入口、我的邀请及邀请人变更、供应商详情九个页签、银行账户新增/编辑/删除和提交审批交互。银行待提交内容保存在浏览器本地，供应商操作状态保存在当前浏览器会话；当前原型不展示演示数据标识，真实服务接入边界见工程说明。
+管理端操作使用浏览器会话演示记录。资料变更待审批内容与已生效资料分别展示。
