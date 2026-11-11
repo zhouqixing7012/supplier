@@ -8,6 +8,7 @@ import { blankBank, bankError, fieldsFor } from './pages/mobile-forms.jsx';
 import { canChangeSupplier, canDeleteSupplier, canReinviteSupplier } from './pages/mobile-rules.js';
 import { reinviteCandidate } from './pages/mobile-edit-rules.js';
 
+import { SupplierRegisterPage, registerTypeFromHash } from './pages/supplier-register.jsx';
 import erpTheme from './erp/theme.js';
 import QueryBar, { QueryItem } from './erp/QueryBar.jsx';
 import { DetailGrid, DetailItem } from './erp/DetailGrid.jsx';
@@ -82,6 +83,9 @@ function useScrollbarActivity() {
 
 function readRoute() {
   const path = window.location.hash.replace(/^#/, '') || '/admin/suppliers';
+  if (path === '/admin/register' || path.startsWith('/register/')) {
+    return { page: 'register', type: registerTypeFromHash(path) };
+  }
   const detail = path.match(/^\/admin\/suppliers\/([^/?]+)/);
   if (detail) return { page: 'detail', id: decodeURIComponent(detail[1]) };
   if (path.startsWith('/admin/invitations')) return { page: 'invitations' };
@@ -145,18 +149,15 @@ function SupplierQueryPage({ filters, setFilters, onSearch, onReset, rows, selec
     { title: '更新时间', dataIndex: 'updated', width: 180, align: 'center' },
     { title: '评分', dataIndex: 'score', width: 100, align: 'right', render: (value) => value || '未评分' },
     {
-      title: '操作', key: 'actions', width: 190, fixed: 'right', align: 'center',
-      render: (_, record) => <Space size={8} className="pc-row-actions">
-        <Button className="pc-row-action-button" type="link" size="small" onClick={() => onOpenDetail(record, 'suppliers')}>详情</Button>
-        {canChangeSupplier(record) && (
-          <Dropdown trigger={['click']} menu={{ items: [
-            { key: 'banks', label: '修改银行' },
-            { key: 'inviter', label: '变更邀请人' },
-          ], onClick: ({ key }) => onDetailAction(record, key) }}>
-            <Button className="pc-row-action-button" type="link" size="small">变更 <ChevronDown size={14} /></Button>
-          </Dropdown>
-        )}
-      </Space>,
+      title: '操作', key: 'actions', width: 88, fixed: 'right', align: 'center',
+      render: (_, record) => canChangeSupplier(record) ? (
+        <Dropdown trigger={['click']} menu={{ items: [
+          { key: 'banks', label: '修改银行' },
+          { key: 'inviter', label: '变更邀请人' },
+        ], onClick: ({ key }) => onDetailAction(record, key) }}>
+          <Button className="pc-row-action-button" type="link" size="small">变更 <ChevronDown size={14} /></Button>
+        </Dropdown>
+      ) : '-',
     },
   ];
 
@@ -236,7 +237,7 @@ function MyInvitationsPage({ filters, setFilters, onSearch, onReset, rows, selec
     { title: '邀请时间', dataIndex: 'date', width: 180, align: 'center' },
     { title: '更新时间', dataIndex: 'updated', width: 180, align: 'center' },
     {
-      title: '操作', key: 'actions', width: 250, fixed: 'right', align: 'center',
+      title: '操作', key: 'actions', width: 88, fixed: 'right', align: 'center',
       render: (_, record) => {
         const items = [
           ...(canChangeSupplier(record) ? [{ key: 'inviter', label: '变更邀请人' }] : []),
@@ -621,7 +622,7 @@ function HelpModal({ open, onClose }) {
   return <PcModal open={open} width={560} title="操作指导" onCancel={onClose} footer={[<Button key="close" type="primary" onClick={onClose}>知道了</Button>]}>
     <div className="pc-help-content">
       <p>供应商查询支持按名称、类型、状态、推荐行业、邀请人和邀请时间筛选。</p>
-      <p>点击供应商名称或【详情】查看供应商信息、联系人、银行账户、权限及审批记录。</p>
+      <p>点击供应商名称查看供应商信息、联系人、银行账户、权限及审批记录。</p>
       <p>银行账户单条保存后仍需在银行信息页点击【提交审批】；提交成功后供应商进入【变更中】。</p>
     </div>
   </PcModal>;
@@ -671,7 +672,9 @@ function SupplierAdmin() {
   }, []);
 
   useEffect(() => {
-    document.title = route.page === 'detail' ? '供应商详情 - 搜狐供应商管理平台' : '搜狐供应商管理平台';
+    const titles = { detail: '供应商详情', register: '代注册' };
+    const pageTitle = titles[route.page];
+    document.title = pageTitle ? pageTitle + ' - 搜狐供应商管理平台' : '搜狐供应商管理平台';
     if (!mainScrollRef.current) return;
     mainScrollRef.current.scrollTop = route.page === 'detail' ? 0 : (scrollPositions.current[route.page] || 0);
   }, [route.page, route.id]);
@@ -921,11 +924,13 @@ function SupplierAdmin() {
   };
 
   const isDetail = route.page === 'detail';
-  const parentPage = isDetail ? detailReturnPage.current : route.page;
+  const isRegister = route.page === 'register';
+  const parentPage = isDetail ? detailReturnPage.current : isRegister ? 'suppliers' : route.page;
   const breadcrumbItems = [
     { title: <a href="#/admin/suppliers">供应商管理</a> },
-    { title: isDetail ? <a href={parentPage === 'invitations' ? '#/admin/invitations' : '#/admin/suppliers'}>{parentPage === 'invitations' ? '我的邀请' : '供应商查询'}</a> : route.page === 'invitations' ? '我的邀请' : '供应商查询' },
+    { title: isDetail || isRegister ? <a href={parentPage === 'invitations' ? '#/admin/invitations' : '#/admin/suppliers'}>{parentPage === 'invitations' ? '我的邀请' : '供应商查询'}</a> : route.page === 'invitations' ? '我的邀请' : '供应商查询' },
   ];
+  if (isRegister) breadcrumbItems.push({ title: '代注册' });
   if (isDetail) breadcrumbItems.push({ title: currentSupplier?.name || '供应商详情' });
 
   const accountMenu = {
@@ -1016,21 +1021,29 @@ function SupplierAdmin() {
                     onExport={handleExportInvitations}
                   />
                 ) : (
-                  <SupplierQueryPage
-                    filters={supplierFilters}
-                    setFilters={setSupplierFilter}
-                    onSearch={applySupplierFilters}
-                    onReset={resetSupplierFilters}
-                    rows={supplierRows}
-                    selectedIds={selectedSupplierIds}
-                    setSelectedIds={setSelectedSupplierIds}
-                    onInvite={() => setInviteOpen(true)}
-                    onRegister={() => navigate('/register/company')}
-                    onDelete={handleDelete}
-                    onExport={handleExportSuppliers}
-                    onOpenDetail={openDetail}
-                    onDetailAction={handleSupplierAction}
-                  />
+                  <>
+                    <div hidden={isRegister}>
+                      <SupplierQueryPage
+                        filters={supplierFilters}
+                        setFilters={setSupplierFilter}
+                        onSearch={applySupplierFilters}
+                        onReset={resetSupplierFilters}
+                        rows={supplierRows}
+                        selectedIds={selectedSupplierIds}
+                        setSelectedIds={setSelectedSupplierIds}
+                        onInvite={() => setInviteOpen(true)}
+                        onRegister={() => {
+                          scrollPositions.current.suppliers = mainScrollRef.current?.scrollTop || 0;
+                          navigate('/admin/register');
+                        }}
+                        onDelete={handleDelete}
+                        onExport={handleExportSuppliers}
+                        onOpenDetail={openDetail}
+                        onDetailAction={handleSupplierAction}
+                      />
+                    </div>
+                    {isRegister && <SupplierRegisterPage key={route.type} initialType={route.type} onBack={() => navigate('/admin/suppliers')} />}
+                  </>
                 )}
               </div>
             </div>

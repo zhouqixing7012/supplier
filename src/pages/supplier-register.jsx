@@ -1,26 +1,7 @@
-import React from 'react';
-import {
-  Breadcrumb,
-  Button,
-  Col,
-  ConfigProvider,
-  DatePicker,
-  Divider,
-  Form,
-  Input,
-  Row,
-  Select,
-  Space,
-  Steps,
-  Tabs,
-  Typography,
-  Upload,
-  message,
-} from 'antd';
-import { LeftOutlined, PlusOutlined, RightOutlined } from '@ant-design/icons';
+import React, { useState } from 'react';
+import { App, Button, Card, DatePicker, Form, Input, Select, Space, Steps, Tabs, Typography, Upload } from 'antd-pc';
+import { Plus } from 'lucide-react';
 import './supplier-register.css';
-
-const { TextArea } = Input;
 
 const REGISTER_EMAIL_TIP = '用于供应商登录协同门户及修改密码时接收验证码';
 
@@ -182,177 +163,111 @@ const PAGE_CONFIG = {
 
 function fieldRules(field) {
   const rules = [];
+  if (field.type === 'address' && field.required) {
+    return [{ required: true, validator: (_, value) => value?.detail?.trim()
+      ? Promise.resolve()
+      : Promise.reject(new Error(`请输入${field.label}`)) }];
+  }
   if (field.required) rules.push({ required: true, message: `请${field.type === 'select' || field.type === 'date' ? '选择' : '输入'}${field.label}` });
   if (field.type === 'email') rules.push({ type: 'email', message: '请输入正确的邮箱格式' });
   return rules;
 }
 
-function FieldControl({ field }) {
+function FieldControl({ field, value, onChange, ...controlProps }) {
+  const props = { ...controlProps, value, onChange };
+
   if (field.type === 'select') {
-    return <Select placeholder={field.placeholder} options={field.options || []} />;
+    return <Select {...props} placeholder={field.placeholder} options={field.options || []} />;
   }
 
   if (field.type === 'date') {
-    return <DatePicker placeholder={`请选择${field.label}`} style={{ width: '100%' }} />;
+    return <DatePicker {...props} placeholder={`请选择${field.label}`} />;
   }
 
   if (field.type === 'textarea') {
-    return <TextArea rows={3} placeholder={field.placeholder} maxLength={field.maxLength} showCount />;
+    return <Input.TextArea {...props} rows={3} placeholder={field.placeholder} maxLength={field.maxLength} showCount />;
   }
 
   if (field.type === 'address') {
+    const address = value || {};
     return (
       <Space.Compact block>
         <Select
-          className="register-region-select"
+          className="pc-register-region"
+          aria-label="地区"
+          value={address.region}
           placeholder="请选择地区"
           options={[
             { value: 'haidian', label: '北京市 / 北京市 / 海淀区' },
             { value: 'chaoyang', label: '北京市 / 北京市 / 朝阳区' },
           ]}
+          onChange={(region) => onChange?.({ ...address, region })}
         />
-        <Input placeholder="请输入详细地址" maxLength={50} />
+        <Input {...controlProps} value={address.detail || ''} placeholder="请输入详细地址" maxLength={50}
+          onChange={(event) => onChange?.({ ...address, detail: event.target.value })} />
       </Space.Compact>
     );
   }
 
-  return <Input type={field.type === 'email' ? 'email' : 'text'} placeholder={field.placeholder} />;
+  return <Input {...props} type={field.type === 'email' ? 'email' : 'text'} placeholder={field.placeholder} />;
 }
 
 function UploadField({ upload }) {
-  if (!upload) return null;
-
   return (
-    <Form.Item label={upload.label} required={upload.required} className="register-upload-item">
-      <div className="register-upload-control">
-        <Upload beforeUpload={() => false} showUploadList={false} maxCount={1} accept=".jpg,.jpeg,.png,.pdf">
-          <button type="button" className="register-upload-tile">
-            <PlusOutlined />
-            <span>上传{upload.label}</span>
-          </button>
+    <Form.Item label={upload.label} required={upload.required} className="pc-register-wide">
+      <Space orientation="vertical" size={4}>
+        <Upload beforeUpload={() => false} maxCount={1} accept=".jpg,.jpeg,.png,.pdf">
+          <Button icon={<Plus size={14} />}>上传{upload.label}</Button>
         </Upload>
-        <div className="register-upload-copy">
-          {upload.note && <Typography.Text type="danger">{upload.note}</Typography.Text>}
-          <Typography.Text type="secondary">支持 JPG、PNG、PDF 文件</Typography.Text>
-        </div>
-      </div>
+        {upload.note && <Typography.Text type="danger">{upload.note}</Typography.Text>}
+        <Typography.Text type="secondary">支持 JPG、PNG、PDF 文件</Typography.Text>
+      </Space>
     </Form.Item>
   );
 }
 
-function SupplierRegisterContent({ type = 'company', onTypeChange }) {
-  const config = PAGE_CONFIG[type] || PAGE_CONFIG.company;
-  const tabItems = TYPE_OPTIONS.map((item) => ({ key: item.value, label: item.label }));
+export function registerTypeFromHash(path) {
+  const type = path.split('/').at(-1);
+  return Object.hasOwn(PAGE_CONFIG, type) ? type : 'company';
+}
 
-  const handleFinish = () => {
-    message.success('基本信息已保存');
-  };
+export function SupplierRegisterPage({ initialType = 'company', onBack }) {
+  const [type, setType] = useState(initialType);
+  const { message } = App.useApp();
+  const config = PAGE_CONFIG[type];
+  const tabItems = TYPE_OPTIONS.map(({ value, label }) => ({ key: value, label }));
 
   return (
-    <div className="supplier-register-antd">
-      <div className="register-shell">
-        <div className="register-breadcrumb-bar">
-          <Breadcrumb
-            className="register-breadcrumb"
-            items={[
-              { title: '供应商系统' },
-              { title: '代注册' },
-              { title: config.label },
-            ]}
-          />
-        </div>
-
-        <div className="register-tabs-bar">
-          <Tabs activeKey={type} items={tabItems} onChange={onTypeChange} className="register-type-tabs" tabBarGutter={28} />
-        </div>
-
-        <section className="register-panel">
-          <div className="register-step-wrap">
-            <Steps current={0} items={config.steps} responsive size="small" className="register-steps" />
+    <div className="pc-page-stack pc-register">
+      <Card size="small" className="pc-detail-tabs-card">
+        <Tabs activeKey={type} items={tabItems} onChange={setType} className="pc-detail-tabs" />
+        <Steps current={0} items={config.steps} responsive size="small" />
+      </Card>
+      <Card size="small" title="基本信息">
+        <Form key={type} className="pc-register-form" layout="horizontal" labelAlign="right"
+          onFinish={() => message.success('基本信息校验通过')}>
+          <div className="pc-register-grid">
+            {config.upload && <UploadField upload={config.upload} />}
+            {config.fields.map((field) => (
+              <Form.Item
+                key={field.key}
+                className={field.full ? 'pc-register-wide' : undefined}
+                name={field.key}
+                label={field.label}
+                tooltip={field.tooltip}
+                rules={fieldRules(field)}
+                initialValue={field.defaultValue}
+              >
+                <FieldControl field={field} />
+              </Form.Item>
+            ))}
           </div>
-
-          <Divider className="register-divider" />
-
-          <Form
-            key={type}
-            className="register-form"
-            layout="horizontal"
-            labelAlign="right"
-            labelCol={{ flex: '144px' }}
-            wrapperCol={{ flex: 1 }}
-            colon
-            onFinish={handleFinish}
-            requiredMark
-          >
-            <Row gutter={[36, 0]} className="register-summary-row">
-              <Col xs={24} lg={12}>
-                <Form.Item label="供应商类型" required>
-                  <Select
-                    value={type}
-                    onChange={onTypeChange}
-                    options={TYPE_OPTIONS.map((item) => ({ value: item.value, label: item.label }))}
-                  />
-                </Form.Item>
-              </Col>
-              {config.upload && (
-                <Col xs={24} lg={12}>
-                  <UploadField upload={config.upload} />
-                </Col>
-              )}
-            </Row>
-
-            <div className="register-section-title"><span>基本信息</span></div>
-
-            <Row gutter={[36, 0]}>
-              {config.fields.map((field) => (
-                <Col xs={24} lg={field.full ? 24 : 12} key={field.key}>
-                  <Form.Item
-                    name={field.key}
-                    label={field.label}
-                    tooltip={field.tooltip}
-                    rules={fieldRules(field)}
-                    initialValue={field.defaultValue}
-                  >
-                    <FieldControl field={field} />
-                  </Form.Item>
-                </Col>
-              ))}
-            </Row>
-
-            <div className="register-actions">
-              <Button type="default" icon={<LeftOutlined />} onClick={() => window.history.back()}>返回</Button>
-              <Button type="primary" htmlType="submit">下一步 <RightOutlined /></Button>
-            </div>
-          </Form>
-        </section>
-      </div>
+          <div className="pc-register-actions">
+            <Button onClick={onBack}>返回</Button>
+            <Button type="primary" htmlType="submit">下一步</Button>
+          </div>
+        </Form>
+      </Card>
     </div>
   );
 }
-
-function SupplierRegisterPage(props) {
-  return (
-    <ConfigProvider
-      componentSize="middle"
-      theme={{
-        token: {
-          colorPrimary: '#2f6fd6',
-          borderRadius: 3,
-          controlHeight: 36,
-          fontSize: 14,
-          colorBgLayout: '#ffffff',
-          colorBorder: '#d9e0e8',
-        },
-        components: {
-          Form: { itemMarginBottom: 16 },
-          Tabs: { horizontalItemPadding: '12px 2px' },
-          Button: { controlHeight: 36 },
-        },
-      }}
-    >
-      <SupplierRegisterContent {...props} />
-    </ConfigProvider>
-  );
-}
-
-export { SupplierRegisterPage };
