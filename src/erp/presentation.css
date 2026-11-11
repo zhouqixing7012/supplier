@@ -1,0 +1,266 @@
+/* 后台导航边界与原生滚动条共用一套视觉；移动端及独立页面保持各自样式。 */
+:is(.pc-app, .pc-modal, .pc-confirm) {
+  --mmp-navigation-divider: #edf0f3;
+  --mmp-scrollbar-page-size: 8px;
+  --mmp-scrollbar-sidebar-size: 6px;
+  --mmp-scrollbar-horizontal-size: 8px;
+  --mmp-scrollbar-thumb: rgba(100, 116, 139, 0.32);
+  --mmp-scrollbar-thumb-hover: rgba(100, 116, 139, 0.52);
+  --mmp-scrollbar-thumb-active: rgba(71, 85, 105, 0.72);
+}
+:where(:is(.pc-app, .pc-modal, .pc-confirm), :is(.pc-app, .pc-modal, .pc-confirm) *) {
+  scrollbar-width: thin;
+  scrollbar-color: var(--mmp-scrollbar-thumb) transparent;
+}
+:where(:is(.pc-app, .pc-modal, .pc-confirm), :is(.pc-app, .pc-modal, .pc-confirm) *):is(:hover, :focus-within, .is-scroll-active) {
+  scrollbar-color: var(--mmp-scrollbar-thumb-hover) transparent;
+}
+@supports selector(::-webkit-scrollbar) {
+  :where(:is(.pc-app, .pc-modal, .pc-confirm), :is(.pc-app, .pc-modal, .pc-confirm) *) {
+    /* 由固定像素规则绘制，避免标准滚动条颜色或组件默认值接管原生尺寸。 */
+    scrollbar-width: auto !important;
+    scrollbar-color: auto !important;
+  }
+  :where(:is(.pc-app, .pc-modal, .pc-confirm), :is(.pc-app, .pc-modal, .pc-confirm) *)::-webkit-scrollbar {
+    width: var(--mmp-scrollbar-page-size);
+    height: var(--mmp-scrollbar-horizontal-size);
+  }
+  :is(.pc-app, .pc-modal, .pc-confirm) .pc-sidebar-nav::-webkit-scrollbar {
+    width: var(--mmp-scrollbar-sidebar-size);
+  }
+  :where(:is(.pc-app, .pc-modal, .pc-confirm), :is(.pc-app, .pc-modal, .pc-confirm) *)::-webkit-scrollbar-track,
+  :where(:is(.pc-app, .pc-modal, .pc-confirm), :is(.pc-app, .pc-modal, .pc-confirm) *)::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+  :where(:is(.pc-app, .pc-modal, .pc-confirm), :is(.pc-app, .pc-modal, .pc-confirm) *)::-webkit-scrollbar-thumb {
+    background-color: var(--mmp-scrollbar-thumb);
+    border: 1px solid transparent;
+    background-clip: padding-box;
+    border-radius: 999px;
+  }
+  :where(:is(.pc-app, .pc-modal, .pc-confirm), :is(.pc-app, .pc-modal, .pc-confirm) *):is(:hover, :focus-within, .is-scroll-active)::-webkit-scrollbar-thumb {
+    background-color: var(--mmp-scrollbar-thumb-hover);
+  }
+  :where(:is(.pc-app, .pc-modal, .pc-confirm), :is(.pc-app, .pc-modal, .pc-confirm) *)::-webkit-scrollbar-thumb:active {
+    background-color: var(--mmp-scrollbar-thumb-active);
+  }
+}
+
+/* 表格吸底滚动条由组件绘制，和原生横向滚动条使用相同颜色及拖动反馈。 */
+:is(.pc-app, .pc-modal, .pc-confirm) .ant-table-wrapper .ant-table-sticky-scroll {
+  height: var(--mmp-scrollbar-horizontal-size) !important;
+  background: transparent;
+  border-top: 0;
+}
+:is(.pc-app, .pc-modal, .pc-confirm) .ant-table-wrapper .ant-table-sticky-scroll-bar {
+  height: 6px;
+  transition: background-color 140ms;
+  border-radius: 999px;
+  background-color: var(--mmp-scrollbar-thumb);
+}
+:is(.pc-app, .pc-modal, .pc-confirm) .ant-table-wrapper .ant-table-sticky-scroll-bar:hover,
+:is(.pc-app, .pc-modal, .pc-confirm) .ant-table-wrapper.is-scroll-active .ant-table-sticky-scroll-bar {
+  background-color: var(--mmp-scrollbar-thumb-hover);
+}
+:is(.pc-app, .pc-modal, .pc-confirm) .ant-table-wrapper .ant-table-sticky-scroll-bar-active {
+  background-color: var(--mmp-scrollbar-thumb-active);
+}
+
+/* 查询字段与操作组共享栅格；列数由视口上限和真实容器宽度共同决定。 */
+.mmp-query-layout { display: grid; gap: 16px 24px; align-items: start; }
+.mmp-query-field, .mmp-query-item { min-width: 0; }
+.mmp-query-label {
+  width: var(--mmp-query-label-width, 84px) !important;
+  min-width: var(--mmp-query-label-width, 84px) !important;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.mmp-query-field .ant-input,
+.mmp-query-field .ant-input-affix-wrapper,
+.mmp-query-field .ant-input-number,
+.mmp-query-field .ant-picker,
+.mmp-query-field .ant-select,
+.mmp-query-field .ant-cascader-picker { width: 100% !important; min-width: 0 !important; }
+.mmp-query-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; min-width: 0; }
+
+:is(.pc-modal, .pc-confirm).ant-modal {
+  max-width: min(var(--mmp-modal-max-width, 960px), calc(100vw - 32px)) !important;
+}
+
+.ant-modal-root:has(:is(.pc-modal, .pc-confirm)) .ant-modal-mask {
+  background: rgba(0, 0, 0, 0.45) !important;
+}
+
+:is(.pc-modal, .pc-confirm).ant-modal .ant-modal-content,
+:is(.pc-modal, .pc-confirm).ant-modal .ant-modal-container {
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100dvh - 32px);
+  padding: 0;
+  overflow: hidden;
+  border-radius: 12px;
+  box-shadow:
+    0 1px 8px rgba(0, 0, 0, 0.05),
+    0 7px 14px 2px rgba(0, 0, 0, 0.07),
+    0 8px 16px 4px rgba(0, 0, 0, 0.08);
+}
+
+:is(.pc-modal, .pc-confirm).ant-modal .ant-modal-header {
+  margin: 0;
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--ant-color-border-secondary, #e2e6f0);
+}
+
+:is(.pc-modal, .pc-confirm).ant-modal .ant-modal-title {
+  font-size: 16px;
+  line-height: 22px;
+  font-weight: 600;
+}
+
+:is(.pc-modal, .pc-confirm).ant-modal .ant-modal-close {
+  top: 11px;
+  inset-inline-end: 16px;
+  width: 24px;
+  height: 24px;
+}
+
+:is(.pc-modal, .pc-confirm).ant-modal .ant-modal-body {
+  max-width: 100%;
+  padding: 16px 20px;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+/* 普通业务弹窗不因内容轻微溢出显示纵向滚动条；需要滚动的表格由表格容器自行承载。 */
+:is(.pc-modal, .pc-confirm).ant-modal .ant-table-wrapper {
+  overflow-x: auto;
+}
+
+:is(.pc-modal, .pc-confirm).ant-modal .ant-modal-footer {
+  margin: 0;
+  padding: 12px 20px;
+  border-top: 1px solid var(--ant-color-border-secondary, #e2e6f0);
+  background: #fafafa;
+  text-align: right;
+}
+
+.ant-modal-wrap:has(:is(.pc-modal, .pc-confirm)) { display: flex; align-items: center; justify-content: center; }
+.ant-modal-wrap:has(:is(.pc-modal, .pc-confirm))::before { display: none; }
+.ant-modal-wrap:has(:is(.pc-modal, .pc-confirm)) :is(.pc-modal, .pc-confirm).ant-modal { top: 0; margin: 16px auto; padding-bottom: 0; flex-shrink: 0; }
+
+:is(.pc-modal, .pc-confirm).ant-modal .ant-modal-header, :is(.pc-modal, .pc-confirm).ant-modal .ant-modal-footer { flex-shrink: 0; }
+/* 静态确认弹窗的按钮在body内：只让确认文字滚动，操作留在可见区。 */
+:is(.pc-modal, .pc-confirm).ant-modal.ant-modal-confirm .ant-modal-body {
+  /* Ant Design 确认框会把 body 的 padding 清零；外壳清零后须在这里补回。 */
+  padding: 16px 20px !important;
+  overflow: hidden;
+}
+.pc-confirm.ant-modal-confirm .ant-modal-confirm-btns {
+  margin-top: 20px;
+}
+
+.pc-confirm .ant-modal-confirm-body-wrapper { display: flex; flex-direction: column; max-height: calc(100dvh - 104px); }
+.pc-confirm .ant-modal-confirm-body, .pc-confirm .ant-modal-confirm-paragraph { min-height: 0; }
+.pc-confirm .ant-modal-confirm-paragraph { display: flex; flex-direction: column; }
+.pc-confirm .ant-modal-confirm-content { overflow-y: auto; min-height: 0; }
+.pc-confirm .ant-modal-confirm-title, .pc-confirm .ant-modal-confirm-btns { flex-shrink: 0; }
+.pc-table .ant-table-tbody > tr:not(.ant-table-placeholder):not(.ant-table-measure-row) > td { min-height: 40px; }
+.pc-table .ant-table-cell { min-width: 0; overflow-wrap: anywhere; word-break: normal; }
+.pc-table .ant-table-cell-fix-right, .pc-table .ant-table-cell-fix-left { background: #fff; }
+.pc-table .ant-table-container { container-type: inline-size; }
+.pc-table .ant-table-placeholder > .ant-table-cell { padding-inline: 0 !important; }
+.pc-table .ant-table-placeholder .ant-table-expanded-row-fixed {
+  width: 100cqw !important;
+  margin-inline: 0 !important;
+  padding-inline: 0 !important;
+}
+.pc-table .ant-table-placeholder .pc-empty {
+  position: sticky;
+  inset-inline-start: 0;
+  width: 100cqw;
+  margin: 24px 0;
+}
+.pc-empty .ant-empty-image {
+  display: flex;
+  height: 90px;
+  align-items: center;
+  justify-content: center;
+}
+.pc-empty .ant-empty-image img { display: block; width: auto; max-width: 100%; object-fit: contain; }
+/* 普通桌面表格的展示出口，专属报告不添加此作用域。多行及编辑控件可自然撑高。 */
+.pc-table .ant-table-thead > tr > th,
+.pc-table .ant-table-tbody > tr:not(.ant-table-placeholder):not(.ant-table-measure-row) > td {
+  height: var(--mmp-table-row-height, 40px);
+  padding: calc((var(--mmp-table-row-height, 40px) - 22px) / 2) 12px;
+  font-size: 14px;
+  line-height: 20px;
+}
+.pc-table .ant-table-placeholder .ant-empty {
+  margin-block: 24px;
+}
+.pc-table-full-text {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pc-table-full-text:focus-visible {
+  outline: 2px solid var(--ant-color-primary, #145cff);
+  outline-offset: -2px;
+}
+
+/* 空态以整张表格的可视宽度居中，横向滚动及冻结列不改变定位基准。 */
+.pc-table .ant-table-container {
+  container-type: inline-size;
+}
+.pc-table .ant-table-placeholder > .ant-table-cell {
+  padding-inline: 0 !important;
+}
+.pc-table .ant-table-placeholder .ant-table-expanded-row-fixed {
+  width: 100cqw !important;
+  margin-inline: 0 !important;
+  padding-inline: 0 !important;
+  box-sizing: border-box;
+}
+.pc-table .ant-table-placeholder .ant-empty {
+  position: sticky;
+  left: 0;
+  width: 100cqw;
+  margin-inline: 0;
+  box-sizing: border-box;
+}
+
+.pc-table { min-width: 0; }
+.pc-table .ant-table-thead > tr > th { white-space: nowrap; }
+.pc-table .ant-table-cell { min-width: 0; overflow-wrap: anywhere; vertical-align: middle; }
+.pc-empty .ant-empty-image img { display: block; width: auto; max-width: 100%; object-fit: contain; }
+
+.ant-tag.pc-status {
+  display: inline-flex;
+  align-items: center;
+  margin: 0;
+  padding: 0 7px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  font-size: 12px;
+  line-height: 18px;
+  white-space: nowrap;
+}
+.pc-status.pc-status-default { border-color: #d9d9d9; background: #fafafa; color: #595959; }
+.pc-status.pc-status-info, .pc-status.pc-status-processing { border-color: #91caff; background: #e6f4ff; color: #0958d9; }
+.pc-status.pc-status-success { border-color: #b7eb8f; background: #f6ffed; color: #389e0d; }
+.pc-status.pc-status-warning { border-color: #ffd591; background: #fff7e6; color: #d46b08; }
+.pc-status.pc-status-danger { border-color: #ffa39e; background: #fff1f0; color: #cf1322; }
+
+.mmp-query-item { display: flex; align-items: center; gap: 8px; }
+.mmp-query-label { flex: none; text-align: right; color: var(--ant-color-text-secondary, #545B66); }
+.mmp-query-item > :last-child { min-width: 0; flex: 1 1 auto; }
+.mmp-query-actions { gap: 8px; }
+.mmp-query-result-refresh .ant-table-container { animation: erp-query-refresh 220ms ease-out both; }
+@keyframes erp-query-refresh {
+  from { opacity: .78; }
+  to { opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mmp-query-result-refresh .ant-table-container { animation: none; }
+}
+

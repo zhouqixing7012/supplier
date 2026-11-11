@@ -1,12 +1,42 @@
-import React, { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
-import { Avatar, Breadcrumb, Button, Card, ConfigProvider, DatePicker, Dropdown, Empty, Form, Input, Modal, Select, Space, Table, Tabs, Tag, Tooltip, message } from 'antd';
-import zhCN from 'antd/es/locale/zh_CN';
-import { Building2, ChevronDown, ChevronRight, ChevronsLeft, ChevronsRight, CircleHelp, ClipboardList, Download, LayoutDashboard, LogOut, Plus, RefreshCcw, Search, Trash2, UserRound, UserRoundPlus } from 'lucide-react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Avatar, Breadcrumb, Button, Card, ConfigProvider, DatePicker, Dropdown, Form, Input, Menu, Select, Space, Tabs, Tag, Tooltip, App } from 'antd-pc';
+import zhCN from 'antd-pc/es/locale/zh_CN';
+import { Building2, ChevronDown, ChevronRight, ChevronsLeft, ChevronsRight, CircleHelp, Download, LayoutDashboard, LogOut, Plus, Trash2, UserRoundPlus } from 'lucide-react';
 import { bankDirectory, branches, cooperation, initialSuppliers, people, supplierIndustries, supplierStates, supplierTypes } from './pages/mobile-data.js';
 import { bankChange, bankChangeCounts, normalizeBankChanges, readBankDraft, writeBankDraft } from './pages/mobile-bank-changes.js';
 import { blankBank, bankError, fieldsFor } from './pages/mobile-forms.jsx';
 import { canChangeSupplier, canDeleteSupplier, canReinviteSupplier } from './pages/mobile-rules.js';
 import { reinviteCandidate } from './pages/mobile-edit-rules.js';
+
+import erpTheme from './erp/theme.js';
+import QueryBar, { QueryItem } from './erp/QueryBar.jsx';
+import { DetailGrid, DetailItem } from './erp/DetailGrid.jsx';
+import { PcTable, EmptyContent, StatusTag, PcModal } from './erp/components.jsx';
+
+const menuItems = [
+  { key: 'management', label: '供应商管理', icon: <Building2 size={16} />, children: [
+    { key: 'suppliers', label: '供应商查询' },
+    { key: 'invitations', label: '我的邀请' },
+  ] },
+  { key: 'portal', label: '协同门户', icon: <LayoutDashboard size={16} />, children: [
+    { key: 'login', label: '协同门户登录' },
+  ] },
+];
+const menuRoutes = { suppliers: '/admin/suppliers', invitations: '/admin/invitations', login: '/login' };
+const compactSidebar = '(max-width: 960px)';
+const compactDetail = '(max-width: 760px)';
+
+function useMediaMatch(query) {
+  const [matches, setMatches] = useState(() => window.matchMedia(query).matches);
+  useEffect(() => {
+    const media = window.matchMedia(query);
+    const update = () => setMatches(media.matches);
+    update();
+    media.addEventListener('change', update);
+    return () => media.removeEventListener('change', update);
+  }, [query]);
+  return matches;
+}
 
 const CURRENT_USER = '陈才慧';
 const pcBranches = [
@@ -58,141 +88,21 @@ function readRoute() {
   return { page: 'suppliers' };
 }
 
-function StatusTag({ value }) {
-  const tones = { 邀请中: 'processing', 注册中: 'processing', 审批中: 'processing', 已审批: 'success', 草稿: 'default', 注册驳回: 'danger', 变更中: 'warning' };
-  return <Tag className={'pc-status pc-status-' + (tones[value] || 'default')}>{value || '-'}</Tag>;
-}
-
-function QueryField({ label, children }) {
-  const id = useId();
-  const control = React.isValidElement(children) ? React.cloneElement(children, { id: children.props.id || id }) : children;
+function SupplierFields({ fields }) {
+  const compact = useMediaMatch(compactDetail);
   return (
-    <div className="pc-query-item" role="group" aria-label={label}>
-      <Tooltip title={label}>
-        <label htmlFor={id} title={label} tabIndex={label.length > 6 ? 0 : undefined}>{label}</label>
-      </Tooltip>
-      <div className="pc-query-control">{control}</div>
-    </div>
+    <DetailGrid columns={compact ? 1 : 3} labelWidth={compact ? 84 : 96} className="pc-detail-grid">
+      {fields.map((field) => (
+        <DetailItem key={field.label} label={field.label} span={field.span}>
+          {valueOrDash(field.value)}
+        </DetailItem>
+      ))}
+    </DetailGrid>
   );
-}
-
-function getPcQueryColumns(viewportWidth, contentWidth) {
-  const pageColumns = viewportWidth <= 760 ? 1 : viewportWidth <= 1180 ? 2 : 3;
-  return Math.min(pageColumns, Math.max(1, Math.floor((contentWidth + 24) / 280)));
-}
-
-function PcQueryBar({ children, onSearch, onReset }) {
-  const fields = React.Children.toArray(children);
-  const layoutRef = useRef(null);
-  const [columns, setColumns] = useState(1);
-
-  useEffect(() => {
-    const layout = layoutRef.current;
-    const update = () => {
-      const next = getPcQueryColumns(window.innerWidth, layout?.clientWidth || window.innerWidth);
-      setColumns((current) => current === next ? current : next);
-    };
-    update();
-    const observer = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(update) : null;
-    if (layout) observer?.observe(layout);
-    window.addEventListener('resize', update);
-    return () => {
-      observer?.disconnect();
-      window.removeEventListener('resize', update);
-    };
-  }, []);
-
-  const layoutColumns = fields.length === 1 ? 1 : columns;
-  return (
-    <PcCard className="pc-query-card">
-      <div ref={layoutRef} className="pc-query-grid" style={{ gridTemplateColumns: `repeat(${layoutColumns}, minmax(0, 1fr))` }}>
-        {fields.map((field, index) => (
-          <div key={field.key || index} className="pc-query-field">{field}</div>
-        ))}
-        <div className="pc-query-actions" data-pc-query-actions role="group" aria-label="查询操作" style={{ gridColumn: `${fields.length % layoutColumns + 1} / -1` }}>
-          <Button icon={<RefreshCcw size={14} />} onClick={onReset}>重置</Button>
-          <Button type="primary" icon={<Search size={14} />} onClick={onSearch}>查询</Button>
-        </div>
-      </div>
-    </PcCard>
-  );
-}
-
-function DetailGrid({ fields = [] }) {
-  const rows = [];
-  let row = [];
-  let used = 0;
-  const finishRow = () => {
-    const remaining = 3 - used;
-    const last = row.at(-1);
-    if (remaining > 0 && last.span === undefined) {
-      last.width += remaining;
-    } else if (remaining > 0) {
-      row.push({ empty: true, width: remaining });
-    }
-    rows.push(row);
-    row = [];
-    used = 0;
-  };
-
-  fields.forEach((field) => {
-    const width = Math.max(1, Math.min(3, field.span || 1));
-    if (used + width > 3) finishRow();
-    row.push({ ...field, width });
-    used += width;
-    if (used === 3) finishRow();
-  });
-  if (row.length) finishRow();
-  return (
-    <div className="pc-detail-grid">
-      {rows.map((items, rowIndex) => items.map((field, fieldIndex) => field.empty ? (
-        <div key={'empty-' + rowIndex + '-' + fieldIndex} className="pc-detail-empty" style={{ gridColumn: 'span ' + (field.width * 2) }} aria-hidden="true" />
-      ) : (
-        <div key={field.label + '-' + rowIndex + '-' + fieldIndex} className="pc-detail-pair" style={{ gridColumn: 'span ' + (field.width * 2) }}>
-          <div className="pc-detail-label">{field.label}</div>
-          <div className="pc-detail-value">{valueOrDash(field.value)}</div>
-        </div>
-      )))}
-    </div>
-  );
-}
-
-function PcCard({ className = '', children }) {
-  return <Card size="small" className={'pc-card ' + className}>{children}</Card>;
-}
-
-function withPcTableFullText(columns = []) {
-  return columns.map((column) => {
-    if (!column) return column;
-    if (column.children) return { ...column, children: withPcTableFullText(column.children) };
-    const normalized = column.dataIndex && column.ellipsis === undefined ? { ...column, ellipsis: true } : column;
-    if (!normalized.ellipsis || normalized.ellipsis?.showTitle === false) return normalized;
-    const render = normalized.render;
-    return {
-      ...normalized,
-      render: (value, record, index) => {
-        const content = render ? render(value, record, index) : value;
-        return typeof content === 'string' || typeof content === 'number'
-          ? <Tooltip title={String(content)} trigger={['hover', 'focus']}><span tabIndex={0} className="pc-table-full-text">{content}</span></Tooltip>
-          : content;
-      },
-    };
-  });
-}
-
-function PcTable({ columns = [], className = '', size = 'small', bordered = true, locale, ...props }) {
-  const normalizedColumns = withPcTableFullText(columns);
-  const classes = [...new Set(['pc-table', ...className.split(/\s+/).filter(Boolean)])].join(' ');
-  return <Table {...props} columns={normalizedColumns} className={classes} size={size} bordered={bordered} locale={{ emptyText: <EmptyContent />, ...locale }} />;
 }
 
 function SectionHeading({ title, extra }) {
   return <div className="pc-section-heading"><h3>{title}</h3>{extra}</div>;
-}
-
-
-function EmptyContent({ description = '暂无数据' }) {
-  return <Empty image={import.meta.env.BASE_URL + 'pc-table-empty.png'} description={description} className="pc-empty" />;
 }
 
 function isDateInRange(value, start, end) {
@@ -252,11 +162,11 @@ function SupplierQueryPage({ filters, setFilters, onSearch, onReset, rows, selec
 
   return (
     <div className="pc-page-stack">
-      <PcQueryBar onSearch={onSearch} onReset={onReset}>
-        <QueryField label="供应商名称"><Input allowClear value={filters.name} placeholder="请输入供应商名称" onChange={(event) => setFilters('name', event.target.value)} onPressEnter={onSearch} /></QueryField>
-        <QueryField label="供应商类型"><Select allowClear value={filters.type || undefined} placeholder="请选择供应商类型" options={supplierTypes.map((value) => ({ value, label: value }))} onChange={(value) => setFilters('type', value || '')} /></QueryField>
-        <QueryField label="供应商状态"><Select allowClear value={filters.status || undefined} placeholder="请选择供应商状态" options={supplierStates.map((value) => ({ value, label: value }))} onChange={(value) => setFilters('status', value || '')} /></QueryField>
-        <QueryField label="邀请时间">
+      <QueryBar onQuery={onSearch} onReset={onReset}>
+        <QueryItem label="供应商名称"><Input allowClear value={filters.name} placeholder="请输入供应商名称" onChange={(event) => setFilters('name', event.target.value)} onPressEnter={onSearch} /></QueryItem>
+        <QueryItem label="供应商类型"><Select allowClear value={filters.type || undefined} placeholder="请选择供应商类型" options={supplierTypes.map((value) => ({ value, label: value }))} onChange={(value) => setFilters('type', value || '')} /></QueryItem>
+        <QueryItem label="供应商状态"><Select allowClear value={filters.status || undefined} placeholder="请选择供应商状态" options={supplierStates.map((value) => ({ value, label: value }))} onChange={(value) => setFilters('status', value || '')} /></QueryItem>
+        <QueryItem label="邀请时间">
           <DatePicker.RangePicker
             className="pc-query-range"
             allowClear
@@ -270,14 +180,14 @@ function SupplierQueryPage({ filters, setFilters, onSearch, onReset, rows, selec
               setFilters('end', dates?.[1] || null);
             }}
           />
-        </QueryField>
-        <QueryField label="供应商推荐"><Select allowClear showSearch optionFilterProp="label" value={filters.recommended || undefined} placeholder="请选择供应商推荐" options={supplierIndustries.map((value) => ({ value, label: value }))} onChange={(value) => setFilters('recommended', value || '')} /></QueryField>
-        <QueryField label="邀请人"><Input allowClear value={filters.inviter} placeholder="请输入邀请人" onChange={(event) => setFilters('inviter', event.target.value)} onPressEnter={onSearch} /></QueryField>
-      </PcQueryBar>
+        </QueryItem>
+        <QueryItem label="供应商推荐"><Select allowClear showSearch optionFilterProp="label" value={filters.recommended || undefined} placeholder="请选择供应商推荐" options={supplierIndustries.map((value) => ({ value, label: value }))} onChange={(value) => setFilters('recommended', value || '')} /></QueryItem>
+        <QueryItem label="邀请人"><Input allowClear value={filters.inviter} placeholder="请输入邀请人" onChange={(event) => setFilters('inviter', event.target.value)} onPressEnter={onSearch} /></QueryItem>
+      </QueryBar>
 
 
 
-      <PcCard className="pc-list-card">
+      <Card size="small" className="pc-list-card">
         <div className="pc-list-toolbar">
           <Space size={8} wrap>
             <Button type="primary" icon={<UserRoundPlus size={15} />} onClick={onInvite}>邀请注册</Button>
@@ -301,12 +211,12 @@ function SupplierQueryPage({ filters, setFilters, onSearch, onReset, rows, selec
             getCheckboxProps: (record) => ({ disabled: !canDeleteSupplier(record, false) }),
             columnWidth: 48,
           }}
-          pagination={{ pageSize: 10, showSizeChanger: true, pageSizeOptions: [10, 20, 50], showTotal: (total) => '共 ' + total + ' 条', position: ['bottomRight'] }}
+          pagination={{ defaultPageSize: 10, showSizeChanger: true, pageSizeOptions: [10, 20, 50], showTotal: (total) => '共 ' + total + ' 条', position: ['bottomRight'] }}
           scroll={{ x: 'max-content' }}
           locale={{ emptyText: <EmptyContent description={activeFilter ? '暂无匹配结果' : '暂无数据'} /> }}
           onChange={() => setSelectedIds([])}
         />
-      </PcCard>
+      </Card>
     </div>
   );
 }
@@ -347,11 +257,11 @@ function MyInvitationsPage({ filters, setFilters, onSearch, onReset, rows, selec
 
   return (
     <div className="pc-page-stack">
-      <PcQueryBar onSearch={onSearch} onReset={onReset}>
-        <QueryField label="供应商名称"><Input allowClear value={filters.name} placeholder="请输入供应商名称" onChange={(event) => setFilters('name', event.target.value)} onPressEnter={onSearch} /></QueryField>
-        <QueryField label="供应商状态"><Select allowClear value={filters.status || undefined} placeholder="请选择供应商状态" options={supplierStates.map((value) => ({ value, label: value }))} onChange={(value) => setFilters('status', value || '')} /></QueryField>
-        <QueryField label="供应商类型"><Select allowClear value={filters.type || undefined} placeholder="请选择供应商类型" options={supplierTypes.map((value) => ({ value, label: value }))} onChange={(value) => setFilters('type', value || '')} /></QueryField>
-        <QueryField label="邀请时间">
+      <QueryBar onQuery={onSearch} onReset={onReset}>
+        <QueryItem label="供应商名称"><Input allowClear value={filters.name} placeholder="请输入供应商名称" onChange={(event) => setFilters('name', event.target.value)} onPressEnter={onSearch} /></QueryItem>
+        <QueryItem label="供应商状态"><Select allowClear value={filters.status || undefined} placeholder="请选择供应商状态" options={supplierStates.map((value) => ({ value, label: value }))} onChange={(value) => setFilters('status', value || '')} /></QueryItem>
+        <QueryItem label="供应商类型"><Select allowClear value={filters.type || undefined} placeholder="请选择供应商类型" options={supplierTypes.map((value) => ({ value, label: value }))} onChange={(value) => setFilters('type', value || '')} /></QueryItem>
+        <QueryItem label="邀请时间">
           <DatePicker.RangePicker
             className="pc-query-range"
             allowClear
@@ -365,13 +275,13 @@ function MyInvitationsPage({ filters, setFilters, onSearch, onReset, rows, selec
               setFilters('end', dates?.[1] || null);
             }}
           />
-        </QueryField>
-        <QueryField label="注册编号"><Input allowClear value={filters.registrationNumber} placeholder="请输入注册编号" onChange={(event) => setFilters('registrationNumber', event.target.value)} onPressEnter={onSearch} /></QueryField>
-      </PcQueryBar>
+        </QueryItem>
+        <QueryItem label="注册编号"><Input allowClear value={filters.registrationNumber} placeholder="请输入注册编号" onChange={(event) => setFilters('registrationNumber', event.target.value)} onPressEnter={onSearch} /></QueryItem>
+      </QueryBar>
 
 
 
-      <PcCard className="pc-list-card">
+      <Card size="small" className="pc-list-card">
         <div className="pc-list-toolbar">
           <Space size={8} wrap><Button icon={<Download size={15} />} onClick={onExport}>导出</Button><Button disabled={!selectedIds.length} onClick={() => onChangeInviter(selectedIds)}>邀请人批量变更</Button></Space>
           <div className="pc-list-meta">共 <strong>{rows.length}</strong> 家供应商</div>
@@ -390,12 +300,12 @@ function MyInvitationsPage({ filters, setFilters, onSearch, onReset, rows, selec
             getCheckboxProps: (record) => ({ disabled: !canChangeSupplier(record) && !canDeleteSupplier(record, true) }),
             columnWidth: 48,
           }}
-          pagination={{ pageSize: 10, showSizeChanger: true, pageSizeOptions: [10, 20, 50], showTotal: (total) => '共 ' + total + ' 条', position: ['bottomRight'] }}
+          pagination={{ defaultPageSize: 10, showSizeChanger: true, pageSizeOptions: [10, 20, 50], showTotal: (total) => '共 ' + total + ' 条', position: ['bottomRight'] }}
           scroll={{ x: 'max-content' }}
           locale={{ emptyText: <EmptyContent description={activeFilter ? '暂无匹配结果' : '暂无数据'} /> }}
           onChange={() => setSelectedIds([])}
         />
-      </PcCard>
+      </Card>
     </div>
   );
 }
@@ -408,11 +318,11 @@ function SupplierInformation({ supplier }) {
     span: kind === 'textarea' ? 3 : kind === 'address' ? 2 : 1,
   }));
   if (basic.proof) fields.push({ label: '证照附件', value: basic.proof, span: 3 });
-  return <DetailGrid fields={fields} />;
+  return <SupplierFields fields={fields} />;
 }
 
 function RegistrationInformation({ supplier }) {
-  return <DetailGrid fields={[
+  return <SupplierFields fields={[
     { label: '供应商账号', value: supplier.supplierAccount || supplier.userCode || supplier.account },
     { label: '注册方式', value: supplier.mode },
     { label: '邀请人', value: supplier.inviter },
@@ -594,7 +504,7 @@ function SupplierDetailPage({ supplier, activeTab, setActiveTab, bankEntries, pe
   ];
   return (
     <div className="pc-page-stack">
-      <PcCard className="pc-detail-overview">
+      <Card size="small" className="pc-detail-overview">
         <div className="pc-detail-identity">
           <div className="pc-detail-identity-main">
             <h1>{supplier.name || '供应商详情'}</h1>
@@ -602,10 +512,10 @@ function SupplierDetailPage({ supplier, activeTab, setActiveTab, bankEntries, pe
           </div>
           <div className="pc-detail-identity-status"><span>供应商状态</span><StatusTag value={supplier.status} /></div>
         </div>
-      </PcCard>
-      <PcCard className="pc-detail-tabs-card">
+      </Card>
+      <Card size="small" className="pc-detail-tabs-card">
         <Tabs activeKey={activeTab} onChange={setActiveTab} items={tabs} tabBarGutter={24} className="pc-detail-tabs" />
-      </PcCard>
+      </Card>
     </div>
   );
 }
@@ -621,14 +531,13 @@ function BankModal({ open, supplier, bank, onCancel, onSave }) {
   const branchOptions = pcBranches.filter((item) => item.bank === draft.bank).map((item) => ({ value: item.name, label: item.name }));
   const selectedBranch = pcBranches.find((item) => item.name === draft.branch);
   return (
-    <Modal
+    <PcModal
       open={open}
-      centered
       width={720}
       title={bank ? '编辑银行信息' : '添加银行'}
       onCancel={onCancel}
       maskClosable={false}
-      className="pc-modal"
+     
       footer={[<Button key="cancel" onClick={onCancel}>取消</Button>, <Button key="save" type="primary" onClick={() => onSave(draft)}>保存此账户</Button>]}
     >
       <div className="pc-bank-form-grid">
@@ -663,7 +572,7 @@ function BankModal({ open, supplier, bank, onCancel, onSave }) {
         <div className="pc-bank-field pc-bank-field-wide"><label>备注</label><Input.TextArea value={draft.note} maxLength={400} rows={3} placeholder="请输入备注" onChange={(event) => change('note', event.target.value)} /></div>
       </div>
       {selectedBranch && <div className="pc-form-help">已根据所选分行带出开户地区信息。</div>}
-    </Modal>
+    </PcModal>
   );
 }
 
@@ -671,7 +580,7 @@ function InvitationModal({ open, onCancel, onSubmit }) {
   const [form] = Form.useForm();
   useEffect(() => { if (open) form.resetFields(); }, [open, form]);
   return (
-    <Modal open={open} centered width={720} title="邀请注册" onCancel={onCancel} destroyOnClose className="pc-modal" footer={[
+    <PcModal open={open} width={720} title="邀请注册" onCancel={onCancel} footer={[
       <Button key="cancel" onClick={onCancel}>取消</Button>,
       <Button key="submit" type="primary" onClick={() => form.submit()}>提交邀请</Button>,
     ]}>
@@ -684,7 +593,7 @@ function InvitationModal({ open, onCancel, onSubmit }) {
           <Form.Item name="contactPhone" label="联系人手机" rules={[{ required: true, message: '请输入联系人手机' }, { pattern: /^\+?[\d -]{7,20}$/, message: '请输入正确的联系人手机' }]}><Input maxLength={20} placeholder="请输入联系人手机" /></Form.Item>
         </div>
       </Form>
-    </Modal>
+    </PcModal>
   );
 }
 
@@ -693,7 +602,7 @@ function InviterModal({ open, ids, suppliers, onCancel, onSubmit }) {
   useEffect(() => { if (open) form.resetFields(); }, [open, form]);
   const targets = suppliers.filter((record) => ids.includes(record.id));
   return (
-    <Modal open={open} centered width={560} title="变更邀请人" onCancel={onCancel} destroyOnClose className="pc-modal" footer={[
+    <PcModal open={open} width={560} title="变更邀请人" onCancel={onCancel} footer={[
       <Button key="cancel" onClick={onCancel}>取消</Button>,
       <Button key="submit" type="primary" onClick={() => form.submit()}>确认变更</Button>,
     ]}>
@@ -704,25 +613,28 @@ function InviterModal({ open, ids, suppliers, onCancel, onSubmit }) {
           <Select showSearch optionFilterProp="label" placeholder="请选择新邀请人" options={people.map((person) => ({ value: person.name, label: person.name + ' · ' + person.userCode + ' · ' + person.department }))} />
         </Form.Item>
       </Form>
-    </Modal>
+    </PcModal>
   );
 }
 
 function HelpModal({ open, onClose }) {
-  return <Modal open={open} centered width={560} title="操作指导" onCancel={onClose} footer={[<Button key="close" type="primary" onClick={onClose}>知道了</Button>]} className="pc-modal">
+  return <PcModal open={open} width={560} title="操作指导" onCancel={onClose} footer={[<Button key="close" type="primary" onClick={onClose}>知道了</Button>]}>
     <div className="pc-help-content">
       <p>供应商查询支持按名称、类型、状态、推荐行业、邀请人和邀请时间筛选。</p>
       <p>点击供应商名称或【详情】查看供应商信息、联系人、银行账户、权限及审批记录。</p>
       <p>银行账户单条保存后仍需在银行信息页点击【提交审批】；提交成功后供应商进入【变更中】。</p>
     </div>
-  </Modal>;
+  </PcModal>;
 }
 
-function PcAdminApp() {
+function SupplierAdmin() {
   const [route, setRoute] = useState(readRoute);
-  const [collapsed, setCollapsed] = useState(false);
+  const compact = useMediaMatch(compactSidebar);
+  const [sidebarPreference, setSidebarPreference] = useState(null);
+  const collapsed = sidebarPreference ?? compact;
+  const [openMenuKeys, setOpenMenuKeys] = useState(['management']);
+  const toggleSidebar = () => setSidebarPreference(!collapsed);
   const [sidebarScrolled, setSidebarScrolled] = useState(false);
-  const [contentScrolled, setContentScrolled] = useState(false);
   const mainScrollRef = useRef(null);
   const scrollPositions = useRef({ suppliers: 0, invitations: 0 });
   const detailReturnPage = useRef('suppliers');
@@ -748,9 +660,8 @@ function PcAdminApp() {
   const [inviterTargetIds, setInviterTargetIds] = useState([]);
   const [bankModal, setBankModal] = useState(null);
   const [helpOpen, setHelpOpen] = useState(false);
-  const [messageApi, contextHolder] = message.useMessage();
-  const [modalApi, modalContextHolder] = Modal.useModal();
-  const confirm = (options) => modalApi.confirm({ width: 400, centered: true, ...options });
+  const { message: messageApi, modal } = App.useApp();
+  const confirm = (options) => modal.confirm({ width: 400, centered: true, ...options, className: "pc-confirm" });
   const onScrollbarActivity = useScrollbarActivity();
 
   useEffect(() => {
@@ -1027,27 +938,7 @@ function PcAdminApp() {
   };
 
   return (
-    <ConfigProvider locale={zhCN} componentSize="middle" theme={{
-      token: {
-        colorPrimary: '#145CFF', colorLink: '#145CFF', colorPrimaryActive: '#0D42D2', colorInfo: '#145CFF', colorSuccess: '#14AE5C',
-        colorWarning: '#F27D0C', colorError: '#EC221F', colorBgLayout: '#F2F5FA',
-        colorBgContainer: '#FFFFFF', colorBorder: '#D3D9E5', colorBorderSecondary: '#E2E6F0', colorText: '#1D2126',
-        colorTextSecondary: '#545B66', colorTextTertiary: '#848B99', borderRadius: 4,
-        controlHeight: 32, fontSize: 14, fontFamily: '"PingFang SC", "Microsoft YaHei", Arial, sans-serif',
-      },
-      components: {
-        Button: { controlHeight: 32, borderRadius: 4, primaryShadow: 'none', dangerShadow: 'none' },
-        Card: { bodyPaddingSM: 0, borderRadiusLG: 8 },
-        Input: { controlHeight: 32, borderRadius: 4 },
-        Select: { controlHeight: 32, borderRadius: 4 },
-        DatePicker: { controlHeight: 32, borderRadius: 4 },
-        Table: { headerBg: '#F2F5FA', cellPaddingBlock: 9, cellPaddingInline: 12, borderColor: '#D3D9E5' },
-        Modal: { borderRadiusLG: 12 },
-        Tabs: { inkBarColor: '#145CFF', itemSelectedColor: '#145CFF', horizontalItemPadding: '10px 0' },
-      },
-    }}>
-      {contextHolder}
-      {modalContextHolder}
+    <>
       <div className={'pc-app ' + (collapsed ? 'is-collapsed' : '')} onScrollCapture={onScrollbarActivity}>
         <div className="pc-workspace">
           <aside className={'pc-sidebar ' + (sidebarScrolled ? 'is-scrolled' : '')}>
@@ -1055,20 +946,17 @@ function PcAdminApp() {
               <img className="pc-sidebar-logo" src="/sohu-logo.png" alt="搜狐" />
               <span className="pc-sidebar-brand-label">供应商管理平台</span>
             </a>
-            <div id="pc-sidebar-navigation" className="pc-sidebar-nav" role="navigation" aria-label="后台主导航" onScroll={(event) => setSidebarScrolled(event.currentTarget.scrollTop > 0)}>
-              <div className="pc-menu-group">
-                <div className="pc-menu-group-title"><Building2 size={15} /><span>供应商管理</span></div>
-                <Tooltip title={collapsed ? '供应商查询' : ''} placement="right"><a className={'pc-menu-item ' + (parentPage === 'suppliers' ? 'is-active' : '')} href="#/admin/suppliers" aria-current={parentPage === 'suppliers' ? 'page' : undefined}><ClipboardList size={16} /><span className="pc-menu-label">供应商查询</span></a></Tooltip>
-                <Tooltip title={collapsed ? '我的邀请' : ''} placement="right"><a className={'pc-menu-item ' + (parentPage === 'invitations' ? 'is-active' : '')} href="#/admin/invitations" aria-current={parentPage === 'invitations' ? 'page' : undefined}><UserRoundPlus size={16} /><span className="pc-menu-label">我的邀请</span></a></Tooltip>
-              </div>
-              <div className="pc-menu-group">
-                <div className="pc-menu-group-title"><LayoutDashboard size={15} /><span>协同门户</span></div>
-                <Tooltip title={collapsed ? '协同门户登录' : ''} placement="right"><a className="pc-menu-item" href="#/login"><UserRound size={16} /><span className="pc-menu-label">协同门户登录</span></a></Tooltip>
-              </div>
-            </div>
+            <nav id="pc-sidebar-navigation" className="pc-sidebar-nav" aria-label="后台主导航"
+              onScroll={(event) => setSidebarScrolled(event.currentTarget.scrollTop > 0)}>
+              <Menu mode="inline" inlineCollapsed={collapsed} items={menuItems}
+                selectedKeys={[parentPage]} openKeys={collapsed ? undefined : openMenuKeys}
+                onOpenChange={(keys) => { if (!collapsed) setOpenMenuKeys(keys); }}
+                onClick={({ key }) => navigate(menuRoutes[key])}
+              />
+            </nav>
             <div className="pc-sidebar-footer">
               <Tooltip title={collapsed ? '展开侧栏' : '收起侧栏'} placement="right">
-                <button type="button" className="pc-collapse-button" onClick={() => setCollapsed((value) => !value)} aria-label={collapsed ? '展开侧栏' : '收起侧栏'}>
+                <button type="button" className="pc-collapse-button" onClick={toggleSidebar} aria-label={collapsed ? '展开侧栏' : '收起侧栏'}>
                   {collapsed ? <ChevronsRight size={17} /> : <ChevronsLeft size={17} />}
                   <span className="pc-menu-label">{collapsed ? '展开侧栏' : '收起侧栏'}</span>
                 </button>
@@ -1076,11 +964,11 @@ function PcAdminApp() {
             </div>
           </aside>
           <main className="pc-main">
-            <header className={'pc-topbar ' + (contentScrolled ? 'is-scrolled' : '')}>
+            <header className="pc-topbar">
               <button
                 type="button"
                 className="pc-topbar-collapse"
-                onClick={() => setCollapsed((value) => !value)}
+                onClick={toggleSidebar}
                 aria-label={collapsed ? '展开侧栏' : '收起侧栏'}
                 aria-expanded={!collapsed}
                 aria-controls="pc-sidebar-navigation"
@@ -1097,7 +985,7 @@ function PcAdminApp() {
                 </Dropdown>
               </div>
             </header>
-            <div className="pc-main-scroll" ref={mainScrollRef} onScroll={(event) => setContentScrolled(event.currentTarget.scrollTop > 0)}>
+            <div className="pc-main-scroll" ref={mainScrollRef}>
               <div className="pc-main-content">
                 {route.page === 'detail' ? (currentSupplier ? (
                   <SupplierDetailPage
@@ -1112,7 +1000,7 @@ function PcAdminApp() {
                     onBankReturn={handleBankReturn}
                     onBankSubmit={handleBankSubmit}
                   />
-                ) : <PcCard><EmptyContent description="供应商记录不存在或已删除" /></PcCard>) : route.page === 'invitations' ? (
+                ) : <Card size="small"><EmptyContent description="供应商记录不存在或已删除" /></Card>) : route.page === 'invitations' ? (
                   <MyInvitationsPage
                     filters={invitationFilters}
                     setFilters={setInvitationFilter}
@@ -1153,8 +1041,14 @@ function PcAdminApp() {
       <InviterModal open={inviterOpen} ids={inviterTargetIds} suppliers={suppliers} onCancel={() => setInviterOpen(false)} onSubmit={handleInviterSubmit} />
       <BankModal open={!!bankModal} supplier={currentSupplier} bank={bankModal?.bank} onCancel={() => setBankModal(null)} onSave={handleBankSave} />
       <HelpModal open={helpOpen} onClose={() => setHelpOpen(false)} />
-    </ConfigProvider>
+    </>
   );
 }
 
-export { PcAdminApp };
+export function PcAdminApp() {
+  return (
+    <ConfigProvider locale={zhCN} theme={erpTheme}>
+      <App><SupplierAdmin /></App>
+    </ConfigProvider>
+  );
+}
