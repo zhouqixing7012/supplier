@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
-import { Avatar, Breadcrumb, Button, ConfigProvider, DatePicker, Dropdown, Empty, Form, Input, Modal, Select, Space, Table, Tabs, Tag, Tooltip, message } from 'antd';
-import { Building2, ChevronDown, ChevronsLeft, ChevronsRight, CircleHelp, ClipboardList, Download, LayoutDashboard, LogOut, Plus, RefreshCcw, Search, Trash2, UserRound, UserRoundPlus } from 'lucide-react';
+import { Avatar, Breadcrumb, Button, Card, ConfigProvider, DatePicker, Dropdown, Empty, Form, Input, Modal, Select, Space, Table, Tabs, Tag, Tooltip, message } from 'antd';
+import zhCN from 'antd/es/locale/zh_CN';
+import { Building2, ChevronDown, ChevronRight, ChevronsLeft, ChevronsRight, CircleHelp, ClipboardList, Download, LayoutDashboard, LogOut, Plus, RefreshCcw, Search, Trash2, UserRound, UserRoundPlus } from 'lucide-react';
 import { bankDirectory, branches, cooperation, initialSuppliers, people, supplierIndustries, supplierStates, supplierTypes } from './pages/mobile-data.js';
 import { bankChange, bankChangeCounts, normalizeBankChanges, readBankDraft, writeBankDraft } from './pages/mobile-bank-changes.js';
 import { blankBank, bankError, fieldsFor } from './pages/mobile-forms.jsx';
@@ -121,28 +122,33 @@ function DetailGrid({ fields = [] }) {
   const rows = [];
   let row = [];
   let used = 0;
-  fields.forEach((field) => {
-    const span = Math.max(1, Math.min(3, field.span || 1));
-    if (used + span > 3) {
-      while (used < 3) { row.push({ empty: true }); used += 1; }
-      rows.push(row);
-      row = [];
-      used = 0;
+  const finishRow = () => {
+    const remaining = 3 - used;
+    const last = row.at(-1);
+    if (remaining > 0 && last.span === undefined) {
+      last.width += remaining;
+    } else if (remaining > 0) {
+      row.push({ empty: true, width: remaining });
     }
-    row.push({ ...field, span });
-    used += span;
-    if (used === 3) { rows.push(row); row = []; used = 0; }
-  });
-  if (row.length) {
-    while (used < 3) { row.push({ empty: true }); used += 1; }
     rows.push(row);
-  }
+    row = [];
+    used = 0;
+  };
+
+  fields.forEach((field) => {
+    const width = Math.max(1, Math.min(3, field.span || 1));
+    if (used + width > 3) finishRow();
+    row.push({ ...field, width });
+    used += width;
+    if (used === 3) finishRow();
+  });
+  if (row.length) finishRow();
   return (
     <div className="pc-detail-grid">
       {rows.map((items, rowIndex) => items.map((field, fieldIndex) => field.empty ? (
-        <div key={'empty-' + rowIndex + '-' + fieldIndex} className="pc-detail-empty" style={{ gridColumn: 'span 2' }} aria-hidden="true" />
+        <div key={'empty-' + rowIndex + '-' + fieldIndex} className="pc-detail-empty" style={{ gridColumn: 'span ' + (field.width * 2) }} aria-hidden="true" />
       ) : (
-        <div key={field.label + '-' + rowIndex + '-' + fieldIndex} className="pc-detail-pair" style={{ gridColumn: 'span ' + (field.span * 2) }}>
+        <div key={field.label + '-' + rowIndex + '-' + fieldIndex} className="pc-detail-pair" style={{ gridColumn: 'span ' + (field.width * 2) }}>
           <div className="pc-detail-label">{field.label}</div>
           <div className="pc-detail-value">{valueOrDash(field.value)}</div>
         </div>
@@ -152,7 +158,7 @@ function DetailGrid({ fields = [] }) {
 }
 
 function PcCard({ className = '', children }) {
-  return <section className={'pc-card ' + className}>{children}</section>;
+  return <Card size="small" className={'pc-card ' + className}>{children}</Card>;
 }
 
 function withPcTableFullText(columns = []) {
@@ -174,10 +180,10 @@ function withPcTableFullText(columns = []) {
   });
 }
 
-function PcTable({ columns = [], className = '', size = 'small', bordered = true, ...props }) {
+function PcTable({ columns = [], className = '', size = 'small', bordered = true, locale, ...props }) {
   const normalizedColumns = withPcTableFullText(columns);
   const classes = [...new Set(['pc-table', ...className.split(/\s+/).filter(Boolean)])].join(' ');
-  return <Table {...props} columns={normalizedColumns} className={classes} size={size} bordered={bordered} />;
+  return <Table {...props} columns={normalizedColumns} className={classes} size={size} bordered={bordered} locale={{ emptyText: <EmptyContent />, ...locale }} />;
 }
 
 function SectionHeading({ title, extra }) {
@@ -186,7 +192,7 @@ function SectionHeading({ title, extra }) {
 
 
 function EmptyContent({ description = '暂无数据' }) {
-  return <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={description} className="pc-empty" />;
+  return <Empty image={import.meta.env.BASE_URL + 'pc-table-empty.png'} description={description} className="pc-empty" />;
 }
 
 function isDateInRange(value, start, end) {
@@ -618,7 +624,7 @@ function BankModal({ open, supplier, bank, onCancel, onSave }) {
     <Modal
       open={open}
       centered
-      width={760}
+      width={720}
       title={bank ? '编辑银行信息' : '添加银行'}
       onCancel={onCancel}
       maskClosable={false}
@@ -665,7 +671,7 @@ function InvitationModal({ open, onCancel, onSubmit }) {
   const [form] = Form.useForm();
   useEffect(() => { if (open) form.resetFields(); }, [open, form]);
   return (
-    <Modal open={open} centered width={620} title="邀请注册" onCancel={onCancel} destroyOnClose className="pc-modal" footer={[
+    <Modal open={open} centered width={720} title="邀请注册" onCancel={onCancel} destroyOnClose className="pc-modal" footer={[
       <Button key="cancel" onClick={onCancel}>取消</Button>,
       <Button key="submit" type="primary" onClick={() => form.submit()}>提交邀请</Button>,
     ]}>
@@ -687,7 +693,7 @@ function InviterModal({ open, ids, suppliers, onCancel, onSubmit }) {
   useEffect(() => { if (open) form.resetFields(); }, [open, form]);
   const targets = suppliers.filter((record) => ids.includes(record.id));
   return (
-    <Modal open={open} centered width={620} title="变更邀请人" onCancel={onCancel} destroyOnClose className="pc-modal" footer={[
+    <Modal open={open} centered width={560} title="变更邀请人" onCancel={onCancel} destroyOnClose className="pc-modal" footer={[
       <Button key="cancel" onClick={onCancel}>取消</Button>,
       <Button key="submit" type="primary" onClick={() => form.submit()}>确认变更</Button>,
     ]}>
@@ -743,6 +749,8 @@ function PcAdminApp() {
   const [bankModal, setBankModal] = useState(null);
   const [helpOpen, setHelpOpen] = useState(false);
   const [messageApi, contextHolder] = message.useMessage();
+  const [modalApi, modalContextHolder] = Modal.useModal();
+  const confirm = (options) => modalApi.confirm({ width: 400, centered: true, ...options });
   const onScrollbarActivity = useScrollbarActivity();
 
   useEffect(() => {
@@ -816,7 +824,7 @@ function PcAdminApp() {
         messageApi.warning('同名供应商的类型与本次填写不一致，请核对供应商类型后重试。');
         return;
       }
-      Modal.confirm({
+      confirm({
         title: '重新邀请确认',
         content: '您名下存在同名且为草稿或注册驳回的供应商，是否重新进行邀请。',
         okText: '重新邀请',
@@ -846,7 +854,7 @@ function PcAdminApp() {
     messageApi.success('邀请记录已创建');
   };
 
-  const handleReinvite = (record) => Modal.confirm({
+  const handleReinvite = (record) => confirm({
     title: '重新邀请',
     content: '确认重新邀请“' + record.name + '”吗？',
     okText: '重新邀请',
@@ -869,7 +877,7 @@ function PcAdminApp() {
       messageApi.error(invalid.length ? '以下供应商当前状态不支持删除：' + invalid.map((record) => record.name).join('、') : '请选择供应商');
       return;
     }
-    Modal.confirm({
+    confirm({
       title: '删除供应商',
       content: '确认删除选中的 ' + targets.length + ' 家供应商吗？',
       okText: '删除',
@@ -948,7 +956,7 @@ function PcAdminApp() {
     messageApi.success('账户已保存，待提交审批');
   };
 
-  const handleBankDelete = (bank) => Modal.confirm({
+  const handleBankDelete = (bank) => confirm({
     title: '删除银行账户',
     content: '删除后需提交审批才会更新正式资料，确认删除该账户吗？',
     okText: '删除',
@@ -965,7 +973,7 @@ function PcAdminApp() {
 
   const handleBankReturn = () => {
     if (pendingBankCount > 0) {
-      Modal.confirm({
+      confirm({
         title: '离开银行信息',
         content: '银行信息尚未提交审批，已保存内容将保留，可稍后继续处理。',
         okText: '确认离开',
@@ -984,7 +992,7 @@ function PcAdminApp() {
     const invalid = activeEntries.map((entry) => ({ entry, error: bankError(entry, company) })).find((item) => item.error);
     if (invalid) { messageApi.error((invalid.entry.name || invalid.entry.number || '银行账户') + '：' + invalid.error); return; }
     if (company && activeEntries.filter((entry) => entry.accountType === '基本账户').length !== 1) { messageApi.error('企业供应商有效银行账户必须且只能有一个基本账户。'); return; }
-    Modal.confirm({
+    confirm({
       title: '提交银行信息变更审批',
       content: '确认提交 ' + counts.total + ' 条银行账户变更吗？提交成功后供应商状态将变为“变更中”。',
       okText: '提交审批',
@@ -1019,16 +1027,17 @@ function PcAdminApp() {
   };
 
   return (
-    <ConfigProvider componentSize="middle" theme={{
+    <ConfigProvider locale={zhCN} componentSize="middle" theme={{
       token: {
-        colorPrimary: '#145CFF', colorInfo: '#145CFF', colorSuccess: '#14AE5C',
+        colorPrimary: '#145CFF', colorLink: '#145CFF', colorPrimaryActive: '#0D42D2', colorInfo: '#145CFF', colorSuccess: '#14AE5C',
         colorWarning: '#F27D0C', colorError: '#EC221F', colorBgLayout: '#F2F5FA',
-        colorBgContainer: '#FFFFFF', colorBorder: '#D3D9E5', colorText: '#1D2126',
+        colorBgContainer: '#FFFFFF', colorBorder: '#D3D9E5', colorBorderSecondary: '#E2E6F0', colorText: '#1D2126',
         colorTextSecondary: '#545B66', colorTextTertiary: '#848B99', borderRadius: 4,
         controlHeight: 32, fontSize: 14, fontFamily: '"PingFang SC", "Microsoft YaHei", Arial, sans-serif',
       },
       components: {
-        Button: { controlHeight: 32, borderRadius: 4, primaryShadow: 'none' },
+        Button: { controlHeight: 32, borderRadius: 4, primaryShadow: 'none', dangerShadow: 'none' },
+        Card: { bodyPaddingSM: 0, borderRadiusLG: 8 },
         Input: { controlHeight: 32, borderRadius: 4 },
         Select: { controlHeight: 32, borderRadius: 4 },
         DatePicker: { controlHeight: 32, borderRadius: 4 },
@@ -1038,6 +1047,7 @@ function PcAdminApp() {
       },
     }}>
       {contextHolder}
+      {modalContextHolder}
       <div className={'pc-app ' + (collapsed ? 'is-collapsed' : '')} onScrollCapture={onScrollbarActivity}>
         <div className="pc-workspace">
           <aside className={'pc-sidebar ' + (sidebarScrolled ? 'is-scrolled' : '')}>
@@ -1078,7 +1088,7 @@ function PcAdminApp() {
               >
                 {collapsed ? <ChevronsRight size={17} /> : <ChevronsLeft size={17} />}
               </button>
-              <div className="pc-topbar-context"><Breadcrumb items={breadcrumbItems} /></div>
+              <div className="pc-topbar-context"><Breadcrumb items={breadcrumbItems} separator={<ChevronRight size={14} aria-hidden="true" />} /></div>
               <div className="pc-topbar-actions">
                 <Button className="pc-help-button" type="text" icon={<CircleHelp size={16} />} onClick={() => setHelpOpen(true)}><span className="pc-help-label">操作指导</span></Button>
                 <span className="pc-topbar-divider" />
