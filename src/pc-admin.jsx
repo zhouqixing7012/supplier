@@ -1,7 +1,8 @@
+import { otherWorkspaceFeatures } from './pc/workspace-links.js';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Avatar, Breadcrumb, Button, Card, ConfigProvider, DatePicker, Dropdown, Form, Input, Menu, Select, Space, Tabs, Tag, Tooltip, App } from 'antd-pc';
 import zhCN from 'antd-pc/es/locale/zh_CN';
-import { Building2, ChevronDown, ChevronRight, ChevronsLeft, ChevronsRight, CircleHelp, Download, ClipboardList, LogOut, Plus, Trash2, UserRoundPlus } from 'lucide-react';
+import { Building2, ChevronDown, ChevronRight, ChevronsLeft, ChevronsRight, CircleHelp, Download, ClipboardList, Plus, Trash2, UserRoundPlus } from 'lucide-react';
 import { bankDirectory, branches, cooperation, initialSuppliers, people, supplierIndustries, supplierStates, supplierTypes } from './pages/mobile-data.js';
 import { bankChange, bankChangeCounts, normalizeBankChanges, readBankDraft, writeBankDraft } from './pages/mobile-bank-changes.js';
 import { blankBank, bankError, fieldsFor } from './pages/mobile-forms.jsx';
@@ -1042,7 +1043,7 @@ function SupplierAdmin() {
   const navigateFromMenu = (key) => {
     const action = () => {
       if (key === 'quick-create') setQuickOpen(true);
-      else navigate(key === 'login' ? '/login' : '/admin/' + key);
+      else navigate(key.startsWith('/') ? key : key === 'login' ? '/login' : '/admin/' + key);
     };
     if (workspaceLeave.current) workspaceLeave.current.leave(action);
     else action();
@@ -1094,9 +1095,9 @@ function SupplierAdmin() {
     items: [
       { key: 'account', label: CURRENT_USER, disabled: true },
       { type: 'divider' },
-      { key: 'logout', icon: <LogOut size={14} />, label: '返回协同门户' },
+      otherWorkspaceFeatures({ key: '/login', label: '协同门户登录' }),
     ],
-    onClick: ({ key }) => { if (key === 'logout') navigate('/login'); },
+    onClick: ({ key }) => navigateFromMenu(key),
   };
 
   return (

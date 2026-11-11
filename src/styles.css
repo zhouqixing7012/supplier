@@ -62,18 +62,19 @@ input {
 .auth-shell {
   display: grid;
   grid-template-columns: minmax(0, 1.08fr) minmax(460px, 0.92fr);
-  min-height: calc(100vh - 52px);
+  min-height: 100dvh;
   background: #ffffff;
 }
 
 .brand-panel {
   position: relative;
   display: flex;
-  min-height: calc(100vh - 52px);
+  min-height: 100dvh;
   align-items: center;
   padding: clamp(42px, 6vw, 88px);
   overflow: hidden;
-  background: linear-gradient(145deg, #0a2b57 0%, #0d417d 58%, #0c5599 100%);
+  background: linear-gradient(rgb(4 25 71 / 28%), rgb(4 25 71 / 40%)),
+    #0347c4 url('/mobile-assets/portal-city.png') center 39% / cover no-repeat;
   color: #ffffff;
 }
 
@@ -130,7 +131,7 @@ input {
 
 .auth-panel {
   display: flex;
-  min-height: calc(100vh - 52px);
+  min-height: 100dvh;
   align-items: center;
   justify-content: center;
   padding: 52px clamp(36px, 6vw, 88px);

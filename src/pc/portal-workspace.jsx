@@ -1,3 +1,4 @@
+import { otherWorkspaceFeatures } from './workspace-links.js';
 import React, { useEffect, useRef, useState } from 'react';
 import { Alert, App, Avatar, Breadcrumb, Button, Card, Dropdown, Form, Input, Menu, Space, Tabs, Typography } from 'antd-pc';
 import { Building2, Calculator, ChevronDown, ChevronRight, ClipboardList, Plane } from 'lucide-react';
@@ -20,6 +21,7 @@ const sections = [
 ];
 const accountItems = [
   { key: 'password', label: '修改密码' }, { key: 'register-email', label: '修改注册邮箱' },
+  otherWorkspaceFeatures({ key: '/admin/suppliers', label: '供应商管理平台' }),
   { type: 'divider' }, { key: 'logout', label: '退出登录' },
 ];
 const sectionLabels = Object.fromEntries([...sections.flatMap(({ key, label, children }) =>
@@ -160,6 +162,7 @@ export function PortalWorkspace({ screen, recordNumber, go, account, onLogout })
   };
   const switchSection = (key) => leavePage(() => go(workspacePath(key)));
   const accountMenu = { items: accountItems, onClick: ({ key }) => {
+    if (key.startsWith('/')) return leavePage(() => go(key.slice(1)));
     if (key !== 'logout') return switchSection(key);
     leavePage(() => modal.confirm({
       centered: true, className: 'pc-confirm', title: '确认退出协同门户？', okText: '退出登录', cancelText: '取消', onOk: onLogout,

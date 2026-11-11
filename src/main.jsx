@@ -12,7 +12,6 @@ import {
   UserRound,
 } from 'lucide-react';
 
-import { AppNavigation } from '@/components/app-navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Toaster } from '@/components/ui/sonner';
@@ -476,7 +475,6 @@ function App() {
 
   return (
     <>
-      <AppNavigation activeKey="portal" />
       <Toaster />
       {page}
     </>

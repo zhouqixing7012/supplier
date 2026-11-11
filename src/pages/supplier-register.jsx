@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { App, Button, Card, DatePicker, Form, Input, Select, Space, Steps, Tabs, Typography, Upload } from 'antd-pc';
+import { App, Button, Card, DatePicker, Form, Input, Select, Space, Steps, Typography, Upload } from 'antd-pc';
 import { RecordCollectionEditor, RecordFields, SupplierSnapshot } from '../pc/record-editor.jsx';
 import { bankError } from './mobile-forms.jsx';
 import { supplierTypes } from './mobile-data.js';
@@ -242,9 +242,9 @@ export function SupplierRegisterPage({ initialType = 'company', onBack, onSubmit
   const [contacts, setContacts] = useState([]);
   const [banks, setBanks] = useState([]);
   const [qualifications, setQualifications] = useState([]);
-  const { message } = App.useApp();
+  const [basicEdited, setBasicEdited] = useState(false);
+  const { message, modal } = App.useApp();
   const config = PAGE_CONFIG[type];
-  const tabItems = TYPE_OPTIONS.map(({ value, label }) => ({ key: value, label }));
   const title = config.steps[step].title;
   const supplierType = supplierTypes[TYPE_OPTIONS.findIndex((option) => option.value === type)];
   const preview = Object.fromEntries(config.fields.map((field) => {
@@ -265,29 +265,42 @@ export function SupplierRegisterPage({ initialType = 'company', onBack, onSubmit
   };
   const back = () => step > 0 ? setStep(step - 1) : onBack();
   const changeType = (value) => {
-    setType(value);
-    setStep(0);
-    setBasic({});
-    setFile([]);
-    setContacts([]);
-    setBanks([]);
-    setQualifications([]);
+    const apply = () => {
+      setType(value);
+      setStep(0);
+      setBasic({});
+      setFile([]);
+      setContacts([]);
+      setBanks([]);
+      setQualifications([]);
+      setBasicEdited(false);
+    };
+    if (!basicEdited && !file.length && !qualifications.length && !contacts.length && !banks.length) {
+      apply();
+      return;
+    }
+    modal.confirm({
+      centered: true, className: 'pc-confirm', title: '切换供应商类型？',
+      content: '切换后将清空当前填写的资料。', okText: '切换', cancelText: '继续填写', onOk: apply,
+    });
   };
 
   return (
     <div className="pc-page-stack pc-register">
-      <Card size="small" className="pc-detail-tabs-card">
-        <Tabs activeKey={type} items={tabItems.map((item) => ({ ...item, disabled: step > 0 }))} onChange={changeType} className="pc-detail-tabs" />
+      <Card size="small">
         <Steps current={step} items={config.steps} responsive size="small" />
       </Card>
       {step === 0 && <Card size="small" title="基本信息">
-        <Form key={type} id="pc-supplier-registration" className="pc-register-form" layout="horizontal" labelAlign="right" initialValues={basic}
+        <Form key={type} id="pc-supplier-registration" className="pc-register-form" layout="horizontal" labelAlign="right" initialValues={basic} onValuesChange={() => setBasicEdited(true)}
           onFinish={(value) => {
             if (config.upload?.required && !file.length) return message.error('请上传' + config.upload.label);
             setBasic(value);
             next();
           }}>
           <div className="pc-register-grid">
+            <Form.Item label="供应商类型" required htmlFor="pc-register-supplier-type">
+              <Select id="pc-register-supplier-type" value={type} options={TYPE_OPTIONS} onChange={changeType} />
+            </Form.Item>
             {config.upload && <UploadField upload={config.upload} file={file} setFile={setFile} />}
             {config.fields.map((field) => (
               <Form.Item
@@ -309,7 +322,7 @@ export function SupplierRegisterPage({ initialType = 'company', onBack, onSubmit
       {title === '联系人信息' && <RecordCollectionEditor type={supplierType} records={contacts} onChange={setContacts} />}
       {title === '银行信息' && <RecordCollectionEditor bank type={supplierType} records={banks} onChange={setBanks} />}
       {title === '预览提交' && <>
-        <Card size="small" title="基本信息"><RecordFields fields={config.fields.map(({ key, label }) => [key, label])} value={preview} /></Card>
+        <Card size="small" title="基本信息"><RecordFields fields={[['type', '供应商类型'], ...config.fields.map(({ key, label }) => [key, label])]} value={{ ...preview, type: config.label }} /></Card>
         <SupplierSnapshot profile={{ type: supplierType, basic: { ...preview, qualifications }, contacts, banks }} section="collections" />
       </>}
       <div className="pc-register-actions">
