@@ -1,3 +1,6 @@
+import { InvitationEditor, InviterChangePage } from './pc/invitation-workspace.jsx';
+import { SupplierExportModal } from './pc/supplier-export.jsx';
+import { MyRatingsWorkspace, PcRatingEditor } from './pc/rating-workspace.jsx';
 import FixedActionBar from './erp/FixedActionBar.jsx';
 import SectionCardTitle from './erp/SectionCardTitle.jsx';
 import { otherWorkspaceFeatures } from './pc/workspace-links.js';
@@ -5,17 +8,19 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Avatar, Breadcrumb, Button, Card, ConfigProvider, DatePicker, Dropdown, Form, Input, Menu, Select, Space, Tabs, Tag, Tooltip, App } from 'antd-pc';
 import zhCN from 'antd-pc/es/locale/zh_CN';
 import { ChevronDown, ChevronRight, CircleHelp, Download, Plus, Trash2, UserRoundPlus } from 'lucide-react';
-import { bankDirectory, branches, cooperation, initialSuppliers, people, supplierIndustries, supplierStates, supplierTypes } from './pages/mobile-data.js';
+import { bankDirectory, branches, initialSuppliers, people, supplierIndustries, supplierStates, supplierTypes } from './pages/mobile-data.js';
 import { bankChange, bankChangeCounts, normalizeBankChanges, readBankDraft, writeBankDraft } from './pages/mobile-bank-changes.js';
 import { blankBank, bankError, fieldsFor } from './pages/mobile-forms.jsx';
-import { canChangeSupplier, canDeleteSupplier, canReinviteSupplier } from './pages/mobile-rules.js';
+import { canChangeSupplier, canDeleteSupplier, canRateSupplier, canReinviteSupplier } from './pages/mobile-rules.js';
+import { attachmentFiles, attachmentName, rememberAttachment } from './pages/mobile-interaction.jsx';
 import { reinviteCandidate } from './pages/mobile-edit-rules.js';
 
 import { SupplierRegisterPage, registerTypeFromHash } from './pages/supplier-register.jsx';
 import { PermissionModal, QuickSupplierModal } from './pc/admin-workflows.jsx';
-import { SupplierProfileEditor, SupplierSnapshot } from './pc/record-editor.jsx';
-import { ApprovalTaskDetail, ApprovalTaskList, createApprovalTask, initialApprovalTasks } from './pc/approval-workspace.jsx';
-import { BankApplicationPage, BlacklistPage, ManualSyncPage, RatingPage } from './pc/admin-tools.jsx';
+import { SupplierProfileEditor } from './pc/record-editor.jsx';
+import { ApprovalTaskDetail, ApprovalTaskList, createApprovalTask, initialApprovalTasks, Changes } from './pc/approval-workspace.jsx';
+import { BankApplicationPage } from './pc/bank-application.jsx';
+import { BlacklistPage, ManualSyncPage, RatingPage } from './pc/admin-tools.jsx';
 import { initialRatings } from './pages/mobile-workflows.jsx';
 import erpTheme from './erp/theme.js';
 import DelayedNavIcon from './erp/DelayedNavIcon.jsx';
@@ -67,7 +72,7 @@ const CURRENT_DEPARTMENT = people.find((person) => person.name === CURRENT_USER)
 const approvalStorageKey = 'supplier:pc-approval-tasks:v1';
 const profileOf = (record) => ({
   type: record.type,
-  basic: { supplierName: record.name, creditCode: record.code, registerEmail: record.email, ...record.basic },
+  basic: { supplierName: record.name, creditCode: record.code, registerEmail: record.registerEmail || (record.mode === '代注册' && !record.basic ? record.email : undefined), ...record.basic },
   contacts: record.contacts || (record.contact ? [{ id: 'legacy-contact', name: record.contact, phone: record.phone, email: record.email }] : []),
   banks: record.banks || [],
 });
@@ -117,6 +122,12 @@ function readRoute() {
   if (path === '/admin/register' || path.startsWith('/register/')) {
     return { page: 'register', type: registerTypeFromHash(path) };
   }
+  const action = path.match(/^\/admin\/(suppliers|invitations)\/(invite|reinvite|change-inviter|draft|rating)(?:\/([^/?]+))?$/);
+  if (action) return { page: action[2], from: action[1], id: action[3] && decodeURIComponent(action[3]) };
+  const myRating = path.match(/^\/admin\/my-ratings\/(edit|detail)\/([^/?]+)$/);
+  if (myRating) return { page: 'my-ratings', id: decodeURIComponent(myRating[2]), ratingReadOnly: myRating[1] === 'detail' };
+  const bankApplication = path.match(/^\/admin\/bank-applications(?:\/(form|result))?$/);
+  if (bankApplication) return { page: 'bank-applications', bankApplicationView: bankApplication[1] || 'notice' };
   const approval = path.match(/^\/admin\/(approval-pending|approval-processed)(?:\/([^/?]+))?$/);
   if (approval) return { page: approval[1], id: approval[2] && decodeURIComponent(approval[2]) };
   const page = path.split('/')[2];
@@ -171,10 +182,10 @@ function exportCsv(rows, columns, filename) {
   window.setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-function SupplierQueryPage({ filters, setFilters, onSearch, onReset, rows, selectedIds, setSelectedIds, onInvite, onRegister, onQuickCreate, onDelete, onExport, onOpenDetail, onDetailAction }) {
+function SupplierQueryPage({ pagination, onPagination, canEditRecord, filters, setFilters, onSearch, onReset, rows, selectedIds, setSelectedIds, onInvite, onRegister, onQuickCreate, onDelete, onExport, onOpenDetail, onDetailAction }) {
   const activeFilter = Object.values(filters).some((value) => typeof value === 'string' ? Boolean(value.trim()) : Boolean(value));
   const columns = [
-    { title: '供应商名称', dataIndex: 'name', width: 240, render: (name, record) => <Tooltip title={name}><button className="pc-link pc-name-link" onClick={() => onOpenDetail(record, 'suppliers')}>{name}</button></Tooltip> },
+    { title: '供应商名称', dataIndex: 'name', width: 240, render: (name, record) => <Tooltip title={name}><button className="pc-link pc-name-link" onClick={() => onOpenDetail(record, 'suppliers')}>{name || '未填写供应商名称'}</button></Tooltip> },
     { title: '供应商类型', dataIndex: 'type', width: 130 },
     { title: '审批状态', dataIndex: 'status', width: 110, align: 'center', render: (value) => <StatusTag value={value} /> },
     { title: '注册方式', dataIndex: 'mode', width: 120, align: 'center' },
@@ -184,22 +195,26 @@ function SupplierQueryPage({ filters, setFilters, onSearch, onReset, rows, selec
     { title: '评分', dataIndex: 'score', width: 100, align: 'right', render: (value) => value || '未评分' },
     {
       title: '操作', key: 'actions', width: 88, fixed: 'right', align: 'center',
-      render: (_, record) => canChangeSupplier(record) ? (
-        <Dropdown trigger={['click']} menu={{ items: [
-          { key: 'banks', label: '修改银行' },
-          { key: 'permissions', label: '分配权限' },
-          { key: 'inviter', label: '变更邀请人' },
-        ], onClick: ({ key }) => onDetailAction(record, key) }}>
-          <Button className="pc-row-action-button" type="link" size="small">变更 <ChevronDown size={14} /></Button>
-        </Dropdown>
-      ) : '-',
+      render: (_, record) => {
+        const items = [
+          ...(canChangeSupplier(record) ? [{ key: 'banks', label: '修改银行' }, { key: 'permissions', label: '分配权限' }, { key: 'inviter', label: '变更邀请人' }] : []),
+          ...(canRateSupplier(record) ? [{ key: 'rate', label: '评分' }] : []),
+          ...(canEditRecord(record) && record.status === '草稿' ? [{ key: 'draft', label: '修改' }] : []),
+          ...(canEditRecord(record) && canReinviteSupplier(record) ? [{ key: 'reinvite', label: '重新邀请' }] : []),
+          ...(!['草稿', '邀请中', '注册中', '注册驳回'].includes(record.status) ? [{ key: 'approval', label: '审批记录' }] : []),
+          ...(canDeleteSupplier(record, false) ? [{ key: 'delete', label: '删除', danger: true }] : []),
+        ];
+        return items.length ? <Dropdown trigger={['click']} menu={{ items, onClick: ({ key }) => key === 'delete' ? onDelete([record.id], false) : onDetailAction(record, key) }}>
+          <Button className="pc-row-action-button" type="link" size="small">更多 <ChevronDown size={14} /></Button>
+        </Dropdown> : '-';
+      },
     },
   ];
 
   return (
     <div className="pc-page-stack">
       <QueryBar onQuery={onSearch} onReset={onReset}>
-        <QueryItem label="供应商名称"><Input allowClear value={filters.name} placeholder="请输入供应商名称" onChange={(event) => setFilters('name', event.target.value)} onPressEnter={onSearch} /></QueryItem>
+        <QueryItem label="供应商名称"><Input allowClear value={filters.name} placeholder="搜索供应商名称或邀请人" onChange={(event) => setFilters('name', event.target.value)} onPressEnter={onSearch} /></QueryItem>
         <QueryItem label="供应商类型"><Select allowClear value={filters.type || undefined} placeholder="请选择供应商类型" options={supplierTypes.map((value) => ({ value, label: value }))} onChange={(value) => setFilters('type', value || '')} /></QueryItem>
         <QueryItem label="供应商状态"><Select allowClear value={filters.status || undefined} placeholder="请选择供应商状态" options={supplierStates.map((value) => ({ value, label: value }))} onChange={(value) => setFilters('status', value || '')} /></QueryItem>
         <QueryItem label="邀请时间">
@@ -248,22 +263,23 @@ function SupplierQueryPage({ filters, setFilters, onSearch, onReset, rows, selec
             getCheckboxProps: (record) => ({ disabled: !canDeleteSupplier(record, false) }),
             columnWidth: 48,
           }}
-          pagination={{ defaultPageSize: 10, showSizeChanger: true, pageSizeOptions: [10, 20, 50], showTotal: (total) => '共 ' + total + ' 条', position: ['bottomRight'] }}
+          pagination={{ current: pagination?.current || 1, pageSize: pagination?.pageSize || 10, showSizeChanger: true, pageSizeOptions: [10, 20, 50], showTotal: (total) => '共 ' + total + ' 条', position: ['bottomRight'] }}
           scroll={{ x: 'max-content' }}
           filtered={activeFilter}
-          onChange={() => setSelectedIds([])}
+          onChange={(next, _filters, _sorter, extra) => { if (extra.action === 'paginate') { onPagination(next); setSelectedIds([]); } }}
         />
       </Card>
     </div>
   );
 }
 
-function MyInvitationsPage({ filters, setFilters, onSearch, onReset, rows, selectedIds, setSelectedIds, onOpenDetail, onChangeInviter, onReinvite, onModifyProfile, onDelete, onExport }) {
+function MyInvitationsPage({ pagination, onPagination, onEditDraft, filters, setFilters, onSearch, onReset, rows, selectedIds, setSelectedIds, onOpenDetail, onChangeInviter, onReinvite, onModifyProfile, onOpenBanks, onDelete, onExport }) {
   const activeFilter = Object.values(filters).some((value) => typeof value === 'string' ? Boolean(value.trim()) : Boolean(value));
   const selectedRecords = rows.filter((record) => selectedIds.includes(record.id));
   const allDeletable = selectedRecords.length > 0 && selectedRecords.every((record) => canDeleteSupplier(record, true));
+  const allTransferable = selectedRecords.length > 0 && selectedRecords.every(canChangeSupplier);
   const columns = [
-    { title: '供应商名称', dataIndex: 'name', width: 230, render: (name, record) => <Tooltip title={name}><button className="pc-link pc-name-link" onClick={() => onOpenDetail(record, 'invitations')}>{name}</button></Tooltip> },
+    { title: '供应商名称', dataIndex: 'name', width: 230, render: (name, record) => <Tooltip title={name}><button className="pc-link pc-name-link" onClick={() => onOpenDetail(record, 'invitations')}>{name || '未填写供应商名称'}</button></Tooltip> },
     { title: '证件号码', dataIndex: 'code', width: 180, render: (value) => value || '-' },
     { title: '供应商类型', dataIndex: 'type', width: 130 },
     { title: '联系人姓名', dataIndex: 'contact', width: 120, render: (value) => value || '-' },
@@ -273,25 +289,28 @@ function MyInvitationsPage({ filters, setFilters, onSearch, onReset, rows, selec
     { title: '邀请时间', dataIndex: 'date', width: 180, align: 'center' },
     { title: '更新时间', dataIndex: 'updated', width: 180, align: 'center' },
     {
-      title: '操作', key: 'actions', width: 112, fixed: 'right', align: 'center',
+      title: '操作', key: 'actions', width: 150, fixed: 'right', align: 'center',
       render: (_, record) => {
+        const primary = record.status === '草稿' ? <Button className="pc-row-action-button" type="link" size="small" onClick={() => onEditDraft(record)}>修改</Button>
+          : canChangeSupplier(record) ? <Button className="pc-row-action-button" type="link" size="small" onClick={() => onModifyProfile(record)}>修改全部信息</Button>
+          : null;
         const items = [
-          ...(canChangeSupplier(record) ? [{ key: 'inviter', label: '变更邀请人' }, { key: 'profile', label: '修改全部信息' }] : []),
+          ...(canChangeSupplier(record) ? [{ key: 'inviter', label: '变更邀请人' }, { key: 'banks', label: '修改银行' }] : []),
           ...(canReinviteSupplier(record) ? [{ key: 'reinvite', label: '重新邀请' }] : []),
           ...(canDeleteSupplier(record, true) ? [{ key: 'delete', label: '删除', danger: true }] : []),
+          ...(!['草稿', '邀请中', '注册中', '注册驳回'].includes(record.status) ? [{ key: 'approval', label: '审批记录' }] : []),
         ];
-        if (!items.length) return '-';
-        if (canReinviteSupplier(record)) return <Space size={4} className="pc-row-actions">
-          <Button className="pc-row-action-button" type="link" size="small" onClick={() => onReinvite(record)}>重新邀请</Button>
-          {canDeleteSupplier(record, true) && <Button className="pc-row-action-button" type="link" danger size="small" onClick={() => onDelete([record.id], true)}>删除</Button>}
-        </Space>;
-        return <Dropdown trigger={['click']} menu={{ items, onClick: ({ key }) => {
-          if (key === 'inviter') onChangeInviter([record.id]);
-          if (key === 'profile') onModifyProfile(record);
-          if (key === 'delete') onDelete([record.id], true);
-        } }}>
-          <Button className="pc-row-action-button" type="link" size="small">变更 <ChevronDown size={14} /></Button>
-        </Dropdown>;
+        return primary || items.length ? <Space size={4} className="pc-row-actions">{primary}
+          {items.length > 0 && <Dropdown trigger={['click']} menu={{ items, onClick: ({ key }) => {
+            if (key === 'inviter') onChangeInviter([record.id]);
+            if (key === 'reinvite') onReinvite(record);
+            if (key === 'banks') onOpenBanks(record);
+            if (key === 'approval') onOpenDetail(record, 'invitations', 'approval');
+            if (key === 'delete') onDelete([record.id], true);
+          } }}>
+            <Button className="pc-row-action-button" type="link" size="small">更多 <ChevronDown size={14} /></Button>
+          </Dropdown>}
+        </Space> : '-';
       },
     },
   ];
@@ -324,7 +343,7 @@ function MyInvitationsPage({ filters, setFilters, onSearch, onReset, rows, selec
 
       <Card size="small" className="pc-list-card">
         <div className="pc-list-toolbar">
-          <Space size={8} wrap><Button icon={<Download size={15} />} onClick={onExport}>导出</Button><Button disabled={!selectedIds.length} onClick={() => onChangeInviter(selectedIds)}>邀请人批量变更</Button></Space>
+          <Space size={8} wrap><Button icon={<Download size={15} />} onClick={onExport}>导出</Button><Button disabled={!allTransferable} onClick={() => onChangeInviter(selectedIds, 'invitations', true)}>邀请人批量变更</Button></Space>
           <div className="pc-list-meta">共 <strong>{rows.length}</strong> 家供应商</div>
         </div>
         {selectedIds.length > 0 && <div className="pc-batch-bar"><span>已选择 <strong>{selectedIds.length}</strong> 条</span><Button type="link" danger size="small" disabled={!allDeletable} onClick={() => onDelete(selectedIds, true)}>删除所选</Button><Button type="link" size="small" onClick={() => setSelectedIds([])}>取消选择</Button></div>}
@@ -341,10 +360,10 @@ function MyInvitationsPage({ filters, setFilters, onSearch, onReset, rows, selec
             getCheckboxProps: (record) => ({ disabled: !canChangeSupplier(record) && !canDeleteSupplier(record, true) }),
             columnWidth: 48,
           }}
-          pagination={{ defaultPageSize: 10, showSizeChanger: true, pageSizeOptions: [10, 20, 50], showTotal: (total) => '共 ' + total + ' 条', position: ['bottomRight'] }}
+          pagination={{ current: pagination?.current || 1, pageSize: pagination?.pageSize || 10, showSizeChanger: true, pageSizeOptions: [10, 20, 50], showTotal: (total) => '共 ' + total + ' 条', position: ['bottomRight'] }}
           scroll={{ x: 'max-content' }}
           filtered={activeFilter}
-          onChange={() => setSelectedIds([])}
+          onChange={(next, _filters, _sorter, extra) => { if (extra.action === 'paginate') { onPagination(next); setSelectedIds([]); } }}
         />
       </Card>
     </div>
@@ -363,7 +382,7 @@ function SupplierInformation({ supplier }) {
 }
 
 function RegistrationInformation({ supplier }) {
-  return <SupplierFields labelWidth={128} fields={[
+  return <div className="pc-page-stack"><SupplierFields labelWidth={128} fields={[
     { label: '供应商账号', value: supplier.supplierAccount || supplier.userCode || supplier.account },
     { label: '注册方式', value: supplier.mode },
     { label: '邀请人', value: supplier.inviter },
@@ -371,7 +390,15 @@ function RegistrationInformation({ supplier }) {
     { label: '更新时间', value: supplier.updated },
     { label: '曾用名', value: supplier.supplierFormerName || supplier.formerName, span: 2 },
     { label: '供应商注册邮箱', value: supplier.basic?.registerEmail || supplier.registerEmail || supplier.email, span: 2 },
-  ]} />;
+  ]} />
+    {!!supplier.inviterChanges?.length && <Card size="small" title="邀请人变更记录">
+      <PcTable rowKey="id" pagination={false} dataSource={supplier.inviterChanges} scroll={{ x: 'max-content' }} columns={[
+        { title: '原邀请人', dataIndex: 'previous', width: 120 }, { title: '新邀请人', dataIndex: 'next', width: 120 },
+        { title: '发起人', dataIndex: 'operator', width: 120 }, { title: '操作时间', dataIndex: 'time', width: 180 },
+        { title: '办理结果', dataIndex: 'result', width: 120 },
+      ]} />
+    </Card>}
+  </div>;
 }
 
 function ContactsTab({ supplier }) {
@@ -395,6 +422,10 @@ function ContactsTab({ supplier }) {
 function BankInfoTab({ supplier, entries, onAdd, onEdit, onDelete, onReturn, onSubmit, pendingCount }) {
   const original = supplier.banks || [];
   const canEdit = canChangeSupplier(supplier);
+  const comparison = entries.flatMap((entry) => {
+    const { action, fields } = bankChange(original, entry);
+    return action === '修改' ? fields.map((field) => ({ ...field, key: entry.id + ':' + field.key, account: entry.bank + ' · 尾号 ' + String(entry.number).slice(-4) })) : [];
+  });
   const columns = [
     { title: '账户类型', dataIndex: 'accountType', width: 100 },
     { title: '开户银行', dataIndex: 'bank', width: 180 },
@@ -404,7 +435,7 @@ function BankInfoTab({ supplier, entries, onAdd, onEdit, onDelete, onReturn, onS
     { title: '账户名称', dataIndex: 'name', width: 170 },
     { title: '银行账号', dataIndex: 'number', width: 190 },
     { title: '币种', dataIndex: 'currency', width: 90, align: 'center' },
-    { title: '开户证明', dataIndex: 'proof', width: 170, render: (value) => value ? <span className="pc-attachment-name" title={value}>{value}</span> : '-' },
+    { title: '开户证明', dataIndex: 'proof', width: 170, render: (value) => <BankProof value={value} /> },
     { title: '备注', dataIndex: 'note', width: 180 },
     {
       title: '变更状态', key: 'change', width: 130, align: 'center',
@@ -434,6 +465,11 @@ function BankInfoTab({ supplier, entries, onAdd, onEdit, onDelete, onReturn, onS
         </div>
         {canEdit && <Button type="primary" icon={<Plus size={15} />} onClick={onAdd}>添加银行</Button>}
       </div>
+      {comparison.length > 0 && <PcTable rowKey="key" pagination={false} scroll={{ x: 'max-content' }}
+        dataSource={comparison} columns={[
+          { title: '账户', dataIndex: 'account', width: 220 }, { title: '字段', dataIndex: 'label', width: 150 },
+          { title: '修改前', dataIndex: 'previous', width: 230 }, { title: '修改后', dataIndex: 'next', width: 230 },
+        ]} />}
       {entries.length ? (
         <PcTable
           className="pc-table"
@@ -462,13 +498,14 @@ function PermissionsTab({ supplier, onSave }) {
     { title: '所属权限', dataIndex: 'group', width: 220 },
     { title: '权限分类', dataIndex: 'category', width: 240 },
     { title: '备注', dataIndex: 'note' },
+    ...(changed ? [{ title: '变更状态', dataIndex: 'change', width: 120, render: (value) => value ? <Tag className={'pc-change-tag pc-change-' + value}>待提交{value}</Tag> : '—' }] : []),
   ];
-  if (editable) columns.push({ title: '操作', key: 'action', width: 100, render: (_, row) => <Space size={4}>
+  if (editable) columns.push({ title: '操作', key: 'action', width: 100, render: (_, row) => row.change === '删除' ? '—' : <Space size={4}>
     <Button type="link" size="small" onClick={() => setEditor({ row })}>修改</Button>
     <Button type="link" size="small" danger onClick={() => modal.confirm({
       centered: true, className: 'pc-confirm', title: '删除权限', content: row.group + ' / ' + row.category,
       okText: '删除', cancelText: '取消', okButtonProps: { danger: true },
-      onOk: () => setRecords(records.filter((item) => item.id !== row.id)),
+      onOk: () => setRecords(records.flatMap((item) => item.id !== row.id ? [item] : original.some((entry) => entry.id === row.id) ? [{ ...item, change: '删除' }] : [])),
     })}>删除</Button>
   </Space> });
   return <div className="pc-page-stack">
@@ -476,10 +513,13 @@ function PermissionsTab({ supplier, onSave }) {
     <PcTable rowKey="id" dataSource={records} pagination={false} columns={columns} />
     {editable && changed && <div className="pc-workflow-actions"><Space>
       <Button onClick={() => setRecords(original)}>取消变更</Button>
-      <Button type="primary" onClick={() => onSave(records)}>提交变更</Button>
+      <Button type="primary" onClick={() => onSave(records.filter((row) => row.change !== '删除').map(({ change, ...row }) => row))}>提交变更</Button>
     </Space></div>}
-    {editor && <PermissionModal initial={editor.row} existing={records} onCancel={() => setEditor(null)} onSave={(row) => {
-      setRecords(editor.row ? records.map((item) => item.id === row.id ? row : item) : [...records, row]);
+    {editor && <PermissionModal initial={editor.row} existing={records.filter((row) => row.change !== '删除')} onCancel={() => setEditor(null)} onSave={(row) => {
+      const before = original.find((item) => item.id === row.id);
+      const change = !before ? '新增' : ['group', 'category', 'note'].some((key) => (before[key] || '') !== (row[key] || '')) ? '修改' : '';
+      const next = change ? { ...row, change } : before;
+      setRecords(editor.row ? records.map((item) => item.id === row.id ? next : item) : [...records, next]);
       setEditor(null);
     }} />}
   </div>;
@@ -541,8 +581,8 @@ function ApprovalTab({ supplier }) {
   );
 }
 
-function CooperationTab({ supplier }) {
-  const records = cooperation.filter((record) => record.name === supplier.name);
+function CooperationTab({ supplier, ratings }) {
+  const records = ratings.filter((record) => record.supplierId ? record.supplierId === supplier.id : record.name === supplier.name);
   if (!records.length) return <EmptyContent description="暂无合作信息及评分记录" />;
   return <PcTable className="pc-table" bordered size="small" rowKey="id" dataSource={records} pagination={false} scroll={{ x: 'max-content' }} columns={[
     { title: '合作类型', dataIndex: 'type', width: 150 },
@@ -555,7 +595,7 @@ function CooperationTab({ supplier }) {
   ]} />;
 }
 
-function SupplierDetailPage({ supplier, activeTab, setActiveTab, bankEntries, pendingBankCount, onBankAdd, onBankEdit, onBankDelete, onBankReturn, onBankSubmit, onPermissionsSave }) {
+function SupplierDetailPage({ supplier, ratings, maintenanceTask, onOpenMaintenance, activeTab, setActiveTab, bankEntries, pendingBankCount, onBankAdd, onBankEdit, onBankDelete, onBankReturn, onBankSubmit, onPermissionsSave }) {
   const tabs = [
     { key: 'supplier', label: '供应商信息', children: <SupplierInformation supplier={supplier} /> },
     { key: 'contacts', label: '联系人信息', children: <ContactsTab supplier={supplier} /> },
@@ -564,10 +604,11 @@ function SupplierDetailPage({ supplier, activeTab, setActiveTab, bankEntries, pe
     { key: 'finance', label: '财务OU', children: <FinanceOUTab supplier={supplier} /> },
     { key: 'blacklist', label: '黑名单操作记录', children: <BlacklistTab supplier={supplier} /> },
     { key: 'approval', label: '审批记录', children: <div className="pc-page-stack">
-      {supplier.pendingProfile && <Card size="small" title="待审批资料"><SupplierSnapshot profile={supplier.pendingProfile} /></Card>}
+      {supplier.pendingProfile && <Changes before={profileOf(supplier)} after={supplier.pendingProfile} />}
+      {maintenanceTask && <Card size="small" title={maintenanceTask.type}><Button type="link" onClick={onOpenMaintenance}>查看本次变更审批</Button></Card>}
       <ApprovalTab supplier={supplier} />
     </div> },
-    { key: 'cooperation', label: '合作信息及评分', children: <CooperationTab supplier={supplier} /> },
+    { key: 'cooperation', label: '合作信息及评分', children: <CooperationTab supplier={supplier} ratings={ratings} /> },
     { key: 'registration', label: '注册信息', children: <RegistrationInformation supplier={supplier} /> },
   ];
   return (
@@ -588,12 +629,21 @@ function SupplierDetailPage({ supplier, activeTab, setActiveTab, bankEntries, pe
   );
 }
 
+function BankProof({ value }) {
+  if (!value) return '—';
+  const name = attachmentName(value);
+  const entry = attachmentFiles.get(value);
+  return entry
+    ? <a className="pc-attachment-name" href={entry.url} target="_blank" rel="noreferrer" title={name}>{name}</a>
+    : <span className="pc-attachment-name" title={name}>{name}</span>;
+}
+
 function BankModal({ open, supplier, bank, onCancel, onSave }) {
   const [draft, setDraft] = useState(blankBank(supplier?.name || ''));
   const company = supplier?.type === supplierTypes[0];
   useEffect(() => {
     if (!open) return;
-    setDraft(bank ? { ...bank } : { ...blankBank(supplier?.name || ''), id: newId() });
+    setDraft(bank ? { ...bank, country: bank.country || bankDirectory.find((item) => item.name === bank.bank)?.country || '' } : { ...blankBank(supplier?.name || ''), id: newId() });
   }, [open, bank, supplier?.name]);
   const change = (key, value) => setDraft((current) => ({ ...current, [key]: value }));
   const branchOptions = pcBranches.filter((item) => item.bank === draft.bank).map((item) => ({ value: item.name, label: item.name }));
@@ -633,54 +683,13 @@ function BankModal({ open, supplier, bank, onCancel, onSave }) {
         <div className="pc-bank-field">
           <label>{company && <em>*</em>}开户证明</label>
           <div className="pc-upload-control">
-            <label className="pc-upload-button"><Plus size={15} /><span>{draft.proof ? '替换文件' : '上传文件'}</span><input type="file" onChange={(event) => change('proof', event.target.files?.[0]?.name || '')} /></label>
-            <span className="pc-upload-name" title={draft.proof || undefined}>{draft.proof || '未上传'}</span>
+            <label className="pc-upload-button"><Plus size={15} /><span>{draft.proof ? '替换文件' : '上传文件'}</span><input type="file" onChange={(event) => { const file = event.target.files?.[0]; if (file) change('proof', rememberAttachment(file).key); }} /></label>
+            {draft.proof ? <BankProof value={draft.proof} /> : <span className="pc-upload-name">未上传</span>}
           </div>
         </div>
         <div className="pc-bank-field pc-bank-field-wide"><label>备注</label><Input.TextArea value={draft.note} maxLength={400} rows={3} placeholder="请输入备注" onChange={(event) => change('note', event.target.value)} /></div>
       </div>
       {selectedBranch && <div className="pc-form-help">已根据所选分行带出开户地区信息。</div>}
-    </PcModal>
-  );
-}
-
-function InvitationModal({ open, onCancel, onSubmit }) {
-  const [form] = Form.useForm();
-  useEffect(() => { if (open) form.resetFields(); }, [open, form]);
-  return (
-    <PcModal open={open} width={720} title="邀请注册" onCancel={onCancel} footer={[
-      <Button key="cancel" onClick={onCancel}>取消</Button>,
-      <Button key="submit" type="primary" onClick={() => form.submit()}>提交邀请</Button>,
-    ]}>
-      <Form form={form} layout="vertical" initialValues={{ supplierType: supplierTypes[0] }} onFinish={onSubmit} className="pc-invite-form">
-        <div className="pc-form-grid">
-          <Form.Item name="supplierType" label="供应商类型" rules={[{ required: true, message: '请选择供应商类型' }]}><Select options={supplierTypes.map((value) => ({ value, label: value }))} /></Form.Item>
-          <Form.Item name="supplierName" label="供应商名称/姓名" rules={[{ required: true, whitespace: true, message: '请输入供应商名称/姓名' }]}><Input maxLength={120} placeholder="请输入供应商名称/姓名" /></Form.Item>
-          <Form.Item name="contactName" label="联系人姓名" rules={[{ required: true, whitespace: true, message: '请输入联系人姓名' }]}><Input maxLength={60} placeholder="请输入联系人姓名" /></Form.Item>
-          <Form.Item name="contactEmail" label="联系人邮箱" rules={[{ required: true, type: 'email', message: '请输入正确的联系人邮箱' }]}><Input maxLength={120} placeholder="请输入联系人邮箱" /></Form.Item>
-          <Form.Item name="contactPhone" label="联系人手机" rules={[{ required: true, message: '请输入联系人手机' }, { pattern: /^\+?[\d -]{7,20}$/, message: '请输入正确的联系人手机' }]}><Input maxLength={20} placeholder="请输入联系人手机" /></Form.Item>
-        </div>
-      </Form>
-    </PcModal>
-  );
-}
-
-function InviterModal({ open, ids, suppliers, onCancel, onSubmit }) {
-  const [form] = Form.useForm();
-  useEffect(() => { if (open) form.resetFields(); }, [open, form]);
-  const targets = suppliers.filter((record) => ids.includes(record.id));
-  return (
-    <PcModal open={open} width={560} title="变更邀请人" onCancel={onCancel} footer={[
-      <Button key="cancel" onClick={onCancel}>取消</Button>,
-      <Button key="submit" type="primary" onClick={() => form.submit()}>确认变更</Button>,
-    ]}>
-      <div className="pc-modal-summary">本次变更 <strong>{targets.length}</strong> 家供应商的邀请人</div>
-      <div className="pc-modal-records">{targets.map((record) => <div className="pc-modal-record" key={record.id}><span>{record.name}</span><span>原邀请人：{record.inviter || '-'}</span></div>)}</div>
-      <Form form={form} layout="vertical" onFinish={(values) => onSubmit(values.inviter)} className="pc-inviter-form">
-        <Form.Item name="inviter" label="新邀请人" rules={[{ required: true, message: '请选择新邀请人' }]}>
-          <Select showSearch optionFilterProp="label" placeholder="请选择新邀请人" options={people.map((person) => ({ value: person.name, label: person.name + ' · ' + person.userCode + ' · ' + person.department }))} />
-        </Form.Item>
-      </Form>
     </PcModal>
   );
 }
@@ -741,11 +750,15 @@ function SupplierAdmin() {
   const [selectedInvitationIds, setSelectedInvitationIds] = useState([]);
   const [activeDetailTab, setActiveDetailTab] = useState('supplier');
   const [bankDrafts, setBankDrafts] = useState(() => Object.fromEntries(suppliers.map((supplier) => [supplier.id, readBankDraftSafe(supplier.id) || clone(supplier.banks || [])])));
-  const [inviteOpen, setInviteOpen] = useState(false);
+  const [exportSource, setExportSource] = useState(null);
+  const [listPagination, setListPagination] = useState({});
+  const [ratingView, setRatingView] = useState({});
   const [quickOpen, setQuickOpen] = useState(false);
   const workspaceLeave = useRef(null);
-  const [inviterOpen, setInviterOpen] = useState(false);
+
   const [inviterTargetIds, setInviterTargetIds] = useState([]);
+  const latestSuppliers = useRef(suppliers);
+  latestSuppliers.current = suppliers;
   const [bankModal, setBankModal] = useState(null);
   const [helpOpen, setHelpOpen] = useState(false);
   const { message: messageApi, modal } = App.useApp();
@@ -759,12 +772,12 @@ function SupplierAdmin() {
   }, []);
 
   useEffect(() => {
-    const titles = { detail: '供应商详情', register: '代注册', 'profile-edit': '修改全部信息' };
+    const titles = { detail: '供应商详情', register: '代注册', 'profile-edit': '修改全部信息', invite: '邀请注册', reinvite: '重新邀请', 'change-inviter': '变更邀请人', draft: '修改草稿', rating: '供应商评分' };
     const pageTitle = titles[route.page] || menuLabels[route.page];
     document.title = pageTitle ? pageTitle + ' - 搜狐供应商管理平台' : '搜狐供应商管理平台';
     if (!mainScrollRef.current) return;
-    mainScrollRef.current.scrollTop = route.id ? 0 : (scrollPositions.current[route.page] || 0);
-  }, [route.page, route.id]);
+    mainScrollRef.current.scrollTop = route.id || route.from || route.bankApplicationView ? 0 : (scrollPositions.current[route.page] || 0);
+  }, [route.page, route.id, route.bankApplicationView]);
 
   useEffect(() => {
     try {
@@ -784,30 +797,45 @@ function SupplierAdmin() {
   const originalBanks = currentSupplier?.banks || [];
   const pendingBankCount = currentSupplier ? bankChangeCounts(originalBanks, currentBankEntries).total : 0;
 
-  const supplierRows = useMemo(() => suppliers.filter((record) => {
+  const supplierScope = useMemo(() => suppliers.filter((record) => {
     const filters = appliedSupplierFilters;
-    return (!filters.name || String(record.name || '').toLowerCase().includes(filters.name.trim().toLowerCase()))
+    return (!filters.name || [record.name, record.inviter].some((value) => String(value || '').toLowerCase().includes(filters.name.trim().toLowerCase())))
       && (!filters.type || record.type === filters.type)
       && (!filters.status || record.status === filters.status)
       && (!filters.recommended || (record.industry || record.basic?.industry) === filters.recommended)
-      && (!filters.inviter || String(record.inviter || '').includes(filters.inviter.trim()))
-      && isDateInRange(record.date, filters.start, filters.end);
+      && (!filters.inviter || String(record.inviter || '').includes(filters.inviter.trim()));
   }), [suppliers, appliedSupplierFilters]);
 
-  const invitationRows = useMemo(() => suppliers.filter((record) => {
+  const invitationScope = useMemo(() => suppliers.filter((record) => {
     const filters = appliedInvitationFilters;
     return record.inviter === CURRENT_USER
       && (!filters.name || String(record.name || '').toLowerCase().includes(filters.name.trim().toLowerCase()))
       && (!filters.status || record.status === filters.status)
       && (!filters.type || record.type === filters.type)
-      && (!filters.registrationNumber || String(record.code || '').includes(filters.registrationNumber.trim()))
-      && isDateInRange(record.date, filters.start, filters.end);
+      && (!filters.registrationNumber || String(record.documentNo || '').includes(filters.registrationNumber.trim()));
   }), [suppliers, appliedInvitationFilters]);
+
+  const supplierRows = supplierScope.filter((record) => isDateInRange(record.date, appliedSupplierFilters.start, appliedSupplierFilters.end))
+    .map((record) => !record.score || record.score === '未评分'
+      ? { ...record, score: ratings.some((rating) => rating.status === '已评分' && (rating.supplierId ? rating.supplierId === record.id : rating.name === record.name)) ? '已评分' : '未评分' }
+      : record);
+  const invitationRows = invitationScope.filter((record) => isDateInRange(record.date, appliedInvitationFilters.start, appliedInvitationFilters.end));
 
   const navigate = (path) => {
     if (window.location.hash === '#' + path) { setRoute(readRoute()); return; }
     window.location.hash = path;
   };
+  const openAction = (from, action, id) => {
+    scrollPositions.current[from] = mainScrollRef.current?.scrollTop || 0;
+    navigate('/admin/' + from + '/' + action + (id ? '/' + encodeURIComponent(id) : ''));
+  };
+  const backFromAction = () => navigate('/admin/' + (route.from || 'suppliers'));
+  const setPagination = (key, page) => setListPagination((current) => ({ ...current, [key]: page }));
+  const openMyRating = (record, readOnly) => {
+    openAction('my-ratings', readOnly ? 'detail' : 'edit', record.id);
+  };
+  const saveRating = (row) => setRatings((current) => current.some((item) => item.id === row.id)
+    ? current.map((item) => item.id === row.id ? row : item) : [row, ...current]);
   const openDetail = (supplier, fromPage, tab = 'supplier') => {
     detailReturnPage.current = fromPage;
     if (mainScrollRef.current) scrollPositions.current[fromPage] = mainScrollRef.current.scrollTop;
@@ -817,64 +845,46 @@ function SupplierAdmin() {
   const backFromDetail = () => navigate('/admin/' + (route.page === 'profile-edit' ? 'invitations' : detailReturnPage.current));
   const setSupplierFilter = (key, value) => setSupplierFilters((current) => ({ ...current, [key]: value }));
   const setInvitationFilter = (key, value) => setInvitationFilters((current) => ({ ...current, [key]: value }));
-  const applySupplierFilters = () => { setAppliedSupplierFilters({ ...supplierFilters }); setSelectedSupplierIds([]); };
-  const resetSupplierFilters = () => { setSupplierFilters({ ...EMPTY_SUPPLIER_FILTERS }); setAppliedSupplierFilters({ ...EMPTY_SUPPLIER_FILTERS }); setSelectedSupplierIds([]); };
-  const applyInvitationFilters = () => { setAppliedInvitationFilters({ ...invitationFilters }); setSelectedInvitationIds([]); };
-  const resetInvitationFilters = () => { setInvitationFilters({ ...EMPTY_INVITATION_FILTERS }); setAppliedInvitationFilters({ ...EMPTY_INVITATION_FILTERS }); setSelectedInvitationIds([]); };
+  const applySupplierFilters = () => { setAppliedSupplierFilters({ ...supplierFilters }); setSelectedSupplierIds([]); setPagination('suppliers', { current: 1, pageSize: listPagination.suppliers?.pageSize }); };
+  const resetSupplierFilters = () => { setSupplierFilters({ ...EMPTY_SUPPLIER_FILTERS }); setAppliedSupplierFilters({ ...EMPTY_SUPPLIER_FILTERS }); setSelectedSupplierIds([]); setPagination('suppliers', { current: 1, pageSize: listPagination.suppliers?.pageSize }); };
+  const applyInvitationFilters = () => { setAppliedInvitationFilters({ ...invitationFilters }); setSelectedInvitationIds([]); setPagination('invitations', { current: 1, pageSize: listPagination.invitations?.pageSize }); };
+  const resetInvitationFilters = () => { setInvitationFilters({ ...EMPTY_INVITATION_FILTERS }); setAppliedInvitationFilters({ ...EMPTY_INVITATION_FILTERS }); setSelectedInvitationIds([]); setPagination('invitations', { current: 1, pageSize: listPagination.invitations?.pageSize }); };
 
   const handleInviteSubmit = (values) => {
     const name = values.supplierName.trim();
-    const duplicate = reinviteCandidate(suppliers, name, CURRENT_USER);
-    if (duplicate) {
-      if (duplicate.type !== values.supplierType) {
-        messageApi.warning('同名供应商的类型与本次填写不一致，请核对供应商类型后重试。');
+    const rows = latestSuppliers.current;
+    const explicit = route.page === 'reinvite';
+    const original = explicit ? rows.find((row) => row.id === route.id) : reinviteCandidate(rows, name, CURRENT_USER);
+    const details = { name, type: values.supplierType, contact: values.contactName.trim(),
+      email: values.contactEmail.trim(), phone: values.contactPhone.trim(), status: '邀请中', mode: '邀请注册' };
+    const complete = (targetId) => {
+      const latest = latestSuppliers.current;
+      const target = targetId && latest.find((row) => row.id === targetId);
+      if (targetId && (!target || target.inviter !== CURRENT_USER || !canReinviteSupplier(target) ||
+        target.type !== details.type || (!explicit && target.name.trim() !== name))) {
+        messageApi.warning('供应商资料或办理状态已变化，请核对后重新提交。');
         return;
       }
-      confirm({
-        title: '重新邀请确认',
-        content: '您名下存在同名且为草稿或注册驳回的供应商，是否重新进行邀请。',
-        okText: '重新邀请',
-        cancelText: '取消',
-        onOk: () => {
-          const latest = suppliers.find((record) => record.id === duplicate.id);
-          if (!latest || latest.inviter !== CURRENT_USER || latest.name.trim() !== name || !canReinviteSupplier(latest) || latest.type !== values.supplierType) {
-            messageApi.warning('供应商资料或办理状态已变化，请核对后重新提交。');
-            return;
-          }
-          setSuppliers((current) => current.map((record) => record.id === duplicate.id ? { ...record, status: '邀请中', contact: values.contactName.trim(), email: values.contactEmail.trim(), phone: values.contactPhone.trim(), updated: nowText() } : record));
-          setInviteOpen(false);
-          messageApi.success('邀请状态已更新');
-        },
-      });
-      return;
-    }
-    const time = nowText();
-    const record = {
-      id: newId(), name, type: values.supplierType, status: '邀请中', mode: '邀请注册',
-      inviter: CURRENT_USER, date: time, updated: time, score: '未评分', code: '',
-      email: values.contactEmail.trim(), contact: values.contactName.trim(), phone: values.contactPhone.trim(),
-      banks: [], permissions: [],
+      if (latest.some((row) => row.id !== targetId && row.name.trim() === name)) {
+        messageApi.error('供应商名称已存在');
+        return;
+      }
+      const time = nowText();
+      setSuppliers(target ? latest.map((row) => row.id === targetId ? { ...row, ...details, updated: time } : row)
+        : [{ ...details, id: newId(), inviter: CURRENT_USER, date: time, updated: time, score: '未评分', code: '', banks: [], permissions: [] }, ...latest]);
+      messageApi.success(target ? '邀请状态已更新' : '邀请记录已创建');
+      backFromAction();
     };
-    setSuppliers((current) => [record, ...current]);
-    setInviteOpen(false);
-    messageApi.success('邀请记录已创建');
+    if (explicit && !original) return messageApi.warning('该供应商当前不可重新邀请');
+    if (original && original.type !== details.type) return messageApi.warning('供应商类型与原记录不一致，请核对后重新提交。');
+    if (!explicit && original) {
+      confirm({ title: '重新邀请确认', content: '您名下存在同名且为草稿或注册驳回的供应商，是否重新进行邀请。',
+        okText: '重新邀请', cancelText: '取消', onOk: () => complete(original.id) });
+    } else complete(original?.id);
   };
-
-  const handleReinvite = (record) => confirm({
-    title: '重新邀请',
-    content: '确认重新邀请“' + record.name + '”吗？',
-    okText: '重新邀请',
-    cancelText: '取消',
-    onOk: () => {
-      const latest = suppliers.find((item) => item.id === record.id);
-      if (!latest || latest.inviter !== CURRENT_USER || !canReinviteSupplier(latest)) {
-        messageApi.warning('该供应商当前状态已变化，请刷新列表后重试。');
-        return;
-      }
-      setSuppliers((current) => current.map((item) => item.id === record.id ? { ...item, status: '邀请中', updated: nowText() } : item));
-      messageApi.success('邀请状态已更新');
-    },
-  });
+  const handleReinvite = (record, from = 'invitations') => {
+    if (record.inviter === CURRENT_USER && canReinviteSupplier(record)) openAction(from, 'reinvite', record.id);
+  };
 
   const handleDelete = (ids, mine) => {
     const targets = suppliers.filter((record) => ids.includes(record.id));
@@ -904,39 +914,74 @@ function SupplierAdmin() {
     });
   };
 
-  const openInviter = (ids) => { setInviterTargetIds(ids); setInviterOpen(true); };
+  const openInviter = (ids, from = 'invitations', batch = false) => {
+    setInviterTargetIds(batch ? ids : []);
+    openAction(from, 'change-inviter', batch ? undefined : ids[0]);
+  };
+  const editDraft = (record, from) => {
+    if (record.inviter === CURRENT_USER && record.status === '草稿') openAction(from, 'draft', record.id);
+  };
   const handleSupplierAction = (record, key) => {
-    if (key === 'inviter') openInviter([record.id]);
+    if (key === 'inviter') openInviter([record.id], 'suppliers');
+    else if (key === 'reinvite') handleReinvite(record, 'suppliers');
+    else if (key === 'draft') editDraft(record, 'suppliers');
+    else if (key === 'rate') openAction('suppliers', 'rating', record.id);
     else openDetail(record, 'suppliers', key);
   };
-  const handleInviterSubmit = (newInviter) => {
-    const targets = suppliers.filter((record) => inviterTargetIds.includes(record.id));
-    const invalid = targets.filter((record) => !canChangeSupplier(record));
-    if (invalid.length) { messageApi.error('以下供应商当前不满足变更邀请人条件：' + invalid.map((record) => record.name).join('、')); return false; }
-    const same = targets.filter((record) => record.inviter === newInviter);
-    if (same.length) { messageApi.error('新邀请人与以下供应商的原邀请人相同：' + same.map((record) => record.name).join('、')); return false; }
-    setSuppliers((current) => current.map((record) => inviterTargetIds.includes(record.id) ? { ...record, inviter: newInviter, updated: nowText() } : record));
-    setInviterOpen(false);
+  const inviterIds = route.id ? [route.id] : inviterTargetIds;
+  const inviterTargets = suppliers.filter((row) => inviterIds.includes(row.id)).map((row) => ({ ...row,
+    inviterDept: row.inviterDept || people.find((person) => person.name === row.inviter)?.department || (row.inviter === CURRENT_USER ? CURRENT_DEPARTMENT : ''),
+  }));
+  const inviterError = (row, person) => {
+    if (!row) return '供应商记录已不存在';
+    if (route.from === 'invitations' && row.inviter !== CURRENT_USER) return row.name + '：已移出我的邀请';
+    if (!canChangeSupplier(row)) return row.name + '：须为已审批且未拉黑的供应商';
+    if (row.inviterCode ? row.inviterCode === person.userCode : row.inviter === person.name) return row.name + '：新邀请人与原邀请人相同';
+    return '';
+  };
+  const checkInviters = (ids, person) => ids.map((id) => inviterError(latestSuppliers.current.find((row) => row.id === id), person)).filter(Boolean);
+  const handleInviterSubmit = (ids, person) => {
+    const errors = checkInviters(ids, person);
+    if (errors.length) return errors;
+    const updated = nowText();
+    const next = latestSuppliers.current.map((row) => ids.includes(row.id) ? {
+      ...row, inviter: person.name, inviterCode: person.userCode, inviterDept: person.department,
+      inviterPhone: person.phone, inviterFullDept: person.department, inviterDeptPart: '', inviterDeptCode: '', updated,
+      inviterChanges: [...(row.inviterChanges || []), { id: newId(), previous: row.inviter, next: person.name, operator: CURRENT_USER, time: updated, result: '已变更' }],
+    } : row);
+    try { sessionStorage.setItem('supplier:pc-session:v1', JSON.stringify(next)); }
+    catch { return ['本次变更保存失败，请重试']; }
+    latestSuppliers.current = next;
+    setSuppliers(next);
     setSelectedInvitationIds([]);
     setSelectedSupplierIds([]);
-    messageApi.success('邀请人已更新');
-    return true;
+    messageApi.success('已更新 ' + ids.length + ' 家供应商的邀请人');
+    backFromAction();
+    return [];
   };
-
-  const handleExportSuppliers = () => exportCsv(supplierRows, [
-    { title: '供应商名称', dataIndex: 'name' }, { title: '供应商类型', dataIndex: 'type' },
-    { title: '审批状态', dataIndex: 'status' }, { title: '注册方式', dataIndex: 'mode' },
-    { title: '邀请人', dataIndex: 'inviter' }, { title: '邀请时间', dataIndex: 'date' },
-    { title: '更新时间', dataIndex: 'updated' }, { title: '评分', dataIndex: 'score' },
-  ], '供应商查询.csv');
-
-  const handleExportInvitations = () => exportCsv(invitationRows, [
-    { title: '供应商名称', dataIndex: 'name' }, { title: '证件号码', dataIndex: 'code' },
-    { title: '供应商类型', dataIndex: 'type' }, { title: '联系人姓名', dataIndex: 'contact' },
-    { title: '联系人邮箱', dataIndex: 'email' }, { title: '联系人电话', dataIndex: 'phone' },
-    { title: '审批状态', dataIndex: 'status' }, { title: '邀请时间', dataIndex: 'date' },
-    { title: '更新时间', dataIndex: 'updated' },
-  ], '我的邀请.csv');
+  const saveRegistrationDraft = (profile, submit) => {
+    const rows = latestSuppliers.current;
+    const record = route.id && rows.find((row) => row.id === route.id);
+    if (route.id && (!record || record.inviter !== CURRENT_USER || record.status !== '草稿')) {
+      messageApi.error('当前供应商不可继续办理草稿');
+      return;
+    }
+    const name = profile.basic.supplierName?.trim() || '';
+    const code = profile.basic.creditCode?.trim() || '';
+    if (submit && rows.some((row) => row.id !== record?.id && ((profile.type !== supplierTypes[1] && row.name.trim() === name) || (code && row.code === code)))) {
+      messageApi.error('供应商名称或证件号码已存在');
+      return;
+    }
+    const updated = nowText();
+    const next = { id: newId(), inviter: CURRENT_USER, mode: '代注册', date: updated, permissions: [], score: '未评分',
+      ...record, ...profile, name, code, updated,
+      contact: profile.contacts[0]?.name || '', phone: profile.contacts[0]?.phone || profile.basic.mobile || '',
+      email: profile.contacts[0]?.email || profile.basic.email || '', status: submit ? '审批中' : '草稿' };
+    setSuppliers(record ? rows.map((row) => row.id === record.id ? next : row) : [next, ...rows]);
+    if (submit) enqueueApproval('注册', next, profileOf(next));
+    messageApi.success(submit ? '草稿已提交，等待审批' : '草稿已保存');
+    navigate('/admin/' + (route.from || 'suppliers'));
+  };
 
   const saveBankDraft = (supplierId, entries) => {
     try {
@@ -962,32 +1007,39 @@ function SupplierAdmin() {
     messageApi.success('账户已保存，待提交审批');
   };
 
-  const handleBankDelete = (bank) => confirm({
-    title: '删除银行账户',
-    content: '删除后需提交审批才会更新正式资料，确认删除该账户吗？',
-    okText: '删除',
-    cancelText: '取消',
-    okButtonProps: { danger: true },
-    onOk: () => {
-      const latest = suppliers.find((record) => record.id === currentSupplier?.id);
-      if (!latest || !canChangeSupplier(latest)) { messageApi.error('供应商状态已变化，当前不可修改银行信息。'); return; }
-      const existing = originalBanks.find((record) => record.id === bank.id);
-      const next = existing ? currentBankEntries.map((record) => record.id === bank.id ? { ...record, change: '删除' } : record) : currentBankEntries.filter((record) => record.id !== bank.id);
-      saveBankDraft(currentSupplier.id, normalizeBankChanges(originalBanks, next));
-    },
-  });
+  const handleBankDelete = (bank) => {
+    if (currentSupplier?.type === supplierTypes[0] && bank.accountType === '基本账户') {
+      messageApi.warning('企业供应商基本账户不可删除');
+      return;
+    }
+    confirm({
+      title: '删除银行账户',
+      content: <><p>开户银行：{bank.bank}</p><p>账户名称：{bank.name}</p><p>账号尾号：{String(bank.number || '').slice(-4) || '—'}</p><p>确认后列为本次待提交删除。</p></>,
+      okText: '删除',
+      cancelText: '取消',
+      okButtonProps: { danger: true },
+      onOk: () => {
+        const latest = suppliers.find((record) => record.id === currentSupplier?.id);
+        if (!latest || !canChangeSupplier(latest)) { messageApi.error('供应商状态已变化，当前不可修改银行信息。'); return; }
+        const existing = originalBanks.find((record) => record.id === bank.id);
+        const next = existing ? currentBankEntries.map((record) => record.id === bank.id ? { ...record, change: '删除' } : record) : currentBankEntries.filter((record) => record.id !== bank.id);
+        saveBankDraft(currentSupplier.id, normalizeBankChanges(originalBanks, next));
+      },
+    });
+  };
 
-  const handleBankReturn = () => {
+  const leaveBankMaintenance = (action) => {
     if (pendingBankCount > 0) {
       confirm({
         title: '离开银行信息',
         content: '银行信息尚未提交审批，已保存内容将保留，可稍后继续处理。',
         okText: '确认离开',
         cancelText: '继续处理',
-        onOk: backFromDetail,
+        onOk: action,
       });
-    } else backFromDetail();
+    } else action();
   };
+  const handleBankReturn = () => leaveBankMaintenance(backFromDetail);
 
   const enqueueApproval = (type, record, profile, before) => {
     const task = createApprovalTask({
@@ -995,6 +1047,7 @@ function SupplierAdmin() {
       submittedAt: nowText(), profile, before, permissions: record.permissions, affiliation: record.department,
     });
     setApprovalTasks((current) => [task, ...current]);
+    return task.number;
   };
   const handleBankSubmit = () => {
     if (!currentSupplier || !canChangeSupplier(currentSupplier)) { messageApi.error('当前供应商状态不支持银行信息变更，请刷新资料后重试。'); return; }
@@ -1016,9 +1069,9 @@ function SupplierAdmin() {
         try { writeBankDraft(currentSupplier.id, null); }
         catch { messageApi.error('待提交资料清理失败，本次未提交审批。'); return; }
         setBankDrafts((current) => ({ ...current, [currentSupplier.id]: clone(originalBanks) }));
-        setSuppliers((current) => current.map((record) => record.id === currentSupplier.id ? { ...record, status: '变更中', updated: nowText() } : record));
         const before = profileOf(latest);
-        enqueueApproval('银行信息变更', latest, { ...before, banks: activeEntries }, before);
+        const number = enqueueApproval('银行信息变更', latest, { ...before, banks: activeEntries }, before);
+        setSuppliers((current) => current.map((record) => record.id === currentSupplier.id ? { ...record, maintenanceApproval: number, status: '变更中', updated: nowText() } : record));
         messageApi.success('银行信息变更已记录');
       },
     });
@@ -1029,7 +1082,7 @@ function SupplierAdmin() {
     const code = profile.basic.creditCode?.trim() || '';
     const time = nowText();
     const record = { ...profile, ...extra, id: newId(), name, code, mode, status: mode === '代注册' ? '审批中' : '已审批',
-      email: profile.basic.registerEmail || '', contact: profile.contacts[0]?.name || '', phone: profile.contacts[0]?.phone || '',
+      email: profile.contacts[0]?.email || '', contact: profile.contacts[0]?.name || '', phone: profile.contacts[0]?.phone || '',
       date: time, updated: time, inviter: CURRENT_USER, score: '未评分', permissions: extra.permissions || [] };
     setSuppliers((current) => [record, ...current]);
     if (mode === '代注册') enqueueApproval('注册', record, profileOf(record));
@@ -1050,6 +1103,7 @@ function SupplierAdmin() {
       else navigate(key.startsWith('/') ? key : key === 'login' ? '/login' : '/admin/' + key);
     };
     if (workspaceLeave.current) workspaceLeave.current.leave(action);
+    else if (route.page === 'detail' && activeDetailTab === 'banks') leaveBankMaintenance(action);
     else action();
   };
   const editProfile = (record) => {
@@ -1063,18 +1117,25 @@ function SupplierAdmin() {
     if (!latest || latest.inviter !== CURRENT_USER || !canChangeSupplier(latest)) return messageApi.error('供应商状态已变化，当前不可提交变更');
     setSuppliers((current) => current.map((record) => record.id === latest.id ? { ...record, status: '变更中', pendingProfile: profile, updated: nowText() } : record));
     enqueueApproval('资料变更', latest, profile, profileOf(latest));
-    messageApi.success('演示资料变更已进入待审批状态');
-    backFromDetail();
+    messageApi.success('资料变更已提交，等待审批');
+    setActiveDetailTab('approval');
+    navigate('/admin/suppliers/' + encodeURIComponent(latest.id));
   };
   const savePermissions = (permissions) => {
     if (!currentSupplier || !canChangeSupplier(currentSupplier)) return messageApi.error('当前供应商不可变更权限');
-    setSuppliers((current) => current.map((record) => record.id === currentSupplier.id ? { ...record, permissions, updated: nowText() } : record));
-    messageApi.success('演示权限已更新');
+    const latest = latestSuppliers.current.find((row) => row.id === currentSupplier.id);
+    if (!latest || !canChangeSupplier(latest)) return messageApi.error('供应商状态已变化，当前不可变更权限');
+    if (JSON.stringify(latest.permissions || []) === JSON.stringify(permissions)) return messageApi.warning('请先新增、修改或删除权限');
+    const before = { ...profileOf(latest), permissions: latest.permissions || [] };
+    const number = enqueueApproval('权限变更', latest, { ...before, permissions }, before);
+    setSuppliers((current) => current.map((record) => record.id === latest.id ? { ...record, status: '变更中', maintenanceApproval: number, updated: nowText() } : record));
+    messageApi.success('权限变更已提交，等待审批');
+    backFromDetail();
   };
   const isProfileEdit = route.page === 'profile-edit';
   const isDetail = route.page === 'detail';
   const isRegister = route.page === 'register';
-  const parentPage = isProfileEdit ? 'invitations' : isDetail ? detailReturnPage.current : isRegister ? 'suppliers' : route.page;
+  const parentPage = route.from || (isProfileEdit ? 'invitations' : isDetail ? detailReturnPage.current : isRegister ? 'suppliers' : route.page);
   const isApprovalPage = approvalPages.has(parentPage);
   const isApprovalDetail = isApprovalPage && !!route.id;
   const processed = route.page === 'approval-processed';
@@ -1087,9 +1148,12 @@ function SupplierAdmin() {
   };
   const breadcrumbItems = [
     { title: isApprovalPage ? '审批任务管理' : '供应商管理' },
-    { title: isDetail || isRegister || isProfileEdit || isApprovalDetail
-      ? <a href={'#/admin/' + parentPage}>{menuLabels[parentPage]}</a> : menuLabels[parentPage] },
+    { title: isDetail || isRegister || isProfileEdit || isApprovalDetail || route.from || route.page === 'my-ratings' && route.id
+      ? <a href={'#/admin/' + parentPage} onClick={(event) => { event.preventDefault(); navigateFromMenu(parentPage); }}>{menuLabels[parentPage]}</a> : menuLabels[parentPage] },
   ];
+  if (route.from) breadcrumbItems.push({ title: { invite: '邀请注册', reinvite: '重新邀请', draft: '修改草稿',
+    'change-inviter': route.id ? '变更邀请人' : '批量变更邀请人', rating: '评分' }[route.page] });
+  if (route.page === 'my-ratings' && route.id) breadcrumbItems.push({ title: route.ratingReadOnly ? '评分详情' : '填写评分' });
   if (isApprovalDetail) breadcrumbItems.push({ title: route.id });
   if (isProfileEdit) breadcrumbItems.push({ title: '修改全部信息' });
   if (isRegister) breadcrumbItems.push({ title: '代注册' });
@@ -1156,16 +1220,47 @@ function SupplierAdmin() {
                   : <ApprovalTaskList key={route.page} tasks={approvalTasks} processed={processed}
                     view={approvalViews[route.page] || {}} setView={(view) => setApprovalViews((current) => ({ ...current, [route.page]: view }))}
                     onOpen={(number) => navigate('/admin/' + route.page + '/' + encodeURIComponent(number))} />
+                ) : route.page === 'my-ratings' ? (
+                  <MyRatingsWorkspace records={ratings} suppliers={suppliers} currentUser={CURRENT_USER} onSave={(record) => { saveRating(record); navigate('/admin/my-ratings'); }}
+                    leaveRef={workspaceLeave} view={ratingView} onViewChange={setRatingView}
+                    editing={route.id ? { recordId: route.id, readOnly: route.ratingReadOnly } : null}
+                    onOpen={openMyRating} onBack={() => navigate('/admin/my-ratings')} />
+                ) : route.page === 'rating' ? (
+                  <PcRatingEditor key={route.id} supplier={route.id ? currentSupplier : undefined} currentUser={CURRENT_USER} requireEligibleSupplier
+                    onBack={backFromAction} leaveRef={workspaceLeave} onSave={(record) => {
+                      const latest = latestSuppliers.current.find((row) => row.id === route.id);
+                      if (!latest || !canRateSupplier(latest)) { messageApi.error('当前供应商状态不支持评分'); return false; }
+                      saveRating(record);
+                      backFromAction();
+                      return true;
+                    }} />
+                ) : route.page === 'change-inviter' ? (
+                  <InviterChangePage key={route.from + (route.id || '')} targets={inviterTargets} batch={!route.id} leaveRef={workspaceLeave}
+                    onBack={backFromAction} check={checkInviters} onSubmit={handleInviterSubmit} />
+                ) : route.page === 'invite' || route.page === 'reinvite' ? (
+                  route.page === 'invite' || currentSupplier?.id === route.id && currentSupplier.inviter === CURRENT_USER && canReinviteSupplier(currentSupplier)
+                    ? <InvitationEditor key={route.id || 'new'} record={route.id ? currentSupplier : undefined}
+                      leaveRef={workspaceLeave} onBack={backFromAction} onSubmit={handleInviteSubmit} />
+                    : <Card size="small"><EmptyContent description="当前供应商不可重新邀请" /><Button onClick={backFromAction}>返回</Button></Card>
+                ) : route.page === 'draft' ? (
+                  currentSupplier?.id === route.id && currentSupplier.inviter === CURRENT_USER && currentSupplier.status === '草稿'
+                    ? <SupplierRegisterPage key={route.id} profile={profileOf(currentSupplier)} leaveRef={workspaceLeave} onBack={backFromAction}
+                      onSaveDraft={(profile) => saveRegistrationDraft(profile, false)} onSubmit={(profile) => saveRegistrationDraft(profile, true)} />
+                    : <Card size="small"><EmptyContent description="当前供应商草稿不可办理" /><Button onClick={backFromAction}>返回</Button></Card>
                 ) : ratingPages.has(route.page) ? (
                   <RatingPage key={route.page} mode={route.page} records={ratings} suppliers={suppliers} currentUser={CURRENT_USER}
-                    onSave={(row) => setRatings((current) => current.some((item) => item.id === row.id)
-                      ? current.map((item) => item.id === row.id ? row : item) : [row, ...current])} exportRows={exportCsv} />
+                    onSave={saveRating} exportRows={exportCsv} />
                 ) : route.page === 'blacklist' ? (
                   <BlacklistPage suppliers={suppliers} onOpen={(supplier) => openDetail(supplier, 'blacklist', 'blacklist')} />
                 ) : route.page === 'manual-sync' ? <ManualSyncPage />
                 : route.page === 'bank-applications' ? (
-                  <BankApplicationPage currentUser={CURRENT_USER} department={CURRENT_DEPARTMENT} application={bankApplication} leaveRef={workspaceLeave}
-                    onSave={(record) => { setBankApplication(record); if (record) messageApi.success('申请信息已暂存'); }} />
+                  <BankApplicationPage currentUser={CURRENT_USER} department={CURRENT_DEPARTMENT} leaveRef={workspaceLeave}
+                    application={bankApplication} view={route.bankApplicationView} onSave={setBankApplication}
+                    onViewChange={(view, options) => {
+                      const path = '/admin/bank-applications' + (view === 'notice' ? '' : '/' + view);
+                      if (options?.replace) window.location.replace('#' + path);
+                      else navigate(path);
+                    }} />
                 ) : isProfileEdit ? (
                   currentSupplier && currentSupplier.inviter === CURRENT_USER && canChangeSupplier(currentSupplier)
                     ? <SupplierProfileEditor key={currentSupplier.id} leaveRef={workspaceLeave} profile={profileOf(currentSupplier)}
@@ -1174,6 +1269,12 @@ function SupplierAdmin() {
                 ) : route.page === 'detail' ? (currentSupplier ? (
                   <SupplierDetailPage
                     supplier={currentSupplier}
+                    ratings={ratings}
+                    maintenanceTask={approvalTasks.find((task) => task.number === currentSupplier.maintenanceApproval)}
+                    onOpenMaintenance={() => {
+                      const task = approvalTasks.find((item) => item.number === currentSupplier.maintenanceApproval);
+                      if (task) navigate('/admin/approval-' + (task.status === '待审批' ? 'pending' : 'processed') + '/' + encodeURIComponent(task.number));
+                    }}
                     activeTab={activeDetailTab}
                     setActiveTab={setActiveDetailTab}
                     bankEntries={currentBankEntries}
@@ -1196,10 +1297,13 @@ function SupplierAdmin() {
                     setSelectedIds={setSelectedInvitationIds}
                     onOpenDetail={openDetail}
                     onChangeInviter={openInviter}
+                    onEditDraft={(record) => editDraft(record, 'invitations')}
+                    pagination={listPagination.invitations} onPagination={(page) => setPagination('invitations', page)}
                     onReinvite={handleReinvite}
                     onModifyProfile={editProfile}
+                    onOpenBanks={(record) => openDetail(record, 'invitations', 'banks')}
                     onDelete={handleDelete}
-                    onExport={handleExportInvitations}
+                    onExport={() => setExportSource('invitations')}
                   />
                 ) : (
                   <>
@@ -1212,23 +1316,21 @@ function SupplierAdmin() {
                         rows={supplierRows}
                         selectedIds={selectedSupplierIds}
                         setSelectedIds={setSelectedSupplierIds}
-                        onInvite={() => setInviteOpen(true)}
+                        onInvite={() => openAction('suppliers', 'invite')}
+                        pagination={listPagination.suppliers} onPagination={(page) => setPagination('suppliers', page)}
+                        canEditRecord={(record) => record.inviter === CURRENT_USER}
                         onQuickCreate={() => setQuickOpen(true)}
                         onRegister={() => {
                           scrollPositions.current.suppliers = mainScrollRef.current?.scrollTop || 0;
                           navigate('/admin/register');
                         }}
                         onDelete={handleDelete}
-                        onExport={handleExportSuppliers}
+                        onExport={() => setExportSource('suppliers')}
                         onOpenDetail={openDetail}
                         onDetailAction={handleSupplierAction}
                       />
                     </div>
-                    {isRegister && <SupplierRegisterPage key={route.type} initialType={route.type} onBack={() => navigate('/admin/suppliers')} onSubmit={(profile) => {
-                      createSupplier(profile, '代注册');
-                      resetSupplierFilters();
-                      navigate('/admin/suppliers');
-                    }} />}
+                    {isRegister && <SupplierRegisterPage key={route.type} initialType={route.type} onSaveDraft={(profile) => saveRegistrationDraft(profile, false)} leaveRef={workspaceLeave} onBack={() => navigate('/admin/suppliers')} onSubmit={(profile) => saveRegistrationDraft(profile, true)} />}
                   </>
                 )}
               </div>
@@ -1237,8 +1339,9 @@ function SupplierAdmin() {
         </div>
       </div>
       {quickOpen && <QuickSupplierModal onCancel={() => setQuickOpen(false)} onSave={saveQuickSupplier} />}
-      <InvitationModal open={inviteOpen} onCancel={() => setInviteOpen(false)} onSubmit={handleInviteSubmit} />
-      <InviterModal open={inviterOpen} ids={inviterTargetIds} suppliers={suppliers} onCancel={() => setInviterOpen(false)} onSubmit={handleInviterSubmit} />
+      {exportSource && <SupplierExportModal open mine={exportSource === 'invitations'}
+        initial={exportSource === 'invitations' ? appliedInvitationFilters : appliedSupplierFilters}
+        suppliers={exportSource === 'invitations' ? invitationScope : supplierScope} onClose={() => setExportSource(null)} />}
       <BankModal open={!!bankModal} supplier={currentSupplier} bank={bankModal?.bank} onCancel={() => setBankModal(null)} onSave={handleBankSave} />
       <HelpModal open={helpOpen} onClose={() => setHelpOpen(false)} />
     </>

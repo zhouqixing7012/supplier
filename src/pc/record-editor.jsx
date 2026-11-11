@@ -49,14 +49,21 @@ function CollectionModal({ bank, qualification, company, entry, onCancel, onSave
   const { message } = App.useApp();
   const fields = bank ? bankFields.filter(([key]) => key !== 'accountType' || company).map((field) => {
     const [key, label, required] = field;
-    if (key === 'bank') return [key, label, required, [...new Set(branches.map((item) => item.bank))]];
+    if (key === 'bank') return [key, label, required, bankDirectory.map((item) => item.name)];
     return field;
   }) : qualification ? qualificationFields : contactFields;
   const location = new Set(['branch', 'country', 'province', 'city']);
   const branchOptions = branches.filter((item) => item.bank === bankName);
+  const savedBranch = branches.find((item) => item.bank === entry?.bank && item.name === entry?.branch);
+  const initialValues = entry && bank ? {
+    ...entry,
+    country: entry.country || savedBranch?.country || bankDirectory.find((item) => item.name === entry.bank)?.country,
+    province: entry.province || savedBranch?.province,
+    city: entry.city || savedBranch?.city,
+  } : entry || (bank ? blankBank('') : {});
   return <PcModal open title={(entry ? '编辑' : '添加') + (bank ? '银行' : qualification ? '资质' : '联系人')} width={720}
     onCancel={onCancel} onOk={() => form.submit()} okText="保存" cancelText="取消">
-    <Form form={form} initialValues={entry || (bank ? blankBank('') : {})} layout="horizontal" className="pc-register-form" onValuesChange={(changed) => {
+    <Form form={form} initialValues={initialValues} layout="horizontal" className="pc-register-form" onValuesChange={(changed) => {
       if (bank && Object.hasOwn(changed, 'bank')) form.setFieldsValue({ branch: '', country: bankDirectory.find((item) => item.name === changed.bank)?.country || '', province: '', city: '' });
     }} onFinish={(value) => {
       const error = bank && bankError(value, company);
@@ -137,6 +144,7 @@ export function SupplierProfileEditor({ profile, initialStep = 0, onCancel, onSu
     if (!personal && draft.contacts.some((contact) => !contact.name?.trim() || !contact.phone?.trim() || !contact.email?.trim())) {
       setStep(1); return message.error('请补齐联系人姓名、电话及邮箱');
     }
+    if (!draft.banks.length) { setStep(2); return message.error('请至少添加一条有效银行账户'); }
     const error = draft.banks.map((bank) => bankError(bank, profile.type === supplierTypes[0])).find(Boolean);
     if (error) { setStep(2); return message.error(error); }
     if (profile.type === supplierTypes[0] && draft.banks.filter((bank) => bank.accountType === '基本账户').length !== 1) {

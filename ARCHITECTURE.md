@@ -27,7 +27,11 @@
 - `src/pages/bank-application.js`：管理平台两端共用的银行申请须知、字段定义及必填提示。
 - `src/erp/FixedActionBar.jsx`：根据所属正文容器的滚动和尺寸变化维护固定操作区的边界状态。
 - `src/pc/workspace-links.js`：PC 管理平台与门户工作区共用的账户菜单「其他功能」入口。
-- `src/pages/supplier-register.jsx`：代注册 React 主页面；四类供应商通过配置数组定义字段顺序，统一由 Ant Design 组件渲染。
+- `src/pages/supplier-register.jsx`：代注册与草稿续办，复用移动端四类供应商字段定义。
+- `src/pc/invitation-workspace.jsx`：PC 邀请、重新邀请和邀请人变更办理页，复用人员目录演示数据。
+- `src/pc/rating-workspace.jsx`：我的评分列表与评分编辑、详情，复用移动端合作类型和评分维度。
+- `src/pc/bank-application.jsx`：PC 银行申请须知、填写与回查页面；复用管理平台两端共用的申请字段。
+- `src/pc/supplier-export.jsx`：PC 供应商查询及我的邀请导出条件与确认，复用移动端供应商文件导出。
 - `src/pages/supplier-register.css`：代注册页面布局、步骤条、上传区和响应式规则；不使用整体缩放或截图比例画布。
 - `src/styles.css`：协同门户视觉、Tailwind 主题变量和登录页响应式样式。
 - `src/components/ui/*`：登录模块继续使用的本地 shadcn/ui 组件源码。

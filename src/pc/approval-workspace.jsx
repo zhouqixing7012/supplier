@@ -70,8 +70,20 @@ export function ApprovalTaskList({ tasks, processed, onOpen, view, setView }) {
   </div>;
 }
 
-function Changes({ before, after }) {
+export function Changes({ before, after }) {
   const groups = informationChangeGroups(before, after);
+  if (before.permissions && after.permissions) {
+    const old = new Map(before.permissions.map((row) => [row.id, row]));
+    const next = new Map(after.permissions.map((row) => [row.id, row]));
+    for (const id of new Set([...old.keys(), ...next.keys()])) {
+      const previous = old.get(id);
+      const current = next.get(id);
+      const fields = [['group', '所属权限'], ['category', '权限分类'], ['note', '备注']].map(([key, label]) => ({
+        key, label, previous: previous?.[key] || '', next: current?.[key] || '',
+      })).filter((field) => field.previous !== field.next).map((field) => ({ ...field, changed: true, value: field.next || field.previous }));
+      if (fields.length) groups.push({ key: 'permission:' + id, title: '分配权限', action: !previous ? '新增' : !current ? '删除' : '变更', fields });
+    }
+  }
   return <Card size="small" title="变更对比">
     {groups.length ? <PcTable rowKey="key" pagination={false} scroll={{ x: 'max-content' }}
       columns={columns([['section', '资料', 180], ['action', '变更类型', 94], ['label', '字段', 140], ['previous', '修改前', 215], ['next', '修改后', 215]])}

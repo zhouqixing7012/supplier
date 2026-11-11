@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
+import React, { useImperativeHandle, useState } from 'react';
 import { App, Button, Card, DatePicker, Form, Input, Select, Space, Steps, Typography, Upload } from 'antd-pc';
 import { RecordCollectionEditor, RecordFields, SupplierSnapshot } from '../pc/record-editor.jsx';
-import { bankError } from './mobile-forms.jsx';
+import { bankError, fieldsFor } from './mobile-forms.jsx';
+import dayjs from 'dayjs';
+import { registrationEmailError, validEmail } from './mobile-edit-rules.js';
 import { supplierTypes } from './mobile-data.js';
 import { Plus } from 'lucide-react';
 import './supplier-register.css';
@@ -28,141 +30,29 @@ const PERSONAL_STEPS = [
   { title: '预览提交' },
 ];
 
-const COMMON = {
-  registerEmail: {
-    key: 'registerEmail',
-    label: '供应商注册邮箱',
-    required: true,
-    type: 'email',
-    placeholder: '请输入供应商注册邮箱',
-    tooltip: REGISTER_EMAIL_TIP,
-  },
-  countryDomestic: {
-    key: 'country',
-    label: '国家',
-    required: true,
-    type: 'select',
-    placeholder: '请选择国家',
-    defaultValue: 'domestic',
-    options: [
-      { value: 'domestic', label: '国内' },
-      { value: 'foreign', label: '国外' },
-    ],
-  },
-  address: {
-    key: 'address',
-    label: '注册地址',
-    required: true,
-    type: 'address',
-  },
+const registerEmail = {
+  key: 'registerEmail', label: '供应商注册邮箱', required: true, type: 'email',
+  placeholder: '请输入供应商注册邮箱', tooltip: REGISTER_EMAIL_TIP,
 };
-
-const PAGE_CONFIG = {
-  company: {
-    label: '企业供应商',
-    steps: FOUR_STEPS,
-    upload: {
-      label: '营业执照',
-      required: true,
-    },
-    fields: [
-      { key: 'supplierName', label: '供应商名称', required: true, placeholder: '请输入供应商名称' },
-      COMMON.registerEmail,
-      { key: 'creditCode', label: '统一社会信用代码', required: true, placeholder: '请输入统一社会信用代码' },
-      { key: 'establishedAt', label: '成立日期', required: true, type: 'date' },
-      { key: 'licenseUntil', label: '证件有效期至', required: true, type: 'date' },
-      { key: 'legalRepresentative', label: '法人代表', required: true, placeholder: '请输入法人代表' },
-      { key: 'companyPhone', label: '公司电话', placeholder: '请输入公司电话' },
-      {
-        key: 'companyType', label: '企业类型', required: true, type: 'select', placeholder: '请选择企业类型',
-        options: [{ value: 'limited', label: '有限责任公司' }, { value: 'joint', label: '股份有限公司' }],
-      },
-      {
-        key: 'industry', label: '所属行业', required: true, type: 'select', placeholder: '请选择所属行业',
-        options: [{ value: 'it', label: '信息技术服务业' }, { value: 'media', label: '文化传媒业' }],
-      },
-      { key: 'capital', label: '注册资金', required: true, placeholder: '请输入注册资金' },
-      {
-        key: 'currency', label: '注册币种', required: true, type: 'select', placeholder: '请选择注册币种',
-        options: [{ value: 'cny', label: '人民币' }, { value: 'usd', label: '美元' }, { value: 'eur', label: '欧元' }],
-      },
-      COMMON.countryDomestic,
-      COMMON.address,
-      { key: 'invoiceAddress', label: '接收发票地址', placeholder: '请输入接收发票地址' },
-      { key: 'website', label: '公司网址', placeholder: '请输入公司网址' },
-      {
-        key: 'taxpayer', label: '纳税人资格', type: 'select', placeholder: '请选择纳税人资格',
-        options: [{ value: 'general', label: '一般纳税人' }, { value: 'small', label: '小规模纳税人' }],
-      },
-      { key: 'businessScope', label: '经营范围', required: true, type: 'textarea', placeholder: '请输入经营范围', maxLength: 4000, full: true },
-    ],
-  },
-  personal: {
-    label: '个人供应商',
-    steps: PERSONAL_STEPS,
-    fields: [
-      {
-        key: 'certificateType', label: '证件类型', required: true, type: 'select', placeholder: '请选择证件类型', full: true,
-        options: [{ value: 'id', label: '身份证' }, { value: 'passport', label: '护照' }],
-      },
-      { key: 'name', label: '姓名', required: true, placeholder: '请输入姓名' },
-      COMMON.registerEmail,
-      {
-        key: 'gender', label: '性别', required: true, type: 'select', placeholder: '请选择性别',
-        options: [{ value: 'male', label: '男' }, { value: 'female', label: '女' }],
-      },
-      { key: 'certificateNumber', label: '证件号码', required: true, placeholder: '请输入证件号码' },
-      { key: 'certificateStart', label: '证件有效起始日期', required: true, type: 'date' },
-      { key: 'certificateEnd', label: '证件有效截止日期', required: true, type: 'date' },
-      COMMON.countryDomestic,
-      COMMON.address,
-      { key: 'email', label: '邮箱', required: true, type: 'email', placeholder: '请输入邮箱' },
-      { key: 'mobile', label: '手机', required: true, placeholder: '请输入手机' },
-      { key: 'qq', label: 'QQ', placeholder: '请输入QQ' },
-      { key: 'wechat', label: '微信', placeholder: '请输入微信' },
-      { key: 'cooperation', label: '与搜狐合作事项', required: true, type: 'textarea', placeholder: '请输入与搜狐合作事项', maxLength: 500, full: true },
-      { key: 'remark', label: '备注', type: 'textarea', placeholder: '请输入备注', maxLength: 500, full: true },
-    ],
-  },
-  government: {
-    label: '政府机构或社团',
-    steps: FOUR_STEPS,
-    fields: [
-      { key: 'supplierName', label: '供应商名称', required: true, placeholder: '请输入供应商名称' },
-      COMMON.registerEmail,
-      COMMON.countryDomestic,
-      COMMON.address,
-      { key: 'cooperation', label: '与搜狐合作事项', required: true, type: 'textarea', placeholder: '请输入与搜狐合作事项', maxLength: 500, full: true },
-      { key: 'remark', label: '备注', type: 'textarea', placeholder: '请输入备注', maxLength: 500, full: true },
-    ],
-  },
-  foreign: {
-    label: '国外供应商',
-    steps: FOUR_STEPS,
-    upload: { label: '证书', required: true },
-    fields: [
-      { key: 'supplierName', label: '供应商名称', required: true, placeholder: '请输入供应商名称' },
-      COMMON.registerEmail,
-      { key: 'certificateNumber', label: '证件号码', required: true, placeholder: '请输入证件号码' },
-      { key: 'establishedAt', label: '成立日期', required: true, type: 'date' },
-      { key: 'licenseUntil', label: '证件有效期至', required: true, type: 'date' },
-      { key: 'legalRepresentative', label: '法人代表', required: true, placeholder: '请输入法人代表' },
-      { key: 'companyPhone', label: '公司电话', placeholder: '请输入公司电话' },
-      { key: 'capital', label: '注册资金', required: true, placeholder: '请输入注册资金' },
-      {
-        key: 'currency', label: '注册币种', required: true, type: 'select', placeholder: '请选择注册币种',
-        options: [{ value: 'usd', label: '美元' }, { value: 'eur', label: '欧元' }, { value: 'cny', label: '人民币' }],
-      },
-      {
-        key: 'country', label: '国家', required: true, type: 'select', placeholder: '请选择国家', defaultValue: 'foreign',
-        options: [{ value: 'foreign', label: '国外' }, { value: 'domestic', label: '国内' }],
-      },
-      { key: 'address', label: '注册地址', required: true, placeholder: '请输入注册地址' },
-      { key: 'cooperation', label: '与搜狐合作事项', required: true, type: 'textarea', placeholder: '请输入与搜狐合作事项', maxLength: 500, full: true },
-      { key: 'remark', label: '备注', type: 'textarea', placeholder: '请输入备注', maxLength: 500, full: true },
-    ],
-  },
-};
+const PAGE_CONFIG = Object.fromEntries(TYPE_OPTIONS.map(({ value, label }, index) => {
+  const fields = fieldsFor(supplierTypes[index]).flatMap(([name, fieldLabel, required, kind]) => {
+    const aliases = value === 'personal'
+      ? { supplierName: 'name', creditCode: 'certificateNumber', establishedAt: 'certificateStart', licenseUntil: 'certificateEnd' }
+      : value === 'foreign' ? { creditCode: 'certificateNumber' } : {};
+    const type = Array.isArray(kind) ? 'select' : kind;
+    const field = {
+      key: aliases[name] || name, label: fieldLabel, required, type,
+      placeholder: (type === 'select' ? '请选择' : '请输入') + fieldLabel,
+      options: Array.isArray(kind) ? kind.map((option) => ({ value: option, label: option })) : undefined,
+      full: kind === 'textarea' || name === 'certificateType',
+      maxLength: kind === 'textarea' ? 500 : undefined,
+    };
+    return name === 'supplierName' ? [field, registerEmail] : [field];
+  });
+  const proofLabel = { company: '营业执照', foreign: '证书' }[value];
+  return [value, { label, steps: value === 'personal' ? PERSONAL_STEPS : FOUR_STEPS,
+    upload: proofLabel && { label: proofLabel, required: true }, fields }];
+}));
 
 function fieldRules(field) {
   const rules = [];
@@ -172,7 +62,12 @@ function fieldRules(field) {
       : Promise.reject(new Error(`请输入${field.label}`)) }];
   }
   if (field.required) rules.push({ required: true, message: `请${field.type === 'select' || field.type === 'date' ? '选择' : '输入'}${field.label}` });
-  if (field.type === 'email') rules.push({ type: 'email', message: '请输入正确的邮箱格式' });
+  if (field.type === 'email') rules.push({ validator: (_, value) => {
+    const error = field.key === 'registerEmail' ? registrationEmailError(value) : value && !validEmail(value) ? '请输入正确的邮箱格式' : '';
+    return error ? Promise.reject(new Error(error)) : Promise.resolve();
+  } });
+  if (field.key === 'capital') rules.push({ pattern: /^\d+$/, message: '注册资金只支持整数' });
+  if (field.key === 'companyPhone') rules.push({ pattern: /^(1\d{10}|\d{3,4}-?\d{8})$/, message: '公司电话须为11位手机号或区号加8位号码' });
   return rules;
 }
 
@@ -180,7 +75,10 @@ function FieldControl({ field, value, onChange, ...controlProps }) {
   const props = { ...controlProps, value, onChange };
 
   if (field.type === 'select') {
-    return <Select {...props} placeholder={field.placeholder} options={field.options || []} />;
+    const options = field.options || [];
+    const hasLegacyValue = value && !options.some((option) => option.value === value);
+    return <Select {...props} showSearch={{ optionFilterProp: 'label' }} placeholder={field.placeholder}
+      options={hasLegacyValue ? [...options, { value, label: value }] : options} />;
   }
 
   if (field.type === 'date') {
@@ -234,25 +132,55 @@ export function registerTypeFromHash(path) {
   return Object.hasOwn(PAGE_CONFIG, type) ? type : 'company';
 }
 
-export function SupplierRegisterPage({ initialType = 'company', onBack, onSubmit }) {
-  const [type, setType] = useState(initialType);
+function registrationValues(type, basic) {
+  const legacyOptions = { domestic: '国内', foreign: '国外', limited: '有限责任公司', joint: '股份有限公司',
+    cny: '人民币', usd: '美元', eur: '欧元', id: '身份证', passport: '护照', male: '男', female: '女',
+    general: '一般纳税人', small: '小规模纳税人', it: '信息技术服务业', media: '文化传媒业' };
+  const aliases = { name: 'supplierName', certificateNumber: 'creditCode', certificateStart: 'establishedAt', certificateEnd: 'licenseUntil' };
+  return Object.fromEntries(PAGE_CONFIG[type].fields.flatMap((field) => {
+    const value = basic[field.key] ?? basic[aliases[field.key]];
+    if (value == null || value === '') return [];
+    if (field.type === 'date') {
+      const date = dayjs(value);
+      return date.isValid() ? [[field.key, date]] : [];
+    }
+    if (field.type === 'address') return [[field.key, basic.addressParts || (typeof value === 'string' ? { detail: value } : value)]];
+    return [[field.key, field.type === 'select' ? legacyOptions[value] || value : value]];
+  }));
+}
+
+export function SupplierRegisterPage({ initialType = 'company', profile, onBack, onSubmit, onSaveDraft, leaveRef }) {
+  const [type, setType] = useState(() => TYPE_OPTIONS[supplierTypes.indexOf(profile?.type)]?.value || initialType);
   const [step, setStep] = useState(0);
-  const [basic, setBasic] = useState({});
-  const [file, setFile] = useState([]);
-  const [contacts, setContacts] = useState([]);
-  const [banks, setBanks] = useState([]);
-  const [qualifications, setQualifications] = useState([]);
+  const [basic, setBasic] = useState(() => registrationValues(type, profile?.basic || {}));
+  const [file, setFile] = useState(() => profile?.basic.proof ? [{ uid: 'saved-proof', name: profile.basic.proof }] : []);
+  const [contacts, setContacts] = useState(() => profile?.contacts || []);
+  const [banks, setBanks] = useState(() => profile?.banks || []);
+  const [qualifications, setQualifications] = useState(() => profile?.basic.qualifications || []);
   const [basicEdited, setBasicEdited] = useState(false);
   const { message, modal } = App.useApp();
+  const leave = (action) => {
+    if (!basicEdited) return action();
+    modal.confirm({ centered: true, className: 'pc-confirm', title: '放弃未保存的资料？',
+      okText: '确认离开', cancelText: '继续填写', onOk: action });
+  };
+  useImperativeHandle(leaveRef, () => ({ leave }));
+  const track = (setter) => (value) => {
+    setter(value);
+    setBasicEdited(true);
+  };
   const config = PAGE_CONFIG[type];
   const title = config.steps[step].title;
   const supplierType = supplierTypes[TYPE_OPTIONS.findIndex((option) => option.value === type)];
   const preview = Object.fromEntries(config.fields.map((field) => {
     const value = basic[field.key];
     const label = field.options?.find((item) => item.value === value)?.label;
-    return [field.key, label || (value?.format ? value.format('YYYY-MM-DD') : value?.detail || value)];
+    return [field.key, label || (value?.format ? value.format('YYYY-MM-DD') : value?.detail || (typeof value === 'string' ? value.trim() : value))];
   }));
   const next = () => {
+    if (title === '联系人信息' && contacts.some((contact) => !contact.name?.trim() || !contact.phone?.trim() || !validEmail(contact.email))) {
+      return message.error('请补齐联系人姓名、电话及邮箱');
+    }
     if (title === '银行信息') {
       if (!banks.length) return message.error('请至少添加一条有效银行账户');
       const error = banks.map((bank) => bankError(bank, type === 'company')).find(Boolean);
@@ -263,7 +191,23 @@ export function SupplierRegisterPage({ initialType = 'company', onBack, onSubmit
     }
     setStep(step + 1);
   };
-  const back = () => step > 0 ? setStep(step - 1) : onBack();
+  const back = () => step > 0 ? setStep(step - 1) : leave(onBack);
+  const registration = () => ({
+    type: supplierType,
+    basic: {
+      ...profile?.basic,
+      ...preview,
+      supplierName: preview.supplierName || preview.name,
+      creditCode: preview.creditCode || preview.certificateNumber,
+      establishedAt: preview.establishedAt || preview.certificateStart,
+      licenseUntil: preview.licenseUntil || preview.certificateEnd,
+      addressParts: typeof basic.address === 'object' ? basic.address : undefined,
+      proof: file[0]?.name,
+      qualifications,
+    },
+    contacts,
+    banks,
+  });
   const changeType = (value) => {
     const apply = () => {
       setType(value);
@@ -291,7 +235,7 @@ export function SupplierRegisterPage({ initialType = 'company', onBack, onSubmit
         <Steps current={step} items={config.steps} responsive size="small" />
       </Card>
       {step === 0 && <Card size="small" title="基本信息">
-        <Form key={type} id="pc-supplier-registration" className="pc-register-form" layout="horizontal" labelAlign="right" initialValues={basic} onValuesChange={() => setBasicEdited(true)}
+        <Form key={type} id="pc-supplier-registration" className="pc-register-form" layout="horizontal" labelAlign="right" initialValues={basic} onValuesChange={(_, values) => { setBasic(values); setBasicEdited(true); }}
           onFinish={(value) => {
             if (config.upload?.required && !file.length) return message.error('请上传' + config.upload.label);
             setBasic(value);
@@ -299,9 +243,9 @@ export function SupplierRegisterPage({ initialType = 'company', onBack, onSubmit
           }}>
           <div className="pc-register-grid">
             <Form.Item label="供应商类型" required htmlFor="pc-register-supplier-type">
-              <Select id="pc-register-supplier-type" value={type} options={TYPE_OPTIONS} onChange={changeType} />
+              <Select id="pc-register-supplier-type" value={type} options={TYPE_OPTIONS} disabled={Boolean(profile)} onChange={changeType} />
             </Form.Item>
-            {config.upload && <UploadField upload={config.upload} file={file} setFile={setFile} />}
+            {config.upload && <UploadField upload={config.upload} file={file} setFile={track(setFile)} />}
             {config.fields.map((field) => (
               <Form.Item
                 key={field.key}
@@ -318,27 +262,19 @@ export function SupplierRegisterPage({ initialType = 'company', onBack, onSubmit
           </div>
         </Form>
       </Card>}
-      {step === 0 && <RecordCollectionEditor qualification type={supplierType} records={qualifications} onChange={setQualifications} />}
-      {title === '联系人信息' && <RecordCollectionEditor type={supplierType} records={contacts} onChange={setContacts} />}
-      {title === '银行信息' && <RecordCollectionEditor bank type={supplierType} records={banks} onChange={setBanks} />}
+      {step === 0 && <RecordCollectionEditor qualification type={supplierType} records={qualifications} onChange={track(setQualifications)} />}
+      {title === '联系人信息' && <RecordCollectionEditor type={supplierType} records={contacts} onChange={track(setContacts)} />}
+      {title === '银行信息' && <RecordCollectionEditor bank type={supplierType} records={banks} onChange={track(setBanks)} />}
       {title === '预览提交' && <>
         <Card size="small" title="基本信息"><RecordFields fields={[['type', '供应商类型'], ...config.fields.map(({ key, label }) => [key, label])]} value={{ ...preview, type: config.label }} /></Card>
         <SupplierSnapshot profile={{ type: supplierType, basic: { ...preview, qualifications }, contacts, banks }} section="collections" />
       </>}
       <div className="pc-register-actions">
         <Button onClick={back}>{step === 0 ? '返回' : '上一步'}</Button>
-        {step === 0 ? <Button type="primary" htmlType="submit" form="pc-supplier-registration">下一步</Button> : title === '预览提交' ? <Button type="primary" onClick={() => onSubmit({
-          type: supplierType, basic: {
-            ...preview,
-            supplierName: preview.supplierName || preview.name,
-            creditCode: preview.creditCode || preview.certificateNumber,
-            establishedAt: preview.establishedAt || preview.certificateStart,
-            licenseUntil: preview.licenseUntil || preview.certificateEnd,
-            proof: file[0]?.name,
-            qualifications,
-          },
-          contacts, banks,
-        })}>提交</Button> : <Button type="primary" onClick={next}>下一步</Button>}
+        {onSaveDraft && <Button onClick={() => onSaveDraft(registration())}>保存草稿</Button>}
+        {step === 0 ? <Button type="primary" htmlType="submit" form="pc-supplier-registration">下一步</Button> : title === '预览提交'
+          ? <Button type="primary" onClick={() => onSubmit(registration())}>提交</Button>
+          : <Button type="primary" onClick={next}>下一步</Button>}
       </div>
     </div>
   );
