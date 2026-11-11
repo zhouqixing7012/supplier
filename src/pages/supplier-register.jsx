@@ -281,7 +281,7 @@ export function SupplierRegisterPage({ initialType = 'company', onBack, onSubmit
         <Steps current={step} items={config.steps} responsive size="small" />
       </Card>
       {step === 0 && <Card size="small" title="基本信息">
-        <Form key={type} className="pc-register-form" layout="horizontal" labelAlign="right" initialValues={basic}
+        <Form key={type} id="pc-supplier-registration" className="pc-register-form" layout="horizontal" labelAlign="right" initialValues={basic}
           onFinish={(value) => {
             if (config.upload?.required && !file.length) return message.error('请上传' + config.upload.label);
             setBasic(value);
@@ -303,10 +303,6 @@ export function SupplierRegisterPage({ initialType = 'company', onBack, onSubmit
               </Form.Item>
             ))}
           </div>
-          <div className="pc-register-actions">
-            <Button onClick={onBack}>返回</Button>
-            <Button type="primary" htmlType="submit">下一步</Button>
-          </div>
         </Form>
       </Card>}
       {step === 0 && <RecordCollectionEditor qualification type={supplierType} records={qualifications} onChange={setQualifications} />}
@@ -316,9 +312,9 @@ export function SupplierRegisterPage({ initialType = 'company', onBack, onSubmit
         <Card size="small" title="基本信息"><RecordFields fields={config.fields.map(({ key, label }) => [key, label])} value={preview} /></Card>
         <SupplierSnapshot profile={{ type: supplierType, basic: { ...preview, qualifications }, contacts, banks }} section="collections" />
       </>}
-      {step > 0 && <div className="pc-register-actions">
-        <Button onClick={back}>上一步</Button>
-        {title === '预览提交' ? <Button type="primary" onClick={() => onSubmit({
+      <div className="pc-register-actions">
+        <Button onClick={back}>{step === 0 ? '返回' : '上一步'}</Button>
+        {step === 0 ? <Button type="primary" htmlType="submit" form="pc-supplier-registration">下一步</Button> : title === '预览提交' ? <Button type="primary" onClick={() => onSubmit({
           type: supplierType, basic: {
             ...preview,
             supplierName: preview.supplierName || preview.name,
@@ -330,7 +326,7 @@ export function SupplierRegisterPage({ initialType = 'company', onBack, onSubmit
           },
           contacts, banks,
         })}>提交</Button> : <Button type="primary" onClick={next}>下一步</Button>}
-      </div>}
+      </div>
     </div>
   );
 }

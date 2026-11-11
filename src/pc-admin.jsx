@@ -727,7 +727,7 @@ function SupplierAdmin() {
   const [ratings, setRatings] = useState(() => initialRatings.map((row) => ({
     ...row, contract: row.status === '未评分', created: row.date + ' 18:52:32',
   })));
-  const [bankApplications, setBankApplications] = useState([]);
+  const [bankApplication, setBankApplication] = useState(null);
   const [supplierFilters, setSupplierFilters] = useState({ ...EMPTY_SUPPLIER_FILTERS });
   const [appliedSupplierFilters, setAppliedSupplierFilters] = useState({ ...EMPTY_SUPPLIER_FILTERS });
   const [invitationFilters, setInvitationFilters] = useState({ ...EMPTY_INVITATION_FILTERS });
@@ -738,7 +738,7 @@ function SupplierAdmin() {
   const [bankDrafts, setBankDrafts] = useState(() => Object.fromEntries(suppliers.map((supplier) => [supplier.id, readBankDraftSafe(supplier.id) || clone(supplier.banks || [])])));
   const [inviteOpen, setInviteOpen] = useState(false);
   const [quickOpen, setQuickOpen] = useState(false);
-  const profileLeave = useRef(null);
+  const workspaceLeave = useRef(null);
   const [inviterOpen, setInviterOpen] = useState(false);
   const [inviterTargetIds, setInviterTargetIds] = useState([]);
   const [bankModal, setBankModal] = useState(null);
@@ -1044,7 +1044,7 @@ function SupplierAdmin() {
       if (key === 'quick-create') setQuickOpen(true);
       else navigate(key === 'login' ? '/login' : '/admin/' + key);
     };
-    if (profileLeave.current) profileLeave.current.leave(action);
+    if (workspaceLeave.current) workspaceLeave.current.leave(action);
     else action();
   };
   const editProfile = (record) => {
@@ -1163,11 +1163,11 @@ function SupplierAdmin() {
                   <BlacklistPage suppliers={suppliers} onOpen={(supplier) => openDetail(supplier, 'blacklist', 'blacklist')} />
                 ) : route.page === 'manual-sync' ? <ManualSyncPage />
                 : route.page === 'bank-applications' ? (
-                  <BankApplicationPage currentUser={CURRENT_USER} department={CURRENT_DEPARTMENT} records={bankApplications}
-                    onSave={(record) => { setBankApplications((current) => [record, ...current]); messageApi.success('申请信息已暂存'); }} />
+                  <BankApplicationPage currentUser={CURRENT_USER} department={CURRENT_DEPARTMENT} application={bankApplication} leaveRef={workspaceLeave}
+                    onSave={(record) => { setBankApplication(record); if (record) messageApi.success('申请信息已暂存'); }} />
                 ) : isProfileEdit ? (
                   currentSupplier && currentSupplier.inviter === CURRENT_USER && canChangeSupplier(currentSupplier)
-                    ? <SupplierProfileEditor key={currentSupplier.id} leaveRef={profileLeave} profile={profileOf(currentSupplier)}
+                    ? <SupplierProfileEditor key={currentSupplier.id} leaveRef={workspaceLeave} profile={profileOf(currentSupplier)}
                       onCancel={backFromDetail} onSubmit={submitProfile} />
                     : <Card size="small"><EmptyContent description="当前供应商资料不可修改" /><Button onClick={backFromDetail}>返回</Button></Card>
                 ) : route.page === 'detail' ? (currentSupplier ? (

@@ -1,3 +1,4 @@
+import { bankApplicationNotice } from './bank-application.js';
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Check, ChevronDown, ClipboardList, Edit3, Filter, List, MoreHorizontal, Pencil, Plus, X } from 'lucide-react';
 import { QualificationInfo } from './mobile-qualifications.jsx';
@@ -109,7 +110,7 @@ export function PermissionCard({ data, onEdit, onDelete }) {
 }
 
 export function BankApplication({ onApply }) {
-  return <div className="m-bank-application"><h2>申请须知</h2><p>若邀请注册供应商反馈添加银行信息时，未查询到目标开户银行或分行，可通过本功能补充未收录银行。</p><button onClick={onApply}>确认申请</button></div>;
+  return <div className="m-bank-application"><h2>申请须知</h2><p>{bankApplicationNotice}</p><button onClick={onApply}>确认申请</button></div>;
 }
 
 

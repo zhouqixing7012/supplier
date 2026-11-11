@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useEffect, useImperativeHandle, useState } from 'react';
 import { Alert, App, Button, Card, DatePicker, Form, Input, Rate, Select, Space, Tabs, Upload } from 'antd-pc';
 import { Download, Plus } from 'lucide-react';
 import QueryBar, { QueryItem } from '../erp/QueryBar.jsx';
 import { DetailGrid, DetailItem } from '../erp/DetailGrid.jsx';
 import { PcModal, PcTable, StatusTag } from '../erp/components.jsx';
 import { dimensionsFor, ratingTypes } from '../pages/mobile-workflows.jsx';
+import { bankApplicationFields, bankApplicationNotice, bankApplicationRequired } from '../pages/bank-application.js';
 
 const today = () => new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Shanghai' });
 const columns = (fields) => fields.map(([dataIndex, title, width]) => ({ dataIndex, title, width }));
@@ -115,51 +116,83 @@ export function RatingPage({ mode, records, suppliers, currentUser, onSave, expo
   </div>;
 }
 
-const bankFields = [['bank', '银行名称'], ['code', '银行编码'], ['branch', '开户行（分行）名称'], ['province', '开户行省'], ['city', '开户行市']];
+function ApplicationAttachment({ file }) {
+  const [url, setUrl] = useState('');
+  useEffect(() => {
+    if (!file) return undefined;
+    const source = URL.createObjectURL(file);
+    setUrl(source);
+    return () => URL.revokeObjectURL(source);
+  }, [file]);
+  return file ? <a href={url || undefined} download={file.name}>{file.name}</a> : '—';
+}
 
-export function BankApplicationPage({ currentUser, department, records, onSave }) {
-  const [view, setView] = useState(null);
+export function BankApplicationPage({ currentUser, department, application, onSave, leaveRef }) {
+  const [view, setView] = useState('notice');
   const [form] = Form.useForm();
   const [date, setDate] = useState(today);
-  const editing = view === 'new';
-  const record = records.find((item) => item.id === view);
+  const { modal } = App.useApp();
+  const editing = view === 'form';
+  const leave = (afterLeave) => {
+    if (!editing || !Object.values(form.getFieldsValue()).some((value) => Array.isArray(value) ? value.length : value)) {
+      return afterLeave();
+    }
+    modal.confirm({
+      centered: true, className: 'pc-confirm', title: '放弃本次申请？', content: '本次填写的信息尚未提交。',
+      okText: '放弃修改', cancelText: '继续编辑', onOk: afterLeave,
+    });
+  };
+  useImperativeHandle(leaveRef, () => ({ leave }));
+
+  if (view === 'notice') return <Card size="small" title="申请须知">
+    <p>{bankApplicationNotice}</p>
+    <Space wrap>
+      <Button type="primary" onClick={() => {
+        onSave(null);
+        setDate(today());
+        setView('form');
+      }}>确认申请</Button>
+      {application && <Button onClick={() => setView('summary')}>查看本次申请</Button>}
+    </Space>
+  </Card>;
+
+  const back = () => setView('notice');
   return <div className="pc-page-stack pc-register">
-    {view ? <>
-      <Card size="small" title="申请信息" extra={<Button onClick={() => setView(null)}>返回</Button>}>
-        <DetailGrid className="pc-detail-grid">
-          <DetailItem label="申请人员">{currentUser}</DetailItem>
-          <DetailItem label="人员部门">{department}</DetailItem>
-          <DetailItem label="申请日期">{record?.date || date}</DetailItem>
-        </DetailGrid>
-      </Card>
-      <Card size="small" title="银行信息">
-        {editing ? <Form form={form} layout="horizontal" className="pc-register-form" onFinish={({ attachment, ...values }) => {
-          const id = crypto.randomUUID();
-          onSave({ ...values, date, id, attachment: attachment?.map((file) => file.name).join('、') });
-          setView(id);
-        }}>
-          <div className="pc-register-grid">
-            {bankFields.map(([key, label]) => <Form.Item key={key} name={key} label={label} rules={[{ required: true, whitespace: true }]}>
-              <Input maxLength={100} placeholder={key === 'code' ? 'Swift码或金融机构代码' : undefined} />
-            </Form.Item>)}
-            <Form.Item name="country" label="国家/地区" rules={[{ required: true }]}><Select options={options(['中国'])} /></Form.Item>
-            <Form.Item name="explanation" label="申请说明" className="pc-register-wide" rules={[{ required: true, whitespace: true }]}><Input.TextArea maxLength={200} rows={3} showCount /></Form.Item>
-            <Form.Item name="attachment" label="附件" valuePropName="fileList" getValueFromEvent={(event) => event.fileList}>
-              <Upload multiple beforeUpload={() => false}><Button>选择附件</Button></Upload>
-            </Form.Item>
-          </div>
-          <div className="pc-workflow-actions"><Space><Button onClick={() => setView(null)}>取消</Button><Button type="primary" htmlType="submit">提交</Button></Space></div>
-        </Form> : <DetailGrid className="pc-detail-grid" columns={2} labelWidth={144}>
-          {[...bankFields, ['country', '国家/地区'], ['explanation', '申请说明'], ['attachment', '附件']].map(([key, label]) =>
-            <DetailItem key={key} label={label}>{record?.[key] || '—'}</DetailItem>)}
-        </DetailGrid>}
-      </Card>
-    </> : <Card size="small" extra={<Button type="primary" icon={<Plus size={14} />} onClick={() => { form.resetFields(); setDate(today()); setView('new'); }}>新增申请</Button>}>
-      <PcTable rowKey="id" dataSource={records} scroll={{ x: 'max-content' }} columns={[
-        { title: '银行名称', dataIndex: 'bank', width: 180, render: (name, row) => <Button type="link" size="small" onClick={() => setView(row.id)}>{name}</Button> },
-        ...columns([['branch', '开户行（分行）名称', 220], ['code', '银行编码', 140], ['date', '申请日期', 130]]),
-      ]} />
-    </Card>}
+    <Card size="small" title="申请信息">
+      <DetailGrid className="pc-detail-grid">
+        <DetailItem label="申请人员">{currentUser}</DetailItem>
+        <DetailItem label="人员部门">{department}</DetailItem>
+        <DetailItem label="申请日期">{editing ? date : application.date}</DetailItem>
+      </DetailGrid>
+    </Card>
+    <Card size="small" title="银行信息">
+      {editing ? <Form form={form} clearOnDestroy layout="horizontal" className="pc-register-form" onFinish={({ attachment, ...values }) => {
+        onSave({ ...values, date, attachment: attachment?.[0]?.originFileObj });
+        setView('summary');
+      }}>
+        <div className="pc-register-grid">
+          {bankApplicationFields.map((field) => <Form.Item key={field.key} name={field.key} label={field.label}
+            className={field.multiline ? 'pc-register-wide' : undefined}
+            rules={[{ required: true, whitespace: true, message: bankApplicationRequired(field) }]}>
+            {field.options ? <Select options={options(field.options)} />
+              : field.multiline ? <Input.TextArea maxLength={field.maxLength} rows={3} showCount />
+              : <Input maxLength={field.maxLength} placeholder={field.placeholder} />}
+          </Form.Item>)}
+          <Form.Item name="attachment" label="附件" valuePropName="fileList" getValueFromEvent={(event) => event.fileList}>
+            <Upload maxCount={1} beforeUpload={() => false}><Button>选择附件</Button></Upload>
+          </Form.Item>
+        </div>
+      </Form> : <DetailGrid className="pc-detail-grid" columns={2} labelWidth={144}>
+        {bankApplicationFields.map(({ key, label, multiline }) => <DetailItem key={key} label={label} span={multiline ? 2 : 1}>
+          {application[key] || '—'}
+        </DetailItem>)}
+        <DetailItem label="附件"><ApplicationAttachment file={application.attachment} /></DetailItem>
+      </DetailGrid>}
+    </Card>
+    <div className="pc-register-actions">
+      <Button onClick={() => leave(back)}>{editing ? '取消' : '返回'}</Button>
+      {editing && <Button type="primary" onClick={() => form.submit()}>提交</Button>}
+    </div>
   </div>;
 }
 

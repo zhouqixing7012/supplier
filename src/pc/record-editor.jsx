@@ -149,13 +149,16 @@ export function SupplierProfileEditor({ profile, initialStep = 0, onCancel, onSu
     <Card size="small"><Steps current={steps.indexOf(step)} size="small" items={steps.map((id) => ({ title: ['基本信息', '联系人信息', '银行信息', '预览提交'][id] }))} /></Card>
     {step === 0 && <Card size="small" title="基本信息"><Form form={form} className="pc-register-form" initialValues={draft.basic} onFinish={(basic) => { setDraft((current) => ({ ...current, basic: { ...current.basic, ...basic } })); next(); }}>
       <div className="pc-register-grid"><FormFields fields={profileFields(profile.type)} /></div>
-      <div className="pc-workflow-actions"><Space><Button onClick={() => leave(onCancel)}>取消</Button><Button type="primary" htmlType="submit">下一步</Button></Space></div>
     </Form></Card>}
     {step === 0 && <RecordCollectionEditor qualification type={profile.type} records={draft.basic.qualifications || []}
       onChange={(qualifications) => setDraft((current) => ({ ...current, basic: { ...current.basic, qualifications } }))} />}
     {step === 1 && <RecordCollectionEditor key="contacts" type={profile.type} records={draft.contacts} onChange={(value) => changeCollection('contacts', value)} />}
     {step === 2 && <RecordCollectionEditor key="banks" bank type={profile.type} records={draft.banks} onChange={(value) => changeCollection('banks', value)} />}
     {step === 3 && <SupplierSnapshot profile={draft} />}
-    {step !== 0 && <div className="pc-workflow-actions"><Space><Button onClick={() => leave(onCancel)}>取消</Button><Button onClick={previous}>上一步</Button><Button type="primary" onClick={step === 3 ? submit : next}>{step === 3 ? '提交变更' : '下一步'}</Button></Space></div>}
+    <div className="pc-workflow-actions"><Space>
+      <Button onClick={() => leave(onCancel)}>取消</Button>
+      {step > 0 && <Button onClick={previous}>上一步</Button>}
+      <Button type="primary" onClick={step === 0 ? () => form.submit() : step === 3 ? submit : next}>{step === 3 ? '提交变更' : '下一步'}</Button>
+    </Space></div>
   </div>;
 }

@@ -2,7 +2,7 @@
 
 ## 文件职责
 
-- `src/entry.jsx`：前端总入口，根据 Hash 判断加载协同门户模块或代注册模块；跨模块切换时通过 Hash 触发模块重载。
+- `src/entry.jsx`：前端总入口，根据 Hash 加载移动端、PC 管理平台、PC 门户认证或 PC 门户工作区；跨模块切换时通过 Hash 触发模块重载。
 - `src/mobile-entry.jsx`：移动端独立入口，避免电脑端 CSS 污染移动端样式。
 - `src/pages/mobile-supplier.jsx`：移动端页面状态、会话演示数据、暂存与提交路径。
 - `src/pages/mobile-data.js`：截图样本、演示参考目录和 47 张截图的独立路由映射。
@@ -23,7 +23,8 @@
 - `tests/mobile.interaction.mjs`：当前移动工作流的生产构建服务、手势/返回/填写流程及布局验证，不调用业务接口。
 - `tests/mobile.smoke.mjs`：2026-10-15版本的历史验证脚本，保留用于追溯；其旧界面定位不作为新版验收依据。
 - `src/main.jsx`：协同门户登录、邮箱验证、60 天改密、主动修改密码页面。
-- `src/register-entry.jsx`：代注册模块入口，读取四类供应商注册 Hash 路由并维护当前供应商类型，同时加载 Ant Design reset 样式。
+- `src/portal-entry.jsx`：PC 门户 ERP 工作区入口，读取原型会话账号，管理工作区路由与退出。`src/pc/portal-session.js` 保存会话内的演示账号。
+- `src/pages/bank-application.js`：管理平台两端共用的银行申请须知、字段定义及必填提示。
 - `src/components/app-navigation.jsx`：协同门户和四类代注册页面共用的顶部系统导航。
 - `src/components/app-navigation.css`：共享导航样式；桌面横向展示，窄屏保留单行并允许横向滚动。
 - `src/pages/supplier-register.jsx`：代注册 React 主页面；四类供应商通过配置数组定义字段顺序，统一由 Ant Design 组件渲染。
@@ -40,18 +41,18 @@
 
 移动端：`index.html` → `src/entry.jsx` → `src/mobile-entry.jsx` → `MobileSupplier` → 移动端字段、表单、视图及演示数据。
 
-总入口通过独立的加载函数分别动态导入三个模块，确保 Vite 预加载各自的 CSS。不得把三条入口导入合并为同一动态条件表达式。
+总入口通过独立的加载函数分别动态导入各模块，确保 Vite 预加载各自的 CSS。不得把各入口导入合并为同一动态条件表达式。
 
-协同门户：`index.html` → `src/entry.jsx` → `src/main.jsx` → `AppNavigation + src/components/ui/*`
+PC 门户认证：`src/entry.jsx` → `src/main.jsx` → `AppNavigation + src/components/ui/*`。邮箱验证后切换到 `src/portal-entry.jsx` → `PortalWorkspace`。
 
-代注册：`index.html` → `src/entry.jsx` → `src/register-entry.jsx` → `AppNavigation + src/pages/supplier-register.jsx` → Ant Design
+代注册：`src/entry.jsx` → `src/pc-entry.jsx` → `src/pc-admin.jsx` → `src/pages/supplier-register.jsx`。
 
 ## 导航规则
 
 - `#/mobile` 和其下的页面、截图目录及单张状态属于移动端模块；逐张映射见 `docs/mobile-screenshot-coverage.md`。
 - 移动端与电脑端之间切换会重载；移动端内部通过 Hash 更新并保留本次会话的演示记录。
 
-- `#/login`、`#/email`、`#/upgrade`、`#/forgot` 属于协同门户模块。
+- `#/login`、`#/email`、`#/upgrade`、`#/forgot` 属于 PC 门户认证模块，`#/portal/*` 属于 PC 门户工作区。
 - `#/register/company`、`#/register/personal`、`#/register/government`、`#/register/foreign` 属于代注册模块。
 - 共享顶部菜单可直接在协同门户与四类代注册页面之间切换。
 - 代注册模块内部切换类型时不重载页面；协同门户与代注册跨模块切换时由 `src/entry.jsx` 重新加载对应入口，避免 Ant Design reset 与登录模块样式相互污染。

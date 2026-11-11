@@ -2,7 +2,8 @@ const getMode = () => {
   const hash = window.location.hash;
   if (hash.startsWith('#/mobile')) return 'mobile';
   if (hash.startsWith('#/admin') || hash.startsWith('#/register/')) return 'admin';
-  return 'portal';
+  if (hash === '#/portal' || hash.startsWith('#/portal/')) return 'portal';
+  return 'auth';
 };
 const initialMode = getMode();
 
@@ -16,7 +17,8 @@ window.addEventListener('hashchange', () => {
 const loaders = {
   mobile: () => import('./mobile-entry.jsx'),
   admin: () => import('./pc-entry.jsx'),
-  portal: () => import('./main.jsx'),
+  auth: () => import('./main.jsx'),
+  portal: () => import('./portal-entry.jsx'),
 };
 
 loaders[initialMode]();
