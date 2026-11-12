@@ -63,15 +63,18 @@ export function InviterChangePage({ targets, batch, onBack, check, onSubmit, lea
           onChange: (ids) => setRemoved(targets.filter((row) => !ids.includes(row.id)).map((row) => row.id)) }} />
         : <DetailGrid labelWidth={120}><DetailItem label="供应商名称">{targets[0].name}</DetailItem><DetailItem label="供应商类型">{targets[0].type}</DetailItem>
           <DetailItem label="原邀请人">{targets[0].inviter || '—'}</DetailItem><DetailItem label="原邀请人部门">{targets[0].inviterDept || '—'}</DetailItem></DetailGrid>}
-    </Card>
-    <Card size="small" title="邀请人变更">
-      <Form layout="vertical">
-        <Form.Item label="新邀请人" required>
-          <Space wrap><Button onClick={() => setPicking(true)}>{person ? '重新选择' : '选择人员'}</Button>
-            {person && <span>{[person.name, person.userCode, person.department].filter(Boolean).join(' · ')}</span>}
-          </Space>
-        </Form.Item>
-      </Form>
+      <div className="pc-inviter-selection">
+        <DetailGrid columns={1} labelWidth={120}>
+          <DetailItem label="新邀请人">
+            <Space wrap>
+              {person && <span>{[person.name, person.userCode, person.department].filter(Boolean).join(' · ')}</span>}
+              <Button aria-label={person ? '重新选择新邀请人' : '选择新邀请人'} onClick={() => setPicking(true)}>
+                {person ? '重新选择' : '选择人员'}
+              </Button>
+            </Space>
+          </DetailItem>
+        </DetailGrid>
+      </div>
       {results.length > 0 && <Alert type="error" showIcon message={<ul>{results.map((error) => <li key={error}>{error}</li>)}</ul>} />}
     </Card>
     <div className="pc-register-actions"><Button onClick={() => leave(onBack)}>返回</Button><Button type="primary" onClick={submit}>提交</Button></div>

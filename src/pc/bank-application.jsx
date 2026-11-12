@@ -1,6 +1,7 @@
 import React, { useEffect, useImperativeHandle, useRef, useState } from 'react';
 import { Alert, App, Button, Card, Form, Input, Select, Space } from 'antd-pc';
 import { DetailGrid, DetailItem } from '../erp/DetailGrid.jsx';
+import { PcModal } from '../erp/components.jsx';
 import ApplicationAttachment from './AttachmentField.jsx';
 import { bankApplicationFields, bankApplicationNotice, bankApplicationRequired } from '../pages/bank-application.js';
 
@@ -11,6 +12,7 @@ export function BankApplicationPage({ currentUser, department, application, onSa
   const [date, setDate] = useState(today);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [noticeOpen, setNoticeOpen] = useState(view === 'notice');
   const saving = useRef(false);
   const { modal } = App.useApp();
   const editing = view === 'form';
@@ -47,18 +49,23 @@ export function BankApplicationPage({ currentUser, department, application, onSa
     }
   };
 
-  if (view === 'notice' || (view === 'result' && !application)) return <Card size="small" title="申请须知">
-    <p>{bankApplicationNotice}</p>
-    <Space wrap>
-      <Button type="primary" onClick={() => {
-        onSave(null);
+  if (view === 'notice' || (view === 'result' && !application)) return <>
+    <div className="pc-bank-application-actions">
+      <Space wrap>
+        {application && <Button onClick={() => onViewChange('result')}>查看本次申请</Button>}
+        <Button type="primary" onClick={() => setNoticeOpen(true)}>发起申请</Button>
+      </Space>
+    </div>
+    <PcModal open={noticeOpen} title="申请须知" width={480} okText="确认申请" cancelText="取消"
+      onCancel={() => setNoticeOpen(false)} onOk={() => {
+        setNoticeOpen(false);
         setDate(today());
         setError('');
         onViewChange('form');
-      }}>确认申请</Button>
-      {application && <Button onClick={() => onViewChange('result')}>查看本次申请</Button>}
-    </Space>
-  </Card>;
+      }}>
+      <p>{bankApplicationNotice}</p>
+    </PcModal>
+  </>;
 
   const back = () => onViewChange('notice', { replace: editing });
   return <div className="pc-page-stack pc-register">

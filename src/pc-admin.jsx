@@ -122,7 +122,7 @@ function readRoute() {
   if (path === '/admin/register' || path.startsWith('/register/')) {
     return { page: 'register', type: registerTypeFromHash(path) };
   }
-  const action = path.match(/^\/admin\/(suppliers|invitations)\/(invite|reinvite|change-inviter|draft|rating)(?:\/([^/?]+))?$/);
+  const action = path.match(/^\/admin\/(suppliers|invitations)\/(invite|reinvite|change-inviter|draft|rating|banks|permissions)(?:\/([^/?]+))?$/);
   if (action) return { page: action[2], from: action[1], id: action[3] && decodeURIComponent(action[3]) };
   const myRating = path.match(/^\/admin\/my-ratings\/(edit|detail)\/([^/?]+)$/);
   if (myRating) return { page: 'my-ratings', id: decodeURIComponent(myRating[2]), ratingReadOnly: myRating[1] === 'detail' };
@@ -132,6 +132,8 @@ function readRoute() {
   if (approval) return { page: approval[1], id: approval[2] && decodeURIComponent(approval[2]) };
   const page = path.split('/')[2];
   if (['blacklist', 'manual-sync', 'bank-applications'].includes(page) || ratingPages.has(page)) return { page };
+  const detailMaintenance = path.match(/^\/admin\/suppliers\/([^/?]+)\/(banks|permissions)$/);
+  if (detailMaintenance) return { page: detailMaintenance[2], id: decodeURIComponent(detailMaintenance[1]), fromDetail: true };
   const detailRating = path.match(/^\/admin\/suppliers\/([^/?]+)\/rating$/);
   if (detailRating) return { page: 'rating', id: decodeURIComponent(detailRating[1]), fromDetail: true };
   const edit = path.match(/^\/admin\/suppliers\/([^/?]+)\/edit$/);
@@ -431,9 +433,9 @@ function ContactsTab({ supplier }) {
   ]} scroll={{ x: 'max-content' }} />;
 }
 
-function BankInfoTab({ supplier, entries, onAdd, onEdit, onDelete, onReturn, onSubmit, pendingCount, pendingApproval }) {
+function BankInformation({ supplier, entries, onAdd, onEdit, onDelete, onOpen, pendingCount = 0, pendingApproval }) {
   const original = supplier.banks || [];
-  const canEdit = canChangeSupplier(supplier);
+  const canEdit = !!onAdd && canChangeSupplier(supplier);
   const counts = bankChangeCounts(original, entries);
   const comparison = entries.flatMap((entry) => {
     const { action, fields } = bankChange(original, entry);
@@ -450,7 +452,7 @@ function BankInfoTab({ supplier, entries, onAdd, onEdit, onDelete, onReturn, onS
     { title: '币种', dataIndex: 'currency', width: 90 },
     { title: '开户证明', dataIndex: 'proof', width: 170, render: (value) => <BankProof value={value} /> },
     { title: '备注', dataIndex: 'note', width: 180 },
-    {
+    ...(canEdit ? [{
       title: '变更状态', key: 'change', width: 130, align: 'center',
       render: (_, record) => {
         const action = bankChange(original, record).action;
@@ -465,7 +467,7 @@ function BankInfoTab({ supplier, entries, onAdd, onEdit, onDelete, onReturn, onS
         if (!canEdit || action === '删除') return '-';
         return <Space size={8}><Button type="link" danger size="small" onClick={() => onDelete(record)}>删除</Button><Button type="link" size="small" onClick={() => onEdit(record)}>修改</Button></Space>;
       },
-    },
+    }] : []),
   ];
 
   return (
@@ -477,6 +479,7 @@ function BankInfoTab({ supplier, entries, onAdd, onEdit, onDelete, onReturn, onS
           {pendingApproval && <span className="pc-muted">银行信息变更已提交审批</span>}
         </div>
         {canEdit && <Button type="primary" icon={<Plus size={15} />} onClick={onAdd}>添加银行</Button>}
+        {onOpen && canChangeSupplier(supplier) && <Button onClick={onOpen}>修改银行</Button>}
       </div>
       {comparison.length > 0 && <PcTable rowKey="key" pagination={false} scroll={{ x: 'max-content' }}
         dataSource={comparison} columns={[
@@ -495,18 +498,22 @@ function BankInfoTab({ supplier, entries, onAdd, onEdit, onDelete, onReturn, onS
           scroll={{ x: 'max-content' }}
         />
       ) : <EmptyContent description="暂无银行信息" />}
-      {pendingCount > 0 && <FixedActionBar className="pc-bank-footer"><Button onClick={onReturn}>返回</Button><Button type="primary" onClick={onSubmit}>提交审批</Button></FixedActionBar>}
     </div>
   );
 }
 
-function PermissionsTab({ supplier, onSave }) {
+function PermissionsInformation({ supplier, onSave, onOpen, onReturn, leaveRef }) {
   const { modal } = App.useApp();
   const original = supplier.permissions || [];
   const [records, setRecords] = useState(original);
   const [editor, setEditor] = useState(null);
-  const editable = canChangeSupplier(supplier);
+  const editable = !!onSave && canChangeSupplier(supplier);
   const changed = records !== original && JSON.stringify(records) !== JSON.stringify(original);
+  const leave = (action) => changed ? modal.confirm({
+    centered: true, className: 'pc-confirm', title: '放弃本次权限变更？',
+    okText: '确认离开', cancelText: '继续处理', onOk: action,
+  }) : action();
+  React.useImperativeHandle(leaveRef, () => ({ leave }));
   const columns = [
     { title: '所属权限', dataIndex: 'group', width: 220 },
     { title: '权限分类', dataIndex: 'category', width: 240 },
@@ -522,12 +529,16 @@ function PermissionsTab({ supplier, onSave }) {
     <Button type="link" size="small" onClick={() => setEditor({ row })}>修改</Button>
   </Space> });
   return <div className="pc-page-stack">
-    {editable && <div><Button onClick={() => setEditor({})}>添加权限</Button></div>}
-    <PcTable rowKey="id" dataSource={records} pagination={false} columns={columns} />
-    {editable && changed && <div className="pc-workflow-actions"><Space>
-      <Button onClick={() => setRecords(original)}>取消变更</Button>
-      <Button type="primary" onClick={() => onSave(records.filter((row) => row.change !== '删除').map(({ change, ...row }) => row))}>提交变更</Button>
-    </Space></div>}
+    <div className="pc-bank-summary">
+      <div className="pc-bank-summary-copy"><SectionCardTitle>权限信息</SectionCardTitle></div>
+      {editable && <Button type="primary" icon={<Plus size={15} />} onClick={() => setEditor({})}>添加权限</Button>}
+      {onOpen && canChangeSupplier(supplier) && <Button onClick={onOpen}>分配权限</Button>}
+    </div>
+    <PcTable rowKey="id" dataSource={editable ? records : original} pagination={false} columns={columns} scroll={{ x: 'max-content' }} />
+    {editable && <FixedActionBar>
+      <Button onClick={() => leave(onReturn)}>返回</Button>
+      <Button type="primary" disabled={!changed} onClick={() => onSave(records.filter((row) => row.change !== '删除').map(({ change, ...row }) => row))}>提交变更</Button>
+    </FixedActionBar>}
     {editor && <PermissionModal initial={editor.row} existing={records.filter((row) => row.change !== '删除')} onCancel={() => setEditor(null)} onSave={(row) => {
       const before = original.find((item) => item.id === row.id);
       const change = !before ? '新增' : ['group', 'category', 'note'].some((key) => (before[key] || '') !== (row[key] || '')) ? '修改' : '';
@@ -608,12 +619,12 @@ function CooperationTab({ supplier, ratings }) {
   ]} />;
 }
 
-function SupplierDetailPage({ supplier, ratings, onAddRating, maintenanceTask, onOpenMaintenance, activeTab, setActiveTab, bankEntries, pendingBankCount, onBankAdd, onBankEdit, onBankDelete, onBankReturn, onBankSubmit, onPermissionsSave }) {
+function SupplierDetailPage({ supplier, ratings, onAddRating, maintenanceTask, onOpenMaintenance, activeTab, setActiveTab, onOpenBanks, onOpenPermissions }) {
   const tabs = [
     { key: 'supplier', label: '供应商信息', children: <SupplierInformation supplier={supplier} /> },
     { key: 'contacts', label: '联系人信息', children: <ContactsTab supplier={supplier} /> },
-    { key: 'banks', label: '银行信息', children: <BankInfoTab supplier={supplier} entries={bankEntries} pendingCount={pendingBankCount} pendingApproval={maintenanceTask?.type === '银行信息变更' && maintenanceTask.status === '待审批'} onAdd={onBankAdd} onEdit={onBankEdit} onDelete={onBankDelete} onReturn={onBankReturn} onSubmit={onBankSubmit} /> },
-    { key: 'permissions', label: '分配权限', children: <PermissionsTab key={supplier.id} supplier={supplier} onSave={onPermissionsSave} /> },
+    { key: 'banks', label: '银行信息', children: <BankInformation supplier={supplier} entries={supplier.banks || []} pendingApproval={maintenanceTask?.type === '银行信息变更' && maintenanceTask.status === '待审批'} onOpen={onOpenBanks} /> },
+    { key: 'permissions', label: '权限信息', children: <PermissionsInformation key={supplier.id} supplier={supplier} onOpen={onOpenPermissions} /> },
     { key: 'finance', label: '财务OU', children: <FinanceOUTab supplier={supplier} /> },
     { key: 'blacklist', label: '黑名单操作记录', children: <BlacklistTab supplier={supplier} /> },
     { key: 'approval', label: '审批记录', children: <div className="pc-page-stack">
@@ -781,13 +792,13 @@ function SupplierAdmin() {
   const onScrollbarActivity = useScrollbarActivity();
 
   useEffect(() => {
-    const onHashChange = () => setRoute(readRoute());
+    const onHashChange = () => { setBankModal(null); setRoute(readRoute()); };
     window.addEventListener('hashchange', onHashChange);
     return () => window.removeEventListener('hashchange', onHashChange);
   }, []);
 
   useEffect(() => {
-    const titles = { detail: '供应商详情', register: '代注册', 'profile-edit': '修改全部信息', invite: '邀请注册', reinvite: '重新邀请', 'change-inviter': '变更邀请人', draft: '修改草稿', rating: '供应商评分' };
+    const titles = { banks: '修改银行', permissions: '分配权限', detail: '供应商详情', register: '代注册', 'profile-edit': '修改全部信息', invite: '邀请注册', reinvite: '重新邀请', 'change-inviter': '变更邀请人', draft: '修改草稿', rating: '供应商评分' };
     const pageTitle = titles[route.page] || menuLabels[route.page];
     document.title = pageTitle ? pageTitle + ' - 搜狐供应商管理平台' : '搜狐供应商管理平台';
     if (!mainScrollRef.current) return;
@@ -846,7 +857,7 @@ function SupplierAdmin() {
   };
   const backFromAction = () => {
     if (route.fromDetail && currentSupplier) {
-      setActiveDetailTab('cooperation');
+      setActiveDetailTab({ banks: 'banks', permissions: 'permissions' }[route.page] || 'cooperation');
       navigate('/admin/suppliers/' + encodeURIComponent(currentSupplier.id));
     } else navigate('/admin/' + (route.from || 'suppliers'));
   };
@@ -946,6 +957,7 @@ function SupplierAdmin() {
     else if (key === 'reinvite') handleReinvite(record, 'suppliers');
     else if (key === 'draft') editDraft(record, 'suppliers');
     else if (key === 'rate') openAction('suppliers', 'rating', record.id);
+    else if (key === 'banks' || key === 'permissions') openAction('suppliers', key, record.id);
     else openDetail(record, 'suppliers', key);
   };
   const inviterIds = route.id ? [route.id] : inviterTargetIds;
@@ -1059,7 +1071,7 @@ function SupplierAdmin() {
       });
     } else action();
   };
-  const handleBankReturn = () => leaveBankMaintenance(backFromDetail);
+  const handleBankReturn = () => leaveBankMaintenance(backFromAction);
 
   const enqueueApproval = (type, record, profile, before) => {
     const task = createApprovalTask({
@@ -1093,6 +1105,7 @@ function SupplierAdmin() {
         const number = enqueueApproval('银行信息变更', latest, { ...before, banks: activeEntries }, before);
         setSuppliers((current) => current.map((record) => record.id === currentSupplier.id ? { ...record, maintenanceApproval: number, status: '变更中', updated: nowText() } : record));
         messageApi.success('银行信息变更已记录');
+        backFromAction();
       },
     });
   };
@@ -1123,7 +1136,7 @@ function SupplierAdmin() {
       else navigate(key.startsWith('/') ? key : key === 'login' ? '/login' : '/admin/' + key);
     };
     if (workspaceLeave.current) workspaceLeave.current.leave(action);
-    else if (route.page === 'detail' && activeDetailTab === 'banks') leaveBankMaintenance(action);
+    else if (route.page === 'banks') leaveBankMaintenance(action);
     else action();
   };
   const editProfile = (record) => {
@@ -1150,8 +1163,9 @@ function SupplierAdmin() {
     const number = enqueueApproval('权限变更', latest, { ...before, permissions }, before);
     setSuppliers((current) => current.map((record) => record.id === latest.id ? { ...record, status: '变更中', maintenanceApproval: number, updated: nowText() } : record));
     messageApi.success('权限变更已提交，等待审批');
-    backFromDetail();
+    backFromAction();
   };
+  const maintenanceTitle = { banks: '修改银行', permissions: '分配权限' }[route.page];
   const isProfileEdit = route.page === 'profile-edit';
   const isDetail = route.page === 'detail';
   const isRegister = route.page === 'register';
@@ -1172,14 +1186,17 @@ function SupplierAdmin() {
       ? <a href={'#/admin/' + parentPage} onClick={(event) => { event.preventDefault(); navigateFromMenu(parentPage); }}>{menuLabels[parentPage]}</a> : menuLabels[parentPage] },
   ];
   if (route.from) breadcrumbItems.push({ title: { invite: '邀请注册', reinvite: '重新邀请', draft: '修改草稿',
-    'change-inviter': route.id ? '变更邀请人' : '批量变更邀请人', rating: '评分' }[route.page] });
+    'change-inviter': route.id ? '变更邀请人' : '批量变更邀请人', rating: '评分' }[route.page] || maintenanceTitle });
   if (route.page === 'my-ratings' && route.id) breadcrumbItems.push({ title: route.ratingReadOnly ? '评分详情' : '填写评分' });
   if (isApprovalDetail) breadcrumbItems.push({ title: route.id });
   if (isProfileEdit) breadcrumbItems.push({ title: '修改全部信息' });
   if (isRegister) breadcrumbItems.push({ title: '代注册' });
   if (route.fromDetail) breadcrumbItems.push({ title: <a href={'#/admin/suppliers/' + encodeURIComponent(route.id)}
-    onClick={(event) => { event.preventDefault(); workspaceLeave.current ? workspaceLeave.current.leave(backFromAction) : backFromAction(); }}>
-    {currentSupplier?.name || '供应商详情'}</a> }, { title: '新增评分' });
+    onClick={(event) => { event.preventDefault();
+      if (route.page === 'banks') handleBankReturn();
+      else if (workspaceLeave.current) workspaceLeave.current.leave(backFromAction);
+      else backFromAction(); }}>
+    {currentSupplier?.name || '供应商详情'}</a> }, { title: maintenanceTitle || '新增评分' });
   if (isDetail) breadcrumbItems.push({ title: currentSupplier?.name || '供应商详情' });
 
   const accountMenu = {
@@ -1284,6 +1301,20 @@ function SupplierAdmin() {
                       if (options?.replace) window.location.replace('#' + path);
                       else navigate(path);
                     }} />
+                ) : maintenanceTitle ? (
+                  route.id && currentSupplier && canChangeSupplier(currentSupplier) ? (
+                    <Card size="small" title={currentSupplier.name}>
+                      {route.page === 'banks' ? <>
+                        <BankInformation supplier={currentSupplier} entries={currentBankEntries} pendingCount={pendingBankCount}
+                          onAdd={() => openBankModal(null)} onEdit={openBankModal} onDelete={handleBankDelete} />
+                        <FixedActionBar className="pc-bank-footer">
+                          <Button onClick={handleBankReturn}>返回</Button>
+                          <Button type="primary" disabled={!pendingBankCount} onClick={handleBankSubmit}>提交审批</Button>
+                        </FixedActionBar>
+                      </> : <PermissionsInformation key={currentSupplier.id} supplier={currentSupplier}
+                        onSave={savePermissions} onReturn={backFromAction} leaveRef={workspaceLeave} />}
+                    </Card>
+                  ) : <Card size="small"><EmptyContent description="当前供应商不可办理此操作" /><Button onClick={backFromAction}>返回</Button></Card>
                 ) : isProfileEdit ? (
                   currentSupplier && currentSupplier.inviter === CURRENT_USER && canChangeSupplier(currentSupplier)
                     ? <SupplierProfileEditor key={currentSupplier.id} leaveRef={workspaceLeave} profile={profileOf(currentSupplier)}
@@ -1301,14 +1332,8 @@ function SupplierAdmin() {
                     }}
                     activeTab={activeDetailTab}
                     setActiveTab={setActiveDetailTab}
-                    bankEntries={currentBankEntries}
-                    pendingBankCount={pendingBankCount}
-                    onBankAdd={() => openBankModal(null)}
-                    onBankEdit={(bank) => openBankModal(bank)}
-                    onBankDelete={handleBankDelete}
-                    onBankReturn={handleBankReturn}
-                    onBankSubmit={handleBankSubmit}
-                    onPermissionsSave={savePermissions}
+                    onOpenBanks={() => navigate('/admin/suppliers/' + encodeURIComponent(currentSupplier.id) + '/banks')}
+                    onOpenPermissions={() => navigate('/admin/suppliers/' + encodeURIComponent(currentSupplier.id) + '/permissions')}
                   />
                 ) : <Card size="small"><EmptyContent description="供应商记录不存在或已删除" /></Card>) : route.page === 'invitations' ? (
                   <MyInvitationsPage
@@ -1326,7 +1351,7 @@ function SupplierAdmin() {
                     pagination={listPagination.invitations} onPagination={(page) => setPagination('invitations', page)}
                     onReinvite={handleReinvite}
                     onModifyProfile={editProfile}
-                    onOpenBanks={(record) => openDetail(record, 'invitations', 'banks')}
+                    onOpenBanks={(record) => openAction('invitations', 'banks', record.id)}
                     onDelete={handleDelete}
                     onExport={() => setExportSource('invitations')}
                   />
@@ -1367,7 +1392,7 @@ function SupplierAdmin() {
       {exportSource && <SupplierExportModal open mine={exportSource === 'invitations'}
         initial={exportSource === 'invitations' ? appliedInvitationFilters : appliedSupplierFilters}
         suppliers={exportSource === 'invitations' ? invitationScope : supplierScope} onClose={() => setExportSource(null)} />}
-      <BankModal open={!!bankModal} supplier={currentSupplier} bank={bankModal?.bank} onCancel={() => setBankModal(null)} onSave={handleBankSave} />
+      <BankModal open={route.page === 'banks' && !!bankModal} supplier={currentSupplier} bank={bankModal?.bank} onCancel={() => setBankModal(null)} onSave={handleBankSave} />
       <HelpModal open={helpOpen} onClose={() => setHelpOpen(false)} />
     </>
   );

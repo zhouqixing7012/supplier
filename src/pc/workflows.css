@@ -5,3 +5,14 @@
 .pc-approval-assignment .ant-form-item { margin-bottom: 0; }
 #approval-permissions .ant-alert { margin-bottom: 12px; }
 .pc-person-results { margin-top: 12px; }
+
+.pc-inviter-selection {
+  margin-block: 16px 12px;
+  padding-block-start: 16px;
+  border-block-start: 1px solid var(--pc-border);
+}
+
+.pc-bank-application-actions {
+  display: flex;
+  justify-content: flex-end;
+}
