@@ -1,6 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { Button, DatePicker } from 'antd-pc';
 import dayjs from 'dayjs';
+import 'dayjs/locale/zh-cn';
 import zhCN from 'antd-pc/es/date-picker/locale/zh_CN';
 
 export const LONG_TERM = '长期';
