@@ -613,6 +613,9 @@ PC端全局视觉、基础组件及响应式查询规范统一以资产系统 MM
 
 ### PC公共组件实现
 
+- PC 代注册保留双列排版。表单标签可自然换行，必填标记与帮助图标保留各自宽度，窄容器将标签排到控件上方。注册地址的省市区选择与详细地址各有独立输入边框，窄容器纵向排列。证件有效期日历在同一行提供「设为长期」及「确认」。
+- PC 日期及地区弹层沿用组件定位与过渡，进入 160ms、退出 120ms，跟随系统减少动态效果设置。高频输入、选择和业务状态即时反馈。动效取舍参考 [AI for UI 项目技能](.agents/skills/ai-for-ui-UPSTREAM.md)。
+
 - 基础视觉由 `src/erp/theme.js` 和 `src/erp/presentation.css` 提供。PC 后台使用 Ant Design 6.4.5，应用导航、卡片和表单控件继承同一主题。代注册与后台共享 Ant Design 6 和 ERP 主题。
 - `src/erp/QueryBar.jsx`、`src/erp/DetailGrid.jsx` 移植自 [MMP 公共组件](https://github.com/zhouqixing7012/mmp/tree/a579fa0635d799b14fcdf11ff1eb18174b679445/src/components)。供应商页面传入字段、操作和业务数据，通用布局由组件控制。
 - 表格密度、空态、弹窗与滚动条采用 MMP 公共样式；普通表格在 `PcTable` 统一使用 MMP 的列对齐规则，供应商特有度量通过列元数据声明。供应商状态按业务含义映射到现有 StatusTag 色组。

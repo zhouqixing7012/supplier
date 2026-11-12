@@ -10,12 +10,75 @@
 .pc-register-wide { grid-column: 1 / -1; }
 
 .pc-register-form .ant-form-item { margin-block-end: 16px; }
-.pc-register-form .ant-form-item-label { flex: 0 0 144px; }
+.pc-register-form .ant-form-item-label {
+  flex: 0 0 168px;
+  min-width: 0;
+  overflow: visible;
+  white-space: normal;
+}
+
+.pc-register-form .ant-form-item-label > label {
+  height: auto;
+  min-height: var(--ant-control-height, 32px);
+  line-height: 1.45;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.pc-register-form .ant-form-item-label > label::before,
+.pc-register-form .ant-form-item-label > label::after { flex-shrink: 0; }
+
 .pc-register-form .ant-form-item-control { min-width: 0; }
-.pc-register-form .ant-form-item-label > label { white-space: normal; }
 .pc-register-form .ant-picker { width: 100%; }
+
+.pc-register-address {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+  gap: 8px;
+}
+
+.pc-register-region { width: 100%; min-width: 0; }
+
+.pc-register-region-popup .ant-cascader-menu {
+  min-width: 96px;
+  padding: 4px;
+}
+
+.pc-register-region-popup .ant-cascader-menu-item {
+  min-height: 32px;
+  border-radius: 4px;
+}
+
 .pc-certificate-expiry-long input::placeholder { color: var(--ant-color-text, #1d2126); }
-.pc-register-region { width: 46%; }
+
+.pc-certificate-expiry-popup .ant-picker-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 8px;
+}
+
+.pc-certificate-expiry-popup .ant-picker-footer > .ant-picker-footer-extra:not(:last-child),
+.pc-certificate-expiry-popup .ant-picker-footer > .ant-picker-ranges {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  line-height: normal;
+}
+
+.pc-register-picker-popup:is([class*="-appear-active"], [class*="-enter-active"]) {
+  animation-duration: 160ms;
+  animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.pc-register-picker-popup[class*="-leave-active"] { animation-duration: 120ms; }
+
+@media (prefers-reduced-motion: reduce) {
+  .pc-register-picker-popup:is([class*="-appear-active"], [class*="-enter-active"], [class*="-leave-active"]) {
+    animation-duration: 1ms;
+  }
+}
 
 .pc-register-actions {
   display: flex;
@@ -29,7 +92,11 @@
   .pc-register-grid { grid-template-columns: minmax(0, 1fr); }
 }
 
-@container (max-width: 420px) {
+@container (max-width: 620px) {
+  .pc-register-address { grid-template-columns: minmax(0, 1fr); }
+}
+
+@container (max-width: 480px) {
   .pc-register-form .ant-form-item-row { flex-direction: column; }
   .pc-register-form .ant-form-item-label { flex: none; text-align: start; }
 }

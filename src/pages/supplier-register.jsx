@@ -113,7 +113,7 @@ function FieldControl({ field, value, onChange, ...controlProps }) {
 
   if (field.type === 'date') {
     if (field.expiryStartKey) return <CertificateExpiry {...props} />;
-    return <DatePicker {...props} placeholder={`请选择${field.label}`} />;
+    return <DatePicker {...props} classNames={{ popup: { root: 'pc-register-picker-popup' } }} placeholder={`请选择${field.label}`} />;
   }
 
   if (field.type === 'textarea') {
@@ -123,19 +123,21 @@ function FieldControl({ field, value, onChange, ...controlProps }) {
   if (field.type === 'address') {
     const address = value || {};
     return (
-      <Space.Compact block>
+      <div className="pc-register-address">
         <Cascader
           className="pc-register-region"
+          classNames={{ popup: { root: 'pc-register-picker-popup pc-register-region-popup' } }}
           aria-label="省市区"
           value={address.region?.split('/')}
           placeholder="请选择省 / 市 / 区县"
           options={regionOptions}
+          displayRender={(labels) => labels.filter((label, index) => label !== labels[index - 1]).join(' / ')}
           showSearch
           onChange={(parts) => onChange?.({ ...address, region: parts?.join('/') || undefined })}
         />
-        <Input {...controlProps} value={address.detail || ''} placeholder="请输入街道、门牌号等详细地址" maxLength={50}
+        <Input {...controlProps} aria-label="详细地址" value={address.detail || ''} placeholder="请输入街道、门牌号等详细地址" maxLength={50}
           onChange={(event) => onChange?.({ ...address, detail: event.target.value })} />
-      </Space.Compact>
+      </div>
     );
   }
 
