@@ -7,7 +7,7 @@ const scrollCopies = new WeakMap();
 const running = new Set();
 export const reducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 function play(node, frames, duration, cleanup = () => {}, onFinish = () => {}) {
-  const animation = node.animate(frames, { duration, easing: 'cubic-bezier(.2,.8,.2,1)' });
+  const animation = node.animate(frames, { duration, easing: 'cubic-bezier(.23,1,.32,1)' });
   const stop = () => { animation.onfinish = null; animation.cancel(); cleanup(); running.delete(stop); };
   running.add(stop); animation.onfinish = () => { stop(); onFinish(); };
   return stop;
@@ -109,7 +109,7 @@ export function MotionPresence({ show, children, className = '', compact = false
     if (preference.matches || !node.animate || node.closest('.m-shot')) { finish(); return; }
     const visible = { opacity: 1 }, hidden = { opacity: 0 };
     if (compact) { visible.width = node.scrollWidth + 'px'; hidden.width = '0px'; }
-    const animation = node.animate(show ? [hidden, visible] : [visible, hidden], { duration: compact ? 180 : 150, easing: 'cubic-bezier(.2,.8,.2,1)' });
+    const animation = node.animate(show ? [hidden, visible] : [visible, hidden], { duration: compact ? 180 : 150, easing: 'cubic-bezier(.23,1,.32,1)' });
     animation.onfinish = finish;
     const stop = () => { if (preference.matches) { animation.cancel(); finish(); } };
     preference.addEventListener('change', stop);
@@ -170,8 +170,8 @@ export function runMotion(update, kind = 'fade', after) {
   const width = Math.min(430, innerWidth);
   const backwards = kind === 'back' || kind === 'tab-prev' || kind === 'swipe-prev';
   const tab = kind.startsWith('tab-') || kind.startsWith('swipe-');
-  const distance = kind === 'fade' ? 0 : tab ? 32 : width;
-  const duration = kind === 'fade' ? 150 : kind.startsWith('swipe-') ? 180 : tab ? 200 : 240;
+  const distance = kind === 'fade' ? 0 : tab ? 20 : width;
+  const duration = kind === 'fade' ? 120 : kind.startsWith('swipe-') ? 160 : tab ? 160 : 220;
   // 标题、页签、固定按钮保留真实显示；其余内容的透明度过渡不改变固定定位参照。
   const blocks = localReturn ? [] : [...(nextScope?.querySelectorAll('.m-section,.m-supplier-card,.m-detail-summary,.m-search-row,.m-applied-filters,.m-portal-home-group,.m-portal-home-identity') || [])];
   blocks.filter(n => !n.parentElement.closest('.m-section,.m-supplier-card,.m-detail-summary,.m-portal-home-group')).forEach(node => play(node, [{ opacity: .1 }, { opacity: 1 }], duration));
@@ -225,7 +225,7 @@ export function MotionDetails({ children, className = '' }) {
     const border = parseFloat(style.borderTopWidth) + parseFloat(style.borderBottomWidth);
     const target = (closing ? node.querySelector('summary').getBoundingClientRect().height : node.scrollHeight) + border;
     node.style.overflow = 'hidden';
-    animation.current = node.animate([{ height: height + 'px' }, { height: target + 'px' }], { duration: 180, easing: 'cubic-bezier(.2,.8,.2,1)' });
+    animation.current = node.animate([{ height: height + 'px' }, { height: target + 'px' }], { duration: 180, easing: 'cubic-bezier(.23,1,.32,1)' });
     animation.current.onfinish = () => { node.open = !closing; node.style.overflow = ''; animation.current = null; };
   };
   const [summary, ...body] = React.Children.toArray(children);

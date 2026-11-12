@@ -1,5 +1,5 @@
 /* 动效独立于截图复刻样式；固定控件有独立快照，不跟随内容横移。 */
-:root { --m-motion-ease: cubic-bezier(.2,.8,.2,1); }
+:root { --m-motion-ease: cubic-bezier(.23,1,.32,1); }
 .mobile-page:not(.m-shot) button, .mobile-page:not(.m-shot) .m-checkbox span { transition: background-color 100ms ease, color 100ms ease, border-color 100ms ease; }
 .mobile-page:not(.m-shot) .m-status, .mobile-page:not(.m-shot) .m-star { transition: color 100ms ease, background-color 100ms ease; }
 .mobile-page:not(.m-shot) .m-overlay { animation: m-shade-in 180ms ease-out both; }
@@ -8,10 +8,10 @@
 .mobile-page:not(.m-shot) .m-fullscreen-panel { animation: m-panel-in 240ms var(--m-motion-ease) both; }
 .mobile-page:not(.m-shot) .m-batch-actions { animation: m-bar-in 180ms var(--m-motion-ease) both; }
 .mobile-page:not(.m-shot) .m-checkbox { animation: m-fade-in 150ms ease-out both; }
-.m-toast, .m-field-error, .m-result-banner { animation: m-fade-in 150ms ease-out both; }
+.m-toast, .m-result-banner { animation: m-fade-in 150ms ease-out both; }
 .m-tab-motion .m-tabs { position: relative; }
 .mobile-page:not(.m-shot) .m-tab-motion .m-tabs button.active::after { display: none; }
-.m-tab-indicator { position: absolute; pointer-events: none; height: 3px; bottom: 0; left: 0; width: 24px; background: var(--m-action); border-radius: 3px; transform: translateX(calc(var(--m-indicator-x,0px) + (var(--m-indicator-width,24px) - 24px)/2)); transition: transform 200ms var(--m-motion-ease), width 200ms var(--m-motion-ease); }
+.m-tab-indicator { position: absolute; pointer-events: none; height: 3px; bottom: 0; left: 0; width: 24px; background: var(--m-action); border-radius: 3px; transform: translateX(calc(var(--m-indicator-x,0px) + (var(--m-indicator-width,24px) - 24px)/2)); transition: transform 160ms var(--m-motion-ease), width 160ms var(--m-motion-ease); }
 .mobile-page:not(.m-shot) .m-tab-motion.m-tab-bar-pill .m-tabs button.active::before { background: var(--m-surface); }
 .m-tab-motion.m-tab-bar-pill .m-tabs button { z-index: 1; isolation: auto; }
 .m-tab-motion.m-tab-bar-pill .m-tab-indicator { height: 32px; bottom: 6px; border-radius: 16px; width: var(--m-indicator-width,24px); transform: translateX(var(--m-indicator-x,0px)); z-index: 0; }
@@ -66,3 +66,13 @@
 
 .m-checkbox-presence { display: inline-flex; flex: 0 0 auto; overflow: hidden; vertical-align: middle; }
 .m-checkbox-presence .m-checkbox { animation: none !important; }
+
+/* 触控主操作以短按压反馈确认命中，不移动表单字段和记录链接。 */
+.mobile-page:not(.m-shot) .m-actions button {
+  transition: background-color 100ms ease, color 100ms ease, border-color 100ms ease, transform 100ms ease-out;
+}
+.mobile-page:not(.m-shot) .m-actions button:active:not(:disabled) { transform: scale(.98); }
+@media (prefers-reduced-motion: reduce) {
+  .mobile-page:not(.m-shot) .m-actions button { transition: none; }
+  .mobile-page:not(.m-shot) .m-actions button:active { transform: none; }
+}
