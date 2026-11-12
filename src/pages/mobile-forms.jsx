@@ -6,6 +6,7 @@ import { Actions, AttachmentLink, PickerHeading, SelectionMark, CardActions, Rec
 import { bankNames, bankDirectory, branches, people, permissionGroups, supplierTypes, supplierIndustries } from './mobile-data.js';
 import { createSessionId, useDirtyForm, useBackLayer, attachmentFiles, attachmentName } from './mobile-interaction.jsx';
 
+import { regionData } from './registration-regions.js';
 import { withAccountBank } from './mobile-edit-rules.js';
 
 export const blankBank = name => ({ accountType: '', bank: '', branch: '', country: '', province: '', city: '', name: name || '', number: '', currency: '', proof: '', note: '' });
@@ -140,16 +141,6 @@ export function AddressForm({ initial = '', startRegion = false, onConfirm, onCa
   const [detail, setDetail] = useState(split.slice(1).join(' ') || '');
   const guard = useDirtyForm({ region, detail });
   useEffect(() => { const close = () => guard.leave(onCancel); window.addEventListener('mobile-close-address', close); return () => window.removeEventListener('mobile-close-address', close); });
-  // 前端演示地区样本，用于省、市、区县搜索和长列表滚动；不代表完整行政区划。
-  const regionData = {
-    '北京市': { '北京市': ['朝阳区', '海淀区', '东城区', '西城区', '丰台区', '石景山区', '通州区', '昌平区', '顺义区', '大兴区', '房山区', '门头沟区', '怀柔区', '平谷区', '密云区', '延庆区'] },
-    '天津市': { '天津市': ['和平区', '河东区', '河西区', '南开区', '河北区', '红桥区', '滨海新区', '西青区'] },
-    '河北省': { '石家庄市': ['长安区', '桥西区', '新华区', '裕华区'], '唐山市': ['路南区', '路北区'], '秦皇岛市': ['海港区', '北戴河区'], '邯郸市': ['丛台区'], '邢台市': ['襄都区'], '保定市': ['莲池区'], '张家口市': ['桥东区'], '承德市': ['双桥区'], '沧州市': ['运河区'], '廊坊市': ['广阳区'], '衡水市': ['桃城区'] },
-    '云南省': { '昆明市': ['五华区', '盘龙区', '官渡区'], '曲靖市': ['麒麟区'], '玉溪市': ['红塔区'], '保山市': ['隆阳区', '龙陵县'], '昭通市': ['昭阳区'], '丽江市': ['古城区'], '普洱市': ['思茅区'], '临沧市': ['临翔区'] },
-    '广东省': { '广州市': ['越秀区', '天河区', '海珠区'], '深圳市': ['福田区', '南山区', '罗湖区'], '珠海市': ['香洲区'], '汕头市': ['龙湖区'], '佛山市': ['禅城区'], '韶关市': ['武江区'], '湛江市': ['赤坎区'], '肇庆市': ['端州区'], '江门市': ['蓬江区'], '茂名市': ['茂南区'], '惠州市': ['惠城区'], '梅州市': ['梅江区'], '汕尾市': ['城区'], '河源市': ['源城区'], '阳江市': ['江城区'], '清远市': ['清城区'], '潮州市': ['湘桥区'], '揭阳市': ['榕城区'], '云浮市': ['云城区'] },
-    '江苏省': { '南京市': ['玄武区', '鼓楼区'], '无锡市': ['梁溪区'], '徐州市': ['云龙区'], '常州市': ['天宁区'], '苏州市': ['姑苏区'], '南通市': ['崇川区'], '连云港市': ['海州区'], '淮安市': ['清江浦区'], '盐城市': ['亭湖区'], '扬州市': ['广陵区'], '镇江市': ['京口区'], '泰州市': ['海陵区'], '宿迁市': ['宿城区'] },
-    '浙江省': { '杭州市': ['上城区', '拱墅区', '西湖区'], '宁波市': ['海曙区'], '温州市': ['鹿城区'], '嘉兴市': ['南湖区'], '湖州市': ['吴兴区'], '绍兴市': ['越城区'], '金华市': ['婺城区'], '衢州市': ['柯城区'], '舟山市': ['定海区'], '台州市': ['椒江区'], '丽水市': ['莲都区'] },
-  };
   const initialParts = region.split('/').filter(Boolean);
   const [selected, setSelected] = useState(() => initialParts.length === 2 && regionData[initialParts[0]]?.[initialParts[0]] ? [initialParts[0], initialParts[0], initialParts[1]] : initialParts);
   const [open, setOpen] = useState(startRegion || !region);

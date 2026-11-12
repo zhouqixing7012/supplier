@@ -1,17 +1,42 @@
 import React, { useImperativeHandle, useState } from 'react';
-import { App, Button, Card, DatePicker, Form, Input, Select, Space, Steps, Typography, Upload } from 'antd-pc';
+import { App, Button, Card, Cascader, DatePicker, Form, Input, Select, Space, Steps, Typography, Upload } from 'antd-pc';
 import { RecordCollectionEditor, RecordFields, SupplierSnapshot } from '../pc/record-editor.jsx';
 import CertificateExpiry, { certificateExpiryRules, DATE_FORMAT, LONG_TERM } from '../pc/CertificateExpiry.jsx';
 import { bankError, fieldsFor } from './mobile-forms.jsx';
 import dayjs from 'dayjs';
 import { registrationEmailError, validEmail } from './mobile-edit-rules.js';
 import { supplierTypes } from './mobile-data.js';
+import { regionData } from './registration-regions.js';
 import { Plus } from 'lucide-react';
 import './supplier-register.css';
 
 const REGISTER_EMAIL_TIP = '用于供应商登录协同门户及修改密码时接收验证码';
 const LICENSE_HELP = '上传清晰的pdf、png、jpg、gif、jpc、bmp等格式图片，大小限制50M';
 const LICENSE_SIZE_LIMIT = 50 * 1024 * 1024;
+
+const regionOptions = Object.entries(regionData).map(([province, cities]) => ({
+  value: province,
+  label: province,
+  children: Object.entries(cities).map(([city, districts]) => ({
+    value: city,
+    label: city,
+    children: districts.map((district) => ({ value: district, label: district })),
+  })),
+}));
+
+function readRegistrationAddress(value) {
+  const [region, ...detail] = typeof value === 'string' ? value.split(' ') : [];
+  const savedRegion = typeof value === 'string' ? region : value?.region;
+  const legacyDistrict = { haidian: '海淀区', chaoyang: '朝阳区' }[savedRegion];
+  let parts = legacyDistrict ? ['北京市', '北京市', legacyDistrict] : (savedRegion || '').split('/');
+  if (parts.length === 2 && regionData[parts[0]]?.[parts[0]]) parts = [parts[0], ...parts];
+  const [province, city, district] = parts;
+  const validRegion = parts.length === 3 && regionData[province]?.[city]?.includes(district);
+  return {
+    region: validRegion ? parts.join('/') : undefined,
+    detail: typeof value === 'string' ? (validRegion ? detail.join(' ') : value) : value?.detail || '',
+  };
+}
 
 const TYPE_OPTIONS = [
   { value: 'company', label: '企业供应商' },
@@ -48,7 +73,7 @@ const PAGE_CONFIG = Object.fromEntries(TYPE_OPTIONS.map(({ value, label }, index
       expiryStartKey: name === 'licenseUntil' ? aliases.establishedAt || 'establishedAt' : undefined,
       placeholder: (type === 'select' ? '请选择' : '请输入') + fieldLabel,
       options: Array.isArray(kind) ? kind.map((option) => ({ value: option, label: option })) : undefined,
-      full: kind === 'textarea' || name === 'certificateType',
+      full: kind === 'textarea' || kind === 'address' || name === 'certificateType',
       maxLength: kind === 'textarea' ? 500 : undefined,
     };
     return name === 'supplierName' ? [field, registerEmail] : [field];
@@ -62,9 +87,9 @@ function fieldRules(field) {
   if (field.expiryStartKey) return certificateExpiryRules(field.expiryStartKey);
   const rules = [];
   if (field.type === 'address' && field.required) {
-    return [{ required: true, validator: (_, value) => value?.detail?.trim()
+    return [{ required: true, validator: (_, value) => value?.region && value?.detail?.trim()
       ? Promise.resolve()
-      : Promise.reject(new Error(`请输入${field.label}`)) }];
+      : Promise.reject(new Error(value?.region ? '请输入详细地址' : '请选择省 / 市 / 区县')) }];
   }
   if (field.required) rules.push({ required: true, message: `请${field.type === 'select' || field.type === 'date' ? '选择' : '输入'}${field.label}` });
   if (field.type === 'email') rules.push({ validator: (_, value) => {
@@ -99,18 +124,16 @@ function FieldControl({ field, value, onChange, ...controlProps }) {
     const address = value || {};
     return (
       <Space.Compact block>
-        <Select
+        <Cascader
           className="pc-register-region"
-          aria-label="地区"
-          value={address.region}
-          placeholder="请选择地区"
-          options={[
-            { value: 'haidian', label: '北京市 / 北京市 / 海淀区' },
-            { value: 'chaoyang', label: '北京市 / 北京市 / 朝阳区' },
-          ]}
-          onChange={(region) => onChange?.({ ...address, region })}
+          aria-label="省市区"
+          value={address.region?.split('/')}
+          placeholder="请选择省 / 市 / 区县"
+          options={regionOptions}
+          showSearch
+          onChange={(parts) => onChange?.({ ...address, region: parts?.join('/') || undefined })}
         />
-        <Input {...controlProps} value={address.detail || ''} placeholder="请输入详细地址" maxLength={50}
+        <Input {...controlProps} value={address.detail || ''} placeholder="请输入街道、门牌号等详细地址" maxLength={50}
           onChange={(event) => onChange?.({ ...address, detail: event.target.value })} />
       </Space.Compact>
     );
@@ -136,11 +159,11 @@ function UploadField({ upload, file, setFile }) {
   return (
     <Form.Item label={upload.label} required={upload.required} className="pc-register-wide">
       <Space orientation="vertical" size={4}>
-        {upload.businessLicense && <Typography.Text type="danger">请先上传营业执照，企业信息可自动填充</Typography.Text>}
         <Upload beforeUpload={validate} fileList={file} onChange={({ fileList }) => setFile(fileList)} maxCount={1}
           accept={upload.businessLicense ? 'image/*,.pdf,.jpc' : '.jpg,.jpeg,.png,.pdf'}>
           <Button icon={<Plus size={14} />}>上传{upload.label}</Button>
         </Upload>
+        {upload.businessLicense && <Typography.Text type="danger">请先上传营业执照，企业信息可自动填充</Typography.Text>}
         <Typography.Text type="secondary">{upload.businessLicense ? LICENSE_HELP : '支持 JPG、PNG、PDF 文件'}</Typography.Text>
         {upload.businessLicense && file[0]?.originFileObj && <Typography.Text type="secondary">当前原型未接入证照识别服务，请手动填写企业信息。</Typography.Text>}
       </Space>
@@ -166,7 +189,7 @@ function registrationValues(type, basic) {
       const date = dayjs(value);
       return date.isValid() ? [[field.key, date]] : [];
     }
-    if (field.type === 'address') return [[field.key, basic.addressParts || (typeof value === 'string' ? { detail: value } : value)]];
+    if (field.type === 'address') return [[field.key, readRegistrationAddress(basic.addressParts || value)]];
     return [[field.key, field.type === 'select' ? legacyOptions[value] || value : value]];
   }));
 }
@@ -196,6 +219,7 @@ export function SupplierRegisterPage({ initialType = 'company', profile, onBack,
   const supplierType = supplierTypes[TYPE_OPTIONS.findIndex((option) => option.value === type)];
   const preview = Object.fromEntries(config.fields.map((field) => {
     const value = basic[field.key];
+    if (field.type === 'address' && value) return [field.key, [value.region, value.detail?.trim()].filter(Boolean).join(' ')];
     const label = field.options?.find((item) => item.value === value)?.label;
     return [field.key, label || (value?.format ? value.format(DATE_FORMAT) : value?.detail || (typeof value === 'string' ? value.trim() : value))];
   }));
