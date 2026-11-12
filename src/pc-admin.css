@@ -160,7 +160,7 @@ body:has(.pc-app) {
 .pc-change-修改 { background: #FFF3E5; color: #C86A08; }
 .pc-change-删除 { background: #FDECEC; color: #D9363E; }
 .pc-attachment-name { color: var(--pc-blue); }
-.pc-bank-footer {
+.pc-maintenance-footer {
   position: sticky;
   z-index: 8;
   bottom: 0;

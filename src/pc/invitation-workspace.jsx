@@ -7,7 +7,7 @@ import { people, supplierTypes } from '../pages/mobile-data.js';
 const personColumns = [['name', '姓名', 100], ['userCode', '工号', 110], ['phone', '座机', 130],
   ['email', '邮箱', 210], ['job', '职位', 150], ['department', '部门', 230]]
   .map(([dataIndex, title, width]) => ({ dataIndex, title, width }));
-const supplierColumns = [['name', '供应商名称', 240], ['type', '供应商类型', 130], ['inviter', '原邀请人', 105], ['inviterDept', '原邀请人部门', 200]]
+const supplierColumns = [['name', '供应商名称', 240], ['type', '供应商类型', 130], ['inviter', '原邀请人', 105]]
   .map(([dataIndex, title, width]) => ({ dataIndex, title, width }));
 
 function PersonPicker({ initial, onClose, onConfirm }) {
@@ -51,7 +51,7 @@ export function InviterChangePage({ targets, batch, onBack, check, onSubmit, lea
     modal.confirm({
       centered: true, className: 'pc-confirm', width: 610, title: '确认变更邀请人？',
       content: <><p>新邀请人：{person.name}（{person.userCode}）</p><PcTable rowKey="id" dataSource={selected} pagination={false}
-        scroll={{ x: 'max-content', y: 230 }} columns={supplierColumns.slice(0, 3)} /></>,
+        scroll={{ x: 'max-content', y: 230 }} columns={supplierColumns} /></>,
       okText: '确认变更', cancelText: '取消', onCancel: onBack,
       onOk: () => setResults(onSubmit(ids, person)),
     });
@@ -61,10 +61,13 @@ export function InviterChangePage({ targets, batch, onBack, check, onSubmit, lea
       {batch ? <PcTable rowKey="id" dataSource={targets} columns={supplierColumns} pagination={false} scroll={{ x: 'max-content' }}
         rowSelection={{ selectedRowKeys: selected.map((row) => row.id),
           onChange: (ids) => setRemoved(targets.filter((row) => !ids.includes(row.id)).map((row) => row.id)) }} />
-        : <DetailGrid labelWidth={120}><DetailItem label="供应商名称">{targets[0].name}</DetailItem><DetailItem label="供应商类型">{targets[0].type}</DetailItem>
-          <DetailItem label="原邀请人">{targets[0].inviter || '—'}</DetailItem><DetailItem label="原邀请人部门">{targets[0].inviterDept || '—'}</DetailItem></DetailGrid>}
+        : <DetailGrid columns={1} labelWidth={120}>
+          <DetailItem label="供应商名称">{targets[0].name}</DetailItem>
+          <DetailItem label="供应商类型">{targets[0].type}</DetailItem>
+        </DetailGrid>}
       <div className="pc-inviter-selection">
         <DetailGrid columns={1} labelWidth={120}>
+          {!batch && <DetailItem label="原邀请人">{targets[0].inviter || '—'}</DetailItem>}
           <DetailItem label="新邀请人">
             <Space wrap>
               {person && <span>{[person.name, person.userCode, person.department].filter(Boolean).join(' · ')}</span>}

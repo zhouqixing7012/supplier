@@ -535,7 +535,7 @@ function PermissionsInformation({ supplier, onSave, onOpen, onReturn, leaveRef }
       {onOpen && canChangeSupplier(supplier) && <Button onClick={onOpen}>分配权限</Button>}
     </div>
     <PcTable rowKey="id" dataSource={editable ? records : original} pagination={false} columns={columns} scroll={{ x: 'max-content' }} />
-    {editable && <FixedActionBar>
+    {editable && <FixedActionBar className="pc-maintenance-footer">
       <Button onClick={() => leave(onReturn)}>返回</Button>
       <Button type="primary" disabled={!changed} onClick={() => onSave(records.filter((row) => row.change !== '删除').map(({ change, ...row }) => row))}>提交变更</Button>
     </FixedActionBar>}
@@ -768,6 +768,7 @@ function SupplierAdmin() {
     ...row, contract: row.status === '未评分', created: row.date + ' 18:52:32',
   })));
   const [bankApplication, setBankApplication] = useState(null);
+  const bankApplicationReturnPath = useRef('/admin/suppliers');
   const [supplierFilters, setSupplierFilters] = useState({ ...EMPTY_SUPPLIER_FILTERS });
   const [appliedSupplierFilters, setAppliedSupplierFilters] = useState({ ...EMPTY_SUPPLIER_FILTERS });
   const [invitationFilters, setInvitationFilters] = useState({ ...EMPTY_INVITATION_FILTERS });
@@ -961,9 +962,7 @@ function SupplierAdmin() {
     else openDetail(record, 'suppliers', key);
   };
   const inviterIds = route.id ? [route.id] : inviterTargetIds;
-  const inviterTargets = suppliers.filter((row) => inviterIds.includes(row.id)).map((row) => ({ ...row,
-    inviterDept: row.inviterDept || people.find((person) => person.name === row.inviter)?.department || (row.inviter === CURRENT_USER ? CURRENT_DEPARTMENT : ''),
-  }));
+  const inviterTargets = suppliers.filter((row) => inviterIds.includes(row.id));
   const inviterError = (row, person) => {
     if (!row) return '供应商记录已不存在';
     if (route.from === 'invitations' && row.inviter !== CURRENT_USER) return row.name + '：已移出我的邀请';
@@ -1133,7 +1132,10 @@ function SupplierAdmin() {
   const navigateFromMenu = (key) => {
     const action = () => {
       if (key === 'quick-create') setQuickOpen(true);
-      else navigate(key.startsWith('/') ? key : key === 'login' ? '/login' : '/admin/' + key);
+      else if (key === 'bank-applications') {
+        if (route.page !== 'bank-applications') bankApplicationReturnPath.current = window.location.hash.slice(1) || '/admin/suppliers';
+        navigate('/admin/bank-applications');
+      } else navigate(key.startsWith('/') ? key : key === 'login' ? '/login' : '/admin/' + key);
     };
     if (workspaceLeave.current) workspaceLeave.current.leave(action);
     else if (route.page === 'banks') leaveBankMaintenance(action);
@@ -1296,6 +1298,7 @@ function SupplierAdmin() {
                 : route.page === 'bank-applications' ? (
                   <BankApplicationPage currentUser={CURRENT_USER} department={CURRENT_DEPARTMENT} leaveRef={workspaceLeave}
                     application={bankApplication} view={route.bankApplicationView} onSave={setBankApplication}
+                    onBack={() => window.location.replace('#' + bankApplicationReturnPath.current)}
                     onViewChange={(view, options) => {
                       const path = '/admin/bank-applications' + (view === 'notice' ? '' : '/' + view);
                       if (options?.replace) window.location.replace('#' + path);
@@ -1307,7 +1310,7 @@ function SupplierAdmin() {
                       {route.page === 'banks' ? <>
                         <BankInformation supplier={currentSupplier} entries={currentBankEntries} pendingCount={pendingBankCount}
                           onAdd={() => openBankModal(null)} onEdit={openBankModal} onDelete={handleBankDelete} />
-                        <FixedActionBar className="pc-bank-footer">
+                        <FixedActionBar className="pc-maintenance-footer">
                           <Button onClick={handleBankReturn}>返回</Button>
                           <Button type="primary" disabled={!pendingBankCount} onClick={handleBankSubmit}>提交审批</Button>
                         </FixedActionBar>
