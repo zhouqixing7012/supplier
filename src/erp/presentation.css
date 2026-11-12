@@ -256,3 +256,32 @@
   .mmp-query-result-refresh .ant-table-container { animation: none; }
 }
 
+
+/* 查询结果卡片与批量操作条共用资产系统布局。 */
+.pc-query-results, .pc-query-results .ant-card-body { min-width: 0; max-width: 100%; }
+.pc-query-results .ant-card-head-wrapper { flex-wrap: wrap; gap: 8px 16px; }
+.pc-query-results .ant-card-head-title { flex: 0 1 auto; }
+.pc-query-results .ant-card-extra { margin-inline-start: auto; max-width: 100%; }
+.pc-query-result-tools { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px; }
+.pc-query-result-filters, .pc-query-batch-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.pc-query-result-filters .ant-tag {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pc-query-batch-bar {
+  justify-content: flex-start;
+  padding: 8px 12px;
+  background: var(--ant-color-primary-bg, #e5f1ff);
+  color: var(--ant-color-primary, #145cff);
+  border-radius: 4px;
+}
+
+.pc-table .mmp-table-cell-right :is(input, .ant-input-number-input) { text-align: right; }

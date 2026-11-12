@@ -2,7 +2,7 @@ import React, { useImperativeHandle, useRef, useState } from 'react';
 import { App, Button, Card, DatePicker, Form, Input, Rate, Select, Space, Tabs } from 'antd-pc';
 import QueryBar, { QueryItem } from '../erp/QueryBar.jsx';
 import { DetailGrid, DetailItem } from '../erp/DetailGrid.jsx';
-import { EmptyContent, PcTable, StatusTag } from '../erp/components.jsx';
+import { EmptyContent, PcTable, QueryResults, StatusTag } from '../erp/components.jsx';
 import { canRateSupplier } from '../pages/mobile-rules.js';
 import { dimensionsFor, ratingTypes } from '../pages/mobile-workflows.jsx';
 
@@ -196,7 +196,14 @@ export function MyRatingsWorkspace({ records, suppliers, currentUser, onSave, le
   const department = applied.department?.trim().toLowerCase() || '';
   const start = applied.rated?.[0]?.format('YYYY-MM-DD');
   const end = applied.rated?.[1]?.format('YYYY-MM-DD');
-  const filtered = Boolean(keyword || person || department || applied.type || start || end || status !== '全部');
+  const conditions = [
+    ['搜索', applied.keyword?.trim()],
+    ['合作类型', applied.type],
+    ['业务线联系人', applied.person?.trim()],
+    ['所属部门', applied.department?.trim()],
+    ['评分时间', (start || end) && `${start || '不限'} 至 ${end || '不限'}`],
+  ].filter(([, value]) => value);
+  const filtered = conditions.length > 0 || status !== '全部';
   const rows = ownRecords.filter((record) => {
     const rated = record.rated?.slice(0, 10) || '';
     return (status === '全部' || record.status === status)
@@ -208,7 +215,7 @@ export function MyRatingsWorkspace({ records, suppliers, currentUser, onSave, le
   const tableColumns = [
     ...cooperationFields.map(([dataIndex, title, width]) => ({ dataIndex, title, width, render: display })),
     { title: '评分时间', dataIndex: 'rated', width: 170, render: (value, record) => record.status === '已评分' ? display(value) : '—' },
-    { title: '评价得分', dataIndex: 'score', width: 105, render: (value, record) => record.status === '已评分' ? display(value) : '—' },
+    { title: '评价得分', dataIndex: 'score', width: 105, alignmentType: 'number', render: (value, record) => record.status === '已评分' ? display(value) : '—' },
     { title: '操作', width: 155, fixed: 'right', render: (_, row) => row.status === '未评分'
       ? <Button size="small" type="link" onClick={() => onOpen(row, false)}>评分</Button>
       : row.status === '已评分' && <Space size={4}>
@@ -217,8 +224,10 @@ export function MyRatingsWorkspace({ records, suppliers, currentUser, onSave, le
       </Space> },
   ];
   const query = () => setView({ applied: filter, page: 1 });
+  const reset = () => setView({ filter: {}, applied: {}, page: 1 });
   return <div className="pc-page-stack">
-    <QueryBar onQuery={query} onReset={() => setView({ filter: {}, applied: {}, page: 1 })}>
+    <QueryBar onQuery={query} onReset={reset} tabs={<Tabs activeKey={status} onChange={(value) => setView({ status: value, page: 1 })}
+      items={statuses.map((key) => ({ key, label: key }))} />}>
       <QueryItem label="搜索"><Input allowClear placeholder="搜索供应商或合作内容" value={filter.keyword || ''}
         onChange={(event) => change('keyword', event.target.value)} onPressEnter={query} /></QueryItem>
       <QueryItem label="合作类型"><Select allowClear options={typeOptions} value={filter.type}
@@ -230,13 +239,11 @@ export function MyRatingsWorkspace({ records, suppliers, currentUser, onSave, le
       <QueryItem label="评分时间"><DatePicker.RangePicker value={filter.rated} allowEmpty={[true, true]} format="YYYY-MM-DD"
         onChange={(value) => change('rated', value)} /></QueryItem>
     </QueryBar>
-    <Card size="small">
-      <Tabs activeKey={status} onChange={(value) => setView({ status: value, page: 1 })}
-        items={statuses.map((key) => ({ key, label: key }))} />
+    <QueryResults total={rows.length} conditions={conditions} onClear={reset}>
       <PcTable rowKey="id" columns={tableColumns} dataSource={rows} scroll={{ x: 'max-content' }}
         pagination={{ current: Math.min(page, Math.max(1, Math.ceil(rows.length / pageSize))), pageSize, showSizeChanger: true,
           onChange: (nextPage, nextSize) => setView({ page: nextPage, pageSize: nextSize }) }}
         locale={filtered ? { emptyText: <EmptyContent description="未查询到符合条件的评分记录" /> } : undefined} />
-    </Card>
+    </QueryResults>
   </div>;
 }

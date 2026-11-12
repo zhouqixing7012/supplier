@@ -3,7 +3,7 @@ import { Alert, App, Button, Card, Input, Select, Space, Typography, Upload } fr
 import { Plus } from 'lucide-react';
 import QueryBar, { QueryItem } from '../erp/QueryBar.jsx';
 import { DetailGrid, DetailItem } from '../erp/DetailGrid.jsx';
-import { EmptyContent, PcTable, StatusTag } from '../erp/components.jsx';
+import { EmptyContent, PcTable, QueryResults, StatusTag } from '../erp/components.jsx';
 import { matchesPortalTask, purchaseTypes } from '../pages/mobile-portal-filters.js';
 import { calculateTax, isDecimal, quoteError, remainingTime } from '../pages/mobile-portal-pricing.js';
 
@@ -25,10 +25,19 @@ export function PortalTasks({ quote, records, status, view, setView, onOpen }) {
     if (start && end && start > end) return message.error('结束时间不能早于开始时间');
     setView({ query, type, company, start, end });
   };
+  const reset = () => { setQuery(''); setType(undefined); setCompany(''); setStart(''); setEnd(''); setView({}); };
+  const documentLabel = quote ? '询价单号' : '订单编号';
+  const companyLabel = quote ? '采购单位' : '采购公司';
+  const conditions = [
+    [documentLabel, view.query?.trim()],
+    ['采购类型', view.type],
+    [companyLabel, view.company?.trim()],
+    ['开始时间', view.start],
+    ['结束时间', view.end],
+  ].filter(([, value]) => value);
   const rows = records.filter((record) => record.status === status && matchesPortalTask(record, view.query, view));
-  const filtered = Boolean(view.query?.trim() || view.type || view.company?.trim() || view.start || view.end);
   const columns = [
-    { title: quote ? '询价单号' : '订单编号', dataIndex: 'number', width: 168, render: (number) =>
+    { title: documentLabel, dataIndex: 'number', width: 168, render: (number) =>
       <Button type="link" size="small" onClick={() => onOpen(number)}>{number}</Button> },
     ...(quote ? [{ title: '询价标题', dataIndex: 'title', width: 210 }] : []),
     { title: '采购类型', dataIndex: 'type', width: 120 },
@@ -36,18 +45,20 @@ export function PortalTasks({ quote, records, status, view, setView, onOpen }) {
     ...(quote ? [{ title: '采购员', dataIndex: 'buyer', width: 100 }] : [{ title: '含税金额', dataIndex: 'gross', width: 112 }]),
     { title: '处理状态', dataIndex: 'status', width: 100, render: (value) => <StatusTag value={value} /> },
     { title: quote ? '结束时间' : '创建时间', dataIndex: quote ? 'end' : 'created', width: 170 },
-    ...(status === '待处理' ? [{ title: '操作', key: 'action', align: 'center', fixed: 'right', width: 100, render: (_, row) =>
+    ...(status === '待处理' ? [{ title: '操作', key: 'action', fixed: 'right', width: 100, render: (_, row) =>
       <Button type="link" size="small" onClick={() => onOpen(row.number)}>{quote ? '报价' : '价税拆分'}</Button> }] : []),
   ];
   return <div className="pc-page-stack">
-    <QueryBar onQuery={apply} onReset={() => { setQuery(''); setType(undefined); setCompany(''); setStart(''); setEnd(''); setView({}); }}>
-      <QueryItem label={quote ? '询价单号' : '订单编号'}><Input allowClear value={query} onChange={(e) => setQuery(e.target.value)} onPressEnter={apply} /></QueryItem>
+    <QueryBar onQuery={apply} onReset={reset}>
+      <QueryItem label={documentLabel}><Input allowClear value={query} onChange={(e) => setQuery(e.target.value)} onPressEnter={apply} /></QueryItem>
       <QueryItem label="采购类型"><Select allowClear value={type} options={purchaseTypes.map((value) => ({ value }))} onChange={setType} /></QueryItem>
-      <QueryItem label={quote ? '采购单位' : '采购公司'}><Input allowClear value={company} onChange={(e) => setCompany(e.target.value)} onPressEnter={apply} /></QueryItem>
+      <QueryItem label={companyLabel}><Input allowClear value={company} onChange={(e) => setCompany(e.target.value)} onPressEnter={apply} /></QueryItem>
       <QueryItem label="开始时间"><Input type="date" value={start} onChange={(e) => setStart(e.target.value)} /></QueryItem>
       <QueryItem label="结束时间"><Input type="date" value={end} onChange={(e) => setEnd(e.target.value)} /></QueryItem>
     </QueryBar>
-    <Card size="small"><PcTable rowKey="number" dataSource={rows} columns={columns} scroll={{ x: 'max-content' }} filtered={filtered} /></Card>
+    <QueryResults total={rows.length} conditions={conditions} onClear={reset}>
+      <PcTable rowKey="number" dataSource={rows} columns={columns} scroll={{ x: 'max-content' }} filtered={conditions.length > 0} />
+    </QueryResults>
   </div>;
 }
 
@@ -86,7 +97,8 @@ export function PortalPricing({ quote, record, onBack, onSubmit, leaveRef }) {
           : files.map((file) => file.name).join('、') || '—';
       }
       const editableKeys = quote ? ['grossUnit', 'rate', 'note'] : ['rate', 'netUnit', 'net', 'tax'];
-      if (editable && editableKeys.includes(key)) return <Input aria-label={title + ' 第' + (index + 1) + '项'} value={value} inputMode={key === 'note' ? undefined : 'decimal'} onChange={(e) => changeLine(index, key, e.target.value)} />;
+      if (editable && editableKeys.includes(key)) return <Input aria-label={title + ' 第' + (index + 1) + '项'} value={value}
+        inputMode={key === 'note' ? undefined : 'decimal'} onChange={(e) => changeLine(index, key, e.target.value)} />;
       return value || '—';
     },
   }));

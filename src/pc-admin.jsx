@@ -5,7 +5,7 @@ import FixedActionBar from './erp/FixedActionBar.jsx';
 import SectionCardTitle from './erp/SectionCardTitle.jsx';
 import { otherWorkspaceFeatures } from './pc/workspace-links.js';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Avatar, Breadcrumb, Button, Card, ConfigProvider, DatePicker, Dropdown, Form, Input, Menu, Select, Space, Tabs, Tag, Tooltip, Typography, App } from 'antd-pc';
+import { Avatar, Breadcrumb, Button, Card, ConfigProvider, DatePicker, Dropdown, Form, Input, Menu, Select, Space, Tabs, Tag, Tooltip, App } from 'antd-pc';
 import zhCN from 'antd-pc/es/locale/zh_CN';
 import { ChevronDown, ChevronRight, CircleHelp, Download, Plus, Trash2, UserRoundPlus } from 'lucide-react';
 import { bankDirectory, branches, initialSuppliers, people, supplierIndustries, supplierStates, supplierTypes } from './pages/mobile-data.js';
@@ -26,7 +26,7 @@ import erpTheme from './erp/theme.js';
 import DelayedNavIcon from './erp/DelayedNavIcon.jsx';
 import QueryBar, { QueryItem } from './erp/QueryBar.jsx';
 import { DetailGrid, DetailItem } from './erp/DetailGrid.jsx';
-import { PcTable, EmptyContent, StatusTag, PcModal } from './erp/components.jsx';
+import { PcTable, EmptyContent, StatusTag, PcModal, QueryResults, QueryBatchBar } from './erp/components.jsx';
 
 const managementItems = [
   { key: 'suppliers', label: '供应商查询' },
@@ -132,6 +132,8 @@ function readRoute() {
   if (approval) return { page: approval[1], id: approval[2] && decodeURIComponent(approval[2]) };
   const page = path.split('/')[2];
   if (['blacklist', 'manual-sync', 'bank-applications'].includes(page) || ratingPages.has(page)) return { page };
+  const detailRating = path.match(/^\/admin\/suppliers\/([^/?]+)\/rating$/);
+  if (detailRating) return { page: 'rating', id: decodeURIComponent(detailRating[1]), fromDetail: true };
   const edit = path.match(/^\/admin\/suppliers\/([^/?]+)\/edit$/);
   if (edit) return { page: 'profile-edit', id: decodeURIComponent(edit[1]) };
   const detail = path.match(/^\/admin\/suppliers\/([^/?]+)/);
@@ -182,13 +184,16 @@ function exportCsv(rows, columns, filename) {
   window.setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-function SupplierQueryPage({ pagination, onPagination, canEditRecord, filters, appliedFilters, setFilters, onSearch, onReset, rows, selectedIds, setSelectedIds, onInvite, onRegister, onQuickCreate, onDelete, onExport, onOpenDetail, onDetailAction }) {
+function invitationDateRange(start, end) {
+  return start || end ? (dateText(start) || '不限') + ' 至 ' + (dateText(end) || '不限') : '';
+}
+
+function SupplierQueryPage({ pagination, onPagination, canEditRecord, filters, appliedFilters, setFilters, onSearch, onReset, rows, selectedIds, setSelectedIds, onInvite, onRegister, onDelete, onExport, onOpenDetail, onDetailAction }) {
   const appliedConditions = [
     ['搜索关键词', appliedFilters.name?.trim()],
     ['供应商类型', appliedFilters.type],
     ['供应商状态', appliedFilters.status],
-    ['邀请时间', [dateText(appliedFilters.start), dateText(appliedFilters.end)].some(Boolean)
-      ? (dateText(appliedFilters.start) || '不限') + ' 至 ' + (dateText(appliedFilters.end) || '不限') : ''],
+    ['邀请时间', invitationDateRange(appliedFilters.start, appliedFilters.end)],
     ['供应商推荐', appliedFilters.recommended],
     ['邀请人', appliedFilters.inviter?.trim()],
   ].filter(([, value]) => value);
@@ -196,11 +201,11 @@ function SupplierQueryPage({ pagination, onPagination, canEditRecord, filters, a
     { title: '供应商名称', dataIndex: 'name', width: 240, render: (name, record) => <Tooltip title={name}><button className="pc-link pc-name-link" onClick={() => onOpenDetail(record, 'suppliers')}>{name || '未填写供应商名称'}</button></Tooltip> },
     { title: '供应商类型', dataIndex: 'type', width: 130 },
     { title: '审批状态', dataIndex: 'status', width: 110, align: 'center', render: (value) => <StatusTag value={value} /> },
-    { title: '注册方式', dataIndex: 'mode', width: 120, align: 'center' },
+    { title: '注册方式', dataIndex: 'mode', width: 120 },
     { title: '邀请人', dataIndex: 'inviter', width: 110 },
     { title: '邀请时间', dataIndex: 'date', width: 180, align: 'center' },
     { title: '更新时间', dataIndex: 'updated', width: 180, align: 'center' },
-    { title: '评分', dataIndex: 'score', width: 100, align: 'right', render: (value, record) => value === '未评分'
+    { title: '评分', dataIndex: 'score', width: 100, alignmentType: 'number', render: (value, record) => value === '未评分'
       ? value : <Button type="link" size="small" className="pc-row-action-button"
         aria-label={'查看' + record.name + '的合作信息及评分（' + value + '）'}
         onClick={() => onOpenDetail(record, 'suppliers', 'cooperation')}>{value}</Button> },
@@ -247,24 +252,13 @@ function SupplierQueryPage({ pagination, onPagination, canEditRecord, filters, a
         <QueryItem label="邀请人"><Input allowClear value={filters.inviter} placeholder="请输入邀请人" onChange={(event) => setFilters('inviter', event.target.value)} onPressEnter={onSearch} /></QueryItem>
       </QueryBar>
 
-      <Card size="small" title="查询结果" className="pc-list-card pc-supplier-query-results" extra={
-        <Space size={[8, 8]} wrap className="pc-supplier-query-tools">
-          <Typography.Text type="secondary">共 {rows.length} 条</Typography.Text>
-          <Button icon={<Download size={15} />} onClick={onExport}>导出</Button>
-          <Button onClick={onQuickCreate}>快速创建供应商</Button>
-          <Button onClick={onRegister}>代注册</Button>
-          <Button type="primary" icon={<UserRoundPlus size={15} />} onClick={onInvite}>邀请注册</Button>
-        </Space>
-      }>
-        {appliedConditions.length > 0 && <div className="pc-supplier-query-filters" aria-label="已应用的查询条件">
-          {appliedConditions.map(([label, value]) => <Tag key={label} title={label + '：' + value}>{label}：{value}</Tag>)}
-          <Button type="link" size="small" onClick={onReset}>清除筛选</Button>
-        </div>}
-        {selectedIds.length > 0 && <div className="pc-batch-bar" role="region" aria-label="所选供应商批量操作">
-          <span>已选本页 {selectedIds.length} 条</span>
-          <Button danger icon={<Trash2 size={15} />} onClick={() => onDelete(selectedIds, false)}>删除所选</Button>
-          <Button type="link" onClick={() => setSelectedIds([])}>取消选择</Button>
-        </div>}
+      <QueryResults className="pc-list-card" total={rows.length} conditions={appliedConditions} onClear={onReset} actions={<>
+        <Button icon={<Download size={15} />} onClick={onExport}>导出</Button>
+        <Button onClick={onRegister}>代注册</Button>
+        <Button type="primary" icon={<UserRoundPlus size={15} />} onClick={onInvite}>邀请注册</Button>
+      </>} batch={<QueryBatchBar count={selectedIds.length} onCancel={() => setSelectedIds([])}>
+        <Button danger icon={<Trash2 size={15} />} onClick={() => onDelete(selectedIds, false)}>删除所选</Button>
+      </QueryBatchBar>}>
         <PcTable
           rowKey="id"
           className="pc-table"
@@ -283,13 +277,17 @@ function SupplierQueryPage({ pagination, onPagination, canEditRecord, filters, a
           filtered={appliedConditions.length > 0}
           onChange={(next, _filters, _sorter, extra) => { if (extra.action === 'paginate') { onPagination(next); setSelectedIds([]); } }}
         />
-      </Card>
+      </QueryResults>
     </div>
   );
 }
 
-function MyInvitationsPage({ pagination, onPagination, onEditDraft, filters, setFilters, onSearch, onReset, rows, selectedIds, setSelectedIds, onOpenDetail, onChangeInviter, onReinvite, onModifyProfile, onOpenBanks, onDelete, onExport }) {
-  const activeFilter = Object.values(filters).some((value) => typeof value === 'string' ? Boolean(value.trim()) : Boolean(value));
+function MyInvitationsPage({ pagination, onPagination, onEditDraft, filters, appliedFilters, setFilters, onSearch, onReset, rows, selectedIds, setSelectedIds, onOpenDetail, onChangeInviter, onReinvite, onModifyProfile, onOpenBanks, onDelete, onExport }) {
+  const { name, status, type, registrationNumber, start, end } = appliedFilters;
+  const appliedConditions = [
+    ['供应商名称', name.trim()], ['供应商状态', status], ['供应商类型', type],
+    ['注册编号', registrationNumber.trim()], ['邀请时间', invitationDateRange(start, end)],
+  ].filter(([, value]) => value);
   const selectedRecords = rows.filter((record) => selectedIds.includes(record.id));
   const allDeletable = selectedRecords.length > 0 && selectedRecords.every((record) => canDeleteSupplier(record, true));
   const allTransferable = selectedRecords.length > 0 && selectedRecords.every(canChangeSupplier);
@@ -304,7 +302,7 @@ function MyInvitationsPage({ pagination, onPagination, onEditDraft, filters, set
     { title: '邀请时间', dataIndex: 'date', width: 180, align: 'center' },
     { title: '更新时间', dataIndex: 'updated', width: 180, align: 'center' },
     {
-      title: '操作', key: 'actions', width: 150, fixed: 'right', align: 'center',
+      title: '操作', key: 'actions', width: 150, fixed: 'right', align: 'right',
       render: (_, record) => {
         const primary = record.status === '草稿' ? <Button className="pc-row-action-button" type="link" size="small" onClick={() => onEditDraft(record)}>修改</Button>
           : canChangeSupplier(record) ? <Button className="pc-row-action-button" type="link" size="small" onClick={() => onModifyProfile(record)}>修改全部信息</Button>
@@ -315,7 +313,7 @@ function MyInvitationsPage({ pagination, onPagination, onEditDraft, filters, set
           ...(canDeleteSupplier(record, true) ? [{ key: 'delete', label: '删除', danger: true }] : []),
           ...(!['草稿', '邀请中', '注册中', '注册驳回'].includes(record.status) ? [{ key: 'approval', label: '审批记录' }] : []),
         ];
-        return primary || items.length ? <Space size={4} className="pc-row-actions">{primary}
+        return primary || items.length ? <Space size={4} className="pc-row-actions">
           {items.length > 0 && <Dropdown trigger={['click']} menu={{ items, onClick: ({ key }) => {
             if (key === 'inviter') onChangeInviter([record.id]);
             if (key === 'reinvite') onReinvite(record);
@@ -324,7 +322,7 @@ function MyInvitationsPage({ pagination, onPagination, onEditDraft, filters, set
             if (key === 'delete') onDelete([record.id], true);
           } }}>
             <Button className="pc-row-action-button" type="link" size="small">更多 <ChevronDown size={14} /></Button>
-          </Dropdown>}
+          </Dropdown>}{primary}
         </Space> : '-';
       },
     },
@@ -354,14 +352,12 @@ function MyInvitationsPage({ pagination, onPagination, onEditDraft, filters, set
         <QueryItem label="注册编号"><Input allowClear value={filters.registrationNumber} placeholder="请输入注册编号" onChange={(event) => setFilters('registrationNumber', event.target.value)} onPressEnter={onSearch} /></QueryItem>
       </QueryBar>
 
-
-
-      <Card size="small" className="pc-list-card">
-        <div className="pc-list-toolbar">
-          <Space size={8} wrap><Button icon={<Download size={15} />} onClick={onExport}>导出</Button><Button disabled={!allTransferable} onClick={() => onChangeInviter(selectedIds, 'invitations', true)}>邀请人批量变更</Button></Space>
-          <div className="pc-list-meta">共 <strong>{rows.length}</strong> 家供应商</div>
-        </div>
-        {selectedIds.length > 0 && <div className="pc-batch-bar"><span>已选择 <strong>{selectedIds.length}</strong> 条</span><Button type="link" danger size="small" disabled={!allDeletable} onClick={() => onDelete(selectedIds, true)}>删除所选</Button><Button type="link" size="small" onClick={() => setSelectedIds([])}>取消选择</Button></div>}
+      <QueryResults className="pc-list-card" total={rows.length} conditions={appliedConditions} onClear={onReset}
+        actions={<Button icon={<Download size={15} />} onClick={onExport}>导出</Button>}
+        batch={<QueryBatchBar count={selectedIds.length} onCancel={() => setSelectedIds([])}>
+          <Button danger disabled={!allDeletable} onClick={() => onDelete(selectedIds, true)}>删除所选</Button>
+          <Button disabled={!allTransferable} onClick={() => onChangeInviter(selectedIds, 'invitations', true)}>邀请人批量变更</Button>
+        </QueryBatchBar>}>
         <PcTable
           rowKey="id"
           className="pc-table"
@@ -375,12 +371,12 @@ function MyInvitationsPage({ pagination, onPagination, onEditDraft, filters, set
             getCheckboxProps: (record) => ({ disabled: !canChangeSupplier(record) && !canDeleteSupplier(record, true) }),
             columnWidth: 48,
           }}
-          pagination={{ current: pagination?.current || 1, pageSize: pagination?.pageSize || 10, showSizeChanger: true, pageSizeOptions: [10, 20, 50], showTotal: (total) => '共 ' + total + ' 条', position: ['bottomRight'] }}
+          pagination={{ current: pagination?.current || 1, pageSize: pagination?.pageSize || 10, showSizeChanger: true, pageSizeOptions: [10, 20, 50], position: ['bottomRight'] }}
           scroll={{ x: 'max-content' }}
-          filtered={activeFilter}
+          filtered={appliedConditions.length > 0}
           onChange={(next, _filters, _sorter, extra) => { if (extra.action === 'paginate') { onPagination(next); setSelectedIds([]); } }}
         />
-      </Card>
+      </QueryResults>
     </div>
   );
 }
@@ -403,15 +399,15 @@ function RegistrationInformation({ supplier }) {
     { label: '邀请人', value: supplier.inviter },
     { label: '邀请时间', value: supplier.date },
     { label: '更新时间', value: supplier.updated },
-    { label: '曾用名', value: supplier.supplierFormerName || supplier.formerName, span: 2 },
-    { label: '供应商注册邮箱', value: profileOf(supplier).basic.registerEmail, span: 2 },
+    { label: '供应商注册邮箱', value: profileOf(supplier).basic.registerEmail },
+    { label: '曾用名', value: supplier.supplierFormerName || supplier.formerName },
   ]} />
     {!!supplier.inviterChanges?.length && <section>
       <SectionCardTitle>邀请人变更记录</SectionCardTitle>
       <PcTable rowKey="id" pagination={false} dataSource={supplier.inviterChanges} scroll={{ x: 'max-content' }} columns={[
         { title: '原邀请人', dataIndex: 'previous', width: 120 }, { title: '新邀请人', dataIndex: 'next', width: 120 },
-        { title: '发起人', dataIndex: 'operator', width: 120 }, { title: '操作时间', dataIndex: 'time', width: 180 },
-        { title: '办理结果', dataIndex: 'result', width: 120 },
+        { title: '发起人', dataIndex: 'operator', width: 120 }, { title: '操作时间', dataIndex: 'time', width: 180, align: 'center' },
+        { title: '办理结果', dataIndex: 'result', width: 120, alignmentType: 'status' },
       ]} />
     </section>}
   </div>;
@@ -451,7 +447,7 @@ function BankInfoTab({ supplier, entries, onAdd, onEdit, onDelete, onReturn, onS
     { title: '开户所在省/市', width: 140, render: (_, record) => [record.province, record.city].filter(Boolean).join(' / ') || '-' },
     { title: '账户名称', dataIndex: 'name', width: 170 },
     { title: '银行账号', dataIndex: 'number', width: 190 },
-    { title: '币种', dataIndex: 'currency', width: 90, align: 'center' },
+    { title: '币种', dataIndex: 'currency', width: 90 },
     { title: '开户证明', dataIndex: 'proof', width: 170, render: (value) => <BankProof value={value} /> },
     { title: '备注', dataIndex: 'note', width: 180 },
     {
@@ -463,11 +459,11 @@ function BankInfoTab({ supplier, entries, onAdd, onEdit, onDelete, onReturn, onS
       },
     },
     {
-      title: '操作', key: 'actions', width: 140, fixed: 'right', align: 'center',
+      title: '操作', key: 'actions', width: 140, fixed: 'right', align: 'right',
       render: (_, record) => {
         const action = bankChange(original, record).action;
         if (!canEdit || action === '删除') return '-';
-        return <Space size={8}><Button type="link" size="small" onClick={() => onEdit(record)}>修改</Button><Button type="link" danger size="small" onClick={() => onDelete(record)}>删除</Button></Space>;
+        return <Space size={8}><Button type="link" danger size="small" onClick={() => onDelete(record)}>删除</Button><Button type="link" size="small" onClick={() => onEdit(record)}>修改</Button></Space>;
       },
     },
   ];
@@ -515,15 +511,15 @@ function PermissionsTab({ supplier, onSave }) {
     { title: '所属权限', dataIndex: 'group', width: 220 },
     { title: '权限分类', dataIndex: 'category', width: 240 },
     { title: '备注', dataIndex: 'note' },
-    ...(changed ? [{ title: '变更状态', dataIndex: 'change', width: 120, render: (value) => value ? <Tag className={'pc-change-tag pc-change-' + value}>待提交{value}</Tag> : '—' }] : []),
+    ...(changed ? [{ title: '变更状态', dataIndex: 'change', width: 120, align: 'center', render: (value) => value ? <Tag className={'pc-change-tag pc-change-' + value}>待提交{value}</Tag> : '—' }] : []),
   ];
-  if (editable) columns.push({ title: '操作', key: 'action', width: 100, render: (_, row) => row.change === '删除' ? '—' : <Space size={4}>
-    <Button type="link" size="small" onClick={() => setEditor({ row })}>修改</Button>
+  if (editable) columns.push({ title: '操作', key: 'action', width: 100, align: 'right', render: (_, row) => row.change === '删除' ? '—' : <Space size={4}>
     <Button type="link" size="small" danger onClick={() => modal.confirm({
       centered: true, className: 'pc-confirm', title: '删除权限', content: row.group + ' / ' + row.category,
       okText: '删除', cancelText: '取消', okButtonProps: { danger: true },
       onOk: () => setRecords(records.flatMap((item) => item.id !== row.id ? [item] : original.some((entry) => entry.id === row.id) ? [{ ...item, change: '删除' }] : [])),
     })}>删除</Button>
+    <Button type="link" size="small" onClick={() => setEditor({ row })}>修改</Button>
   </Space> });
   return <div className="pc-page-stack">
     {editable && <div><Button onClick={() => setEditor({})}>添加权限</Button></div>}
@@ -608,11 +604,11 @@ function CooperationTab({ supplier, ratings }) {
     { title: '所属部门', dataIndex: 'department', width: 280 },
     { title: '合作时间', dataIndex: 'date', width: 140, align: 'center' },
     { title: '评分时间', dataIndex: 'rated', width: 180, align: 'center' },
-    { title: '评价得分', dataIndex: 'score', width: 110, align: 'right' },
+    { title: '评价得分', dataIndex: 'score', width: 110, alignmentType: 'number' },
   ]} />;
 }
 
-function SupplierDetailPage({ supplier, ratings, maintenanceTask, onOpenMaintenance, activeTab, setActiveTab, bankEntries, pendingBankCount, onBankAdd, onBankEdit, onBankDelete, onBankReturn, onBankSubmit, onPermissionsSave }) {
+function SupplierDetailPage({ supplier, ratings, onAddRating, maintenanceTask, onOpenMaintenance, activeTab, setActiveTab, bankEntries, pendingBankCount, onBankAdd, onBankEdit, onBankDelete, onBankReturn, onBankSubmit, onPermissionsSave }) {
   const tabs = [
     { key: 'supplier', label: '供应商信息', children: <SupplierInformation supplier={supplier} /> },
     { key: 'contacts', label: '联系人信息', children: <ContactsTab supplier={supplier} /> },
@@ -640,7 +636,9 @@ function SupplierDetailPage({ supplier, ratings, maintenanceTask, onOpenMaintena
         <RegistrationInformation supplier={supplier} />
       </Card>
       <Card size="small" className="pc-detail-tabs-card">
-        <Tabs activeKey={activeTab} onChange={setActiveTab} items={tabs} tabBarGutter={24} className="pc-detail-tabs" />
+        <Tabs activeKey={activeTab} onChange={setActiveTab} items={tabs} tabBarGutter={24} className="pc-detail-tabs"
+          tabBarExtraContent={activeTab === 'cooperation' && canRateSupplier(supplier) &&
+            <Button type="primary" icon={<Plus size={15} />} onClick={onAddRating}>新增</Button>} />
       </Card>
     </div>
   );
@@ -846,7 +844,12 @@ function SupplierAdmin() {
     scrollPositions.current[from] = mainScrollRef.current?.scrollTop || 0;
     navigate('/admin/' + from + '/' + action + (id ? '/' + encodeURIComponent(id) : ''));
   };
-  const backFromAction = () => navigate('/admin/' + (route.from || 'suppliers'));
+  const backFromAction = () => {
+    if (route.fromDetail && currentSupplier) {
+      setActiveDetailTab('cooperation');
+      navigate('/admin/suppliers/' + encodeURIComponent(currentSupplier.id));
+    } else navigate('/admin/' + (route.from || 'suppliers'));
+  };
   const setPagination = (key, page) => setListPagination((current) => ({ ...current, [key]: page }));
   const openMyRating = (record, readOnly) => {
     openAction('my-ratings', readOnly ? 'detail' : 'edit', record.id);
@@ -1152,7 +1155,7 @@ function SupplierAdmin() {
   const isProfileEdit = route.page === 'profile-edit';
   const isDetail = route.page === 'detail';
   const isRegister = route.page === 'register';
-  const parentPage = route.from || (isProfileEdit ? 'invitations' : isDetail ? detailReturnPage.current : isRegister ? 'suppliers' : route.page);
+  const parentPage = route.from || (isProfileEdit ? 'invitations' : isDetail || route.fromDetail ? detailReturnPage.current : isRegister ? 'suppliers' : route.page);
   const isApprovalPage = approvalPages.has(parentPage);
   const isApprovalDetail = isApprovalPage && !!route.id;
   const processed = route.page === 'approval-processed';
@@ -1165,7 +1168,7 @@ function SupplierAdmin() {
   };
   const breadcrumbItems = [
     { title: isApprovalPage ? '审批任务管理' : '供应商管理' },
-    { title: isDetail || isRegister || isProfileEdit || isApprovalDetail || route.from || route.page === 'my-ratings' && route.id
+    { title: isDetail || isRegister || isProfileEdit || isApprovalDetail || route.fromDetail || route.from || route.page === 'my-ratings' && route.id
       ? <a href={'#/admin/' + parentPage} onClick={(event) => { event.preventDefault(); navigateFromMenu(parentPage); }}>{menuLabels[parentPage]}</a> : menuLabels[parentPage] },
   ];
   if (route.from) breadcrumbItems.push({ title: { invite: '邀请注册', reinvite: '重新邀请', draft: '修改草稿',
@@ -1174,6 +1177,9 @@ function SupplierAdmin() {
   if (isApprovalDetail) breadcrumbItems.push({ title: route.id });
   if (isProfileEdit) breadcrumbItems.push({ title: '修改全部信息' });
   if (isRegister) breadcrumbItems.push({ title: '代注册' });
+  if (route.fromDetail) breadcrumbItems.push({ title: <a href={'#/admin/suppliers/' + encodeURIComponent(route.id)}
+    onClick={(event) => { event.preventDefault(); workspaceLeave.current ? workspaceLeave.current.leave(backFromAction) : backFromAction(); }}>
+    {currentSupplier?.name || '供应商详情'}</a> }, { title: '新增评分' });
   if (isDetail) breadcrumbItems.push({ title: currentSupplier?.name || '供应商详情' });
 
   const accountMenu = {
@@ -1287,6 +1293,7 @@ function SupplierAdmin() {
                   <SupplierDetailPage
                     supplier={currentSupplier}
                     ratings={ratings}
+                    onAddRating={() => navigate('/admin/suppliers/' + encodeURIComponent(currentSupplier.id) + '/rating')}
                     maintenanceTask={approvalTasks.find((task) => task.number === currentSupplier.maintenanceApproval)}
                     onOpenMaintenance={() => {
                       const task = approvalTasks.find((item) => item.number === currentSupplier.maintenanceApproval);
@@ -1306,6 +1313,7 @@ function SupplierAdmin() {
                 ) : <Card size="small"><EmptyContent description="供应商记录不存在或已删除" /></Card>) : route.page === 'invitations' ? (
                   <MyInvitationsPage
                     filters={invitationFilters}
+                    appliedFilters={appliedInvitationFilters}
                     setFilters={setInvitationFilter}
                     onSearch={applyInvitationFilters}
                     onReset={resetInvitationFilters}
@@ -1337,7 +1345,6 @@ function SupplierAdmin() {
                         onInvite={() => openAction('suppliers', 'invite')}
                         pagination={listPagination.suppliers} onPagination={(page) => setPagination('suppliers', page)}
                         canEditRecord={(record) => record.inviter === CURRENT_USER}
-                        onQuickCreate={() => setQuickOpen(true)}
                         onRegister={() => {
                           scrollPositions.current.suppliers = mainScrollRef.current?.scrollTop || 0;
                           navigate('/admin/register');

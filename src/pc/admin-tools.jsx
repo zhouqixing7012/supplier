@@ -3,7 +3,7 @@ import { Alert, App, Button, Card, DatePicker, Form, Input, Rate, Select, Space,
 import { Download, Plus } from 'lucide-react';
 import QueryBar, { QueryItem } from '../erp/QueryBar.jsx';
 import { DetailGrid, DetailItem } from '../erp/DetailGrid.jsx';
-import { PcModal, PcTable, StatusTag } from '../erp/components.jsx';
+import { PcModal, PcTable, QueryResults, StatusTag } from '../erp/components.jsx';
 import { dimensionsFor, ratingTypes } from '../pages/mobile-workflows.jsx';
 
 const today = () => new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Shanghai' });
@@ -71,11 +71,16 @@ export function RatingPage({ mode, records, suppliers, currentUser, onSave, expo
   const [status, setStatus] = useState('全部');
   const [editing, setEditing] = useState(null);
   const change = (key, value) => setFilter((current) => ({ ...current, [key]: value }));
+  const reset = () => { setApplied({}); setFilter({}); };
   const excluded = (applied.excluded || '').split(/[\n#]/).map((name) => name.trim()).filter(Boolean);
   const [start, end] = applied.created || [];
-  const filtered = operations
-    ? Boolean(start || end || excluded.length)
-    : Boolean(applied.name?.trim() || applied.person?.trim() || applied.department?.trim() || applied.type);
+  const conditions = (operations ? [
+    ['创建时间', (start || end) && `${start?.format('YYYY-MM-DD') || '不限'} 至 ${end?.format('YYYY-MM-DD') || '不限'}`],
+    ['排除评分人', excluded.join('、')],
+  ] : [
+    ['供应商名称', applied.name?.trim()], ['业务线联系人', applied.person?.trim()],
+    ['所属部门', applied.department?.trim()], ['合作类型', applied.type],
+  ]).filter(([, value]) => value);
   const rows = records.filter((row) => {
     if (operations) return row.contract && row.status === '未评分' && !row.approvalNumber &&
       !excluded.includes(row.person) && (!start || row.created.slice(0, 10) >= start.format('YYYY-MM-DD')) &&
@@ -87,7 +92,8 @@ export function RatingPage({ mode, records, suppliers, currentUser, onSave, expo
   if (operations) rows.sort((a, b) => b.created.localeCompare(a.created));
   const operationColumns = [...columns([['id', '主键', 185]]), ...ratingColumns, ...columns([['created', '创建时间', 170]])];
   const tableColumns = operations ? operationColumns : [
-    ...ratingColumns, ...columns([['rated', '评分时间', 170], ['score', '评价得分', 105]]),
+    ...ratingColumns, { title: '评分时间', dataIndex: 'rated', width: 170 },
+    { title: '评价得分', dataIndex: 'score', width: 105, alignmentType: 'number' },
     { title: '评分状态', dataIndex: 'status', width: 105, render: (value) => <StatusTag value={value} /> },
     { title: '操作', width: 155, fixed: 'right', render: (_, row) => <Space size={4}>
       {row.status === '未评分' ? <Button size="small" type="link" onClick={() => setEditing({ row })}>评分</Button> :
@@ -96,7 +102,8 @@ export function RatingPage({ mode, records, suppliers, currentUser, onSave, expo
     </Space> },
   ];
   return <div className="pc-page-stack">
-    <QueryBar onQuery={() => setApplied(filter)} onReset={() => { setApplied({}); setFilter({}); }}>
+    <QueryBar onQuery={() => setApplied(filter)} onReset={reset} tabs={mine &&
+      <Tabs activeKey={status} onChange={setStatus} items={['全部', '未评分', '已评分'].map((key) => ({ key, label: key }))} />}>
       {operations ? <>
         <QueryItem label="创建时间"><DatePicker.RangePicker value={filter.created} allowEmpty={[true, true]} onChange={(value) => change('created', value)} /></QueryItem>
         <QueryItem label="排除评分人"><Input.TextArea rows={2} value={filter.excluded || ''} placeholder="逐行输入姓名，或用 # 分隔" onChange={(event) => change('excluded', event.target.value)} /></QueryItem>
@@ -106,13 +113,12 @@ export function RatingPage({ mode, records, suppliers, currentUser, onSave, expo
         <QueryItem label="合作类型"><Select allowClear options={options(ratingTypes)} value={filter.type} onChange={(value) => change('type', value)} /></QueryItem>
       </>}
     </QueryBar>
-    <Card size="small" extra={operations ? <Space>
+    <QueryResults total={rows.length} conditions={conditions} onClear={reset} actions={operations ? <>
       <Button icon={<Download size={14} />} disabled={!rows.length} onClick={() => exportRows(rows.slice(0, 1000), operationColumns, '评分查询-演示数据.csv')}>导出</Button>
       <Button disabled title="批量发起评分服务待接入">批量发起评分</Button>
-    </Space> : !mine && <Button type="primary" icon={<Plus size={14} />} onClick={() => setEditing({})}>新增评分</Button>}>
-      {mine && <Tabs activeKey={status} onChange={setStatus} items={['全部', '未评分', '已评分'].map((key) => ({ key, label: key }))} />}
-      <PcTable rowKey="id" dataSource={rows} columns={tableColumns} scroll={{ x: 'max-content' }} filtered={filtered} />
-    </Card>
+    </> : !mine && <Button type="primary" icon={<Plus size={14} />} onClick={() => setEditing({})}>新增评分</Button>}>
+      <PcTable rowKey="id" dataSource={rows} columns={tableColumns} scroll={{ x: 'max-content' }} filtered={conditions.length > 0 || status !== '全部'} />
+    </QueryResults>
     {editing && <RatingModal editing={editing} suppliers={suppliers} currentUser={currentUser} onClose={() => setEditing(null)}
       onSave={(row) => { onSave(row); setEditing(null); }} />}
   </div>;
@@ -123,17 +129,21 @@ export { BankApplicationPage } from './bank-application.jsx';
 export function BlacklistPage({ suppliers, onOpen }) {
   const [query, setQuery] = useState('');
   const [applied, setApplied] = useState('');
+  const reset = () => { setApplied(''); setQuery(''); };
   const rows = suppliers.flatMap((supplier) => (supplier.blacklistRecords || []).map((entry) => ({ ...entry, supplier })))
     .filter(({ supplier }) => contains(supplier.name, applied));
   return <div className="pc-page-stack">
-    <QueryBar onQuery={() => setApplied(query)} onReset={() => { setApplied(''); setQuery(''); }}>
+    <QueryBar onQuery={() => setApplied(query)} onReset={reset}>
       <QueryItem label="供应商名称"><Input allowClear value={query} onChange={(event) => setQuery(event.target.value)} onPressEnter={() => setApplied(query)} /></QueryItem>
     </QueryBar>
-    <Card size="small"><PcTable rowKey="id" dataSource={rows} scroll={{ x: 'max-content' }} filtered={Boolean(applied.trim())} columns={[
-      { title: '供应商名称', width: 210, render: (_, row) => <Button type="link" size="small" onClick={() => onOpen(row.supplier)}>{row.supplier.name}</Button> },
-      ...columns([['status', '操作状态', 110], ['applyUser', '拉黑操作人', 150], ['applyTime', '拉黑时间', 170], ['applyReason', '拉黑原因', 200],
-        ['removeUser', '移除操作人', 150], ['removeTime', '移除时间', 170], ['removeReason', '移除原因', 200]]),
-    ]} /></Card>
+    <QueryResults total={rows.length} conditions={applied.trim() ? [['供应商名称', applied.trim()]] : []} onClear={reset}>
+      <PcTable rowKey="id" dataSource={rows} scroll={{ x: 'max-content' }} filtered={Boolean(applied.trim())} columns={[
+        { title: '供应商名称', width: 210, render: (_, row) => <Button type="link" size="small" onClick={() => onOpen(row.supplier)}>{row.supplier.name}</Button> },
+        { title: '操作状态', dataIndex: 'status', width: 110, render: (value) => <StatusTag value={value} /> },
+        ...columns([['applyUser', '拉黑操作人', 150], ['applyTime', '拉黑时间', 170], ['applyReason', '拉黑原因', 200],
+          ['removeUser', '移除操作人', 150], ['removeTime', '移除时间', 170], ['removeReason', '移除原因', 200]]),
+      ]} />
+    </QueryResults>
   </div>;
 }
 

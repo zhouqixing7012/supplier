@@ -3,7 +3,7 @@ import { Alert, App, Button, Card, Form, Input, Select, Space, Steps, Tooltip } 
 import { Plus } from 'lucide-react';
 import QueryBar, { QueryItem } from '../erp/QueryBar.jsx';
 import { DetailGrid, DetailItem } from '../erp/DetailGrid.jsx';
-import { EmptyContent, PcTable, StatusTag } from '../erp/components.jsx';
+import { EmptyContent, PcTable, QueryResults, StatusTag } from '../erp/components.jsx';
 import { informationChangeGroups } from '../pages/mobile-changes.jsx';
 import { filledBasic } from '../pages/mobile-forms.jsx';
 import { exampleBank, people } from '../pages/mobile-data.js';
@@ -50,6 +50,7 @@ export function initialApprovalTasks() {
 
 export function ApprovalTaskList({ tasks, processed, onOpen, view, setView }) {
   const [query, setQuery] = useState(view.query || '');
+  const reset = () => { setQuery(''); setView({}); };
   const rows = tasks.filter((task) => (task.status !== '待审批') === processed &&
     [task.number, task.profile.basic.supplierName].some((value) => value?.includes(view.query || '')));
   const taskColumns = [
@@ -61,12 +62,14 @@ export function ApprovalTaskList({ tasks, processed, onOpen, view, setView }) {
     ...(processed ? columns([['handledAt', '办理时间', 172]]) : []),
   ];
   return <div className="pc-page-stack">
-    <QueryBar onQuery={() => setView({ query: query.trim() })} onReset={() => { setQuery(''); setView({}); }}>
+    <QueryBar onQuery={() => setView({ query: query.trim() })} onReset={reset}>
       <QueryItem label="供应商名称或审批单号"><Input allowClear value={query} onChange={(event) => setQuery(event.target.value)}
         onPressEnter={() => setView({ query: query.trim() })} /></QueryItem>
     </QueryBar>
-    <Card size="small"><PcTable rowKey="number" scroll={{ x: 'max-content' }} columns={taskColumns} filtered={Boolean(view.query)}
-      dataSource={rows.map((task) => ({ ...task, supplier: task.profile.basic.supplierName }))} /></Card>
+    <QueryResults total={rows.length} conditions={view.query ? [['供应商名称或审批单号', view.query]] : []} onClear={reset}>
+      <PcTable rowKey="number" scroll={{ x: 'max-content' }} columns={taskColumns} filtered={Boolean(view.query)}
+        dataSource={rows.map((task) => ({ ...task, supplier: task.profile.basic.supplierName }))} />
+    </QueryResults>
   </div>;
 }
 
@@ -86,9 +89,9 @@ export function Changes({ before, after }) {
   }
   return <Card size="small" title="变更对比">
     {groups.length ? <PcTable rowKey="key" pagination={false} scroll={{ x: 'max-content' }}
-      columns={columns([['section', '资料', 180], ['action', '变更类型', 94], ['label', '字段', 140], ['previous', '修改前', 215], ['next', '修改后', 215]])}
+      columns={columns([['section', '资料', 180], ['changeType', '变更类型', 94], ['label', '字段', 140], ['previous', '修改前', 215], ['next', '修改后', 215]])}
       dataSource={groups.flatMap((group) => group.fields.filter((field) => group.action === '变更' ? field.changed : field.value)
-        .map((field) => ({ ...field, key: group.key + '-' + field.key, section: group.title, action: group.action })))} /> : <EmptyContent description="没有信息变更" />}
+        .map((field) => ({ ...field, key: group.key + '-' + field.key, section: group.title, changeType: group.action })))} /> : <EmptyContent description="没有信息变更" />}
   </Card>;
 }
 
@@ -154,8 +157,8 @@ export function ApprovalTaskDetail({ task, approver, onBack, onComplete }) {
             { title: '序号', width: 60, render: (_, row, index) => index + 1 },
             ...columns([['group', '所属权限', 160], ['category', '权限分类', 160], ['note', '备注', 190]]),
             ...(pending ? [{ title: '操作', width: 100, render: (_, row) => <Space size={4}>
-              <Button size="small" type="link" onClick={() => setPermissionEditor({ row })}>修改</Button>
               <Button size="small" type="link" danger onClick={() => setPermissions((current) => current.filter((item) => item.id !== row.id))}>移除</Button>
+              <Button size="small" type="link" onClick={() => setPermissionEditor({ row })}>修改</Button>
             </Space> }] : []),
           ]} />
           <div className="pc-workflow-grid pc-approval-assignment">

@@ -1,5 +1,6 @@
 import React from 'react';
-import { Empty, Modal, Table, Tag, Tooltip } from 'antd-pc';
+import { Button, Card, Empty, Modal, Table, Tag, Tooltip, Typography } from 'antd-pc';
+import { alignTableColumns } from './columnAlignment.js';
 
 const statusTones = {
   草稿: 'default',
@@ -42,10 +43,36 @@ function withPcTableFullText(columns = []) {
   });
 }
 
-export function PcTable({ columns = [], className = '', size = 'small', bordered = true, filtered = false, locale, ...props }) {
-  const normalizedColumns = withPcTableFullText(columns);
+export function PcTable({ columns = [], className = '', size = 'small', bordered = true, filtered = false, locale, rowSelection, ...props }) {
+  const normalizedColumns = withPcTableFullText(alignTableColumns(columns));
   const classes = [...new Set(['pc-table', ...className.split(/\s+/).filter(Boolean)])].join(' ');
-  return <Table {...props} columns={normalizedColumns} className={classes} size={size} bordered={bordered} locale={{ emptyText: <EmptyContent filtered={filtered} />, ...locale }} />;
+  return <Table {...props} columns={normalizedColumns} className={classes} rowSelection={rowSelection && { align: 'center', ...rowSelection }} size={size} bordered={bordered} locale={{ emptyText: <EmptyContent filtered={filtered} />, ...locale }} />;
+}
+
+export function QueryResults({ total, actions, conditions = [], onClear, batch, className = '', children }) {
+  const applied = conditions.filter(([, value]) => value !== null && value !== undefined && String(value).trim() !== '');
+  return <Card size="small" title="查询结果" className={`pc-query-results ${className}`.trim()} extra={
+    <div className="pc-query-result-tools">
+      <Typography.Text type="secondary">共 {total} 条</Typography.Text>
+      {actions}
+    </div>
+  }>
+    {applied.length > 0 && <div className="pc-query-result-filters" aria-label="已应用的查询条件">
+      {applied.map(([label, value]) => <Tag key={label} title={label + '：' + value}>{label}：{value}</Tag>)}
+      {onClear && <Button type="link" size="small" onClick={onClear}>清除筛选</Button>}
+    </div>}
+    {batch}
+    {children}
+  </Card>;
+}
+
+export function QueryBatchBar({ count, children, onCancel }) {
+  if (!count) return null;
+  return <div className="pc-query-batch-bar" role="region" aria-label="批量操作">
+    <span>已选本页 {count} 条</span>
+    {children}
+    <Button type="link" onClick={onCancel}>取消选择</Button>
+  </div>;
 }
 
 export function EmptyContent({ filtered = false, description }) {

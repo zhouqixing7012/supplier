@@ -14,6 +14,7 @@
 .pc-register-form .ant-form-item-control { min-width: 0; }
 .pc-register-form .ant-form-item-label > label { white-space: normal; }
 .pc-register-form .ant-picker { width: 100%; }
+.pc-certificate-expiry-long input::placeholder { color: var(--ant-color-text, #1d2126); }
 .pc-register-region { width: 46%; }
 
 .pc-register-actions {

@@ -25,6 +25,8 @@
 - `src/main.jsx`：协同门户登录、邮箱验证、60 天改密、主动修改密码页面。
 - `src/portal-entry.jsx`：PC 门户 ERP 工作区入口，读取原型会话账号，管理工作区路由与退出。`src/pc/portal-session.js` 保存会话内的演示账号。
 - `src/pages/bank-application.js`：管理平台两端共用的银行申请须知、字段定义及必填提示。
+- `src/erp/components.jsx`：管理平台与协同门户共用结果卡片、批量操作条与表格。普通表格通过 `src/erp/columnAlignment.js` 采用资产系统列对齐实现。
+- `src/pc/CertificateExpiry.jsx`：PC 代注册、草稿续办及资料变更共用证件有效期控件和日期校验。
 - `src/erp/FixedActionBar.jsx`：根据所属正文容器的滚动和尺寸变化维护固定操作区的边界状态。
 - `src/pc/workspace-links.js`：PC 管理平台与门户工作区共用的账户菜单「其他功能」入口。
 - `src/pages/supplier-register.jsx`：代注册与草稿续办，复用移动端四类供应商字段定义。

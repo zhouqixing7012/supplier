@@ -100,27 +100,10 @@ body:has(.pc-app) {
 }
 .pc-page-stack { display: flex; min-width: 0; flex-direction: column; gap: 16px; }
 
-/* 列表工具栏、批量状态和表格采用同一信息密度。 */
-
-.pc-list-toolbar .ant-space { row-gap: 8px !important; }
-
-.pc-batch-bar {
-  display: flex;
-  min-height: 38px;
-  align-items: center;
-  gap: 12px;
-  margin: 0 0 10px;
-  padding: 0 12px;
-  border: 1px solid #C2DCFF;
-  border-radius: 4px;
-  background: var(--pc-blue-soft);
-  color: var(--pc-text);
-}
-.pc-batch-bar strong { color: var(--pc-blue); font-variant-numeric: tabular-nums; }
 .pc-link { max-width: 100%; color: var(--pc-blue); font-weight: 500; text-underline-offset: 3px; }
 .pc-link:hover { color: #0D42D2; text-decoration: underline; }
 .pc-name-link { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.pc-row-actions { justify-content: center; gap: 8px; white-space: nowrap; }
+.pc-row-actions { justify-content: flex-end; gap: 8px; white-space: nowrap; }
 
 /* 供应商卡片集中展示对象标识和注册信息。 */
 .pc-detail-identity {
@@ -448,60 +431,6 @@ body:has(.pc-app) .ant-dropdown .ant-dropdown-menu-item { min-height: 34px; bord
   padding-inline: 4px;
 }
 .pc-query-range .ant-picker-suffix { flex: 0 0 auto; }
-.pc-list-toolbar {
-  display: flex;
-  min-width: 0;
-  min-height: 36px;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 12px;
-}
-/* 供应商查询沿用资产查询结果卡片的标题区和批量操作区。 */
-.pc-supplier-query-results .ant-card-head-wrapper {
-  flex-wrap: wrap;
-  gap: 8px 16px;
-}
-.pc-supplier-query-results .ant-card-head-title { flex: 0 1 auto; }
-.pc-supplier-query-results .ant-card-extra { margin-inline-start: auto; max-width: 100%; }
-.pc-supplier-query-tools { justify-content: flex-end; }
-.pc-supplier-query-filters,
-.pc-supplier-query-results .pc-batch-bar {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 12px;
-}
-.pc-supplier-query-filters .ant-tag {
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.pc-supplier-query-results .pc-batch-bar {
-  justify-content: flex-start;
-  min-height: 0;
-  padding: 8px 12px;
-  border: 0;
-  background: var(--ant-color-primary-bg, #e5f1ff);
-  color: var(--ant-color-primary, #145cff);
-}
-.pc-list-toolbar > * { min-width: 0; }
-.pc-list-meta {
-  display: flex;
-  min-width: 0;
-  flex: 0 0 auto;
-  align-items: center;
-  gap: 4px;
-  margin-left: auto;
-  color: var(--pc-muted);
-  font-size: 12px;
-  white-space: nowrap;
-}
-.pc-list-meta strong { color: var(--pc-subtext); font-weight: 600; font-variant-numeric: tabular-nums; }
-
 /* 文本容器允许收缩和换行，避免固定标签列挤压相邻内容 */
 .pc-bank-summary {
   display: flex;
@@ -524,8 +453,6 @@ body:has(.pc-app) .ant-dropdown .ant-dropdown-menu-item { min-height: 34px; bord
 
 /* 窄窗口下保留操作和表单的可用宽度。 */
 @media (max-width: 760px) {
-  .pc-list-toolbar { align-items: flex-start; flex-direction: column; }
-  .pc-list-meta { align-self: flex-end; margin-left: 0; }
   .pc-detail-tabs .ant-tabs-nav { overflow-x: auto; }
   .pc-detail-tabs .ant-tabs-tab { flex: 0 0 auto; }
   .pc-bank-form-grid, .pc-form-grid { grid-template-columns: minmax(0, 1fr); }
@@ -556,7 +483,6 @@ body:has(.pc-app) .ant-dropdown .ant-dropdown-menu-item { min-height: 34px; bord
 }
 
 /* 所有详情、表格、表单与工具栏的可收缩边界统一明确，避免长文本覆盖相邻内容。 */
-.pc-list-toolbar,
 .pc-bank-form-grid,
 .pc-bank-field,
 .pc-upload-control,

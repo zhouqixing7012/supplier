@@ -1,6 +1,7 @@
 import React, { useImperativeHandle, useState } from 'react';
 import { App, Button, Card, DatePicker, Form, Input, Select, Space, Steps, Typography, Upload } from 'antd-pc';
 import { RecordCollectionEditor, RecordFields, SupplierSnapshot } from '../pc/record-editor.jsx';
+import CertificateExpiry, { certificateExpiryRules, DATE_FORMAT, LONG_TERM } from '../pc/CertificateExpiry.jsx';
 import { bankError, fieldsFor } from './mobile-forms.jsx';
 import dayjs from 'dayjs';
 import { registrationEmailError, validEmail } from './mobile-edit-rules.js';
@@ -9,6 +10,8 @@ import { Plus } from 'lucide-react';
 import './supplier-register.css';
 
 const REGISTER_EMAIL_TIP = '用于供应商登录协同门户及修改密码时接收验证码';
+const LICENSE_HELP = '上传清晰的pdf、png、jpg、gif、jpc、bmp等格式图片，大小限制50M';
+const LICENSE_SIZE_LIMIT = 50 * 1024 * 1024;
 
 const TYPE_OPTIONS = [
   { value: 'company', label: '企业供应商' },
@@ -42,6 +45,7 @@ const PAGE_CONFIG = Object.fromEntries(TYPE_OPTIONS.map(({ value, label }, index
     const type = Array.isArray(kind) ? 'select' : kind;
     const field = {
       key: aliases[name] || name, label: fieldLabel, required, type,
+      expiryStartKey: name === 'licenseUntil' ? aliases.establishedAt || 'establishedAt' : undefined,
       placeholder: (type === 'select' ? '请选择' : '请输入') + fieldLabel,
       options: Array.isArray(kind) ? kind.map((option) => ({ value: option, label: option })) : undefined,
       full: kind === 'textarea' || name === 'certificateType',
@@ -51,10 +55,11 @@ const PAGE_CONFIG = Object.fromEntries(TYPE_OPTIONS.map(({ value, label }, index
   });
   const proofLabel = { company: '营业执照', foreign: '证书' }[value];
   return [value, { label, steps: value === 'personal' ? PERSONAL_STEPS : FOUR_STEPS,
-    upload: proofLabel && { label: proofLabel, required: true }, fields }];
+    upload: proofLabel && { label: proofLabel, required: true, businessLicense: value === 'company' }, fields }];
 }));
 
 function fieldRules(field) {
+  if (field.expiryStartKey) return certificateExpiryRules(field.expiryStartKey);
   const rules = [];
   if (field.type === 'address' && field.required) {
     return [{ required: true, validator: (_, value) => value?.detail?.trim()
@@ -82,6 +87,7 @@ function FieldControl({ field, value, onChange, ...controlProps }) {
   }
 
   if (field.type === 'date') {
+    if (field.expiryStartKey) return <CertificateExpiry {...props} />;
     return <DatePicker {...props} placeholder={`请选择${field.label}`} />;
   }
 
@@ -114,14 +120,29 @@ function FieldControl({ field, value, onChange, ...controlProps }) {
 }
 
 function UploadField({ upload, file, setFile }) {
+  const { message } = App.useApp();
+  const validate = (selected) => {
+    if (!upload.businessLicense) return false;
+    if (!/\.(?:pdf|png|jpe?g|gif|jpc|bmp|webp|tiff?)$/i.test(selected.name) && !selected.type?.startsWith('image/')) {
+      message.error('请选择 PDF 或图片格式的营业执照');
+      return Upload.LIST_IGNORE;
+    }
+    if (selected.size > LICENSE_SIZE_LIMIT) {
+      message.error('营业执照文件大小不能超过50M');
+      return Upload.LIST_IGNORE;
+    }
+    return false;
+  };
   return (
     <Form.Item label={upload.label} required={upload.required} className="pc-register-wide">
       <Space orientation="vertical" size={4}>
-        <Upload beforeUpload={() => false} fileList={file} onChange={({ fileList }) => setFile(fileList)} maxCount={1} accept=".jpg,.jpeg,.png,.pdf">
+        {upload.businessLicense && <Typography.Text type="danger">请先上传营业执照，企业信息可自动填充</Typography.Text>}
+        <Upload beforeUpload={validate} fileList={file} onChange={({ fileList }) => setFile(fileList)} maxCount={1}
+          accept={upload.businessLicense ? 'image/*,.pdf,.jpc' : '.jpg,.jpeg,.png,.pdf'}>
           <Button icon={<Plus size={14} />}>上传{upload.label}</Button>
         </Upload>
-        {upload.note && <Typography.Text type="danger">{upload.note}</Typography.Text>}
-        <Typography.Text type="secondary">支持 JPG、PNG、PDF 文件</Typography.Text>
+        <Typography.Text type="secondary">{upload.businessLicense ? LICENSE_HELP : '支持 JPG、PNG、PDF 文件'}</Typography.Text>
+        {upload.businessLicense && file[0]?.originFileObj && <Typography.Text type="secondary">当前原型未接入证照识别服务，请手动填写企业信息。</Typography.Text>}
       </Space>
     </Form.Item>
   );
@@ -141,6 +162,7 @@ function registrationValues(type, basic) {
     const value = basic[field.key] ?? basic[aliases[field.key]];
     if (value == null || value === '') return [];
     if (field.type === 'date') {
+      if (field.expiryStartKey && value === LONG_TERM) return [[field.key, value]];
       const date = dayjs(value);
       return date.isValid() ? [[field.key, date]] : [];
     }
@@ -175,7 +197,7 @@ export function SupplierRegisterPage({ initialType = 'company', profile, onBack,
   const preview = Object.fromEntries(config.fields.map((field) => {
     const value = basic[field.key];
     const label = field.options?.find((item) => item.value === value)?.label;
-    return [field.key, label || (value?.format ? value.format('YYYY-MM-DD') : value?.detail || (typeof value === 'string' ? value.trim() : value))];
+    return [field.key, label || (value?.format ? value.format(DATE_FORMAT) : value?.detail || (typeof value === 'string' ? value.trim() : value))];
   }));
   const next = () => {
     if (title === '联系人信息' && contacts.some((contact) => !contact.name?.trim() || !contact.phone?.trim() || !validEmail(contact.email))) {
@@ -253,6 +275,7 @@ export function SupplierRegisterPage({ initialType = 'company', profile, onBack,
                 name={field.key}
                 label={field.label}
                 tooltip={field.tooltip}
+                dependencies={field.expiryStartKey ? [field.expiryStartKey] : undefined}
                 rules={fieldRules(field)}
                 initialValue={field.defaultValue}
               >
@@ -266,7 +289,10 @@ export function SupplierRegisterPage({ initialType = 'company', profile, onBack,
       {title === '联系人信息' && <RecordCollectionEditor type={supplierType} records={contacts} onChange={track(setContacts)} />}
       {title === '银行信息' && <RecordCollectionEditor bank type={supplierType} records={banks} onChange={track(setBanks)} />}
       {title === '预览提交' && <>
-        <Card size="small" title="基本信息"><RecordFields fields={[['type', '供应商类型'], ...config.fields.map(({ key, label }) => [key, label])]} value={{ ...preview, type: config.label }} /></Card>
+        <Card size="small" title="基本信息"><RecordFields fields={[
+          ['type', '供应商类型'], ...(config.upload ? [['proof', config.upload.label]] : []),
+          ...config.fields.map(({ key, label }) => [key, label]),
+        ]} value={{ ...preview, type: config.label, proof: file[0]?.name }} /></Card>
         <SupplierSnapshot profile={{ type: supplierType, basic: { ...preview, qualifications }, contacts, banks }} section="collections" />
       </>}
       <div className="pc-register-actions">

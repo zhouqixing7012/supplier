@@ -5,6 +5,7 @@ import { DetailGrid, DetailItem } from '../erp/DetailGrid.jsx';
 import { PcModal, PcTable } from '../erp/components.jsx';
 import { bankError, blankBank, fieldsFor } from '../pages/mobile-forms.jsx';
 import { bankDirectory, branches, supplierTypes } from '../pages/mobile-data.js';
+import CertificateExpiry, { certificateExpiryRules } from './CertificateExpiry.jsx';
 
 const contactFields = [['name', '姓名', true], ['phone', '电话', true], ['gender', '性别', false, ['男', '女']], ['email', '邮箱', true, 'email'], ['department', '部门'], ['job', '职位'], ['wechat', '微信'], ['note', '备注', false, 'textarea']];
 const qualificationFields = [['name', '资质名称', true], ['level', '资质等级'], ['number', '资质编号'], ['issuer', '颁发单位'], ['start', '有效开始日期', false, 'date'], ['end', '有效结束日期', false, 'date'], ['attachment', '附件', false, 'file']];
@@ -27,8 +28,11 @@ export function RecordFields({ fields, value, columns = 3 }) {
 function FormFields({ fields }) {
   return fields.map(([key, label, required, control]) => <Form.Item key={key} name={key} label={label}
     className={['file', 'textarea'].includes(control) ? 'pc-register-wide' : undefined}
-    rules={[{ required: !!required, message: '请填写' + label }, ...(control === 'email' ? [{ type: 'email', message: '请输入正确的邮箱格式' }] : [])]}>
-    {Array.isArray(control) ? <Select showSearch options={control.map((value) => ({ value }))} />
+    dependencies={key === 'licenseUntil' ? ['establishedAt'] : undefined}
+    rules={key === 'licenseUntil' ? certificateExpiryRules('establishedAt')
+      : [{ required: !!required, message: '请填写' + label }, ...(control === 'email' ? [{ type: 'email', message: '请输入正确的邮箱格式' }] : [])]}>
+    {key === 'licenseUntil' ? <CertificateExpiry asText />
+      : Array.isArray(control) ? <Select showSearch options={control.map((value) => ({ value }))} />
       : control === 'file' ? <FileField />
       : control === 'textarea' ? <Input.TextArea rows={3} />
       : <Input type={control === 'date' ? 'date' : undefined} maxLength={key === 'number' ? 50 : undefined} />}
@@ -38,8 +42,8 @@ function FormFields({ fields }) {
 export function RecordTable({ fields, records, onEdit, onRemove, canRemove, numbered = false }) {
   const columns = fields.map(([dataIndex, title]) => ({ dataIndex, title, width: 132, render: valueText }));
   if (numbered) columns.unshift({ title: '序号', width: 60, align: 'center', render: (_, row, index) => index + 1 });
-  if (onEdit) columns.push({ key: 'actions', title: '操作', width: 100, fixed: 'right', render: (_, row, index) =>
-    <Space size={4}><Button size="small" type="link" onClick={() => onEdit(index)}>编辑</Button>{(!canRemove || canRemove(row)) && <Button size="small" type="link" danger onClick={() => onRemove(index)}>删除</Button>}</Space> });
+  if (onEdit) columns.push({ key: 'actions', title: '操作', width: 100, fixed: 'right', align: 'right', render: (_, row, index) =>
+    <Space size={4}>{(!canRemove || canRemove(row)) && <Button size="small" type="link" danger onClick={() => onRemove(index)}>删除</Button>}<Button size="small" type="link" onClick={() => onEdit(index)}>编辑</Button></Space> });
   return <PcTable rowKey={(row) => row.id || row.rowKey} columns={columns} dataSource={records.map((row, index) => ({ ...row, rowKey: index }))} pagination={false} scroll={{ x: 'max-content' }} />;
 }
 
