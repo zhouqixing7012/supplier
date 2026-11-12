@@ -1,46 +1,10 @@
 import React, { useEffect, useImperativeHandle, useRef, useState } from 'react';
-import { Alert, App, Button, Card, Form, Input, Select, Space, Upload } from 'antd-pc';
+import { Alert, App, Button, Card, Form, Input, Select, Space } from 'antd-pc';
 import { DetailGrid, DetailItem } from '../erp/DetailGrid.jsx';
-import { PcModal } from '../erp/components.jsx';
+import ApplicationAttachment from './AttachmentField.jsx';
 import { bankApplicationFields, bankApplicationNotice, bankApplicationRequired } from '../pages/bank-application.js';
 
 const today = () => new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Shanghai' });
-
-function AttachmentPreview({ file, onClose }) {
-  const [url, setUrl] = useState('');
-  useEffect(() => {
-    const source = URL.createObjectURL(file);
-    setUrl(source);
-    return () => URL.revokeObjectURL(source);
-  }, [file]);
-  const isImage = file.type.startsWith('image/');
-  return <PcModal open title="查看附件" onCancel={onClose} footer={<Button onClick={onClose}>关闭</Button>}>
-    <Space direction="vertical">
-      {isImage && url && <img src={url} alt={file.name} style={{ display: 'block', maxWidth: '100%', maxHeight: '55vh', objectFit: 'contain' }} />}
-      <span>{file.name}</span>
-      {!isImage && <span>此文件不支持图片预览。</span>}
-      {url && <a href={url} download={file.name}>下载附件</a>}
-    </Space>
-  </PcModal>;
-}
-
-function ApplicationAttachment({ id, value, onChange, readOnly = false }) {
-  const [preview, setPreview] = useState(false);
-  const { modal } = App.useApp();
-  if (readOnly && !value) return '—';
-  return <Space wrap>
-    {value && <Button type="link" size="small" title={value.name} aria-label={'查看附件：' + value.name} onClick={() => setPreview(true)}>{value.name}</Button>}
-    {!readOnly && <Upload showUploadList={false} beforeUpload={(file) => {
-      onChange(file);
-      return Upload.LIST_IGNORE;
-    }}><Button id={id}>{value ? '替换附件' : '选择附件'}</Button></Upload>}
-    {!readOnly && value && <Button danger type="link" size="small" onClick={() => modal.confirm({
-      centered: true, className: 'pc-confirm', title: '确认移除附件？', okText: '移除', cancelText: '取消',
-      onOk: () => onChange(undefined),
-    })}>移除附件</Button>}
-    {preview && value && <AttachmentPreview file={value} onClose={() => setPreview(false)} />}
-  </Space>;
-}
 
 export function BankApplicationPage({ currentUser, department, application, onSave, leaveRef, view = 'notice', onViewChange }) {
   const [form] = Form.useForm();

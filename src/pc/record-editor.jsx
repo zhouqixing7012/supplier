@@ -1,46 +1,52 @@
 import React, { useImperativeHandle, useState } from 'react';
-import { App, Button, Card, Form, Input, Select, Space, Steps, Upload } from 'antd-pc';
+import { App, Button, Card, Form, Input, Select, Space, Steps } from 'antd-pc';
 import { Plus } from 'lucide-react';
 import { DetailGrid, DetailItem } from '../erp/DetailGrid.jsx';
 import { PcModal, PcTable } from '../erp/components.jsx';
 import { bankError, blankBank, fieldsFor } from '../pages/mobile-forms.jsx';
 import { bankDirectory, branches, supplierTypes } from '../pages/mobile-data.js';
+import AddressField, { readRegistrationAddress, addressText, addressRules } from './AddressField.jsx';
+import DateField from './DateField.jsx';
+import AttachmentField from './AttachmentField.jsx';
 import CertificateExpiry, { certificateExpiryRules } from './CertificateExpiry.jsx';
 
 const contactFields = [['name', '姓名', true], ['phone', '电话', true], ['gender', '性别', false, ['男', '女']], ['email', '邮箱', true, 'email'], ['department', '部门'], ['job', '职位'], ['wechat', '微信'], ['note', '备注', false, 'textarea']];
 const qualificationFields = [['name', '资质名称', true], ['level', '资质等级'], ['number', '资质编号'], ['issuer', '颁发单位'], ['start', '有效开始日期', false, 'date'], ['end', '有效结束日期', false, 'date'], ['attachment', '附件', false, 'file']];
 const bankFields = [['accountType', '账户类型', true, ['基本账户', '一般账户']], ['bank', '开户银行', true], ['branch', '银行分行', true], ['country', '开户行所在国家/地区', true], ['province', '开户所在省'], ['city', '开户所在市'], ['name', '账户名称', true], ['number', '银行账号', true], ['currency', '币种', true, ['人民币', '美元', '港币']], ['proof', '开户证明', false, 'file'], ['note', '备注', false, 'textarea']];
-const profileFields = (type) => [...fieldsFor(type), ['registerEmail', '注册邮箱', true, 'email'], ['proof', '证照附件', false, 'file']];
-const valueText = (value) => value?.name || value?.detail || value || '—';
-
-function FileField({ value, onChange, id }) {
-  return <Space wrap><Upload beforeUpload={(file) => { onChange(file.name); return false; }} showUploadList={false} maxCount={1}>
-    <Button id={id} icon={<Plus size={14} />}>选择附件</Button>
-  </Upload>{value && <span>{value} <Button type="link" size="small" onClick={() => onChange('')}>移除</Button></span>}</Space>;
-}
+const profileFields = (type) => [...fieldsFor(type).flatMap((field) => field[0] === 'supplierName' ? [field, ['registerEmail', '供应商注册邮箱', true, 'email']] : [field]), ['proof', '证照附件', false, 'file']];
+const valueText = (value) => value?.name || (value?.region ? addressText(value) : value?.detail) || (value ?? '—');
 
 export function RecordFields({ fields, value, columns = 3 }) {
   return <DetailGrid columns={columns} className="pc-detail-grid">{fields.map(([key, label, , control]) =>
-    <DetailItem key={key} label={label} span={control === 'textarea' ? 3 : undefined}>{valueText(value[key])}</DetailItem>
+    <DetailItem key={key} label={label} span={control === 'textarea' ? 3 : undefined}>{control === 'file' ? <AttachmentField value={value[key]} readOnly /> : valueText(value[key])}</DetailItem>
   )}</DetailGrid>;
 }
 
 function FormFields({ fields }) {
   return fields.map(([key, label, required, control]) => <Form.Item key={key} name={key} label={label}
-    className={['file', 'textarea'].includes(control) ? 'pc-register-wide' : undefined}
+    tooltip={key === 'registerEmail' ? '用于供应商登录协同门户及修改密码时接收验证码' : undefined}
+    className={['file', 'textarea', 'address'].includes(control) ? 'pc-register-wide' : undefined}
     dependencies={key === 'licenseUntil' ? ['establishedAt'] : undefined}
-    rules={key === 'licenseUntil' ? certificateExpiryRules('establishedAt')
+    rules={control === 'address' && required ? addressRules : key === 'licenseUntil' ? certificateExpiryRules('establishedAt')
       : [{ required: !!required, message: '请填写' + label }, ...(control === 'email' ? [{ type: 'email', message: '请输入正确的邮箱格式' }] : [])]}>
     {key === 'licenseUntil' ? <CertificateExpiry asText />
       : Array.isArray(control) ? <Select showSearch options={control.map((value) => ({ value }))} />
-      : control === 'file' ? <FileField />
+      : control === 'file' ? <AttachmentField storeAsKey />
+      : control === 'address' ? <AddressField />
+      : control === 'date' ? <DateField asText placeholder={'请选择' + label} />
       : control === 'textarea' ? <Input.TextArea rows={3} />
-      : <Input type={control === 'date' ? 'date' : undefined} maxLength={key === 'number' ? 50 : undefined} />}
+      : <Input maxLength={key === 'number' ? 50 : undefined} />}
   </Form.Item>);
 }
 
 export function RecordTable({ fields, records, onEdit, onRemove, canRemove, numbered = false }) {
-  const columns = fields.map(([dataIndex, title]) => ({ dataIndex, title, width: 132, render: valueText }));
+  const columns = fields.map(([dataIndex, title, , control]) => ({
+    dataIndex, title,
+    width: control === 'file' || control === 'textarea' || ['email', 'branch', 'name', 'issuer'].includes(dataIndex) ? 240
+      : ['number', 'phone', 'department'].includes(dataIndex) ? 180 : control === 'date' ? 150 : 120,
+    alignmentType: control === 'date' ? 'date' : ['gender', 'currency', 'accountType'].includes(dataIndex) ? 'enum' : 'text',
+    render: control === 'file' ? (value) => <AttachmentField value={value} readOnly /> : valueText,
+  }));
   if (numbered) columns.unshift({ title: '序号', width: 60, align: 'center', render: (_, row, index) => index + 1 });
   if (onEdit) columns.push({ key: 'actions', title: '操作', width: 100, fixed: 'right', align: 'right', render: (_, row, index) =>
     <Space size={4}>{(!canRemove || canRemove(row)) && <Button size="small" type="link" danger onClick={() => onRemove(index)}>删除</Button>}<Button size="small" type="link" onClick={() => onEdit(index)}>编辑</Button></Space> });
@@ -159,7 +165,7 @@ export function SupplierProfileEditor({ profile, initialStep = 0, onCancel, onSu
   };
   return <div className="pc-page-stack pc-register">
     <Card size="small"><Steps current={steps.indexOf(step)} size="small" items={steps.map((id) => ({ title: ['基本信息', '联系人信息', '银行信息', '预览提交'][id] }))} /></Card>
-    {step === 0 && <Card size="small" title="基本信息"><Form form={form} className="pc-register-form" initialValues={draft.basic} onFinish={(basic) => { setDraft((current) => ({ ...current, basic: { ...current.basic, ...basic } })); next(); }}>
+    {step === 0 && <Card size="small" title="基本信息"><Form form={form} className="pc-register-form" initialValues={{ ...draft.basic, address: fieldsFor(profile.type).some(([key, , , control]) => key === 'address' && control === 'address') ? draft.basic.addressParts || draft.basic.address : draft.basic.address }} onFinish={(basic) => { setDraft((current) => ({ ...current, basic: { ...current.basic, ...basic, ...(fieldsFor(profile.type).some(([key, , , control]) => key === 'address' && control === 'address') ? { address: addressText(basic.address), addressParts: readRegistrationAddress(basic.address) } : {}) } })); next(); }}>
       <div className="pc-register-grid"><FormFields fields={profileFields(profile.type)} /></div>
     </Form></Card>}
     {step === 0 && <RecordCollectionEditor qualification type={profile.type} records={draft.basic.qualifications || []}

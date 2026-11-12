@@ -11,19 +11,21 @@ export function columnAlignment(column) {
   const key = Array.isArray(column.dataIndex) ? column.dataIndex.at(-1) : column.dataIndex || column.key || '';
   if (title === '行号' && /^(lineNo|lineNumber|poLine|applicationLine)$/i.test(key)) return 'left';
   const type = column.alignmentType || column.sizing?.type || column.format;
+  if (type === 'enum' || /^(性别|币种|账户类型)$/.test(title)) return 'center';
+  if (type === 'text') return 'left';
   if (type === 'action' || /^(操作|查看|进度查看)$/.test(title) || /^(action|actions|operation)$/i.test(key)) return 'right';
   if (/^(序号|行号|Excel行号|No\.?|序列|#)$/i.test(title) || type === 'index') return 'center';
   if (/编号|编码|标签号|单号|序列号|工号|账号|账户|手机号|电话|SN|IP地址|PR单.*行|SA单.*行|PO.*行号|明细.*号/i.test(title)) return 'left';
   if (/名称$|描述$|说明$|备注$|原因$|意见$|类型$|^目标价值$|^业务价值$/.test(title)) return 'left';
   if (/状态|^是否|^选择$|^启用$|^可借用$/.test(title) || ['status', 'boolean'].includes(type)) return 'center';
   if (/日期|时间|^年度$|^年份$|^盘点年份$/.test(title) || ['date', 'datetime', 'year'].includes(type)) return 'center';
-  if (['number', 'money', 'percent', 'amount', 'quantity'].includes(type) || /数量|金额|单价|净值|原值|总量|总额|价值|占比|增长率|百分比|赔偿|人均|寿命|年限|天数|次数|费用|价格|折旧|增长量|份数|税金|小计|税率|税额|比率|比例|完成率|使用率|条数|行数|笔数|总数|人数/.test(title)) return 'right';
+  if (['number', 'money', 'percent', 'amount', 'quantity'].includes(type) || /数量|金额|单价|净值|原值|总量|总额|价值|占比|增长率|百分比|赔偿|人均|寿命|年限|天数|次数|费用|价格|折旧|增长量|份数|税金|小计|税率|税额|比率|比例|完成率|使用率|条数|行数|笔数|总数|人数|节点数/.test(title)) return 'right';
   if (/名称|描述|说明|备注|原因|意见|姓名|部门|公司|仓库|配置|地址|地点|城市|楼层|用途|类别|类型|品牌|型号|单位/.test(title) && !/金额|单价|数量|净值|原值|总量|总额|价值/.test(title)) return 'left';
   if (/^(index|rowIndex|rowNo|sequence)$/i.test(key)) return 'center';
   if (/^(progress|status|enabled|borrowable|selected)$/i.test(key)) return 'center';
   if (/(At|Date|Time)$/.test(key)) return 'center';
   if (/(Quantity|Amount|Price|Count|Rate|Percent|Net|Original)$/.test(key) || /^(quantity|qty|amount|price|count|rate|percent|net|original)$/i.test(key)) return 'right';
-  return 'left';
+  return ['left', 'center', 'right'].includes(column.align) ? column.align : 'left';
 }
 
 export function alignTableColumns(columns, preserve = false) {

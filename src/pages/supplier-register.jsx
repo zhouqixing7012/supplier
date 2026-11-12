@@ -1,42 +1,19 @@
 import React, { useImperativeHandle, useState } from 'react';
-import { App, Button, Card, Cascader, DatePicker, Form, Input, Select, Space, Steps, Typography, Upload } from 'antd-pc';
+import { App, Button, Card, Form, Input, Select, Space, Steps, Typography, Upload } from 'antd-pc';
 import { RecordCollectionEditor, RecordFields, SupplierSnapshot } from '../pc/record-editor.jsx';
 import CertificateExpiry, { certificateExpiryRules, DATE_FORMAT, LONG_TERM } from '../pc/CertificateExpiry.jsx';
 import { bankError, fieldsFor } from './mobile-forms.jsx';
 import dayjs from 'dayjs';
 import { registrationEmailError, validEmail } from './mobile-edit-rules.js';
 import { supplierTypes } from './mobile-data.js';
-import { regionData } from './registration-regions.js';
+import AddressField, { readRegistrationAddress, addressRules } from '../pc/AddressField.jsx';
+import DateField from '../pc/DateField.jsx';
 import { Plus } from 'lucide-react';
 import './supplier-register.css';
 
 const REGISTER_EMAIL_TIP = '用于供应商登录协同门户及修改密码时接收验证码';
 const LICENSE_HELP = '上传清晰的pdf、png、jpg、gif、jpc、bmp等格式图片，大小限制50M';
 const LICENSE_SIZE_LIMIT = 50 * 1024 * 1024;
-
-const regionOptions = Object.entries(regionData).map(([province, cities]) => ({
-  value: province,
-  label: province,
-  children: Object.entries(cities).map(([city, districts]) => ({
-    value: city,
-    label: city,
-    children: districts.map((district) => ({ value: district, label: district })),
-  })),
-}));
-
-function readRegistrationAddress(value) {
-  const [region, ...detail] = typeof value === 'string' ? value.split(' ') : [];
-  const savedRegion = typeof value === 'string' ? region : value?.region;
-  const legacyDistrict = { haidian: '海淀区', chaoyang: '朝阳区' }[savedRegion];
-  let parts = legacyDistrict ? ['北京市', '北京市', legacyDistrict] : (savedRegion || '').split('/');
-  if (parts.length === 2 && regionData[parts[0]]?.[parts[0]]) parts = [parts[0], ...parts];
-  const [province, city, district] = parts;
-  const validRegion = parts.length === 3 && regionData[province]?.[city]?.includes(district);
-  return {
-    region: validRegion ? parts.join('/') : undefined,
-    detail: typeof value === 'string' ? (validRegion ? detail.join(' ') : value) : value?.detail || '',
-  };
-}
 
 const TYPE_OPTIONS = [
   { value: 'company', label: '企业供应商' },
@@ -87,9 +64,7 @@ function fieldRules(field) {
   if (field.expiryStartKey) return certificateExpiryRules(field.expiryStartKey);
   const rules = [];
   if (field.type === 'address' && field.required) {
-    return [{ required: true, validator: (_, value) => value?.region && value?.detail?.trim()
-      ? Promise.resolve()
-      : Promise.reject(new Error(value?.region ? '请输入详细地址' : '请选择省 / 市 / 区县')) }];
+    return addressRules;
   }
   if (field.required) rules.push({ required: true, message: `请${field.type === 'select' || field.type === 'date' ? '选择' : '输入'}${field.label}` });
   if (field.type === 'email') rules.push({ validator: (_, value) => {
@@ -113,7 +88,7 @@ function FieldControl({ field, value, onChange, ...controlProps }) {
 
   if (field.type === 'date') {
     if (field.expiryStartKey) return <CertificateExpiry {...props} />;
-    return <DatePicker {...props} classNames={{ popup: { root: 'pc-register-picker-popup' } }} placeholder={`请选择${field.label}`} />;
+    return <DateField {...props} placeholder={`请选择${field.label}`} />;
   }
 
   if (field.type === 'textarea') {
@@ -121,24 +96,7 @@ function FieldControl({ field, value, onChange, ...controlProps }) {
   }
 
   if (field.type === 'address') {
-    const address = value || {};
-    return (
-      <div className="pc-register-address">
-        <Cascader
-          className="pc-register-region"
-          classNames={{ popup: { root: 'pc-register-picker-popup pc-register-region-popup' } }}
-          aria-label="省市区"
-          value={address.region?.split('/')}
-          placeholder="请选择省 / 市 / 区县"
-          options={regionOptions}
-          displayRender={(labels) => labels.filter((label, index) => label !== labels[index - 1]).join(' / ')}
-          showSearch
-          onChange={(parts) => onChange?.({ ...address, region: parts?.join('/') || undefined })}
-        />
-        <Input {...controlProps} aria-label="详细地址" value={address.detail || ''} placeholder="请输入街道、门牌号等详细地址" maxLength={50}
-          onChange={(event) => onChange?.({ ...address, detail: event.target.value })} />
-      </div>
-    );
+    return <AddressField {...props} />;
   }
 
   return <Input {...props} type={field.type === 'email' ? 'email' : 'text'} placeholder={field.placeholder} />;
