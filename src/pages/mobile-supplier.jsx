@@ -25,6 +25,18 @@ import './mobile-motion.css';
 import { runMotion, useMotionStructure, usePanelState, MotionPresence } from './mobile-motion.jsx';
 import { routeMotion } from './mobile-motion.js';
 
+const managementMenus = [
+  { route: 'query', label: '供应商查询' },
+  { route: 'mine', label: '我的邀请' },
+  { route: 'my-ratings', label: '我的评分' },
+];
+const screenshotMenus = [
+  ...managementMenus,
+  { route: 'ratings', label: '供应商评分' },
+  { route: 'rating-ops', label: '供应商运维-评分查询' },
+  { route: 'bank-application', label: '银行信息申请' },
+];
+
 const clone = value => structuredClone(value);
 const currentInviter = '陈才慧';
 const readRoute = () => decodeURIComponent(window.location.hash.replace(/^#\/mobile\/?/, '')) || 'query';
@@ -277,7 +289,10 @@ function MobileSurface({ onComparisonChange, scene, shot, ratings, setRatings, a
   const mine = scene.startsWith('mine') || scene === 'export';
   const listScene = scene.startsWith('query') || mine;
   const adminScene = !!shot && shot.index >= 25;
-  const tab = mine ? 1 : scene === 'my-ratings' ? 2 : ['ratings', 'rating-filter', 'department'].includes(scene) ? 3 : scene === 'rating-ops' ? 4 : ['bank-application', 'application-empty'].includes(scene) ? 5 : 0;
+  const menus = shot ? screenshotMenus : managementMenus;
+  const menuRoute = listScene ? (mine ? 'mine' : 'query') : scene;
+  const tab = menus.findIndex(menu => menu.route === menuRoute);
+  const selectMenu = index => go(menus[index].route);
   const fixtureList = useMemo(() => {
     let list = clone(suppliers);
     if (!shot) return (mine ? list.filter(s => s.inviter === '陈才慧') : list).sort((a, b) => b.date.localeCompare(a.date));
@@ -469,8 +484,8 @@ function MobileSurface({ onComparisonChange, scene, shot, ratings, setRatings, a
     {shot && <div className="m-watermark" aria-hidden="true">{Array.from({ length: 60 }, (_, i) => <span key={i}>{shot.index < 25 ? '孙志强213852' : '陈才慧208660'}</span>)}</div>}
     {shot && <div className="m-status-bar"><span>{shot.time.slice(0, 2)}:{shot.time.slice(2, 4)}</span><div><Signal /><Wifi /><Battery /><small>67</small></div></div>}
     <Header right={['workspace-home', 'workspace-account'].includes(scene) ? <button type="button" className="m-portal-account-button" aria-label="账户设置" onClick={() => setPortalAccountMenu(true)}><CircleUserRound aria-hidden="true" /></button> : undefined} hideBack={(portalRegistration && !accountRegistered) || ['workspace-home', 'workspace-account'].includes(scene)} onBack={back} title={shot ? (scene.startsWith('portal') ? '协同门户-登录' : '供应商管理平台') : scene === 'workspace-tasks' ? (views.portalTaskTab ?? 2) < 2 ? '采购报价' : '价税拆分' : mobileTitle(scene)} close={scene.startsWith('portal') ? () => go('query') : undefined} />
-    {(listScene || ['ratings', 'my-ratings', 'rating-ops', 'bank-application'].includes(scene)) && <Tabs active={tab} onChange={i => go(['query', 'mine', 'my-ratings', 'ratings', 'rating-ops', 'bank-application'][i])} />}
-    <SwipeArea active={tab} count={6} onChange={i => { if (listScene || ['ratings', 'my-ratings', 'rating-ops', 'bank-application'].includes(scene)) go(['query', 'mine', 'my-ratings', 'ratings', 'rating-ops', 'bank-application'][i]); }}>
+    {tab >= 0 && <Tabs active={tab} items={menus.map(menu => menu.label)} onChange={selectMenu} />}
+    <SwipeArea active={Math.max(0, tab)} count={tab >= 0 ? menus.length : 1} onChange={selectMenu}>
     {listScene && <>
       <SearchBox value={search} onChange={setSearch} placeholder={mine ? "搜索供应商名称" : "搜索供应商名称或邀请人"}><button className="m-icon-button" aria-label={exportBusy ? '导出中' : '导出供应商'} disabled={exportBusy} onClick={startExport}><Download /></button><FilterButton label="筛选供应商" onClick={() => runMotion(() => setFiltering(true), 'forward')} /><button className="m-icon-button" aria-label={batch ? '退出批量选择' : '批量选择'} onClick={() => { runMotion(() => { setBatch(!batch); setChecked([]); }, 'record'); }}>{batch ? <X /> : <ListChecks />}</button></SearchBox>
       <AppliedFilters filters={filters} query={search} count={list.length} onEdit={() => runMotion(() => setFiltering(true), 'forward')} onClear={() => setFilters({})} />

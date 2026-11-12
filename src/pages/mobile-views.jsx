@@ -11,8 +11,7 @@ import { canChangeSupplier, canRateSupplier, canReinviteSupplier, canDeleteSuppl
 
 import { MotionDetails, MotionPresence, runMotion } from './mobile-motion.jsx';
 
-export const mobileTabs = ['供应商查询', '我的邀请', '我的评分', '供应商评分', '供应商运维-评分查询', '银行信息申请'];
-export function Tabs({ active, onChange, items = mobileTabs, variant = 'line', showDirectory = true, stretch = false }) {
+export function Tabs({ active, onChange, items, variant = 'line', showDirectory = true, stretch = false }) {
   const ref = useRef(null);
   const [directory, setDirectory] = useState(false);
   useEffect(() => { let cancelled = false; const align = () => { const nav = ref.current; const node = nav?.querySelector('[aria-current="page"]'); if (!cancelled && node) nav.scrollLeft = active === items.length - 1 ? nav.scrollWidth - nav.clientWidth : Math.max(0, node.getBoundingClientRect().left - nav.getBoundingClientRect().left + nav.scrollLeft - (nav.clientWidth - node.clientWidth) / 2); }; align(); document.fonts.ready.then(align); return () => { cancelled = true; }; }, [active, items.length]);

@@ -84,8 +84,34 @@ try {
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), '页面横向溢出');
     await shot('scene-' + s.time);
   });
-  await check('全部功能可直接发现并进入银行申请', async () => {
-    await goto('mobile'); await button('全部标签').click(); await page.locator('#root').getByRole('dialog').getByRole('button', { name: '银行信息申请', exact: true }).click(); await button('确认申请').waitFor();
+  await check('管理平台菜单和全部标签仅显示三个入口', async () => {
+    await goto('mobile');
+    const labels = ['供应商查询', '我的邀请', '我的评分'];
+    const menu = page.locator('#root').getByRole('navigation', { name: '功能模块' });
+    assert.deepEqual(await menu.getByRole('button').allTextContents(), labels);
+    await button('全部标签').click();
+    const directory = page.locator('#root').getByRole('dialog');
+    for (const label of ['供应商评分', '供应商运维-评分查询', '银行信息申请']) {
+      assert.equal(await directory.getByRole('button', { name: label, exact: true }).count(), 0);
+    }
+    await directory.getByRole('button', { name: '我的评分', exact: true }).click();
+    await page.locator('#root [data-scene="my-ratings"]').waitFor();
+    await swipe(page.locator('#root .m-rating-list h3').first(), -130);
+    assert.ok(page.url().endsWith('#/mobile/my-ratings'));
+  });
+  await check('移动端原型导图可下载当前PRD', async () => {
+    await page.goto(base + '/#/mobile/page-map');
+    const link = page.getByRole('link', { name: '下载 PRD', exact: true });
+    const file = new URL(await link.getAttribute('href'), base);
+    const response = await page.request.get(file.href);
+    assert.ok(response.ok());
+    const body = await response.text();
+    assert.match(body, /供应商移动端 PRD/);
+    assert.match(body, /移动端管理平台菜单提供【供应商查询】【我的邀请】【我的评分】/);
+    assert.doesNotMatch(body, /银行信息申请|评分运维/);
+    const download = page.waitForEvent('download');
+    await link.click();
+    assert.equal((await download).suggestedFilename(), '供应商移动端PRD.md');
   });
   await check('主模块内容左滑切到我的邀请，右滑返回', async () => {
     await goto('mobile'); await swipe(page.locator('#root .m-supplier-card h3').first(), -130); await page.locator('#root [data-scene="mine"]').waitFor(); await swipe(page.locator('#root .m-supplier-card h3').first(), 130, 0, 100); await page.locator('#root [data-scene="query"]').waitFor();

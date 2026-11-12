@@ -1,5 +1,6 @@
 import React, { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { ArrowLeft, ArrowUpRight, Maximize2, Minus, Network, Plus } from 'lucide-react';
+import mobilePrdUrl from '../../docs/supplier-mobile-prd.md?url';
 import './mobile-page-map.css';
 
 const node = (label, route, children = [], reuse = '') => ({ label, route: route.includes('?') ? route : route + '?map=1', children, reuse });
@@ -77,15 +78,6 @@ export const pageMap = [
       link('填写评分', target('rating-edit', { from: 'my-ratings' })),
       link('修改评分', target('rating-edit', { from: 'my-ratings', record: 'sample' }), '评分编辑页'),
       link('评分详情', target('rating-detail', { from: 'my-ratings', record: 'sample' }), '评分编辑页只读模式'),
-    ]),
-    node('供应商评分', 'ratings', [
-      link('评分筛选', target('rating-filter', { from: 'ratings' }), '评分筛选'),
-      link('评分详情', target('rating-detail', { from: 'ratings', record: 'sample' }), '评分编辑页只读模式'),
-    ], '评分列表组件'),
-    link('供应商运维-评分查询', 'rating-ops'),
-    node('银行信息申请须知', 'bank-application', [
-      link('银行信息申请表', 'bank-application-form'),
-      link('查看本次申请', target('bank-application-form', { record: 'sample' }), '申请表只读模式'),
     ]),
   ]),
   node('供应商协同门户', 'portal', [
@@ -300,7 +292,10 @@ export function MobilePageMap({ go }) {
       <div className="page-map-heading"><span className="page-map-icon"><Network size={20} aria-hidden="true" /></span>
         <div><h1>移动端原型导图</h1><p>供应商管理平台与协同门户</p></div>
       </div>
-      <a href="#/mobile"><ArrowLeft size={16} aria-hidden="true" /><span>返回原型</span></a>
+      <div className="page-map-header-actions">
+        <a href={mobilePrdUrl} download="供应商移动端PRD.md">下载 PRD</a>
+        <a href="#/mobile"><ArrowLeft size={16} aria-hidden="true" /><span>返回原型</span></a>
+      </div>
     </header>
     <div className={dragging ? 'page-map-canvas is-dragging' : 'page-map-canvas'} ref={viewport} tabIndex={0}
       role="region" aria-label="原型导图画布" onKeyDown={onKeyDown}

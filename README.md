@@ -2,7 +2,7 @@
 
 React + Vite 的可点击原型，包含 PC 供应商管理平台、PC 供应商协同门户及移动端原型。
 
-移动端原型入口为 `#/mobile`，原页面状态目录为 `#/mobile/scenes`，覆盖提供的 47 张截图。逐张入口见 [截图覆盖表](docs/mobile-screenshot-coverage.md)，规则与范围见 [移动端原型 PRD](docs/mobile-prd.md)，演示限制见 [工程说明](docs/mobile-prototype.md)。
+移动端原型入口为 `#/mobile`，原页面状态目录为 `#/mobile/scenes`，覆盖提供的 47 张截图。逐张入口见 [截图覆盖表](docs/mobile-screenshot-coverage.md)，规则与范围见 [供应商移动端 PRD](docs/supplier-mobile-prd.md)，演示限制见 [工程说明](docs/mobile-prototype.md)。
 
 移动端提供独立“需求评审”悬浮开关，可查看及编辑定位标注；使用方法与保存范围见[评审模式说明](docs/mobile-review-mode.md)。前端重构估时参考[页面与公共组件清单](docs/mobile-frontend-estimate.md)。
 
@@ -72,11 +72,11 @@ npm run test:mobile
 
 ## 移动端适配修复
 
-当前原型直接承载修复后的页面，需求与待确认项见 [移动端适配修复 PRD](docs/mobile-prd.md)。评分填写、查看、修改，已有银行和权限维护、草稿恢复、信息变更及银行申请均在移动端菜单中操作。当前交互使用明确标识的演示数据，业务服务限制见工程说明。
+移动端供应商管理平台提供供应商查询、我的邀请和我的评分。打开「移动端原型导图」可下载 [供应商移动端 PRD](docs/supplier-mobile-prd.md)。历次优化项见 [问题修复与优化 PRD](docs/mobile-prd.md)。当前交互使用明确标识的演示数据，业务服务限制见工程说明。
 
 ## 移动协同门户
 
-为方便原型演示，PC 工作区右上角账户菜单的「其他功能」提供「协同门户移动端」入口，点击进入登录流程，登录完成进入门户首页。该快捷入口不属于正式业务需求。门户包含资料维护、报价任务阅读/搜索/详情、价税订单阅读、差旅账单四类授权入口跳转和账户退出。沿用当前移动UI，业务规则见[移动端PRD](docs/mobile-prd.md)，本次文档调整及原型差异见[PRD核对记录](docs/mobile-prd-review.md)，业务计算及真实提交边界见[源码能力差异报告](docs/mobile-pc-gap-report.md)。
+为方便原型演示，PC 工作区右上角账户菜单的「其他功能」提供「协同门户移动端」入口，点击进入登录流程，登录完成进入门户首页。该快捷入口不属于正式业务需求。门户包含资料维护、报价任务阅读/搜索/详情、价税订单阅读、差旅账单四类授权入口跳转和账户退出。沿用当前移动UI，业务规则见[供应商移动端 PRD](docs/supplier-mobile-prd.md)，本次文档调整及原型差异见[PRD核对记录](docs/mobile-prd-review.md)，业务计算及真实提交边界见[源码能力差异报告](docs/mobile-pc-gap-report.md)。
 
 
 
