@@ -5,7 +5,7 @@ import FixedActionBar from './erp/FixedActionBar.jsx';
 import SectionCardTitle from './erp/SectionCardTitle.jsx';
 import { otherWorkspaceFeatures } from './pc/workspace-links.js';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Avatar, Breadcrumb, Button, Card, ConfigProvider, DatePicker, Dropdown, Form, Input, Menu, Select, Space, Tabs, Tag, Tooltip, App } from 'antd-pc';
+import { Avatar, Breadcrumb, Button, Card, ConfigProvider, DatePicker, Dropdown, Form, Input, Menu, Select, Space, Tabs, Tag, Tooltip, Typography, App } from 'antd-pc';
 import zhCN from 'antd-pc/es/locale/zh_CN';
 import { ChevronDown, ChevronRight, CircleHelp, Download, Plus, Trash2, UserRoundPlus } from 'lucide-react';
 import { bankDirectory, branches, initialSuppliers, people, supplierIndustries, supplierStates, supplierTypes } from './pages/mobile-data.js';
@@ -182,8 +182,16 @@ function exportCsv(rows, columns, filename) {
   window.setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-function SupplierQueryPage({ pagination, onPagination, canEditRecord, filters, setFilters, onSearch, onReset, rows, selectedIds, setSelectedIds, onInvite, onRegister, onQuickCreate, onDelete, onExport, onOpenDetail, onDetailAction }) {
-  const activeFilter = Object.values(filters).some((value) => typeof value === 'string' ? Boolean(value.trim()) : Boolean(value));
+function SupplierQueryPage({ pagination, onPagination, canEditRecord, filters, appliedFilters, setFilters, onSearch, onReset, rows, selectedIds, setSelectedIds, onInvite, onRegister, onQuickCreate, onDelete, onExport, onOpenDetail, onDetailAction }) {
+  const appliedConditions = [
+    ['搜索关键词', appliedFilters.name?.trim()],
+    ['供应商类型', appliedFilters.type],
+    ['供应商状态', appliedFilters.status],
+    ['邀请时间', [dateText(appliedFilters.start), dateText(appliedFilters.end)].some(Boolean)
+      ? (dateText(appliedFilters.start) || '不限') + ' 至 ' + (dateText(appliedFilters.end) || '不限') : ''],
+    ['供应商推荐', appliedFilters.recommended],
+    ['邀请人', appliedFilters.inviter?.trim()],
+  ].filter(([, value]) => value);
   const columns = [
     { title: '供应商名称', dataIndex: 'name', width: 240, render: (name, record) => <Tooltip title={name}><button className="pc-link pc-name-link" onClick={() => onOpenDetail(record, 'suppliers')}>{name || '未填写供应商名称'}</button></Tooltip> },
     { title: '供应商类型', dataIndex: 'type', width: 130 },
@@ -192,9 +200,12 @@ function SupplierQueryPage({ pagination, onPagination, canEditRecord, filters, s
     { title: '邀请人', dataIndex: 'inviter', width: 110 },
     { title: '邀请时间', dataIndex: 'date', width: 180, align: 'center' },
     { title: '更新时间', dataIndex: 'updated', width: 180, align: 'center' },
-    { title: '评分', dataIndex: 'score', width: 100, align: 'right', render: (value) => value || '未评分' },
+    { title: '评分', dataIndex: 'score', width: 100, align: 'right', render: (value, record) => value === '未评分'
+      ? value : <Button type="link" size="small" className="pc-row-action-button"
+        aria-label={'查看' + record.name + '的合作信息及评分（' + value + '）'}
+        onClick={() => onOpenDetail(record, 'suppliers', 'cooperation')}>{value}</Button> },
     {
-      title: '操作', key: 'actions', width: 88, fixed: 'right', align: 'center',
+      title: '操作', key: 'actions', width: 88, fixed: 'right', align: 'right',
       render: (_, record) => {
         const items = [
           ...(canChangeSupplier(record) ? [{ key: 'banks', label: '修改银行' }, { key: 'permissions', label: '分配权限' }, { key: 'inviter', label: '变更邀请人' }] : []),
@@ -236,20 +247,24 @@ function SupplierQueryPage({ pagination, onPagination, canEditRecord, filters, s
         <QueryItem label="邀请人"><Input allowClear value={filters.inviter} placeholder="请输入邀请人" onChange={(event) => setFilters('inviter', event.target.value)} onPressEnter={onSearch} /></QueryItem>
       </QueryBar>
 
-
-
-      <Card size="small" className="pc-list-card">
-        <div className="pc-list-toolbar">
-          <Space size={8} wrap>
-            <Button type="primary" icon={<UserRoundPlus size={15} />} onClick={onInvite}>邀请注册</Button>
-            <Button onClick={onRegister}>代注册</Button>
-            <Button onClick={onQuickCreate}>快速创建供应商</Button>
-            <Button danger disabled={!selectedIds.length} icon={<Trash2 size={15} />} onClick={() => onDelete(selectedIds, false)}>删除</Button>
-            <Button icon={<Download size={15} />} onClick={onExport}>导出</Button>
-          </Space>
-          <div className="pc-list-meta">共 <strong>{rows.length}</strong> 家供应商</div>
-        </div>
-        {selectedIds.length > 0 && <div className="pc-batch-bar"><span>已选择 <strong>{selectedIds.length}</strong> 条</span><Button type="link" danger size="small" onClick={() => onDelete(selectedIds, false)}>删除所选</Button><Button type="link" size="small" onClick={() => setSelectedIds([])}>取消选择</Button></div>}
+      <Card size="small" title="查询结果" className="pc-list-card pc-supplier-query-results" extra={
+        <Space size={[8, 8]} wrap className="pc-supplier-query-tools">
+          <Typography.Text type="secondary">共 {rows.length} 条</Typography.Text>
+          <Button icon={<Download size={15} />} onClick={onExport}>导出</Button>
+          <Button onClick={onQuickCreate}>快速创建供应商</Button>
+          <Button onClick={onRegister}>代注册</Button>
+          <Button type="primary" icon={<UserRoundPlus size={15} />} onClick={onInvite}>邀请注册</Button>
+        </Space>
+      }>
+        {appliedConditions.length > 0 && <div className="pc-supplier-query-filters" aria-label="已应用的查询条件">
+          {appliedConditions.map(([label, value]) => <Tag key={label} title={label + '：' + value}>{label}：{value}</Tag>)}
+          <Button type="link" size="small" onClick={onReset}>清除筛选</Button>
+        </div>}
+        {selectedIds.length > 0 && <div className="pc-batch-bar" role="region" aria-label="所选供应商批量操作">
+          <span>已选本页 {selectedIds.length} 条</span>
+          <Button danger icon={<Trash2 size={15} />} onClick={() => onDelete(selectedIds, false)}>删除所选</Button>
+          <Button type="link" onClick={() => setSelectedIds([])}>取消选择</Button>
+        </div>}
         <PcTable
           rowKey="id"
           className="pc-table"
@@ -263,9 +278,9 @@ function SupplierQueryPage({ pagination, onPagination, canEditRecord, filters, s
             getCheckboxProps: (record) => ({ disabled: !canDeleteSupplier(record, false) }),
             columnWidth: 48,
           }}
-          pagination={{ current: pagination?.current || 1, pageSize: pagination?.pageSize || 10, showSizeChanger: true, pageSizeOptions: [10, 20, 50], showTotal: (total) => '共 ' + total + ' 条', position: ['bottomRight'] }}
+          pagination={{ current: pagination?.current || 1, pageSize: pagination?.pageSize || 10, showSizeChanger: true, pageSizeOptions: [10, 20, 50], position: ['bottomRight'] }}
           scroll={{ x: 'max-content' }}
-          filtered={activeFilter}
+          filtered={appliedConditions.length > 0}
           onChange={(next, _filters, _sorter, extra) => { if (extra.action === 'paginate') { onPagination(next); setSelectedIds([]); } }}
         />
       </Card>
@@ -389,15 +404,16 @@ function RegistrationInformation({ supplier }) {
     { label: '邀请时间', value: supplier.date },
     { label: '更新时间', value: supplier.updated },
     { label: '曾用名', value: supplier.supplierFormerName || supplier.formerName, span: 2 },
-    { label: '供应商注册邮箱', value: supplier.basic?.registerEmail || supplier.registerEmail || supplier.email, span: 2 },
+    { label: '供应商注册邮箱', value: profileOf(supplier).basic.registerEmail, span: 2 },
   ]} />
-    {!!supplier.inviterChanges?.length && <Card size="small" title="邀请人变更记录">
+    {!!supplier.inviterChanges?.length && <section>
+      <SectionCardTitle>邀请人变更记录</SectionCardTitle>
       <PcTable rowKey="id" pagination={false} dataSource={supplier.inviterChanges} scroll={{ x: 'max-content' }} columns={[
         { title: '原邀请人', dataIndex: 'previous', width: 120 }, { title: '新邀请人', dataIndex: 'next', width: 120 },
         { title: '发起人', dataIndex: 'operator', width: 120 }, { title: '操作时间', dataIndex: 'time', width: 180 },
         { title: '办理结果', dataIndex: 'result', width: 120 },
       ]} />
-    </Card>}
+    </section>}
   </div>;
 }
 
@@ -610,7 +626,6 @@ function SupplierDetailPage({ supplier, ratings, maintenanceTask, onOpenMaintena
       <ApprovalTab supplier={supplier} />
     </div> },
     { key: 'cooperation', label: '合作信息及评分', children: <CooperationTab supplier={supplier} ratings={ratings} /> },
-    { key: 'registration', label: '注册信息', children: <RegistrationInformation supplier={supplier} /> },
   ];
   return (
     <div className="pc-page-stack">
@@ -620,8 +635,9 @@ function SupplierDetailPage({ supplier, ratings, maintenanceTask, onOpenMaintena
             <h1>{supplier.name || '供应商详情'}</h1>
             <Tag bordered={false} className="pc-detail-type">{supplier.type || '未知类型'}</Tag>
           </div>
-          <div className="pc-detail-identity-status"><span>供应商状态</span><StatusTag value={supplier.status} /></div>
+          <StatusTag value={supplier.status} />
         </div>
+        <RegistrationInformation supplier={supplier} />
       </Card>
       <Card size="small" className="pc-detail-tabs-card">
         <Tabs activeKey={activeTab} onChange={setActiveTab} items={tabs} tabBarGutter={24} className="pc-detail-tabs" />
@@ -817,7 +833,7 @@ function SupplierAdmin() {
   }), [suppliers, appliedInvitationFilters]);
 
   const supplierRows = supplierScope.filter((record) => isDateInRange(record.date, appliedSupplierFilters.start, appliedSupplierFilters.end))
-    .map((record) => !record.score || record.score === '未评分'
+    .map((record) => record.score == null || record.score === '' || record.score === '未评分'
       ? { ...record, score: ratings.some((rating) => rating.status === '已评分' && (rating.supplierId ? rating.supplierId === record.id : rating.name === record.name)) ? '已评分' : '未评分' }
       : record);
   const invitationRows = invitationScope.filter((record) => isDateInRange(record.date, appliedInvitationFilters.start, appliedInvitationFilters.end));
@@ -1311,6 +1327,7 @@ function SupplierAdmin() {
                     <div hidden={isRegister}>
                       <SupplierQueryPage
                         filters={supplierFilters}
+                        appliedFilters={appliedSupplierFilters}
                         setFilters={setSupplierFilter}
                         onSearch={applySupplierFilters}
                         onReset={resetSupplierFilters}

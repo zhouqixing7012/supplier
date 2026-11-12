@@ -122,7 +122,7 @@ body:has(.pc-app) {
 .pc-name-link { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pc-row-actions { justify-content: center; gap: 8px; white-space: nowrap; }
 
-/* 详情页只保留对象识别信息；具体字段在所属资料页签中展示一次。 */
+/* 供应商卡片集中展示对象标识和注册信息。 */
 .pc-detail-identity {
   display: flex;
   min-width: 0;
@@ -152,8 +152,8 @@ body:has(.pc-app) {
   font-size: 12px;
   line-height: 18px;
 }
-.pc-detail-identity-status { display: inline-flex; max-width: 100%; flex: 0 0 auto; flex-wrap: wrap; align-items: center; gap: 8px; }
-.pc-detail-identity-status > span:not(.pc-status) { color: var(--pc-muted); font-size: 12px; }
+.pc-detail-overview .pc-detail-identity { margin-bottom: 12px; }
+.pc-detail-identity > .pc-status { flex: 0 0 auto; }
 .pc-detail-tabs .ant-tabs-nav {
   position: sticky;
   z-index: 5;
@@ -263,7 +263,6 @@ body:has(.pc-app) .ant-dropdown .ant-dropdown-menu-item { min-height: 34px; bord
 @media (max-width: 760px) {
 
   .pc-detail-identity { align-items: flex-start; flex-direction: column; gap: 8px; }
-  .pc-detail-identity-status { align-self: flex-start; }
 }
 
 /* PC后台框架与查询区按MMP桌面端公共结构统一 */
@@ -458,6 +457,36 @@ body:has(.pc-app) .ant-dropdown .ant-dropdown-menu-item { min-height: 34px; bord
   justify-content: space-between;
   gap: 12px;
   margin-bottom: 12px;
+}
+/* 供应商查询沿用资产查询结果卡片的标题区和批量操作区。 */
+.pc-supplier-query-results .ant-card-head-wrapper {
+  flex-wrap: wrap;
+  gap: 8px 16px;
+}
+.pc-supplier-query-results .ant-card-head-title { flex: 0 1 auto; }
+.pc-supplier-query-results .ant-card-extra { margin-inline-start: auto; max-width: 100%; }
+.pc-supplier-query-tools { justify-content: flex-end; }
+.pc-supplier-query-filters,
+.pc-supplier-query-results .pc-batch-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.pc-supplier-query-filters .ant-tag {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pc-supplier-query-results .pc-batch-bar {
+  justify-content: flex-start;
+  min-height: 0;
+  padding: 8px 12px;
+  border: 0;
+  background: var(--ant-color-primary-bg, #e5f1ff);
+  color: var(--ant-color-primary, #145cff);
 }
 .pc-list-toolbar > * { min-width: 0; }
 .pc-list-meta {
