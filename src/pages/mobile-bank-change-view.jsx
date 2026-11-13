@@ -13,7 +13,7 @@ function BankFieldValue({ field, raw, value, onPreview }) {
   return value || '—';
 }
 
-export function BankChangeCard({ before, bank, onPreview, onEdit, onDelete, deleteDisabledReason }) {
+export function BankChangeCard({ id, before, bank, onPreview, onEdit, onDelete, deleteDisabledReason }) {
   const [blockedDelete, setBlockedDelete] = useState(false);
   const { action, original } = bankChange(before, bank);
   if (!action) return <BankCard {...{ bank, onPreview, onEdit, onDelete, deleteDisabledReason }} />;
@@ -39,7 +39,7 @@ export function BankChangeCard({ before, bank, onPreview, onEdit, onDelete, dele
   const badge = modified ? '变更' : action;
   const showDelete = !!onDelete || (!!onEdit && !!deleteDisabledReason);
 
-  return <article className="m-bank-card m-bank-change-card" data-bank-change={action}>
+  return <article id={id} className="m-bank-card m-bank-change-card" data-bank-change={action}>
     <div className="m-change-card-content">
       <header className="m-change-group-heading m-record-heading">
         <h3>{title}</h3>
@@ -49,7 +49,7 @@ export function BankChangeCard({ before, bank, onPreview, onEdit, onDelete, dele
         {fields.map(field => {
           const raw = deleted ? field.previousRaw : field.nextRaw;
           const value = deleted ? field.previous : field.next;
-          return <div className="m-change-field-row" key={field.key}>
+          return <div className="m-change-field-row" data-changed={field.changed || undefined} key={field.key}>
             <span className="m-change-field-label">{field.label}</span>
             <div className="m-change-field-values" aria-label={field.label + (modified && field.changed ? '修改前后' : '')}>
               {modified && field.changed

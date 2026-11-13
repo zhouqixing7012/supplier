@@ -58,8 +58,7 @@ export function PortalPricingDetail({ quote, records, store, go, notify, onPrevi
   const [editor, setEditor] = useState(mapParams.panel === 'line' && record?.status === '待处理' && record.lines?.length ? 0 : null);
   const editable = !!record && record.status === '待处理';
   const guard = useDirtyForm(draft, editable);
-  const back = () => guard.leave(() => go('workspace-tasks'));
-  if (!record) return <><Empty text={quote ? '未找到询价单' : '未找到采购订单'} /><Actions items={[{ label: quote ? '返回报价列表' : '返回价税拆分列表', onClick: back }]} /></>;
+  if (!record) return <Empty text={quote ? '未找到询价单' : '未找到采购订单'} />;
   const changeRate = value => setDraft({ ...draft, rate: value, lines: draft.lines.map(line => ({ ...line, rate: value })) });
   const expired = quote && remainingTime(record) === '已过期';
   const submit = () => {
@@ -96,7 +95,7 @@ export function PortalPricingDetail({ quote, records, store, go, notify, onPrevi
       {quote && <><FileRow label="报价附件" value={line.attachment} onPreview={onPreview} /><Row label="报价说明">{line.note || '—'}</Row></>}
       {editable && <CardActions><button aria-label={'编辑第' + (index + 1) + '项' + (quote ? '报价' : '价税')} onClick={() => runMotion(() => setEditor(index), 'forward')}><Pencil aria-hidden="true" /></button></CardActions>}
     </Section>)}
-    <Actions items={[{ label: '返回列表', secondary: editable, onClick: back }, ...(editable ? [{ label: '提交', onClick: submit }] : [])]} />
+    {editable && <Actions items={[{ label: '提交', onClick: submit }]} />}
     {editor !== null && <LineEditor key={editor} index={editor} quote={quote} line={draft.lines[editor]} notify={notify} onPreview={onPreview} onCancel={() => runMotion(() => setEditor(null), 'back')} onSave={line => { setDraft({ ...draft, lines: draft.lines.map((entry, index) => index === editor ? line : entry) }); runMotion(() => setEditor(null), 'back'); }} />}
   </div>;
 }

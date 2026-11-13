@@ -1216,3 +1216,10 @@
     padding: 12px;
   }
 }
+
+.m-bank-change-card,
+.m-bank-change-card .m-change-field-row[data-changed='true'] { scroll-margin-block: 72px 96px; }
+.mobile-page:not(.m-shot) .m-bank-change-card .m-change-field-row[data-changed='true'] .m-change-field-values {
+  flex-direction: column;
+  align-items: flex-end;
+}

@@ -51,7 +51,7 @@ const check=async()=>{
  await fill('供应商注册邮箱','bad-email');await button('下一步（1/4）').click();assert(await page.getByText('请输入正确的供应商注册邮箱',{exact:true}).first().isVisible());
  await fill('供应商注册邮箱','supplier+new@company.cn');await fill('公司电话','010-55558888');
  await button('下一步（1/4）').click();await button('下一步（2/4）').click();await button('下一步（3/4）').click();await button('提交').click();await page.waitForURL('**/#/mobile/workspace-approval');
- await button('返回供应商信息').click();assert(await button('查看审批').isVisible());assert(await page.getByText('010-52867111',{exact:true}).isVisible());
+ await page.locator('.mobile-page > .m-header').getByRole('button',{name:'返回',exact:true}).click();assert(await button('查看审批').isVisible());assert(await page.getByText('010-52867111',{exact:true}).isVisible());
  console.log('PASS portal email blank/format/valid, preview submission and formal data');
  await visit('register-edit-all');assert(await button('下一步（1/4）').isVisible());assert.equal(await button('保存草稿').count(),0);
  await page.getByLabel('营业执照',{exact:true}).setInputFiles({name:'license.txt',mimeType:'text/plain',buffer:Buffer.from('prototype')});

@@ -76,3 +76,23 @@
   .mobile-page:not(.m-shot) .m-actions button { transition: none; }
   .mobile-page:not(.m-shot) .m-actions button:active { transform: none; }
 }
+
+/* 菜单保持挂载，从加号一侧展开和收起，连续点击沿当前进度反向过渡。 */
+.m-fab-group .m-fab-menu {
+  transform-origin: right center;
+  transition: opacity 160ms ease-out, transform 200ms var(--m-motion-ease), visibility 0s;
+}
+.m-fab-group .m-fab-menu[data-open='false'] {
+  opacity: 0;
+  transform: translateX(12px) scale(.94);
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 160ms ease-out, transform 200ms var(--m-motion-ease), visibility 0s 200ms;
+}
+.m-fab-group > button svg { transition: transform 200ms var(--m-motion-ease); }
+.m-fab-group > button[aria-expanded='true'] svg { transform: rotate(45deg); }
+@media (prefers-reduced-motion: reduce) {
+  .m-fab-group .m-fab-menu,
+  .m-fab-group .m-fab-menu[data-open='false'],
+  .m-fab-group > button svg { transition: none; }
+}
