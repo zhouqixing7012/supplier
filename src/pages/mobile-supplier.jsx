@@ -203,6 +203,7 @@ function MobileSurface({ onComparisonChange, scene, shot, ratings, setRatings, a
   const [peoplePicker, setPeoplePicker] = usePanelState(mapParams.panel === 'people');
   const editingRegistration = ['register-edit', 'register-edit-all'].includes(scene);
   const editingAll = scene === 'register-edit-all';
+  const registrationDraftId = useRef(editingRegistration && !editingAll ? selectedId : null);
   const portalRegistration = scene === 'register-supplier';
   const registrationDraft = portalRegistration ? views.portalRegistrationDraft : null;
   const [accountRegistered, setAccountRegistered] = useState(mapParams.map ? mappedStep !== undefined : Boolean(views.portalRegistrationAccount));
@@ -391,8 +392,10 @@ function MobileSurface({ onComparisonChange, scene, shot, ratings, setRatings, a
       if (basic.email && !validEmail(basic.email)) return '请输入正确的邮箱格式';
       if (basic.capital && !/^\d+$/.test(basic.capital)) return '注册资金只支持整数';
       if (basic.companyPhone && !/^(1\d{10}|\d{3,4}-?\d{8})$/.test(basic.companyPhone)) return '公司电话须为11位手机号或区号加8位号码';
-      if (suppliers.some(x => x.id !== selectedId && ((basic.type !== supplierTypes[1] && x.name === basic.supplierName) || (basic.creditCode && x.code === basic.creditCode)))) return '供应商名称或证件号码已存在';
+      const normalizedName = value => String(value || '').trim().replaceAll('（', '(').replaceAll('）', ')');
+      if (suppliers.some(x => x.id !== (registrationDraftId.current || selectedId) && ['审批中', '变更中', '已审批'].includes(x.status) && ((basic.type !== supplierTypes[1] && normalizedName(x.name) === normalizedName(basic.supplierName)) || (basic.creditCode && x.code === basic.creditCode)))) return '供应商名称或证件号码已存在';
     }
+    if (target === 1 && !contacts.length) return '请至少添加一名联系人';
     if (target === 1 && contacts.some(c => !c.name || !c.phone || !validEmail(c.email))) return '请填写联系人的姓名、电话和正确邮箱';
     if (target === 2) {
       if (!registerBanks.length) return '请添加银行信息';
@@ -410,6 +413,7 @@ function MobileSurface({ onComparisonChange, scene, shot, ratings, setRatings, a
   }
   function nextStep() {
     const error = registrationStepError(step); if (error) return notify(error);
+    if (!editingAll) saveDraft();
     const next = step === 0 && basic.type === supplierTypes[1] ? 2 : step + 1;
     if (editingAll && next === 3) { openInformationPreview(); return; }
     if (returnPreview) { setReturnPreview(false); changeStep(3); } else changeStep(next);
@@ -433,8 +437,8 @@ function MobileSurface({ onComparisonChange, scene, shot, ratings, setRatings, a
     if (editingAll) {
       update({ pendingInformation: patch, status: '变更中' });
       notify('信息变更已提交，等待审批');
-    } else if (editingRegistration) {
-      update({ ...patch, status: '审批中' }); notify('草稿已提交，等待审批');
+    } else if (registrationDraftId.current) {
+      setSuppliers(list => list.map(record => record.id === registrationDraftId.current ? { ...record, ...patch, status: '审批中', updated: now() } : record)); notify('草稿已提交，等待审批');
     } else {
       const id = createSessionId();
       setSuppliers([{ ...patch, id, status: '审批中', mode: '代注册', inviter: '陈才慧', date: now(), updated: now(), score: '未评分', permissions: [] }, ...suppliers]); select(id);
@@ -450,10 +454,13 @@ function MobileSurface({ onComparisonChange, scene, shot, ratings, setRatings, a
       return;
     }
     const patch = { basic: { ...clone(basic), registerEmail: (basic.registerEmail || '').trim() }, name: basic.supplierName, type: basic.type, email: (basic.registerEmail || '').trim(), code: basic.creditCode || '', banks: clone(registerBanks), contacts: clone(contacts), updated: now() };
-    if (editingRegistration && !editingAll) update(patch);
-    else { const id = createSessionId(); setSuppliers([{ ...patch, id, status: '草稿', inviter: '陈才慧', mode: '代注册', date: now(), permissions: [], score: '未评分' }, ...suppliers]); select(id); }
+    if (registrationDraftId.current) setSuppliers(list => list.map(record => record.id === registrationDraftId.current ? { ...record, ...patch } : record));
+    else {
+      const id = createSessionId(); registrationDraftId.current = id;
+      setSuppliers(list => [{ ...patch, id, status: '草稿', inviter: '陈才慧', mode: '代注册', date: now(), permissions: [], score: '未评分' }, ...list]); select(id);
+    }
     registrationGuard.accept();
-    notify('草稿已保存'); go('mine');
+    notify('草稿已保存');
   }
 
   function submitInvitation(data, target) {
@@ -546,7 +553,6 @@ function MobileSurface({ onComparisonChange, scene, shot, ratings, setRatings, a
         { label: step === 3 ? '提交' : '下一步（' + (stepIndex + 1) + '/' + editSteps.length + '）', disabled: saving, onClick: step === 3 ? submitRegister : nextStep },
       ] : [
         ...previousStepActions,
-        { label: '保存草稿', secondary: true, disabled: saving, onClick: saveDraft },
         { label: step === 3 ? (portalRegistration ? '提交注册' : '提交') : returnPreview ? '保存并返回预览' : `下一步（${stepIndex + 1}/${editSteps.length}）`, disabled: saving, onClick: step === 3 ? submitRegister : nextStep },
       ]} />
     </>}

@@ -1,0 +1,16 @@
+const fs=require('fs'),vm=require('vm'),assert=require('assert/strict');
+const root=process.cwd()+'/';
+const m=fs.readFileSync(root+'src/pages/mobile-supplier.jsx','utf8');
+const p=fs.readFileSync(root+'src/pc-admin.jsx','utf8');
+const reg=fs.readFileSync(root+'src/pages/supplier-register.jsx','utf8');
+const results=[];function test(name,f){try{f();results.push({name,pass:true})}catch(e){results.push({name,pass:false,error:e.message})}}
+const ctx={portalRegistration:false,basic:{supplierName:'测试企业',type:'企业',registerEmail:'a@b.com'},contacts:[],registerBanks:[],registrationDraftId:{current:null},now:()=> 'now',clone:structuredClone,createSessionId:()=> 'new-id',registrationGuard:{accept(){}},notify(){},select(){},rows:[]};ctx.setSuppliers=f=>{ctx.rows=f(ctx.rows)};
+vm.createContext(ctx);vm.runInContext(m.slice(m.indexOf('  function saveDraft()'),m.indexOf('  function submitInvitation')),ctx);
+test('移动基本步骤建立草稿',()=>{ctx.saveDraft();assert.equal(ctx.rows.length,1);assert.equal(ctx.rows[0].status,'草稿')});
+test('移动后续步骤更新同一草稿',()=>{ctx.contacts=[{name:'联系人'}];ctx.saveDraft();assert.equal(ctx.rows.length,1);assert.equal(ctx.rows[0].contacts[0].name,'联系人')});
+test('移动下一步校验失败不保存',()=>{ctx.step=0;ctx.registrationStepError=()=> '错误';ctx.saveDraft=()=>{throw Error('不应保存')};vm.runInContext(m.slice(m.indexOf('  function nextStep()'),m.indexOf('  function submitRegister()')),ctx);ctx.nextStep()});
+test('PC每步保存不导航并复用记录',()=>{const x={latestSuppliers:{current:[]},route:{},CURRENT_USER:'用户',supplierTypes:['企业','个人'],messageApi:{error(){},success(){}},nowText:()=> 'now',newId:()=> 'pc-new',setSuppliers(){},enqueueApproval(){},profileOf:x=>x,navigate(){throw Error('草稿不应跳转')}};vm.createContext(x);vm.runInContext(p.slice(p.indexOf('  const saveRegistrationDraft'),p.indexOf('  const saveBankDraft'))+'\nglobalThis.save=saveRegistrationDraft;',x);const profile={type:'企业',basic:{supplierName:'测试企业',creditCode:'001'},contacts:[],banks:[]};const first=x.save(profile,false);const second=x.save({...profile,id:first.id,contacts:[{name:'甲'}]},false);assert.equal(first.id,second.id);assert.equal(x.latestSuppliers.current.length,1)});
+test('PC重复资料阻止保存',()=>{const x={latestSuppliers:{current:[{id:'existing',name:'同名',code:'x',status:'已审批'}]},route:{},CURRENT_USER:'用户',supplierTypes:['企业','个人'],messageApi:{error(){}},setSuppliers(){throw Error('不应保存')}};vm.createContext(x);vm.runInContext(p.slice(p.indexOf('  const saveRegistrationDraft'),p.indexOf('  const saveBankDraft'))+'\nglobalThis.save=saveRegistrationDraft;',x);assert.equal(x.save({type:'企业',basic:{supplierName:'同名'},contacts:[]},false),false)});
+test('PC提交使用当前表单序列化数据',()=>{assert.ok(reg.includes('next(value)'));assert.ok(reg.includes('const saved = previewValues(values)'));assert.ok(reg.includes('if (saved?.id) draftId.current = saved.id'))});
+test('两端无独立保存草稿按钮且联系人至少一名',()=>{assert.ok(!m.includes("label: '保存草稿'"));assert.ok(!reg.includes('>保存草稿<'));assert.ok(m.includes("if (target === 1 && !contacts.length)"));assert.ok(reg.includes("title === '联系人信息' && !contacts.length"))});
+console.log(JSON.stringify({passed:results.filter(r=>r.pass).length,failed:results.filter(r=>!r.pass).length,results},null,2));if(results.some(r=>!r.pass))process.exitCode=1;

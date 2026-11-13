@@ -1,4 +1,4 @@
-import React, { useImperativeHandle, useState } from 'react';
+import React, { useImperativeHandle, useRef, useState } from 'react';
 import { App, Button, Card, Form, Input, Select, Space, Steps, Typography, Upload } from 'antd-pc';
 import { RecordCollectionEditor, RecordFields, SupplierSnapshot } from '../pc/record-editor.jsx';
 import CertificateExpiry, { certificateExpiryRules, DATE_FORMAT, LONG_TERM } from '../pc/CertificateExpiry.jsx';
@@ -157,6 +157,7 @@ function registrationValues(type, basic) {
 export function SupplierRegisterPage({ initialType = 'company', profile, onBack, onSubmit, onSaveDraft, leaveRef }) {
   const [type, setType] = useState(() => TYPE_OPTIONS[supplierTypes.indexOf(profile?.type)]?.value || initialType);
   const [step, setStep] = useState(0);
+  const draftId = useRef(profile?.id);
   const [basic, setBasic] = useState(() => registrationValues(type, profile?.basic || {}));
   const [file, setFile] = useState(() => profile?.basic.proof ? [{ uid: 'saved-proof', name: profile.basic.proof }] : []);
   const [contacts, setContacts] = useState(() => profile?.contacts || []);
@@ -177,13 +178,15 @@ export function SupplierRegisterPage({ initialType = 'company', profile, onBack,
   const config = PAGE_CONFIG[type];
   const title = config.steps[step].title;
   const supplierType = supplierTypes[TYPE_OPTIONS.findIndex((option) => option.value === type)];
-  const preview = Object.fromEntries(config.fields.map((field) => {
-    const value = basic[field.key];
+  const previewValues = (values) => Object.fromEntries(config.fields.map((field) => {
+    const value = values[field.key];
     if (field.type === 'address' && value) return [field.key, [value.region, value.detail?.trim()].filter(Boolean).join(' ')];
     const label = field.options?.find((item) => item.value === value)?.label;
     return [field.key, label || (value?.format ? value.format(DATE_FORMAT) : value?.detail || (typeof value === 'string' ? value.trim() : value))];
   }));
-  const next = () => {
+  const preview = previewValues(basic);
+  const next = (values = basic) => {
+    if (title === '联系人信息' && !contacts.length) return message.error('请至少添加一名联系人');
     if (title === '联系人信息' && contacts.some((contact) => !contact.name?.trim() || !contact.phone?.trim() || !validEmail(contact.email))) {
       return message.error('请补齐联系人姓名、电话及邮箱');
     }
@@ -195,25 +198,30 @@ export function SupplierRegisterPage({ initialType = 'company', profile, onBack,
         return message.error('企业供应商有效银行账户必须且只能有一个基本账户');
       }
     }
+    const saved = onSaveDraft?.(registration(values));
+    if (onSaveDraft && saved === false) return;
+    if (saved?.id) draftId.current = saved.id;
+    setBasicEdited(false);
     setStep(step + 1);
   };
   const back = () => step > 0 ? setStep(step - 1) : leave(onBack);
-  const registration = () => ({
-    type: supplierType,
-    basic: {
-      ...profile?.basic,
-      ...preview,
-      supplierName: preview.supplierName || preview.name,
-      creditCode: preview.creditCode || preview.certificateNumber,
-      establishedAt: preview.establishedAt || preview.certificateStart,
-      licenseUntil: preview.licenseUntil || preview.certificateEnd,
-      addressParts: typeof basic.address === 'object' ? basic.address : undefined,
-      proof: file[0]?.name,
-      qualifications,
-    },
-    contacts,
-    banks,
-  });
+  const registration = (values = basic) => {
+    const saved = previewValues(values);
+    return {
+      id: draftId.current,
+      type: supplierType,
+      basic: {
+        ...profile?.basic, ...saved,
+        supplierName: saved.supplierName || saved.name,
+        creditCode: saved.creditCode || saved.certificateNumber,
+        establishedAt: saved.establishedAt || saved.certificateStart,
+        licenseUntil: saved.licenseUntil || saved.certificateEnd,
+        addressParts: typeof values.address === 'object' ? values.address : undefined,
+        proof: file[0]?.name, qualifications,
+      },
+      contacts, banks,
+    };
+  };
   const changeType = (value) => {
     const apply = () => {
       setType(value);
@@ -245,7 +253,7 @@ export function SupplierRegisterPage({ initialType = 'company', profile, onBack,
           onFinish={(value) => {
             if (config.upload?.required && !file.length) return message.error('请上传' + config.upload.label);
             setBasic(value);
-            next();
+            next(value);
           }}>
           <div className="pc-register-grid">
             <Form.Item label="供应商类型" required htmlFor="pc-register-supplier-type">
@@ -281,10 +289,9 @@ export function SupplierRegisterPage({ initialType = 'company', profile, onBack,
       </>}
       <div className="pc-register-actions">
         <Button onClick={back}>{step === 0 ? '返回' : '上一步'}</Button>
-        {onSaveDraft && <Button onClick={() => onSaveDraft(registration())}>保存草稿</Button>}
         {step === 0 ? <Button type="primary" htmlType="submit" form="pc-supplier-registration">下一步</Button> : title === '预览提交'
           ? <Button type="primary" onClick={() => onSubmit(registration())}>提交</Button>
-          : <Button type="primary" onClick={next}>下一步</Button>}
+          : <Button type="primary" onClick={() => next()}>下一步</Button>}
       </div>
     </div>
   );

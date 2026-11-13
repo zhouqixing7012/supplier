@@ -992,26 +992,31 @@ function SupplierAdmin() {
   };
   const saveRegistrationDraft = (profile, submit) => {
     const rows = latestSuppliers.current;
-    const record = route.id && rows.find((row) => row.id === route.id);
-    if (route.id && (!record || record.inviter !== CURRENT_USER || record.status !== '草稿')) {
+    const draftId = route.id || profile.id;
+    const record = draftId && rows.find((row) => row.id === draftId);
+    if (draftId && (!record || record.inviter !== CURRENT_USER || record.status !== '草稿')) {
       messageApi.error('当前供应商不可继续办理草稿');
-      return;
+      return false;
     }
     const name = profile.basic.supplierName?.trim() || '';
     const code = profile.basic.creditCode?.trim() || '';
-    if (submit && rows.some((row) => row.id !== record?.id && ((profile.type !== supplierTypes[1] && row.name.trim() === name) || (code && row.code === code)))) {
+    const normalizedName = value => String(value || '').trim().replaceAll('（', '(').replaceAll('）', ')');
+    if (rows.some((row) => row.id !== record?.id && ['审批中', '变更中', '已审批'].includes(row.status) && ((profile.type !== supplierTypes[1] && normalizedName(row.name) === normalizedName(name)) || (code && row.code === code)))) {
       messageApi.error('供应商名称或证件号码已存在');
-      return;
+      return false;
     }
     const updated = nowText();
-    const next = { id: newId(), inviter: CURRENT_USER, mode: '代注册', date: updated, permissions: [], score: '未评分',
-      ...record, ...profile, name, code, updated,
+    const next = { inviter: CURRENT_USER, mode: '代注册', date: updated, permissions: [], score: '未评分',
+      ...record, ...profile, id: record?.id || profile.id || newId(), name, code, updated,
       contact: profile.contacts[0]?.name || '', phone: profile.contacts[0]?.phone || profile.basic.mobile || '',
       email: profile.contacts[0]?.email || profile.basic.email || '', status: submit ? '审批中' : '草稿' };
-    setSuppliers(record ? rows.map((row) => row.id === record.id ? next : row) : [next, ...rows]);
+    const savedRows = record ? rows.map((row) => row.id === record.id ? next : row) : [next, ...rows];
+    latestSuppliers.current = savedRows;
+    setSuppliers(savedRows);
     if (submit) enqueueApproval('注册', next, profileOf(next));
     messageApi.success(submit ? '草稿已提交，等待审批' : '草稿已保存');
-    navigate('/admin/' + (route.from || 'suppliers'));
+    if (submit) navigate('/admin/' + (route.from || 'suppliers'));
+    return next;
   };
 
   const saveBankDraft = (supplierId, entries) => {
