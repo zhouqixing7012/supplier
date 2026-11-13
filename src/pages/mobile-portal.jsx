@@ -1,6 +1,6 @@
 import { usePanelState } from './mobile-motion.jsx';
 import React, { useEffect, useRef, useState } from 'react';
-import { Building2, FileClock, FileCheck2, Calculator, ClipboardCheck, Plane, Train, Hotel, Car, Upload, Download, LoaderCircle, Plus, Mail, KeyRound, ChevronRight, X, LogOut } from 'lucide-react';
+import { Building2, Store, FolderClock, FolderCheck, ReceiptText, Receipt, PlaneTakeoff, Plane, Train, Hotel, Car, Upload, Download, LoaderCircle, Plus, Mail, MailCheck, KeyRound, LockKeyhole, ChevronRight, X, LogOut } from 'lucide-react';
 import { Actions, RegistrationSteps, PickerHeading, RecordCard, RecordCollection, AttachmentLink, Confirm, Empty, StatusTag, Field, Overlay, Row, Section, SearchBox } from './mobile-ui.jsx';
 import { QualificationInfo } from './mobile-qualifications.jsx';
 import { AddressForm, BankCard, BankFields, BasicFields, ContactFields, bankError, fieldsFor, filledBasic, blankBank } from './mobile-forms.jsx';
@@ -18,19 +18,19 @@ import { createPortalInquiries, createPortalOrders } from './mobile-portal-recor
 const clone = value => structuredClone(value);
 const homeGroups = [
   { title: '信息管理', entries: [
-    { label: '供应商信息管理', lines: ['供应商', '信息管理'], icon: Building2, color: 'blue', route: 'workspace-info' },
-    { label: '修改密码', lines: ['修改密码'], icon: KeyRound, color: 'orange', route: 'workspace-account-password' },
-    { label: '修改注册邮箱', lines: ['修改', '注册邮箱'], icon: Mail, color: 'teal', route: 'workspace-account-email' },
+    { label: '供应商信息管理', lines: ['供应商', '信息管理'], icon: Store, color: 'blue', route: 'workspace-info' },
+    { label: '修改密码', lines: ['修改密码'], icon: LockKeyhole, color: 'blue', route: 'workspace-account-password' },
+    { label: '修改注册邮箱', lines: ['修改', '注册邮箱'], icon: MailCheck, color: 'blue', route: 'workspace-account-email' },
   ] },
   { title: '采购报价管理', entries: [
-    { label: '报价管理待处理', lines: ['报价管理', '待处理'], icon: FileClock, color: 'orange', route: 'workspace-tasks', task: 0 },
-    { label: '报价管理已处理', lines: ['报价管理', '已处理'], icon: FileCheck2, color: 'teal', route: 'workspace-tasks', task: 1 },
+    { label: '报价管理待处理', lines: ['报价管理', '待处理'], icon: FolderClock, color: 'orange', route: 'workspace-tasks', task: 0 },
+    { label: '报价管理已处理', lines: ['报价管理', '已处理'], icon: FolderCheck, color: 'green', route: 'workspace-tasks', task: 1 },
   ] },
   { title: '采购价税拆分', entries: [
-    { label: '价税拆分待处理', lines: ['价税拆分', '待处理'], icon: Calculator, color: 'blue', route: 'workspace-tasks', task: 2 },
-    { label: '价税拆分已处理', lines: ['价税拆分', '已处理'], icon: ClipboardCheck, color: 'teal', route: 'workspace-tasks', task: 3 },
+    { label: '价税拆分待处理', lines: ['价税拆分', '待处理'], icon: ReceiptText, color: 'orange', route: 'workspace-tasks', task: 2 },
+    { label: '价税拆分已处理', lines: ['价税拆分', '已处理'], icon: Receipt, color: 'green', route: 'workspace-tasks', task: 3 },
   ] },
-  { title: '差旅服务', entries: [{ label: '差旅账单录入', lines: ['差旅账单', '录入'], icon: Plane, color: 'orange', route: 'workspace-travel' }] },
+  { title: '差旅服务', entries: [{ label: '差旅账单录入', lines: ['差旅账单', '录入'], icon: PlaneTakeoff, color: 'blue', route: 'workspace-travel' }] },
 ];
 const travelEntryDefinitions = [
   { key: 'train', label: '火车账单', Icon: Train },
