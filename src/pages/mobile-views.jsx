@@ -2,7 +2,7 @@ import { bankApplicationNotice } from './bank-application.js';
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Check, ChevronDown, ClipboardList, Edit3, Filter, List, MoreHorizontal, Plus, X } from 'lucide-react';
 import { QualificationInfo } from './mobile-qualifications.jsx';
-import { Actions, CardActions, RecordCard, RecordCollection, AttachmentLink, ChangeTag, Empty, Field, FilterField, StatusTag, OptionSheet, Overlay, Row, SearchBox, Section, SupplierIdentityCard } from './mobile-ui.jsx';
+import { Actions, CardActions, RecordCard, RecordCollection, AttachmentLink, ChangeTag, Empty, Field, FilterField, StatusTag, OptionSheet, Overlay, PickerHeading, Row, SearchBox, Section, SupplierIdentityCard } from './mobile-ui.jsx';
 import { BankCard, fieldsFor } from './mobile-forms.jsx';
 import { cooperation, supplierStates, supplierTypes, supplierIndustries } from './mobile-data.js';
 import { SwipeArea, attachmentName } from './mobile-interaction.jsx';
@@ -40,7 +40,7 @@ function SupplierSummary({ s, mine, batch, checked, setChecked, onDetail, onBank
     <dl>{(historical ? [['供应商类型', s.type], ['审批状态', s.status], ...(!mine ? [['邀请人', s.inviter], ['邀请时间', s.date]] : []), ...fields, ...(!mine ? [['评分', s.score]] : [])] : [...(!mine ? [['邀请人', s.inviter], ['邀请时间', s.date]] : []), ...fields.filter(([label]) => label !== '注册方式'), ...(!mine ? [['评分', s.score]] : [])]).map(([label, value]) => <div className={/时间|邮箱|证件|评分/.test(label) ? 'm-supplier-wide' : ''} key={label}><dt>{label}{historical ? '：' : ''}</dt><dd>{label === '审批状态' ? <StatusTag value={value} /> : value || '—'}</dd></div>)}</dl>
 
     {!batch && <CardActions split><button onClick={() => onDetail(s)}>详情</button>{s.status === '草稿' ? <button onClick={() => onEdit(s)}>修改</button> : canChangeSupplier(s) ? mine ? <button onClick={() => onEditAll(s)}>修改全部信息</button> : <button onClick={() => onBank(s)}>修改银行</button> : null}{hasMore && <button onClick={() => setMenu(true)}>更多操作</button>}</CardActions>}
-    {menu && <Overlay sheet label={s.name + '操作'} onClose={() => setMenu(false)}><div className="m-action-sheet"><h2>{s.name}</h2>
+    {menu && <Overlay sheet label="更多操作" onClose={() => setMenu(false)}><div className="m-action-sheet"><PickerHeading title="更多操作" />
       {canChangeSupplier(s) && <>{mine ? <><button onClick={() => { setMenu(false); onInviter(s); }}>变更邀请人</button><button onClick={() => { setMenu(false); onEditAll(s); }}>修改全部信息</button></> : <><button onClick={() => { setMenu(false); onBank(s); }}>修改银行</button><button onClick={() => { setMenu(false); onMore(s, 'permissions'); }}>分配权限</button><button onClick={() => { setMenu(false); onInviter(s); }}>变更邀请人</button></>}</>}
       {!mine && canRateSupplier(s) && <button onClick={() => { setMenu(false); onScore(s); }}>评分</button>}
       {canReinviteSupplier(s) && <button onClick={() => { setMenu(false); onReinvite(s); }}>重新邀请</button>}

@@ -3,7 +3,7 @@ import { bankChangeCounts, normalizeBankChanges, readBankDraft, writeBankDraft }
 import { createSessionId } from './mobile-interaction.jsx';
 import React, { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Check, Send, ClipboardPenLine, Landmark, Download, Filter, ListChecks, Plus, Search, Signal, Wifi, Battery, X, CircleUserRound } from 'lucide-react';
-import { Actions, RecordCollection, AttachmentViewer, AppliedFilters, Confirm, Empty, Field, FilterButton, Header, RegistrationSteps, Overlay, Row, ScreenshotTip, SearchBox, Section } from './mobile-ui.jsx';
+import { Actions, RecordCollection, AttachmentViewer, AppliedFilters, Confirm, Empty, Field, FilterButton, Header, RegistrationSteps, Overlay, PickerHeading, Row, ScreenshotTip, SearchBox, Section } from './mobile-ui.jsx';
 import { AddressForm, BankCard, BankFields, BasicFields, ContactFields, InviteForm, PermissionForm, ReferenceList, bankError, blankBank, fieldsFor, filledBasic } from './mobile-forms.jsx';
 import { Approval, BankApplication, FilterView, PermissionCard, RatingList, SupplierDetail, SupplierList, Tabs } from './mobile-views.jsx';
 import { bankNames, cooperation, exampleBank, initialSuppliers, screenshotScenes, supplierTypes } from './mobile-data.js';
@@ -617,7 +617,7 @@ function MobileSurface({ onComparisonChange, scene, shot, ratings, setRatings, a
       submitInvitation(reinvitePrompt.data, target);
     }} />}
     {exportOpen && <SupplierExport suppliers={matching} initial={filters} query={search} busy={exportBusy} onExport={performExport} onClose={closeExport} />}
-    {sheet === 'more' && <Overlay sheet label="更多操作" onClose={() => setSheet(null)}><div className="m-action-sheet">{canChangeSupplier(supplier) && ['修改银行', '分配权限', '变更邀请人'].map((label, i) => <button key={label} onClick={() => { setSheet(null); go(['bank', 'permissions', 'inviter'][i]); }}>{label}</button>)}{canRateSupplier(supplier) && <button onClick={() => { setSheet(null); startScore(supplier); }}>评分</button>}<button onClick={() => { setSheet(null); go('detail-approval'); }}>审批记录</button><button className="cancel" onClick={() => setSheet(null)}>取消</button></div></Overlay>}
+    {sheet === 'more' && <Overlay sheet label="更多操作" onClose={() => setSheet(null)}><div className="m-action-sheet"><PickerHeading title="更多操作" />{canChangeSupplier(supplier) && ['修改银行', '分配权限', '变更邀请人'].map((label, i) => <button key={label} onClick={() => { setSheet(null); go(['bank', 'permissions', 'inviter'][i]); }}>{label}</button>)}{canRateSupplier(supplier) && <button onClick={() => { setSheet(null); startScore(supplier); }}>评分</button>}<button onClick={() => { setSheet(null); go('detail-approval'); }}>审批记录</button><button className="cancel" onClick={() => setSheet(null)}>取消</button></div></Overlay>}
     {sheet?.kind === 'attachment' && <AttachmentViewer value={sheet.name} onClose={() => setSheet(null)} />}
     {batchError && <Overlay label="批量操作校验" onClose={() => setBatchError(null)}><h2>{batchError.title}</h2><p>{batchError.text}</p><div className="m-dialog-actions"><button type="button" onClick={() => setBatchError(null)}>知道了</button></div></Overlay>}
     {confirm && <Confirm danger={confirm.type.startsWith('delete')} text={confirm.text} onCancel={() => setConfirm(null)} onConfirm={runConfirmation} />}
