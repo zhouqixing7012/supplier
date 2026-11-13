@@ -388,8 +388,6 @@
 .m-overlay:has(.m-decision-confirm) { align-items: center; padding: 24px; }
 .m-dialog:has(.m-decision-confirm) { width: min(342px, 100%); padding: 0; border-radius: 16px; }
 
-.mobile-page .m-record-actions > .m-edit-icon { display: inline-flex; align-items: center; justify-content: center; min-width: 44px; min-height: 44px; padding: 0 !important; }
-.m-edit-icon svg { width: 18px; height: 18px; }
 
 .m-reference-confirm { padding-bottom: 80px; }
 .m-reference-confirm .m-actions.m-actions-flat { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: min(100%, 430px); z-index: 55; padding-bottom: max(8px, env(safe-area-inset-bottom, 0px)); }
@@ -1201,8 +1199,8 @@
 }
 
 .mobile-page:not(.m-shot) .m-bank-change-card .m-record-heading {
-  padding: 0;
-  border: 0;
+  padding: 0 0 8px;
+  border-bottom: 1px solid var(--m-border-subtle);
 }
 
 @media (max-width: 359px) {

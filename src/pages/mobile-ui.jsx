@@ -208,9 +208,12 @@ export function PickerHeading({ title }) {
   return <div className="m-picker-title m-common-picker-heading"><strong>{title}</strong></div>;
 }
 
-export function RecordCollection({ title, count = 0, emptyText, addLabel, onAdd, children, className = '' }) {
-  return <section className={'m-record-collection ' + className}>
-    <div className="m-record-collection-header"><h2 className="m-record-collection-title">{title}</h2>{onAdd && <button type="button" className="m-record-add" aria-label={addLabel || '添加' + title} onClick={onAdd}><Plus aria-hidden="true" /><span>添加</span></button>}</div>
+export function RecordCollection({ title, count = 0, emptyText, addLabel, onAdd, children, className = '', showTitle = true }) {
+  return <section className={'m-record-collection ' + className} aria-label={showTitle ? undefined : title}>
+    {(showTitle || onAdd) && <div className="m-record-collection-header">
+      {showTitle && <h2 className="m-record-collection-title">{title}</h2>}
+      {onAdd && <button type="button" className="m-record-add" aria-label={addLabel || '添加' + title} onClick={onAdd}><Plus aria-hidden="true" /><span>添加</span></button>}
+    </div>}
     {count ? children : <div className="m-record-empty-card"><Empty text={emptyText || '暂无' + title} /></div>}
   </section>;
 }

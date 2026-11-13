@@ -183,7 +183,7 @@ try {
     assert.equal(await field('所属部门').count(), 1);
   });
   await check('权限编辑保存只是暂存，外层取消保护且正式详情不变', async () => {
-    await goto('mobile/permissions'); await page.locator('#root .m-bank-card').first().getByRole('button', { name: '修改权限', exact: true }).click(); await choose('权限分类', '火车'); await button('保存此权限').click(); await page.locator('#root').getByLabel('变更状态：修改', { exact: true }).waitFor(); await button('取消').click(); await button('放弃修改').click(); await card('北京初然').getByRole('button', { name: '详情', exact: true }).click(); await button('分配权限').click(); assert.ok((await page.locator('#root .m-detail').innerText()).includes('飞机'));
+    await goto('mobile/permissions'); await page.locator('#root .m-bank-card').first().getByRole('button', { name: '修改', exact: true }).click(); await choose('权限分类', '火车'); await button('保存此权限').click(); await page.locator('#root').getByLabel('变更状态：修改', { exact: true }).waitFor(); await button('取消').click(); await button('放弃修改').click(); await card('北京初然').getByRole('button', { name: '详情', exact: true }).click(); await button('分配权限').click(); assert.ok((await page.locator('#root .m-detail').innerText()).includes('飞机'));
   });
   await check('银行编辑取消保护、保存暂存、省市保留、提交不改原详情', async () => {
     await goto('mobile/bank'); await page.locator('#root .m-bank-card').first().getByRole('button', { name: '修改', exact: true }).click(); await field('备注').fill('待提交备注'); await page.locator('#root .m-fullscreen-panel > .m-header').getByRole('button', { name: '返回', exact: true }).click(); await button('继续编辑').click(); assert.equal(await field('备注').inputValue(), '待提交备注'); await button('保存此账户').click(); await page.locator('#root').getByLabel('变更状态：修改', { exact: true }).waitFor(); const changedBank = page.locator('#root .m-bank-change-card'); const changedBankField = changedBank.locator('.m-change-field-row').filter({ hasText: '备注' }); assert.equal(await changedBankField.count(), 1); assert.equal(await changedBankField.locator('.m-change-value-new').count(), 1); assert.equal(await changedBankField.locator('.m-change-value-old').count(), 1); const unchangedBankField = changedBank.locator('.m-change-field-row').filter({ hasText: '开户银行' }); assert.equal(await unchangedBankField.count(), 1); assert.equal(await unchangedBankField.locator('.m-change-value-normal').count(), 1); const actionRow = changedBank.locator('.m-card-actions'); const actionRowBox = await actionRow.boundingBox(), bankCardBox = await changedBank.boundingBox(); assert.equal(Math.round(actionRowBox.height), 51); assert.ok(bankCardBox.y + bankCardBox.height - actionRowBox.y - actionRowBox.height <= 1.1); assert.equal(await changedBank.evaluate(n => getComputedStyle(n).paddingBottom), '0px'); assert.equal(await actionRow.locator('button').evaluateAll(nodes => nodes.every(n => n.getBoundingClientRect().height >= 44)), true); assert.equal(await changedBank.locator('.m-change-badge').evaluate(n => getComputedStyle(n).color), 'rgb(242, 125, 12)'); await button('提交变更').click(); await page.locator('#root [data-scene="query"]').waitFor(); await card('北京初然').getByRole('button', { name: '详情', exact: true }).click(); await button('银行信息').click(); assert.ok(!(await page.locator('#root .m-detail').innerText()).includes('待提交备注'));
@@ -443,6 +443,12 @@ try {
   });
   await check('详情记录卡片宽度与标题分隔线统一', async () => {
     await goto('mobile'); await card('北京初然').getByRole('button', { name: '详情', exact: true }).click(); const tabs = page.locator('#root .m-detail .m-tabs');
+    for (const label of ['联系人信息', '银行信息', '分配权限', '财务OU', '黑名单操作记录']) {
+      await tabs.getByRole('button', { name: label, exact: true }).click();
+      const collection = page.locator('#root .m-detail .m-record-collection');
+      assert.equal(await collection.getAttribute('aria-label'), label);
+      assert.equal(await collection.locator('.m-record-collection-header').count(), 0);
+    }
     await tabs.getByRole('button', { name: '银行信息', exact: true }).click();
     const bank = page.locator('#root .m-detail .m-record-collection .m-bank-card').first(); await bank.waitFor();
     const width = await bank.evaluate(n => Math.round(n.getBoundingClientRect().width));

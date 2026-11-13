@@ -21,6 +21,7 @@ const check=async()=>{
  const diff=changed().locator('[data-changed="true"]').filter({hasText:'账户名称'});
  assert.equal(await diff.locator('.m-change-value-new').textContent(),'银行差异测试');
  assert.equal(await diff.locator('.m-change-value-old').textContent(),originalName);
+ assert.equal(await changed().locator('.m-record-heading').evaluate(n=>getComputedStyle(n).borderBottomWidth),'1px');
  assert.equal(await changed().locator('.m-change-group-body').evaluate(n=>getComputedStyle(n).backgroundColor),'rgb(255, 255, 255)');
  assert.equal(await page.locator('.m-bank-submit-actions').getByRole('button',{name:'返回',exact:true}).count(),0);
  assert(await button('提交审批').isEnabled());
