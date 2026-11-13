@@ -52,10 +52,10 @@ function SupplierSummary({ s, mine, batch, checked, setChecked, onDetail, onBank
   </article>;
 }
 
-export function FilterView({ rating = false, initial = {}, onApply, onCancel }) {
-  const [data, setData] = useState(initial);
+export function FilterView({ rating = false, mine = false, initial = {}, onApply, onCancel }) {
+  const [data, setData] = useState(() => rating && mine ? Object.fromEntries(Object.entries(initial).filter(([key]) => !['person', 'department'].includes(key))) : initial);
   const update = (key, value) => setData({ ...data, [key]: value });
-  const fields = rating ? [['cooperationType', '合作类型', ['技术服务', '电子产品']], ['person', '业务线联系人'], ['department', '所属部门'], ['start', '评分开始时间', 'date'], ['end', '评分结束时间', 'date']] : [['type', '供应商类型', supplierTypes], ['status', '供应商状态', supplierStates], ['start', '邀请时间（起）', 'date'], ['end', '邀请时间（止）', 'date'], ['recommended', '供应商推荐', supplierIndustries], ['inviter', '邀请人']];
+  const fields = rating ? [['cooperationType', '合作类型', ['技术服务', '电子产品']], ...(!mine ? [['person', '业务线联系人'], ['department', '所属部门']] : []), ['start', '评分开始时间', 'date'], ['end', '评分结束时间', 'date']] : [['type', '供应商类型', supplierTypes], ['status', '供应商状态', supplierStates], ['start', '邀请时间（起）', 'date'], ['end', '邀请时间（止）', 'date'], ['recommended', '供应商推荐', supplierIndustries], ['inviter', '邀请人']];
   return <div className="m-filter-view">{fields.map(([key, label, kind]) => <FilterField key={key} label={label} allowClearDate={kind === 'date'} layout={kind === 'date' ? 'inline' : undefined} selectionMode="immediate" searchable={key === 'recommended'} value={data[key] || ''} type={kind === 'date' ? 'date' : 'text'} options={Array.isArray(kind) ? kind : undefined} onChange={v => update(key, v)} placeholder={rating && ['person', 'department'].includes(key) ? '请输入' + label : undefined} />)}<Actions flat items={[{ label: '重置', muted: true, onClick: () => setData({}) }, { label: '应用筛选', onClick: () => onApply(data) }]} /></div>;
 }
 
@@ -111,6 +111,7 @@ export function PermissionCard({ data, onEdit, onDelete }) {
 export function BankApplication({ onApply }) {
   return <div className="m-bank-application"><h2>申请须知</h2><p>{bankApplicationNotice}</p><button onClick={onApply}>确认申请</button></div>;
 }
+
 
 
 
