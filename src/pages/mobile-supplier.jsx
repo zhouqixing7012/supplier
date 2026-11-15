@@ -1,11 +1,11 @@
 import { BankChangeCard } from './mobile-bank-change-view.jsx';
-import { ActionSheet, Checkbox, FullscreenPanel, AddressForm, Actions, RecordCollection, AttachmentViewer, Confirm, Empty, FilterButton, Header, Overlay, Row, Section, Tabs } from '../components/mobile/index.js';
+import { ActionSheet, Checkbox, FullscreenPanel, AddressForm, Actions, RecordCollection, AttachmentViewer, Confirm, Empty, FilterButton, FilterSummary, Header, Overlay, Row, Section, Tabs } from '../components/mobile/index.js';
 import { regionData } from './registration-regions.js';
 import { bankChangeCounts, normalizeBankChanges, readBankDraft, writeBankDraft } from './mobile-bank-changes.js';
 import { createSessionId } from './mobile-interaction.jsx';
 import React, { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Check, Send, ClipboardPenLine, Landmark, Download, Filter, ListChecks, Plus, Search, Signal, Wifi, Battery, X, CircleUserRound } from 'lucide-react';
-import { AppliedFilters, Field, RegistrationSteps, ScreenshotTip, SearchBox } from './mobile-ui.jsx';
+import { Field, RegistrationSteps, ScreenshotTip, SearchBox } from './mobile-ui.jsx';
 import { BankCard, BankFields, BasicFields, ContactFields, InviteForm, PermissionForm, ReferenceList, bankError, blankBank, fieldsFor, filledBasic } from './mobile-forms.jsx';
 import { Approval, BankApplication, FilterView, PermissionCard, RatingList, SupplierDetail, SupplierList } from './mobile-views.jsx';
 import { bankNames, cooperation, exampleBank, initialSuppliers, screenshotScenes, supplierTypes } from './mobile-data.js';
@@ -579,7 +579,7 @@ function MobileSurface({ onComparisonChange, scene, shot, ratings, setRatings, a
     <SwipeArea active={Math.max(0, tab)} count={tab >= 0 ? menus.length : 1} onChange={selectMenu}>
     {listScene && <>
       <SearchBox value={search} onChange={setSearch} placeholder={mine ? "搜索供应商名称" : "搜索供应商名称或邀请人"}><button className="m-icon-button" aria-label={exportBusy ? '导出中' : '导出供应商'} disabled={exportBusy} onClick={startExport}><Download /></button><FilterButton label="筛选供应商" onClick={() => runMotion(() => setFiltering(true), 'forward')} /><button className="m-icon-button" aria-label={batch ? '退出批量选择' : '批量选择'} onClick={() => { runMotion(() => { setBatch(!batch); setChecked([]); }, 'record'); }}>{batch ? <X /> : <ListChecks />}</button></SearchBox>
-      <AppliedFilters filters={filters} query={search} count={list.length} onEdit={() => runMotion(() => setFiltering(true), 'forward')} onClear={() => setFilters({})} />
+      <FilterSummary count={list.length} unit="家供应商" label="查询结果" />
       <SupplierList filtered={!!search || Object.values(filters).some(Boolean)} suppliers={list} mine={mine} batch={batch} checked={checked} setChecked={setChecked} admin={adminScene} batchKind={batchKind} onDetail={s => pick(s, 'detail')} onBank={s => pick(s, 'bank')} onMore={(s, approval) => { listReturn.current = mine ? 'mine' : 'query'; select(s.id); approval === 'permissions' ? go('permissions') : approval ? go('detail-approval') : setSheet('more'); }} onInviter={s => pick(s, 'inviter')} onScore={startScore} onReinvite={s => { if (canReinviteSupplier(s)) pick(s, 'invite-again'); }} onEdit={s => pick(s, 'register-edit')} onEditAll={s => pick(s, 'register-edit-all')} onDelete={s => setConfirm({ type: 'delete', ids: [s.id], text: '确认删除供应商「' + s.name + '」？删除后原有信息全部作废。' })} />
       {!batch && <div className="m-fab-group">
         <div id={addMenuId} className="m-fab-menu" data-open={expanded} inert={!expanded} aria-hidden={!expanded || undefined}>
@@ -595,7 +595,7 @@ function MobileSurface({ onComparisonChange, scene, shot, ratings, setRatings, a
     {(scene === 'filter' || filtering) && <div className={filtering ? 'm-fullscreen-panel' : ''}>{filtering && <Header title="筛选供应商" onBack={() => runMotion(() => setFiltering(false), 'back')} />}<FilterView listMine={filterMine} initial={filters} onApply={v => { if (v.start && v.end && v.start > v.end) return notify('开始时间不能晚于结束时间'); setFilters(v); if (filtering) runMotion(() => setFiltering(false), 'back'); else { views[returnToList()] = { ...views[returnToList()], filters: v }; go(returnToList()); } }} onCancel={() => filtering ? runMotion(() => setFiltering(false), 'back') : go(mapParams.from || 'query')} /></div>}
     {scene === 'information-change' && <>{supplier.pendingInformation && supplier.status === '变更中' ? <><ChangeComparison before={supplier} after={supplier.pendingInformation} onPreview={preview} /><Actions items={[{ label: '查看审批', onClick: () => go('approval') }]} /></> : <><Section title="资料变更对比" collapsible={false}><Empty text="暂无待查看的资料变更" /></Section></>}</>}
     {scene.startsWith('detail') && <SupplierDetail supplier={supplier} onHistoricalInvite={canInviteHistoricalSupplier(supplier, currentInviter) ? () => go('invite-historical') : undefined} initialTab={/^[0-8]$/.test(mapParams.tab) ? Number(mapParams.tab) : scene === 'detail-bank' ? 3 : ['detail-approval', 'detail-approval-empty'].includes(scene) ? 7 : scene === 'detail-ratings' ? 8 : 0} approvalEmpty={scene === 'detail-approval-empty'} onPreview={preview} ratings={ratings} onScore={() => { setActiveRating(null); setRatingReturn('detail-ratings'); go('rating-edit'); }} onRatingOpen={(record, readOnly) => { setActiveRating(record); setRatingReturn('detail-ratings'); go(readOnly ? 'rating-detail' : 'rating-edit'); }} />}
-    {scene === 'registration-approval-demo' && mapParams.map && <RegistrationApprovalDemo />}
+    {scene === 'registration-approval-demo' && mapParams.map && <RegistrationApprovalDemo sampleId={mapParams.record} onPreview={preview} />}
     {scene.startsWith('approval') && <Approval type={supplier.pendingInformation ? '资料变更' : '注册'} supplier={shot ? { ...supplier, name: '北京初然文化传媒有限公司827583' } : supplier} history={scene === 'approval-history'} number={shot?.time === '194516' ? 'SUP202610140006' : 'SUP202610140004'} showSupplier={!shot || shot.time !== '194516'} onPreview={preview} />}
     {['bank', 'bank-tip'].includes(scene) && <>
       <Section title="供应商信息"><Row label="供应商名称">{supplier.name}</Row><Row label="供应商类型">{supplier.type}</Row></Section>

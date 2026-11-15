@@ -73,7 +73,12 @@ export const pageMap = [
         link('新邀请人选择', target('inviter-batch', { panel: 'people' }), '单条变更的人员选择'),
       ], '单条变更邀请人表单'),
     ]),
-    link('注册审批及结果邮件演示', 'registration-approval-demo'),
+    node('注册审批及结果邮件演示', 'registration-approval-demo', [
+      link('个人供应商', target('registration-approval-demo', { record: 'mock-person-id-card' })),
+      link('企业供应商', target('registration-approval-demo', { record: 'mock-enterprise-technology' })),
+      link('政府机构或社团', target('registration-approval-demo', { record: 'mock-institution-center' })),
+      link('国外供应商', target('registration-approval-demo', { record: 'mock-foreign-studio' })),
+    ]),
     node('我的评分', 'my-ratings', [
       link('评分筛选', target('rating-filter', { from: 'my-ratings' }), '筛选表单结构'),
       link('填写评分', target('rating-edit', { from: 'my-ratings' })),

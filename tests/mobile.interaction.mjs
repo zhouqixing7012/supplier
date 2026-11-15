@@ -160,11 +160,50 @@ try {
   await check('我的邀请字段直接展示且详情返回保持来源', async () => {
     await goto('mobile/mine'); assert.ok(await card('代注册草稿').getByText('联系人邮箱', { exact: true }).isVisible()); await card('代注册草稿').getByRole('button', { name: '详情', exact: true }).click(); await headerBack(); await page.locator('#root [data-scene="mine"]').waitFor();
   });
-  await check('查询筛选生效且重复打开回填，清空恢复', async () => {
-    await goto('mobile'); await button('筛选供应商').click(); await choose('供应商状态', '草稿'); await button('应用筛选').click(); assert.equal(await page.locator('#root .m-supplier-card').count(), 1); await button('已筛选 · 1项').click(); assert.ok((await page.locator('#root').getByRole('combobox', { name: '供应商状态', exact: true }).innerText()).includes('草稿')); await button('取消').click(); await button('清除筛选').click(); assert.ok(await page.locator('#root .m-supplier-card').count() > 1);
+  await check('查询结果只展示数量，重新打开筛选回填并可重置', async () => {
+    for (const route of ['mobile', 'mobile/mine']) {
+      await goto(route);
+      const cards = page.locator('#root .m-supplier-card');
+      const total = await cards.count();
+      await button('筛选供应商').click();
+      await choose('供应商状态', '草稿');
+      await button('应用筛选').click();
+      assert.equal(await cards.count(), 3);
+      assert.equal(await page.locator('#root').getByRole('region', { name: '查询结果' }).innerText(), '共 3 家供应商');
+      assert.equal(await button('清除筛选').count(), 0);
+      await button('筛选供应商').click();
+      assert.match(await page.locator('#root').getByRole('combobox', { name: '供应商状态', exact: true }).innerText(), /草稿/);
+      await button('重置').click();
+      await button('应用筛选').click();
+      assert.equal(await cards.count(), total);
+    }
   });
   await check('审批仅展示纵向节点，审批意见直接可见', async () => {
     await goto('mobile/approval'); assert.equal(await page.locator('#root .m-approval > .m-section:first-of-type .m-approval-timeline li').count(), 4); assert.equal(await page.locator('#root .m-approval table').count(), 0); assert.equal(await page.locator('#root .m-approval > .m-section:first-of-type .m-approval-timeline summary').count(), 0); assert.equal(await page.locator('#root .m-approval > .m-section:first-of-type .m-approval-timeline .m-row').filter({ hasText: '审批意见' }).count(), 4); await shot('approval');
+  });
+  await check('注册审批显示完整登记资料，首节点填写付款公司', async () => {
+    const approval = 'mobile/registration-approval-demo?map=1';
+    await goto(approval);
+    assert.match(await page.locator('#root').innerText(), /IDMOCK000120/);
+    assert.match(await page.locator('#root').innerText(), /身份证正面照片.*身份证反面照片/s);
+    assert.equal(await page.locator('#root .m-bank-card').count(), 1);
+    await goto(approval + '&record=mock-enterprise-technology');
+    const content = page.locator('#root [data-scene="registration-approval-demo"]');
+    assert.match(await content.innerText(), /信息技术服务资质.*沈知柯.*郁兰.*基本账户.*一般账户/s);
+    assert.equal(await content.getByText('归属部门', { exact: true }).count(), 0);
+    assert.equal(await content.getByText('所属权限', { exact: true }).count(), 0);
+    await button('同意').click();
+    assert.ok(await content.getByRole('alert').filter({ hasText: '请选择付款公司' }).isVisible());
+    await button('付款公司').click();
+    const picker = page.locator('#root').getByRole('dialog');
+    await picker.getByRole('button', { name: '演示付款公司', exact: true }).click();
+    await picker.getByRole('button', { name: '确认', exact: true }).click();
+    await button('同意').click();
+    assert.equal(await button('付款公司').count(), 0);
+    assert.match(await content.innerText(), /当前节点\s*领导审批/);
+    await field('审批意见').fill('申请资料需补充');
+    await button('驳回').click();
+    assert.match(await content.innerText(), /审批驳回.*申请资料需补充/s);
   });
   await check('帮助可通过点击查看，日期初始化今天，长期可选', async () => {
     await goto('mobile/bank-form'); await button('开户银行填写说明').click(); await page.locator('#root').getByRole('dialog', { name: '开户银行填写说明' }).waitFor(); await button('知道了').click();
@@ -375,10 +414,34 @@ try {
     await goto('mobile'); const listTag = card('北京初然').locator('.m-status'); assert.equal(await listTag.innerText(), '已审批'); assert.equal(await listTag.getAttribute('data-tone'), 'success'); const appearance = await listTag.evaluate(n => [getComputedStyle(n).color, getComputedStyle(n).backgroundColor]); await card('北京初然').getByRole('button', { name: '详情', exact: true }).click(); const detailTag = page.locator('#root .m-detail-summary .m-status'); assert.deepEqual(await detailTag.evaluate(n => [getComputedStyle(n).color, getComputedStyle(n).backgroundColor]), appearance); await goto('mobile/workspace-home'); assert.equal(await page.locator('#root .m-workspace .m-status').getAttribute('data-tone'), 'success'); await page.screenshot({ path: path.join(output, 'adopt-home.png') });
   });
   await check('规范吸收：已应用条件值、结果数和取消保持一致', async () => {
-    await goto('mobile'); await button('筛选供应商').click(); await choose('供应商状态', '已审批'); await choose('供应商推荐', '信息传输、计算机服务和软件业'); await button('应用筛选').click(); const summary = page.locator('#root').getByRole('region', { name: '当前查询条件' }); const text = await summary.innerText(); assert.ok(text.includes('已审批')); assert.ok(text.includes('信息传输、计算机服务和软件业')); assert.ok(text.includes('共 2 家供应商')); await button('已筛选 · 2项').click(); await choose('供应商状态', '草稿'); await button('取消').click(); assert.ok((await summary.innerText()).includes('已审批')); assert.equal(await page.locator('#root .m-supplier-card').count(), 2); await page.screenshot({ path: path.join(output, 'adopt-applied-filters.png') });
+    await goto('mobile');
+    await button('筛选供应商').click();
+    await choose('供应商状态', '已审批');
+    await choose('供应商推荐', '信息传输、计算机服务和软件业');
+    await button('应用筛选').click();
+    const summary = page.locator('#root').getByRole('region', { name: '查询结果' });
+    assert.equal(await summary.innerText(), '共 3 家供应商');
+    await button('筛选供应商').click();
+    await choose('供应商状态', '草稿');
+    await page.locator('#root .m-fullscreen-panel .m-header').getByRole('button', { name: '返回', exact: true }).click();
+    assert.equal(await summary.innerText(), '共 3 家供应商');
+    assert.equal(await page.locator('#root .m-supplier-card').count(), 3);
+    await page.screenshot({ path: path.join(output, 'adopt-applied-filters.png') });
   });
   await check('规范吸收：搜索和应用筛选后清除旧批量选择', async () => {
-    await goto('mobile/mine-batch'); await page.locator('#root').getByRole('checkbox', { name: '选择北京初然文化传媒有限公司733324', exact: true }).check(); await field('搜索供应商名称或邀请人').fill('草稿'); await page.waitForFunction(() => document.querySelectorAll('.m-supplier-card input:checked').length === 0); assert.ok((await page.locator('#root .m-batch-actions').innerText()).includes('已选 0 项')); await button('清空搜索').click(); await page.locator('#root').getByRole('checkbox', { name: '选择北京初然文化传媒有限公司733324', exact: true }).check(); await button('筛选供应商').click(); await choose('供应商状态', '草稿'); await button('应用筛选').click(); assert.equal(await page.locator('#root .m-supplier-card input:checked').count(), 0); assert.equal(await page.locator('#root .m-supplier-card').count(), 1);
+    await goto('mobile/mine-batch');
+    const supplier = page.locator('#root').getByRole('checkbox', { name: '选择北京初然文化传媒有限公司733324', exact: true });
+    await supplier.check();
+    await field('搜索供应商名称').fill('草稿');
+    await page.waitForFunction(() => document.querySelectorAll('.m-supplier-card input:checked').length === 0);
+    assert.match(await page.locator('#root .m-batch-actions').innerText(), /已选 0 项/);
+    await button('清空搜索').click();
+    await supplier.check();
+    await button('筛选供应商').click();
+    await choose('供应商状态', '草稿');
+    await button('应用筛选').click();
+    assert.equal(await page.locator('#root .m-supplier-card input:checked').count(), 0);
+    assert.equal(await page.locator('#root .m-supplier-card').count(), 3);
   });
   await check('规范吸收：空列表与无匹配结果明确区分', async () => {
     await goto('mobile/shot/200005'); await page.locator('#root').getByText('暂无供应商记录', { exact: true }).waitFor(); await goto('mobile'); await field('搜索供应商名称或邀请人').fill('没有这家供应商'); await page.locator('#root').getByText('暂无匹配结果，请调整搜索或筛选条件', { exact: true }).waitFor(); await button('清空搜索').click(); assert.ok(await page.locator('#root .m-supplier-card').count() > 0);

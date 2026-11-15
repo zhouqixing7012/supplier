@@ -1,78 +1,52 @@
 import React, { useState } from 'react';
-import { Actions, CardActions, RecordCard, RecordCollection, Row, Section } from '../components/mobile/index.js';
+import { Actions, Row, Section } from '../components/mobile/index.js';
 import { Field } from './mobile-ui.jsx';
-import { permissionGroups } from './mobile-data.js';
-import { createSessionId } from './mobile-interaction.jsx';
+import { RegistrationDetails } from './mobile-registration-preview.jsx';
+import { mobileSupplierSamples } from './mobile-supplier-samples.js';
 
 const stages = ['业务审批', '领导审批', '财务审批'];
-const departments = ['演示采购部门', '演示业务部门', '演示财务部门'];
 const companies = ['演示采购公司', '演示付款公司'];
-const blankAssignment = { group: '', category: '', company: '' };
-const groups = Object.keys(permissionGroups).filter(group => group !== '撰稿人权限');
 
-// 独立评审场景。正式审批和结果邮件由工作流办理。
-export function RegistrationApprovalDemo() {
+// 独立审批演示，复用登记预览展示本次申请的只读资料。
+export function RegistrationApprovalDemo({ sampleId = 'mock-person-id-card', onPreview }) {
+  const supplier = mobileSupplierSamples.find(record => record.id === sampleId) || mobileSupplierSamples[0];
   const [stage, setStage] = useState(0);
-  const [department, setDepartment] = useState(departments[0]);
-  const [draft, setDraft] = useState(null);
-  const [assignments, setAssignments] = useState([]);
+  const [company, setCompany] = useState('');
   const [opinion, setOpinion] = useState('');
   const [result, setResult] = useState(null);
-  const [error, setError] = useState('');
-  const change = patch => setDraft({ ...draft, ...patch });
-  function saveAssignment() {
-    if (!draft.group || !draft.category || !draft.company) { setError('请选择所属权限、权限分类和付款公司'); return; }
-    const row = { ...draft, id: createSessionId() };
-    setAssignments([...assignments, row]);
-    setDraft(null);
-    setError('');
-  }
-  function decide(status) {
-    if (status === '同意' && stage === 0 && (draft || !assignments.length)) {
-      setError(draft ? '请先保存或取消当前分配业务明细' : '请至少添加一条分配业务记录');
+  const [companyError, setCompanyError] = useState('');
+
+  function decide(approved) {
+    if (approved && stage === 0 && !company) {
+      setCompanyError('请选择付款公司');
       return;
     }
-    setError('');
-    if (status === '同意' && stage < stages.length - 1) {
+    if (approved && stage < stages.length - 1) {
       setStage(stage + 1);
       setOpinion('');
       return;
     }
-    if (status === '驳回') { setAssignments([]); setDraft(null); }
-    setResult({ status: status === '同意' ? '审批通过' : '审批驳回', opinion: status === '驳回' ? opinion : '' });
+    setResult(approved ? { status: '审批通过' } : { status: '审批驳回', opinion });
   }
+
   return <>
-    <Section title="演示注册申请" collapsible={false}>
-      <Row label="邀请人">演示邀请人</Row>
+    <Section title="注册申请" collapsible={false}>
+      <Row label="供应商名称">{supplier.name}</Row>
+      <Row label="供应商类型">{supplier.type}</Row>
+      <Row label="邀请人">{supplier.inviter}</Row>
       <Row label="当前节点">{stages[stage]}</Row>
-      <Row label="供应商类型">个人供应商</Row>
-      <Row label="证件号码">DEMO-20261115001</Row>
     </Section>
-    {!result && stage === 0 && <>
-      <Section title="归属部门" collapsible={false}>
-        <Field label="归属部门" searchable options={departments} value={department} onChange={setDepartment} />
-      </Section>
-      <RecordCollection title="分配业务" count={assignments.length} emptyText="暂无分配业务记录" addLabel="添加权限" onAdd={draft ? undefined : () => setDraft(blankAssignment)}>
-        {assignments.map(item => <RecordCard key={item.id} title={item.group}>
-          <Row label="权限分类">{item.category}</Row><Row label="付款公司">{item.company}</Row>
-          <CardActions><button type="button" onClick={() => setAssignments(assignments.filter(row => row.id !== item.id))}>移除</button></CardActions>
-        </RecordCard>)}
-      </RecordCollection>
-      {draft && <Section title="新增分配业务" collapsible={false}>
-        <Field label="所属权限" required options={groups} value={draft.group} onChange={group => change({ group, category: '' })} />
-        <Field label="权限分类" required options={permissionGroups[draft.group] || []} value={draft.category} onChange={category => change({ category })} />
-        <Field label="付款公司" required searchable selectionMode="confirm" options={companies} value={draft.company} onChange={company => change({ company })} />
-        <Actions flat items={[{ label: '取消新增', onClick: () => { setDraft(null); setError(''); } }, { label: '保存明细', onClick: saveAssignment }]} />
-      </Section>}
-    </>}
-    {error && <p className="m-field-error" role="alert">{error}</p>}
+    <RegistrationDetails basic={supplier.basic} contacts={supplier.contacts} banks={supplier.banks} onPreview={onPreview} />
     {result ? <Section title="结果邮件预览" collapsible={false}>
-      <Row label="收件人">演示邀请人</Row><Row label="注册审批结果">{result.status}</Row>
+      <Row label="收件人">{supplier.inviter}</Row>
+      <Row label="注册审批结果">{result.status}</Row>
       {result.status === '审批驳回' && <Row label="驳回原因">{result.opinion || '—'}</Row>}
       <p className="m-input-note">此处为工作流结果演示，未发送邮件。</p>
     </Section> : <Section title="审批办理" collapsible={false}>
+      {stage === 0 && <Field label="付款公司" required searchable selectionMode="confirm" options={companies}
+        value={company} error={companyError} onChange={value => { setCompany(value); setCompanyError(''); }} />}
       <Field label="审批意见" multiline value={opinion} onChange={setOpinion} />
-      <Actions flat items={[{ label: '驳回', onClick: () => decide('驳回') }, { label: '同意', onClick: () => decide('同意') }]} />
+      <Actions flat items={[{ label: '驳回', onClick: () => decide(false) }, { label: '同意', onClick: () => decide(true) }]} />
     </Section>}
   </>;
 }
