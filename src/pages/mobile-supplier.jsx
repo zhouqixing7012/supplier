@@ -9,6 +9,7 @@ import { AppliedFilters, Field, RegistrationSteps, ScreenshotTip, SearchBox } fr
 import { BankCard, BankFields, BasicFields, ContactFields, InviteForm, PermissionForm, ReferenceList, bankError, blankBank, fieldsFor, filledBasic } from './mobile-forms.jsx';
 import { Approval, BankApplication, FilterView, PermissionCard, RatingList, SupplierDetail, SupplierList } from './mobile-views.jsx';
 import { bankNames, cooperation, exampleBank, initialSuppliers, screenshotScenes, supplierTypes } from './mobile-data.js';
+import { mobileSupplierSamples, registerMobileSupplierSampleFiles } from './mobile-supplier-samples.js';
 import { BankApplicationForm, RatingEditor, RatingOperations, RatingWorkspace, initialRatings } from './mobile-workflows.jsx';
 import { InteractionProvider, SwipeArea, useInteraction, useDirtyForm, useBackLayer, usePageIsolation, attachmentName } from './mobile-interaction.jsx';
 import { SupplierExport, exportSupplierRows } from './mobile-export.jsx';
@@ -103,7 +104,10 @@ function MobileApp() {
   const [result, setResult] = useState(null);
   const [comparisonState, setComparisonState] = useState({});
   const [route, setRoute] = useState(readRoute);
-  const [suppliers, setSuppliers] = useState(() => clone(initialSuppliers));
+  const [suppliers, setSuppliers] = useState(() => {
+    registerMobileSupplierSampleFiles();
+    return clone([...initialSuppliers, ...mobileSupplierSamples]);
+  });
   const [ratings, setRatings] = useState(() => clone(initialRatings));
   const [activeRating, setActiveRating] = useState(null);
   const [ratingReturn, setRatingReturn] = useState('my-ratings');
