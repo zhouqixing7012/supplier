@@ -1,5 +1,5 @@
 import React, { useContext, useEffect, useId, useRef, useState } from 'react';
-import { Confirm } from '../components/mobile/index.js';
+import { Confirm } from '../components/mobile/dialogs.jsx';
 import { attachmentFiles } from '../components/mobile/attachment-session.js';
 
 import { runMotion, reducedMotion } from './mobile-motion.jsx';

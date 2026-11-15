@@ -15,9 +15,9 @@
 - `src/pages/mobile-portal-pricing.jsx`：报价与价税详情、全屏行编辑、整单提交和只读结果；复用公共字段、附件与未保存保护。
 - `src/pages/mobile-portal-pricing.js`：十进制分数价税计算、数值检查及剩余时间展示；计算规则由mobile-prd.md维护。
 - `src/pages/mobile-portal-files.jsx`：门户表格文件选择、替换及确认移除；mobile-portal-files.js维护格式检查，复用会话附件存储。
-- `src/components/mobile/`：移动端通用组件、语义变量及共享样式入口。业务页面与组件库预览共用 `index.js`。
+- `src/components/mobile/`：移动端通用组件、语义变量及共享样式入口。业务页面与组件库预览共用 `index.js`，供应商业务组合从 `supplier.js` 提供统一导出。
 - `src/pages/mobile-ui.jsx`：将供应商状态、注册步骤、业务字段和查询条件适配到公共组件。
-- `src/mobile-components-entry.jsx`：独立组件库预览入口，示例在 `catalog.jsx` 中维护。
+- `src/mobile-components-entry.jsx`：独立组件库预览入口，通用控件示例在 `catalog.jsx` 维护，业务组件示例在 `supplier-examples.jsx` 维护。
 - `src/pages/mobile-review.jsx`及`mobile-review.css`：独立原型评审开关、顶层锚点定位、红字引线、详情编辑与本机导入导出；`mobile-review-data.js`维护预置说明与文件校验，不参与供应商业务状态或正式PRD写入。
 - `src/pages/mobile-forms.jsx`：银行、联系人、地址、权限、邀请及注册字段。
 - `src/pages/mobile-views.jsx`：列表、筛选、详情、审批记录、评分与银行信息申请。

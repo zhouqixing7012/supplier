@@ -1,5 +1,5 @@
 import React from 'react';
-import { AttachmentLink, Section } from '../components/mobile/index.js';
+import { ComparisonField, AttachmentLink, Section } from '../components/mobile/index.js';
 import { bankChange } from './mobile-bank-changes.js';
 import { qualificationFields } from './mobile-qualifications.jsx';
 import { fieldsFor } from './mobile-forms.jsx';
@@ -166,14 +166,9 @@ function ChangeGroup({ group, onPreview }) {
       {group.fields.map(field => {
         const raw = deleted ? field.previousRaw : field.nextRaw;
         const value = deleted ? field.previous : field.next;
-        return <div className="m-change-field-row" key={field.key}>
-          <span className="m-change-field-label">{field.label}</span>
-          <div className="m-change-field-values" aria-label={field.label + (modified && field.changed ? '修改前后' : '')}>
-            {modified && field.changed
-              ? <><span className="m-change-value-new"><FieldValue field={field} raw={field.nextRaw} value={field.next} onPreview={onPreview} /></span><span className="m-change-value-old"><FieldValue field={field} raw={field.previousRaw} value={field.previous} onPreview={onPreview} /></span></>
-              : <span className="m-change-value-normal"><FieldValue field={field} raw={raw} value={value} onPreview={onPreview} /></span>}
-          </div>
-        </div>;
+        return <ComparisonField key={field.key} label={field.label} changed={modified && field.changed}
+            current={<FieldValue field={field} raw={raw} value={value} onPreview={onPreview} />}
+            previous={<FieldValue field={field} raw={field.previousRaw} value={field.previous} onPreview={onPreview} />} />;
       })}
     </div>
   </article>;

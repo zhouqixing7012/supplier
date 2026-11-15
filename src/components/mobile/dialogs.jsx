@@ -49,3 +49,12 @@ export function PickerHeading({ title }) {
 export function SelectionMark({ selected }) {
   return <span className="m-option-radio" data-selected={selected || undefined} aria-hidden="true">{selected && <Check />}</span>;
 }
+
+export function ActionSheet({ title, onClose, children }) {
+  return <Overlay sheet label={title} onClose={onClose}>
+    <div className="m-action-sheet">
+      <PickerHeading title={title} />
+      {children}
+    </div>
+  </Overlay>;
+}

@@ -1,5 +1,5 @@
 import React, { useEffect, useId, useRef, useState } from 'react';
-import { Camera, HelpCircle, Paperclip, X } from 'lucide-react';
+import { Camera, HelpCircle, Paperclip, Plus, X } from 'lucide-react';
 import { attachmentFiles, attachmentName, rememberAttachment } from './attachment-session.js';
 import { middleEllipsis } from './attachment-name.js';
 import { Confirm, Overlay } from './dialogs.jsx';
@@ -72,4 +72,28 @@ export function AttachmentViewer({ value, title = '查看附件', onClose }) {
   const name = attachmentName(value);
   const isImage = file?.type.startsWith('image/');
   return <Overlay label="查看附件" onClose={onClose} sheet><div className="m-attachment-viewer"><div className="m-picker-title"><strong>{opened ? name : title}</strong><button type="button" aria-label="关闭附件" onClick={onClose}><X /></button></div>{!opened ? <><p className="m-attachment-count">共 1 个附件</p><div className="m-attachment-list"><button type="button" className="m-attachment-file selected" aria-label={'预览' + name} disabled={!file} onClick={() => setOpened(true)}><span className="m-file-icon"><img src="/mobile-assets/workbench/file.svg" alt="" /></span><span><strong>{name}</strong><small>{file ? isImage ? '图片附件' : '文件附件' : '附件暂不可用'}</small></span></button></div>{!file && <p className="m-attachment-unavailable">附件暂不可用，请联系提供方补充。</p>}<div className="m-picker-actions"><button type="button" onClick={onClose}>返回</button><button type="button" className="primary" disabled={!file} onClick={() => setOpened(true)}>打开附件</button></div></> : <><div className="m-attachment-content">{isImage ? <a href={file.url} target="_blank" rel="noreferrer" aria-label="打开原图"><img className="m-attachment-full" src={file.url} alt={name} /></a> : <p>此文件不支持图片预览。<a href={file.url} target="_blank" rel="noreferrer">打开文件</a></p>}</div><div className="m-picker-actions"><button type="button" onClick={() => setOpened(false)}>返回附件列表</button><button type="button" className="primary" onClick={onClose}>关闭</button></div></>}</div></Overlay>;
+}
+
+export function MultiAttachmentField({ label, value, onChange, onPreview }) {
+  const id = useId();
+  const input = useRef(null);
+  const [removing, setRemoving] = useState(null);
+  const files = Array.isArray(value) ? value : value ? [value] : [];
+  const pendingFile = removing === null ? null : files[removing];
+  return <div className="m-field m-field-inline m-multi-attachment-field" data-field-label={label}>
+    <label htmlFor={id}>{label}</label>
+    <div className="m-field-control">
+      {files.length ? <ul className="m-multi-attachment-list">{files.map((file, index) => <li className="m-multi-attachment-item" key={String(file) + '-' + index}>
+        <AttachmentLink value={file} onPreview={onPreview} />
+        <button type="button" aria-label={`删除${label}${index + 1}`} title={`删除${attachmentName(file)}`} onClick={() => setRemoving(index)}>删除</button>
+      </li>)}</ul> : <p className="m-multi-attachment-empty">暂无附件</p>}
+      <input ref={input} id={id} className="m-file-input" type="file" multiple aria-label={label} onChange={event => {
+        const selected = Array.from(event.target.files || []);
+        if (selected.length) onChange([...files, ...selected.map(file => rememberAttachment(file).key)]);
+        event.target.value = '';
+      }} />
+      <button type="button" className="m-file-select" onClick={() => input.current?.click()}><Plus aria-hidden="true" />添加附件</button>
+    </div>
+    {removing !== null && pendingFile && <Confirm danger text={`确认删除附件「${attachmentName(pendingFile)}」？`} onCancel={() => setRemoving(null)} onConfirm={() => { onChange(files.filter((_, index) => index !== removing)); setRemoving(null); }} />}
+  </div>;
 }

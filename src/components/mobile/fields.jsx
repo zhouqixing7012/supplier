@@ -1,5 +1,5 @@
 import React, { useEffect, useId, useState } from 'react';
-import { CalendarDays, ChevronDown, ChevronRight, HelpCircle, Eye, EyeOff, X } from 'lucide-react';
+import { CalendarDays, Check, ChevronDown, ChevronRight, HelpCircle, Eye, EyeOff, X } from 'lucide-react';
 import { Overlay } from './dialogs.jsx';
 import { DateSheet, OptionSheet } from './pickers.jsx';
 
@@ -97,4 +97,13 @@ export function Field({
     {dateOpen && <DateSheet title={label} value={value} onChange={onChange}
       onClose={() => setDateOpen(false)} allowClear={allowClearDate} />}
   </>;
+}
+
+export function Checkbox({ label, checked, disabled, onChange, children }) {
+  return <label className="m-checkbox">
+    <input type="checkbox" aria-label={label} checked={checked} disabled={disabled}
+      onChange={event => onChange(event.target.checked)} />
+    <span aria-hidden="true">{checked && <Check />}</span>
+    {children}
+  </label>;
 }

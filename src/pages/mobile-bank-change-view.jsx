@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { AttachmentLink, CardActions, Overlay } from '../components/mobile/index.js';
+import { ComparisonField, AttachmentLink, CardActions, Overlay } from '../components/mobile/index.js';
 import { BankCard } from './mobile-forms.jsx';
 import { bankChange, bankComparisonFields } from './mobile-bank-changes.js';
 import { attachmentName } from './mobile-interaction.jsx';
@@ -49,14 +49,9 @@ export function BankChangeCard({ id, before, bank, onPreview, onEdit, onDelete, 
         {fields.map(field => {
           const raw = deleted ? field.previousRaw : field.nextRaw;
           const value = deleted ? field.previous : field.next;
-          return <div className="m-change-field-row" data-changed={field.changed || undefined} key={field.key}>
-            <span className="m-change-field-label">{field.label}</span>
-            <div className="m-change-field-values" aria-label={field.label + (modified && field.changed ? '修改前后' : '')}>
-              {modified && field.changed
-                ? <><span className="m-change-value-new"><BankFieldValue field={field} raw={field.nextRaw} value={field.next} onPreview={onPreview} /></span><span className="m-change-value-old"><BankFieldValue field={field} raw={field.previousRaw} value={field.previous} onPreview={onPreview} /></span></>
-                : <span className="m-change-value-normal"><BankFieldValue field={field} raw={raw} value={value} onPreview={onPreview} /></span>}
-            </div>
-          </div>;
+          return <ComparisonField key={field.key} label={field.label} changed={modified && field.changed}
+            current={<BankFieldValue field={field} raw={raw} value={value} onPreview={onPreview} />}
+            previous={<BankFieldValue field={field} raw={field.previousRaw} value={field.previous} onPreview={onPreview} />} />;
         })}
       </div>
     </div>

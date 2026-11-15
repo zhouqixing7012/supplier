@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
-import { Actions, AttachmentLink, CardActions, Empty, Header, Row, Section } from '../components/mobile/index.js';
+import { MultiAttachmentField, Actions, AttachmentLink, CardActions, Empty, FullscreenPanel, Row, Section } from '../components/mobile/index.js';
 import { Pencil } from 'lucide-react';
 import { Field, StatusTag } from './mobile-ui.jsx';
-import { MultiAttachmentField } from './mobile-portal-files.jsx';
 import { useBackLayer, useDirtyForm } from './mobile-interaction.jsx';
 import { runMotion } from './mobile-motion.jsx';
 import { calculateTax, isDecimal, quoteError, remainingTime } from './mobile-portal-pricing.js';
@@ -34,8 +33,7 @@ function LineEditor({ line, index, quote, onCancel, onSave, notify, onPreview })
     if (error) return notify(typeof error === 'string' ? error : '请输入有效的' + error[1]);
     guard.accept(); onSave(draft);
   };
-  return <div className="m-fullscreen-panel m-pricing-editor" role="dialog" aria-modal="true" aria-label={quote ? '编辑报价明细' : '编辑价税明细'}>
-    <Header title={quote ? '编辑报价明细' : '编辑价税明细'} onBack={cancel} />
+  return <FullscreenPanel className="m-pricing-editor" title={quote ? '编辑报价明细' : '编辑价税明细'} onBack={cancel}>
     <Section title={quote ? draft.material : draft.name} collapsible={false}>
       {(quote ? quoteFields.slice(1, 5) : taxFields.slice(0, 5).filter(([key]) => key !== 'name')).map(([key, label]) => <Row key={key} label={label}>{draft[key] || '—'}</Row>)}
     </Section>
@@ -45,7 +43,7 @@ function LineEditor({ line, index, quote, onCancel, onSave, notify, onPreview })
       {quote && <><MultiAttachmentField label="报价附件" value={draft.attachment} onChange={attachment => setDraft({ ...draft, attachment })} onPreview={onPreview} /><Field label="报价说明" multiline value={draft.note} onChange={note => setDraft({ ...draft, note })} /></>}
     </Section>
     <Actions items={[{ label: '取消', secondary: true, onClick: cancel }, { label: '确定', onClick: save }]} />
-  </div>;
+  </FullscreenPanel>;
 }
 
 export function PortalPricingDetail({ quote, records, store, go, notify, onPreview, mapParams = {} }) {

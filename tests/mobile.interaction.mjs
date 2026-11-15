@@ -68,7 +68,7 @@ try {
     for (const [label, value] of [['供应商名称', name], ['供应商注册邮箱', 'mobile@example.com'], ['统一社会信用代码', 'MOBILE-TEST-001'], ['法人代表', '测试法人'], ['公司电话', '010-12345678'], ['注册资金', '100'], ['经营范围', '交互测试'], ['与搜狐合作事项', '合作测试'], ['经营优势及业务优势', '服务测试']]) await field(label).fill(value);
     for (const label of ['成立日期', '证件有效期至']) { await button(label).click(); await page.locator('#root').getByRole('dialog').getByRole('button', { name: '确认', exact: true }).click(); }
     for (const [label, value] of [['企业类型', '有限责任公司'], ['所属行业', '文化、体育、娱乐业'], ['注册币种', '人民币'], ['国家', '国内']]) await choose(label, value);
-    await button('注册地址').click(); await button('选择地址').click();
+    await button('注册地址').click();
     for (const value of ['北京市', '北京市', '朝阳区']) await page.locator('#root .m-sheet-options').getByRole('button', { name: value, exact: true }).click();
     await field('详细地址').fill('移动测试地址'); await button('确定').click();
   }
@@ -91,6 +91,25 @@ try {
     const sheet = page.getByRole('dialog');
     await sheet.getByRole('button', { name: '个人', exact: true }).click();
     assert.equal(await page.getByRole('combobox', { name: '供应商类型' }).textContent(), '个人');
+  });
+  await check('组件库地址逐级搜索并回填，取消编辑保留原值', async () => {
+    await goto('mobile/components');
+    await button('地址与目录').click();
+    await button('注册地址').click();
+    const sheet = page.getByRole('dialog', { name: '编辑注册地址', exact: true });
+    await sheet.getByRole('searchbox', { name: '搜索省份' }).fill('北京');
+    const regions = sheet.locator('.m-region-options');
+    for (const name of ['北京市', '北京市', '朝阳区']) {
+      await regions.getByRole('button', { name, exact: true }).click();
+    }
+    await sheet.getByRole('textbox', { name: '详细地址' }).fill('示例路 1 号');
+    await sheet.getByRole('button', { name: '确定', exact: true }).click();
+    assert.equal(await button('注册地址').innerText(), '北京市/北京市/朝阳区 示例路 1 号');
+    await button('注册地址').click();
+    await sheet.getByRole('textbox', { name: '详细地址' }).fill('放弃的输入');
+    await sheet.getByRole('button', { name: '取消', exact: true }).click();
+    await button('放弃修改').click();
+    assert.equal(await button('注册地址').innerText(), '北京市/北京市/朝阳区 示例路 1 号');
   });
   for (const s of screenshotScenes) await check('原入口 ' + s.index + ' ' + s.title, async () => {
     await goto('mobile/shot/' + s.time);
@@ -296,7 +315,7 @@ try {
     await goto('mobile/shot/200321'); await page.locator('#root').getByRole('dialog', { name: '导出供应商', exact: true }).waitFor(); await button('取消').click(); await page.locator('#root [data-scene="mine"]').waitFor();
   });
   await check('地址半屏编辑、搜索与取消不跳页', async () => {
-    await goto('mobile/register'); await button('注册地址').click(); assert.equal(await page.locator('#root').getByRole('dialog', { name: '编辑注册地址', exact: true }).count(), 1); assert.equal(await page.locator('#root .m-fullscreen-panel').count(), 0); await button('选择地址').click(); await field('搜索当前省市区').fill('北京'); assert.equal(await page.locator('#root .m-sheet-options button').count(), 1); await page.locator('#root .m-sheet-options').getByRole('button', { name: '北京市', exact: true }).click(); await page.locator('#root .m-sheet-options').getByRole('button', { name: '北京市', exact: true }).click(); await page.locator('#root .m-sheet-options').getByRole('button', { name: '朝阳区', exact: true }).click(); await field('详细地址').fill('不应写入'); await button('取消').click(); await button('放弃修改').click(); assert.equal(await button('注册地址').innerText(), '请选择注册地址');
+    await goto('mobile/register'); await button('注册地址').click(); assert.equal(await page.locator('#root').getByRole('dialog', { name: '编辑注册地址', exact: true }).count(), 1); assert.equal(await page.locator('#root .m-fullscreen-panel').count(), 0); await field('搜索省份').fill('北京'); assert.equal(await page.locator('#root .m-sheet-options button').count(), 1); await page.locator('#root .m-sheet-options').getByRole('button', { name: '北京市', exact: true }).click(); await page.locator('#root .m-sheet-options').getByRole('button', { name: '北京市', exact: true }).click(); await page.locator('#root .m-sheet-options').getByRole('button', { name: '朝阳区', exact: true }).click(); await field('详细地址').fill('不应写入'); await button('取消').click(); await button('放弃修改').click(); assert.equal(await button('注册地址').innerText(), '请选择注册地址');
   });
   await check('门户导航、内容滑动、价税直达去重和返回', async () => {
     await goto('mobile/workspace-home'); await button('价税拆分待处理').click(); await button('价税拆分').click(); await page.locator('#root [data-scene="workspace-tax-split"]').waitFor(); assert.equal(await page.locator('#root').getByText('物料编码', { exact: true }).count(), 1); assert.equal(await page.locator('#root').getByText('含税金额', { exact: true }).count(), 1); await headerBack(); assert.equal(await page.locator('#root .m-tabs [aria-current]').innerText(), '价税拆分待处理'); await swipe(page.locator('#root .m-workspace .m-section h2'), -130); await page.locator('#root').getByText('DEMO-ORDER-002', { exact: true }).waitFor(); await button('我的').click(); await button('退出登录').click(); await page.locator('#root').getByRole('dialog').getByRole('button', { name: '取消', exact: true }).click(); await button('退出登录').click(); await page.locator('#root').getByRole('dialog').getByRole('button', { name: '确认', exact: true }).click(); await page.locator('#root [data-scene="portal"]').waitFor();

@@ -1,10 +1,11 @@
 import { usePanelState } from './mobile-motion.jsx';
-import { Actions, PickerHeading, RecordCard, RecordCollection, AttachmentLink, Confirm, Empty, Overlay, Row, Section, Tabs } from '../components/mobile/index.js';
+import { AddressForm, Actions, PickerHeading, RecordCard, RecordCollection, AttachmentLink, Confirm, Empty, Overlay, Row, Section, Tabs } from '../components/mobile/index.js';
+import { regionData } from './registration-regions.js';
 import React, { useEffect, useRef, useState } from 'react';
 import { Building2, Store, FolderClock, FolderCheck, ReceiptText, Receipt, PlaneTakeoff, Plane, Train, Hotel, Car, Upload, Download, LoaderCircle, Plus, Mail, MailCheck, KeyRound, LockKeyhole, ChevronRight, X, LogOut } from 'lucide-react';
 import { RegistrationSteps, StatusTag, Field, SearchBox } from './mobile-ui.jsx';
 import { QualificationInfo } from './mobile-qualifications.jsx';
-import { AddressForm, BankCard, BankFields, BasicFields, ContactFields, bankError, fieldsFor, filledBasic, blankBank } from './mobile-forms.jsx';
+import { BankCard, BankFields, BasicFields, ContactFields, bankError, fieldsFor, filledBasic, blankBank } from './mobile-forms.jsx';
 import { exampleBank as sampleBank, supplierTypes } from './mobile-data.js';
 import { Approval } from './mobile-views.jsx';
 import { createSessionId, SwipeArea, useBackLayer, useDirtyForm } from './mobile-interaction.jsx';
@@ -220,7 +221,7 @@ export function PortalWorkspace({ scene, go, notify, store, onPreview, accountMe
     {scene === 'workspace-quote-detail' && <PortalPricingDetail mapParams={mapParams} quote records={inquiries} store={store} go={go} notify={notify} onPreview={onPreview} />}
     {scene === 'workspace-travel' && <div className="m-travel-page"><TravelTemplateDownload notify={notify} /><div className="m-travel-entry-list">{travelEntryDefinitions.map(entry => <TravelBillUploadEntry key={entry.key} entry={entry} notify={notify} />)}</div></div>}
     {['workspace-tax-detail', 'workspace-tax-split'].includes(scene) && <PortalPricingDetail mapParams={mapParams} records={orders} store={store} go={go} notify={notify} onPreview={onPreview} />}
-    {address && <Overlay sheet label="编辑注册地址" onClose={() => window.dispatchEvent(new CustomEvent('mobile-close-address'))}><div className="m-address-editor"><div className="m-picker-title"><strong>编辑注册地址</strong></div><AddressForm initial={draft.basic.address} onCancel={() => setAddress(false)} onConfirm={value => { setDraft({ ...draft, basic: { ...draft.basic, address: value } }); setAddress(false); }} /></div></Overlay>}
+    {address && <AddressForm sheet regions={regionData} initial={draft.basic.address} onCancel={() => setAddress(false)} onConfirm={value => { setDraft({ ...draft, basic: { ...draft.basic, address: value } }); setAddress(false); }} />}
     {bankIndex !== null && <div className="m-fullscreen-panel" role="dialog" aria-modal="true" aria-label="门户银行编辑"><PickerHeading title={bankIndex < 0 ? '新增银行' : '修改银行'} /><BankFields bank={bank} setBank={setBank} company={profile.type === supplierTypes[0]} /><Actions items={[{ label: '取消', secondary: true, onClick: closeBank }, { label: '保存此账户', onClick: () => { const error = bankError(bank, profile.type === supplierTypes[0]); if (error) return notify(error); if (draft.banks.some((b, i) => i !== bankIndex && b.accountType === '基本账户' && bank.accountType === '基本账户')) return notify('基本账户只能有一个'); const entry = { ...bank, id: bankIndex < 0 ? createSessionId() : draft.banks[bankIndex].id }; setDraft({ ...draft, banks: bankIndex < 0 ? [...draft.banks, entry] : draft.banks.map((b, i) => i === bankIndex ? entry : b) }); bankGuard.accept(); setBankIndex(null); } }]} /></div>}
     {removeBank !== null && <Confirm danger text="确认删除此银行账户？" onCancel={() => setRemoveBank(null)} onConfirm={() => { setDraft({ ...draft, banks: draft.banks.filter((_, i) => i !== removeBank) }); setRemoveBank(null); }} />}
     {logout && <Confirm title="退出登录？" confirmLabel="退出登录" text={store.portalDraft ? '还有尚未提交的资料修改，退出将放弃这些修改。确认退出？' : '确认退出协同门户？'} onCancel={() => setLogout(false)} onConfirm={() => { store.portalDraft = null; store.portalAccount = null; notify('已退出登录'); go('portal'); }} />}

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Actions, CardActions, RecordCard, RecordCollection, AttachmentLink, Confirm, Empty, FileUploadField, Header, Row, Section } from '../components/mobile/index.js';
+import { Actions, CardActions, RecordCard, RecordCollection, AttachmentLink, Confirm, Empty, FileUploadField, FullscreenPanel, Row, Section } from '../components/mobile/index.js';
 import { Plus } from 'lucide-react';
 import { Field } from './mobile-ui.jsx';
 import { createSessionId, useBackLayer, useDirtyForm } from './mobile-interaction.jsx';
@@ -30,11 +30,10 @@ export function QualificationInfo({ records = [], onChange, onPreview, initialEd
       {onChange && <CardActions><button type="button" onClick={() => begin(i)}>编辑</button><button type="button" className="m-action-danger" onClick={() => setRemoving(i)}>删除</button></CardActions>}
     </RecordCard>)}
   </RecordCollection>
-    {editing !== null && <div className="m-fullscreen-panel m-record-editor" role="dialog" aria-modal="true" aria-label={editing < 0 ? '新增资质' : '编辑资质'}>
-      <Header title={editing < 0 ? '新增资质' : '编辑资质'} onBack={close} />
+    {editing !== null && <FullscreenPanel className="m-record-editor" title={editing < 0 ? '新增资质' : '编辑资质'} onBack={close}>
       <Section title="资质信息" collapsible={false}>{qualificationFields.map(([key, label, kind]) => <Field key={key} label={label} value={draft[key] || ''} type={kind === 'date' ? 'date' : 'text'} allowClearDate onChange={value => setDraft({ ...draft, [key]: value })} />)}<FileUploadField label="附件上传" value={draft.qualificationCertificatePicture} onChange={value => setDraft({ ...draft, qualificationCertificatePicture: value })} /></Section>
       <Actions items={[{ label: '取消', secondary: true, onClick: close }, { label: '保存', onClick: save }]} />
-    </div>}
+    </FullscreenPanel>}
     {removing !== null && <Confirm danger text="确认删除这条资质信息？" onCancel={() => setRemoving(null)} onConfirm={() => { onChange(records.filter((_, i) => i !== removing)); setRemoving(null); }} />}
   </>;
 }

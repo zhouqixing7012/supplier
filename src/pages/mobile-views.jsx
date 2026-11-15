@@ -1,7 +1,7 @@
 import { bankApplicationNotice } from './bank-application.js';
-import { Actions, CardActions, RecordCard, RecordCollection, AttachmentLink, Empty, OptionSheet, Overlay, PickerHeading, Row, Section, Tabs } from '../components/mobile/index.js';
+import { ActionSheet, Checkbox, Actions, CardActions, RecordCard, RecordCollection, AttachmentLink, Empty, OptionSheet, Row, Section, Tabs } from '../components/mobile/index.js';
 import React, { useState } from 'react';
-import { Check, ChevronDown, ClipboardList, Edit3, Filter, List, MoreHorizontal, Plus, X } from 'lucide-react';
+import { ChevronDown, ClipboardList, Edit3, Filter, List, MoreHorizontal, Plus, X } from 'lucide-react';
 import { QualificationInfo } from './mobile-qualifications.jsx';
 import { ChangeTag, Field, FilterField, StatusTag, SearchBox, SupplierIdentityCard } from './mobile-ui.jsx';
 import { BankCard, fieldsFor } from './mobile-forms.jsx';
@@ -23,12 +23,13 @@ function SupplierSummary({ s, mine, batch, checked, setChecked, onDetail, onBank
   const selectable = batchKind === 'all' ? true : batchKind === 'delete' ? canDeleteSupplier(s, mine) : canChangeInviter;
   const fields = mine ? [['证件号码', s.code], ['联系人姓名', s.contact], ['联系人邮箱', s.email], ['联系人电话', s.phone], ['邀请时间', s.date], ['更新时间', s.updated]] : [['注册方式', s.mode], ['更新时间', s.updated]];
   return <article data-motion-key={"supplier-" + s.id} className={'m-supplier-card' + (mine ? ' m-supplier-card-mine' : '')}>
-    <div className="m-supplier-heading"><h3><MotionPresence show={batch} compact className="m-checkbox-presence"><label className="m-checkbox"><input type="checkbox" disabled={!selectable} aria-label={`选择${s.name}`} checked={checked.includes(s.id)} onChange={e => setChecked(e.target.checked ? [...checked, s.id] : checked.filter(x => x !== s.id))} /><span>{checked.includes(s.id) && <Check />}</span></label></MotionPresence><i className="m-blue-mark" aria-hidden="true" /><span>{s.name}</span></h3>{!historical && <StatusTag value={s.status} />}</div>
+    <div className="m-supplier-heading"><h3><MotionPresence show={batch} compact className="m-checkbox-presence"><Checkbox label={`选择${s.name}`} disabled={!selectable} checked={checked.includes(s.id)}
+      onChange={value => setChecked(value ? [...checked, s.id] : checked.filter(x => x !== s.id))} /></MotionPresence><i className="m-blue-mark" aria-hidden="true" /><span>{s.name}</span></h3>{!historical && <StatusTag value={s.status} />}</div>
     {!historical && <p className="m-supplier-kind">{s.type}<span>·</span>{s.mode}</p>}
     <dl>{(historical ? [['供应商类型', s.type], ['审批状态', s.status], ...(!mine ? [['邀请人', s.inviter], ['邀请时间', s.date]] : []), ...fields, ...(!mine ? [['评分', s.score]] : [])] : [...(!mine ? [['邀请人', s.inviter], ['邀请时间', s.date]] : []), ...fields.filter(([label]) => label !== '注册方式'), ...(!mine ? [['评分', s.score]] : [])]).map(([label, value]) => <div className={/时间|邮箱|证件|评分/.test(label) ? 'm-supplier-wide' : ''} key={label}><dt>{label}{historical ? '：' : ''}</dt><dd>{label === '审批状态' ? <StatusTag value={value} /> : value || '—'}</dd></div>)}</dl>
 
     {!batch && <CardActions split><button onClick={() => onDetail(s)}>详情</button>{s.status === '草稿' ? <button onClick={() => onEdit(s)}>修改</button> : canChangeSupplier(s) ? mine ? <button onClick={() => onEditAll(s)}>修改全部信息</button> : <button onClick={() => onBank(s)}>修改银行</button> : null}{hasMore && <button onClick={() => setMenu(true)}>更多操作</button>}</CardActions>}
-    {menu && <Overlay sheet label="更多操作" onClose={() => setMenu(false)}><div className="m-action-sheet"><PickerHeading title="更多操作" />
+    {menu && <ActionSheet title="更多操作" onClose={() => setMenu(false)}>
       {canChangeSupplier(s) && <>{mine ? <><button onClick={() => { setMenu(false); onInviter(s); }}>变更邀请人</button><button onClick={() => { setMenu(false); onEditAll(s); }}>修改全部信息</button></> : <><button onClick={() => { setMenu(false); onBank(s); }}>修改银行</button><button onClick={() => { setMenu(false); onMore(s, 'permissions'); }}>分配权限</button><button onClick={() => { setMenu(false); onInviter(s); }}>变更邀请人</button></>}</>}
       {!mine && canRateSupplier(s) && <button onClick={() => { setMenu(false); onScore(s); }}>评分</button>}
       {canReinviteSupplier(s) && <button onClick={() => { setMenu(false); onReinvite(s); }}>重新邀请</button>}
@@ -36,7 +37,7 @@ function SupplierSummary({ s, mine, batch, checked, setChecked, onDetail, onBank
       {canDeleteSupplier(s, mine) && <button className="m-action-danger" onClick={() => { setMenu(false); onDelete(s); }}>删除</button>}
       {!['草稿', '邀请中', '注册中', '注册驳回'].includes(s.status) && <button onClick={() => { setMenu(false); onMore(s, true); }}>审批记录</button>}
       <button className="cancel" onClick={() => setMenu(false)}>取消</button>
-    </div></Overlay>}
+    </ActionSheet>}
   </article>;
 }
 

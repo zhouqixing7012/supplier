@@ -42,3 +42,11 @@ export function Actions({ items, flat = false, className = '' }) {
   const primary = items.reduce((index, item, i) => !item.secondary && !item.muted && (items.length === 1 || !/^(取消|返回|关闭|上一步|重置|保存草稿|继续修改)/.test(item.label)) ? i : index, -1);
   return <footer className={`m-actions ${flat ? 'm-actions-flat' : ''} ${className}`}>{items.map((item, i) => <button key={`${item.label}-${i}`} type={item.type || 'button'} className={item.secondary ? 'secondary' : item.muted ? 'muted' : item.primary || i === primary ? 'primary' : 'secondary'} disabled={item.disabled} onClick={item.onClick}>{item.label}</button>)}</footer>;
 }
+
+export function FullscreenPanel({ title, label = title, onBack, className, children }) {
+  return <div className={className ? 'm-fullscreen-panel ' + className : 'm-fullscreen-panel'}
+    role="dialog" aria-modal="true" aria-label={label}>
+    {title && <Header title={title} onBack={onBack} />}
+    {children}
+  </div>;
+}

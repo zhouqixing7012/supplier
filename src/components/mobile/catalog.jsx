@@ -1,10 +1,13 @@
 import React, { useState } from 'react';
 import {
-  Actions, CardActions, Confirm, DateSheet, Empty, Field, FileUploadField, FilterButton, FilterSummary,
-  Header, OptionSheet, Overlay, PickerHeading, RecordCard, RecordCollection, Row, SearchBox,
+  ActionSheet, Actions, AddressForm, CardActions, Checkbox, Confirm, DateSheet, Empty, Field, FileUploadField, FilterButton, FilterSummary,
+  FullscreenPanel, Header, MultiAttachmentField, OptionSheet, Overlay, PickerHeading,
+  RecordCard, RecordCollection, ReferencePicker, Row, SearchBox,
   Section, StatusBadge, Steps, Tabs, UploadField,
 } from './index.js';
 import { usePageIsolation } from '../../pages/mobile-interaction.jsx';
+import { regionData } from '../../pages/registration-regions.js';
+import { SupplierExamples, WorkflowExamples } from './supplier-examples.jsx';
 import './styles.js';
 import './catalog.css';
 
@@ -90,9 +93,49 @@ function SearchExamples() {
   </>;
 }
 
+const samplePeople = [
+  { name: '示例采购员', code: '001', searchFields: ['示例采购员', '001'], rows: [['部门', '采购部']] },
+  { name: '示例业务员', code: '002', searchFields: ['示例业务员', '002'], rows: [['部门', '业务部']] },
+];
+const sampleBanks = [
+  { name: '中国农业发展银行', rows: [['国家（地区）', '中国']] },
+  { name: '中国工商银行', rows: [['国家（地区）', '中国']] },
+];
+
+function AddressAndDirectoryExamples() {
+  const [address, setAddress] = useState('');
+  const [person, setPerson] = useState('');
+  const [bank, setBank] = useState('');
+  const [open, setOpen] = useState('');
+  const close = () => setOpen('');
+
+  return <>
+    <Section title="地址编辑" collapsible={false}>
+      <Field label="注册地址" value={address} onPick={() => setOpen('address')} />
+    </Section>
+    <Section title="目录选择" collapsible={false}>
+      <Field label="选择人员" value={person} onPick={() => setOpen('person')} />
+      <Field label="开户银行" value={bank} onPick={() => setOpen('bank')} />
+    </Section>
+    {open === 'address' && <AddressForm sheet regions={regionData} initial={address}
+      onCancel={close} onConfirm={value => { setAddress(value); close(); }} />}
+    {open === 'person' && <FullscreenPanel title="选择人员" onBack={close}>
+      <ReferencePicker entries={samplePeople} selected={person} mode="confirm" onCancel={close}
+        searchLabel="搜索姓名或工号" searchPrompt="请输入姓名搜索人员"
+        onConfirm={value => { setPerson(value); close(); }} />
+    </FullscreenPanel>}
+    {open === 'bank' && <Overlay sheet label="开户银行" onClose={close}>
+      <PickerHeading title="开户银行" />
+      <ReferencePicker entries={sampleBanks} selected={bank} onCancel={close} searchLabel="搜索银行名称"
+        onConfirm={value => { setBank(value); close(); }} />
+    </Overlay>}
+  </>;
+}
+
 function RecordExamples() {
   const [visible, setVisible] = useState(true);
   const [removing, setRemoving] = useState(false);
+  const [selected, setSelected] = useState(false);
 
   return <>
     <Section title="状态标签" collapsible={false}>
@@ -108,12 +151,13 @@ function RecordExamples() {
       onAdd={visible ? undefined : () => setVisible(true)}>
       <RecordCard title="示例联系人" status={<StatusBadge tone="info">主要联系人</StatusBadge>}>
         <Row label="联系邮箱">contact@example.com</Row>
+        <Row label="批量选择"><Checkbox label="勾选示例联系人" checked={selected} onChange={setSelected} /></Row>
         <CardActions><button type="button" className="m-action-danger" onClick={() => setRemoving(true)}>移除</button></CardActions>
       </RecordCard>
     </RecordCollection>
     {removing && <Confirm danger text="确认移除示例联系人？" confirmLabel="移除"
       onCancel={() => setRemoving(false)}
-      onConfirm={() => { setRemoving(false); setVisible(false); }} />}
+      onConfirm={() => { setRemoving(false); setVisible(false); setSelected(false); }} />}
   </>;
 }
 
@@ -132,13 +176,10 @@ function DialogExamples() {
     <Section title="日期选择" collapsible={false}>
       <Field label="证件有效期" type="date" value={expiry} onPick={() => setDialog('date')} />
     </Section>
-    {dialog === 'sheet' && <Overlay sheet label="更多操作" onClose={close}>
-      <div className="m-action-sheet">
-        <PickerHeading title="更多操作" />
-        <button type="button" onClick={() => setDialog('confirm')}>确认操作</button>
-        <button type="button" onClick={close}>取消</button>
-      </div>
-    </Overlay>}
+    {dialog === 'sheet' && <ActionSheet title="更多操作" onClose={close}>
+      <button type="button" onClick={() => setDialog('confirm')}>确认操作</button>
+      <button type="button" className="cancel" onClick={close}>取消</button>
+    </ActionSheet>}
     {dialog === 'confirm' && <Confirm text="确认提交演示资料？" onCancel={close} onConfirm={close} />}
     {dialog === 'date' && <DateSheet title="证件有效期" value={expiry} allowLong allowClear
       onChange={setExpiry} onClose={close} />}
@@ -148,10 +189,12 @@ function DialogExamples() {
 function AttachmentExamples() {
   const [image, setImage] = useState('');
   const [file, setFile] = useState('');
+  const [attachments, setAttachments] = useState([]);
 
   return <Section title="上传与预览">
     <UploadField label="证件照片" value={image} onChange={setImage} />
     <FileUploadField label="证明文件" value={file} onChange={setFile} />
+    <MultiAttachmentField label="多份附件" value={attachments} onChange={setAttachments} />
     <p className="m-catalog-note">示例文件仅在本次页面会话中预览。</p>
   </Section>;
 }
@@ -163,6 +206,9 @@ const groups = [
   { label: '卡片与状态', Examples: RecordExamples },
   { label: '弹层', Examples: DialogExamples },
   { label: '附件', Examples: AttachmentExamples },
+  { label: '地址与目录', Examples: AddressAndDirectoryExamples },
+  { label: '供应商资料', Examples: SupplierExamples },
+  { label: '审批与预览', Examples: WorkflowExamples },
 ];
 
 export default function MobileComponentCatalog() {
