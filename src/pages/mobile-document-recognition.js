@@ -1,23 +1,11 @@
 // 宿主负责鉴权并将服务结果转换为表单字段。
 const licenseIdentityFields = ['supplierName', 'creditCode'];
 const companyProfileFields = ['establishedAt', 'licenseUntil', 'legalRepresentative', 'companyType', 'industry', 'capital', 'currency', 'address', 'businessScope'];
-const bankCardFields = ['bank', 'number'];
-
-async function recognizeDocument(kind, file, fields) {
-  if (typeof window.__SUPPLIER_DOCUMENT_OCR__ !== 'function') throw new Error('识别服务暂不可用，请手工填写。');
-  const result = await window.__SUPPLIER_DOCUMENT_OCR__({ kind, file });
-  const values = normalizeFields(result, fields);
-  if (!Object.keys(values).length) throw new Error('未识别到可回填的信息，请手工填写。');
-  return values;
-}
-
-export function recognizeBankCard(file) {
-  return recognizeDocument('bank-card', file, bankCardFields);
-}
-
 export async function recognizeCompanyLicense(file, isCurrent) {
-  const identity = await recognizeDocument('license', file, licenseIdentityFields);
+  if (typeof window.__SUPPLIER_DOCUMENT_OCR__ !== 'function') throw new Error('识别服务暂不可用，请手工填写。');
+  const recognized = await window.__SUPPLIER_DOCUMENT_OCR__({ kind: 'license', file });
   if (!isCurrent()) return;
+  const identity = normalizeFields(recognized, licenseIdentityFields);
   const { supplierName, creditCode } = identity;
   if (!supplierName || !creditCode) throw new Error('未能识别完整的供应商名称和统一社会信用代码，请手工填写。');
   const lookup = window.__SUPPLIER_ENTERPRISE_LOOKUP__;

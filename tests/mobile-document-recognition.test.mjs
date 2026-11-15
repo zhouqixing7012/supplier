@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { recognizeBankCard, recognizeCompanyLicense } from '../src/pages/mobile-document-recognition.js';
+import { recognizeCompanyLicense } from '../src/pages/mobile-document-recognition.js';
 
 const isCurrent = () => true;
 const identity = { supplierName: '示例企业', creditCode: 'MOCK-CREDIT-001' };
@@ -54,13 +54,4 @@ test('替换上传文件后，旧的查询结果作废', async t => {
     return identity;
   });
   assert.equal(await recognizeCompanyLicense(file, () => current), undefined);
-});
-
-test('银行卡识别只使用照片识别服务，保留账号前导零', async t => {
-  const card = { name: '银行卡.png' };
-  useRecognitionServices(t, async params => {
-    assert.deepEqual(params, { kind: 'bank-card', file: card });
-    return { bank: '中国工商银行', number: '00010000', branch: '未匹配分行' };
-  }, () => assert.fail('银行卡不应调用企业资料查询'));
-  assert.deepEqual(await recognizeBankCard(card), { bank: '中国工商银行', number: '00010000' });
 });

@@ -6,7 +6,7 @@ import { ChangeTag, Field } from './mobile-ui.jsx';
 import { bankNames, bankDirectory, branches, people, permissionGroups, supplierTypes, supplierIndustries } from './mobile-data.js';
 import { createSessionId, useDirtyForm, useBackLayer, attachmentFiles, attachmentName } from './mobile-interaction.jsx';
 
-import { recognizeBankCard, recognizeCompanyLicense } from './mobile-document-recognition.js';
+import { recognizeCompanyLicense } from './mobile-document-recognition.js';
 import { withAccountBank, restoreBankDirectoryFields, personalCertificateTypes, personalCertificatePhotoFields } from './mobile-edit-rules.js';
 
 export const blankBank = name => ({ accountType: '', bank: '', branch: '', country: '', province: '', city: '', name: name || '', number: '', currency: '', proof: '', note: '' });
@@ -19,7 +19,7 @@ export function bankError(bank, company = true) {
   return '';
 }
 
-export function BankFields({ bank, setBank, company = true, proofRequired = company, onCancel, recognizeCard = false }) {
+export function BankFields({ bank, setBank, company = true, proofRequired = company, onCancel }) {
   const [picker, setPicker] = useState(null);
   const guard = useDirtyForm(bank);
   useEffect(() => {
@@ -33,32 +33,6 @@ export function BankFields({ bank, setBank, company = true, proofRequired = comp
     return () => window.removeEventListener('mobile-close-register-bank', close);
   });
   const change = (key, value) => setBank({ ...bank, [key]: value });
-  const bankDraft = useRef(bank); bankDraft.current = bank;
-  const pendingProof = useRef(null);
-  const [recognition, setRecognition] = useState('');
-  useEffect(() => () => { pendingProof.current = null; }, []);
-  async function changeProof(proof, file) {
-    pendingProof.current = proof;
-    const original = bankDraft.current;
-    setBank({ ...original, proof });
-    setRecognition('');
-    if (!file || !recognizeCard) return;
-    setRecognition('正在识别银行卡…');
-    try {
-      const values = await recognizeBankCard(file);
-      if (pendingProof.current !== proof) return;
-      const current = bankDraft.current;
-      if (current.proof !== proof) return;
-      const knownBank = values.bank && bankDirectory.some(entry => entry.name === values.bank);
-      const next = knownBank && current.bank === original.bank && values.bank !== original.bank
-        ? withAccountBank(current, values.bank, bankDirectory) : current;
-      const number = values.number && current.number === original.number ? values.number : current.number;
-      setBank({ ...next, proof, number });
-      setRecognition('识别完成，请核对账户资料。');
-    } catch (error) {
-      if (pendingProof.current === proof) setRecognition(error.message || '识别失败，请手工填写。');
-    }
-  }
   return <div className="m-bank-fields"><Section title="开户银行信息">
     {company && <Field label="账户类型" required options={['基本账户', '一般账户']} value={bank.accountType} onChange={v => change('accountType', v)} />}
     <Field label="开户银行" required value={bank.bank} help="开户银行来自银行基础数据，未查询到时请联系业务对接人。" onPick={() => setPicker('bank')} />
@@ -68,7 +42,7 @@ export function BankFields({ bank, setBank, company = true, proofRequired = comp
     </Section><Section title="账户信息"><Field label="账户名称" required value={bank.name} onChange={v => change('name', v)} maxLength={100} />
     <Field label="银行账号" required value={bank.number} onChange={v => change('number', v)} maxLength={50} />
     <Field label="币种" required options={['人民币', '美元', '港币']} value={bank.currency} onChange={v => change('currency', v)} />
-    </Section><Section title="证明及备注"><UploadField label="开户证明" required={proofRequired} value={bank.proof} onChange={changeProof} help="上传银行开户证明。" />{recognition && <p className="m-input-note" role="status">{recognition}</p>}
+    </Section><Section title="证明及备注"><UploadField label="开户证明" required={proofRequired} value={bank.proof} onChange={proof => change('proof', proof)} help="上传银行开户证明。" />
     <Field label="备注" multiline value={bank.note} onChange={v => change('note', v)} maxLength={400} />
     </Section>{picker && <Overlay label={picker === 'bank' ? '开户银行' : '银行分行'} onClose={() => setPicker(null)} sheet><PickerHeading title={picker === 'bank' ? '开户银行' : '银行分行'} /><ReferenceList kind={picker} selected={picker === 'bank' ? bank.bank : bank.branch} bank={bank.bank} onCancel={() => setPicker(null)} onConfirm={v => { if (picker === 'bank') setBank(withAccountBank(bank, v, bankDirectory)); else { const branch = branches.find(x => x.bank === bank.bank && x.name === v); setBank({ ...bank, branch: v, country: branch?.country || bankDirectory.find(entry => entry.name === bank.bank)?.country || '', province: branch?.province || '', city: branch?.city || '' }); } setPicker(null); }} /></Overlay>}
   </div>;
