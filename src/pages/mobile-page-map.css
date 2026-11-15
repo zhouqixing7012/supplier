@@ -68,8 +68,8 @@
 .page-map-world, .page-map-edges { position: absolute; inset: 0 auto auto 0; }
 .page-map-world { transform-origin: 0 0; }
 .page-map-edges { overflow: visible; pointer-events: none; }
-.page-map-edges path { fill: none; stroke: #86a9e4; stroke-width: 2; }
-.page-map-edges path[data-side="1"] { stroke: #71b5ab; }
+.page-map-connector { fill: none; stroke: #b42318; stroke-width: 2.4; }
+.page-map-edges marker, .map-print-links marker { fill: #b42318; }
 .page-map-center {
   position: absolute;
   top: -29px;
@@ -88,33 +88,62 @@
   box-shadow: 0 8px 20px #14294524;
 }
 .page-map-node {
-  --node-ink: #234d98;
-  --node-border: #c9d9f4;
-  --node-soft: #eaf1ff;
   position: absolute;
-  display: flex;
-  width: 228px;
-  height: 58px;
-  overflow: hidden;
-  border: 1px solid var(--node-border);
+  box-sizing: border-box;
+  width: 214px;
+  height: 514px;
+  border: 1px solid #cbd6e6;
   border-radius: 11px;
+  padding: 7px;
   color: var(--map-ink);
   background: #fff;
-  box-shadow: 0 3px 9px #19304c0b;
+  box-shadow: 0 3px 12px #18253a15;
 }
-.page-map-node[data-side="1"] { --node-ink: #12635d; --node-border: #bcdfd9; --node-soft: #e6f4f0; }
-.page-map-node[data-depth="0"] { color: #fff; background: var(--node-ink); border-color: var(--node-ink); }
-.page-map-node[data-depth="1"] { color: var(--node-ink); background: var(--node-soft); }
-.page-map-node a, .page-map-node button { color: inherit; cursor: pointer; }
-.page-map-node a { display: flex; flex: 1; min-width: 0; align-items: center; justify-content: space-between; gap: 6px; padding: 6px 12px; text-decoration: none; }
-.page-map-node a > span { min-width: 0; }
-.page-map-node strong, .page-map-node small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.page-map-node strong { font-size: 14px; font-weight: 650; }
-.page-map-node small { margin-top: 3px; color: var(--map-muted); font-size: 11px; }
-.page-map-node svg { flex-shrink: 0; }
-.page-map-node button { display: grid; place-items: center; flex: 0 0 40px; border: 0; border-inline-start: 1px solid #6888ad36; background: transparent; }
-.page-map-node[data-side="-1"] button { order: -1; border-inline-start: 0; border-inline-end: 1px solid #6888ad36; }
-.page-map-node a:hover, .page-map-node button:hover { background: #8aa8ce2b; }
+.page-map-node a {
+  display: block;
+  color: inherit;
+  text-decoration: none;
+  border-radius: 8px;
+}
+.page-map-node-title {
+  box-sizing: border-box;
+  min-height: 55px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 7px 8px;
+  font-size: 15px;
+  line-height: 1.35;
+}
+.page-map-node:has(> button) .page-map-node-title { padding-inline-end: 39px; }
+.page-map-node-title svg { flex: 0 0 auto; color: #24539d; }
+.page-map-thumbnail {
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  aspect-ratio: 390 / 844;
+  background-repeat: no-repeat;
+  background-color: #f4f7fa;
+  outline: 1px solid #dce4ee;
+  outline-offset: -1px;
+  border-radius: 6px;
+}
+.page-map-thumbnail.is-missing { display: grid; place-items: center; color: #53647a; font-size: 13px; }
+.page-map-node > button {
+  position: absolute;
+  inset: 10px 9px auto auto;
+  display: grid;
+  place-items: center;
+  width: 33px;
+  height: 36px;
+  cursor: pointer;
+  border: 1px solid #cedaeb;
+  border-radius: 7px;
+  color: #24539d;
+  background: #f5f8fc;
+}
+.page-map-node a:hover .page-map-node-title, .page-map-node button:hover { background: #edf3ff; }
+.page-map-header-actions .page-map-export { color: #18498d; font-weight: 700; }
 .page-map :is(a, button, [tabindex]):focus-visible { outline: 2px solid #2f72d1; outline-offset: -3px; }
 .page-map-tools, .page-map-hint {
   position: absolute;
@@ -136,4 +165,74 @@
   .page-map-header-actions { margin-inline-start: auto; }
   .page-map-hint { display: none; }
   .page-map-tools { right: 12px; }
+}
+
+.map-print {
+  color: #18253a;
+  font-family: 'Supplier Noto SC', 'Noto Sans CJK SC', 'Microsoft YaHei', sans-serif;
+}
+.map-print-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 22px;
+  background: #fff;
+  border-bottom: 1px solid #dce5f0;
+}
+.map-print-toolbar a, .map-print-toolbar button {
+  color: #24539d;
+  font: inherit;
+  padding: 10px 12px;
+}
+.map-print-toolbar button { cursor: pointer; background: #eef4ff; border: 1px solid #cddbf0; border-radius: 6px; }
+.map-print-toolbar button:disabled { cursor: default; opacity: .5; }
+.map-print-sheet {
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  width: 420mm;
+  height: 297mm;
+  margin: 18px auto;
+  padding: 14mm 16mm 11mm;
+  border: 1px solid #dce5f0;
+  background: #fff;
+}
+.map-print-sheet > header { padding-bottom: 4mm; border-bottom: 1px solid #dce5f0; }
+.map-print-sheet h1 { font-size: 30px; margin: 0 0 2mm; line-height: 1.35; }
+.map-print-sheet p { font-size: 15px; margin: 0; color: #53647a; }
+.map-print-flow { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.map-print-links { width: 100%; height: 15mm; grid-column: 1 / -1; overflow: visible; }
+.map-print-links > path { fill: none; stroke: #b42318; stroke-width: 2.2; vector-effect: non-scaling-stroke; }
+.map-print-node { margin: 0; padding: 0 9mm; min-width: 0; }
+.map-print-node figcaption {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1mm;
+  box-sizing: border-box;
+  min-height: 21mm;
+  padding: 1mm 0 2mm;
+  text-align: center;
+}
+.map-print-node strong { font-size: 19px; line-height: 1.3; }
+.map-print-node small { font-size: 13px; color: #973029; }
+.map-print-sheet > footer {
+  display: flex;
+  justify-content: space-between;
+  margin-top: auto;
+  padding-top: 4mm;
+  border-top: 1px solid #dce5f0;
+  font-size: 13px;
+  color: #53647a;
+}
+@media print {
+  .map-print { print-color-adjust: exact; }
+  .map-print-toolbar { display: none; }
+  .map-print-sheet { margin: 0; border: 0; break-after: page; }
+  .map-print-sheet:last-child { break-after: auto; }
 }

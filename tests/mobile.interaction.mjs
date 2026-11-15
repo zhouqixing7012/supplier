@@ -12,7 +12,7 @@ import { screenshotScenes } from '../src/pages/mobile-data.js';
 const root = path.resolve('dist');
 const output = path.resolve(process.env.MOBILE_TEST_OUTPUT || 'test-output/mobile-interaction');
 await fs.mkdir(output, { recursive: true });
-const mime = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.png': 'image/png', '.jpg': 'image/jpeg', '.woff2': 'font/woff2', '.svg': 'image/svg+xml' };
+const mime = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.png': 'image/png', '.jpg': 'image/jpeg', '.woff2': 'font/woff2', '.svg': 'image/svg+xml', '.webp': 'image/webp' };
 const server = http.createServer(async (req, res) => {
   try {
     const requested = decodeURIComponent(new URL(req.url, 'http://localhost').pathname);
@@ -136,12 +136,27 @@ try {
     const response = await page.request.get(file.href);
     assert.ok(response.ok());
     const body = await response.text();
-    assert.match(body, /供应商移动端 PRD/);
-    assert.match(body, /移动端管理平台菜单提供【供应商查询】【我的邀请】【我的评分】/);
-    assert.doesNotMatch(body, /银行信息申请|评分运维/);
+    const currentPrd = await fs.readFile(new URL('../docs/supplier-mobile-prd.md', import.meta.url), 'utf8');
+    assert.equal(body, currentPrd);
     const download = page.waitForEvent('download');
     await link.click();
     assert.equal((await download).suggestedFilename(), '供应商移动端PRD.md');
+  });
+  await check('移动端原型导图显示真实截图、红色直角连线并可导出', async () => {
+    await page.goto(base + '/?case=map-export#/mobile/page-map');
+    const capture = page.locator('.page-map-node .page-map-thumbnail').first();
+    await capture.waitFor();
+    assert.equal(await page.locator('.page-map-thumbnail.is-missing').count(), 0);
+    assert.match(await capture.evaluate(el => getComputedStyle(el).backgroundImage), /mobile-map\/preview-\d+\.webp/);
+    const connector = page.locator('.page-map-connector').first();
+    assert.match(await connector.getAttribute('d'), /^M .* H .* V .* H /);
+    assert.equal(await connector.evaluate(el => getComputedStyle(el).stroke), 'rgb(180, 35, 24)');
+    await page.getByRole('button', { name: '展开供应商查询', exact: true }).click();
+    await page.locator('.page-map-node').filter({ hasText: '供应商筛选' }).first().waitFor();
+    await page.getByRole('link', { name: '导出流程图', exact: true }).click();
+    await page.locator('.map-print[data-print-status="ready"]').waitFor();
+    assert.equal(await page.locator('.map-print .is-missing').count(), 0);
+    assert.ok(await page.locator('.map-print-sheet').count() > 1);
   });
   await check('主模块内容左滑切到我的邀请，右滑返回', async () => {
     await goto('mobile'); await swipe(page.locator('#root .m-supplier-card h3').first(), -130); await page.locator('#root [data-scene="mine"]').waitFor(); await swipe(page.locator('#root .m-supplier-card h3').first(), 130, 0, 100); await page.locator('#root [data-scene="query"]').waitFor();

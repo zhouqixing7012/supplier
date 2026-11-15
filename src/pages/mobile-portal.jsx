@@ -151,7 +151,7 @@ function PortalWorkspaceContent({ scene, go, notify, store, onPreview, accountMe
   const [previewTab, setPreviewTab] = useState(0);
   const editSteps = informationSteps(draft.basic.type === supplierTypes[1]);
   const [taskTab, setTaskTab] = useState(/^[0-3]$/.test(mapParams.tab) ? Number(mapParams.tab) : store.portalTaskTab ?? 2);
-  const [address, setAddress] = useState(false);
+  const [address, setAddress] = usePanelState(editing && mapParams.panel === 'address');
   const [bankIndex, setBankIndex] = usePanelState(mapParams.panel === 'bank' ? -1 : null);
   const [bank, setBank] = useState(() => mapParams.panel === 'bank' ? blankBank(profile.name) : null);
   const [removeBank, setRemoveBank] = useState(null);
