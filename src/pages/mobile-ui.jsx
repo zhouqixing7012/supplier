@@ -18,7 +18,7 @@ export function StatusTag({ value }) {
 }
 
 export function AppliedFilters({ filters, count, onEdit, onClear }) {
-  const labels = { type: '供应商类型', status: '供应商状态', start: '邀请时间（起）', end: '邀请时间（止）', recommended: '供应商推荐', inviter: '邀请人' };
+  const labels = { type: '供应商类型', status: '供应商状态', start: '邀请时间（起）', end: '邀请时间（止）', recommended: '供应商推荐', inviter: '邀请人', certificate: '证件号码' };
   const entries = Object.entries(filters).filter(([key, value]) => labels[key] && value).map(([key, value]) => [labels[key], value]);
   return <FilterSummary entries={entries} count={count} unit="家供应商" onEdit={onEdit} onClear={onClear} />;
 }

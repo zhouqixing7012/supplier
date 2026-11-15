@@ -7,6 +7,7 @@ export function createSessionId() {
 export const attachmentFiles = new Map();
 export const attachmentName = key => {
   if (attachmentFiles.has(key)) return attachmentFiles.get(key).name;
+  if (key && typeof key === 'object') return key.name || '附件';
   if (typeof key !== 'string' || !key.startsWith('attachment:')) return key;
   try { return localStorage.getItem('supplier:attachment-name:' + key) || '附件'; } catch { return '附件'; }
 };

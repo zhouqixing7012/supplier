@@ -3,6 +3,8 @@ import { ComparisonField, AttachmentLink, Section } from '../components/mobile/i
 import { bankChange } from './mobile-bank-changes.js';
 import { qualificationFields } from './mobile-qualifications.jsx';
 import { fieldsFor } from './mobile-forms.jsx';
+import { displayCertificateNumber } from './mobile-rules.js';
+import { supplierTypes } from './mobile-data.js';
 import { attachmentName } from './mobile-interaction.jsx';
 
 const contactFields = [['name', '姓名'], ['phone', '电话'], ['email', '邮箱'], ['department', '部门'], ['job', '职位'], ['wechat', '微信'], ['note', '备注']];
@@ -65,13 +67,20 @@ function recordTitle(property, number, previous, next) {
   return `资质${number}${name ? ' · ' + name : ''}`;
 }
 
-export function informationChangeGroups(before, after) {
+export function informationChangeGroups(before, after, ordinaryDetail = false) {
   const groups = [];
   const previous = basicProfile(before);
   const next = basicProfile(after);
+  const restricted = ordinaryDetail && (previous.type === supplierTypes[1] || next.type === supplierTypes[1]);
   const basicDefinitions = new Map([...fieldsFor(previous.type), ...fieldsFor(next.type)].map(([key, label]) => [key, label]));
-  basicDefinitions.set('registerEmail', '注册邮箱');
-  basicDefinitions.set('proof', '证照附件');
+  if (restricted) {
+    for (const key of basicDefinitions.keys()) if (!['certificateType', 'creditCode', 'supplierName', 'gender'].includes(key)) basicDefinitions.delete(key);
+    previous.creditCode = displayCertificateNumber({ type: previous.type, basic: previous });
+    next.creditCode = displayCertificateNumber({ type: next.type, basic: next });
+  } else {
+    basicDefinitions.set('registerEmail', '注册邮箱');
+    basicDefinitions.set('proof', '证照附件');
+  }
   const basicFields = comparisonFields([...basicDefinitions], previous, next, '变更');
   if (basicFields.some(field => field.changed)) {
     groups.push({ key: 'basic', title: '基本信息', labelBase: '基本信息', action: '变更', fields: basicFields });
@@ -82,6 +91,7 @@ export function informationChangeGroups(before, after) {
     ['banks', '银行', bankFields],
     ['qualifications', '资质', qualificationChangeFields],
   ]) {
+    if (restricted && property !== 'banks') continue;
     const oldEntries = entriesFor(before, property);
     const newEntries = entriesFor(after, property);
     const oldMap = keyedEntries(oldEntries, property);
@@ -174,8 +184,8 @@ function ChangeGroup({ group, onPreview }) {
   </article>;
 }
 
-export function ChangeComparison({ before, after, onPreview }) {
-  const groups = informationChangeGroups(before, after);
+export function ChangeComparison({ before, after, onPreview, ordinaryDetail = false }) {
+  const groups = informationChangeGroups(before, after, ordinaryDetail);
   return <Section title="修改前后对比" collapsible={false}>
     <div className="m-change-comparison">
       {groups.length ? groups.map(group => <ChangeGroup key={group.key} group={group} onPreview={onPreview} />) : <p className="m-change-empty">没有信息变更</p>}

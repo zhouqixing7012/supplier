@@ -73,6 +73,7 @@ export const pageMap = [
         link('新邀请人选择', target('inviter-batch', { panel: 'people' }), '单条变更的人员选择'),
       ], '单条变更邀请人表单'),
     ]),
+    link('注册审批及结果邮件演示', 'registration-approval-demo'),
     node('我的评分', 'my-ratings', [
       link('评分筛选', target('rating-filter', { from: 'my-ratings' }), '筛选表单结构'),
       link('填写评分', target('rating-edit', { from: 'my-ratings' })),
@@ -84,6 +85,7 @@ export const pageMap = [
     node('用户登录', 'portal', [
       link('注册邮箱验证', 'portal-email', '登录页外壳'),
       link('登录前修改密码', target('portal', { panel: 'password' }), '登录页外壳'),
+      link('采购邮件入口演示', target('workspace-procurement', { task: 'quote', record: 'MOCK-INQ-001' })),
     ]),
     node('协同门户工作台', 'workspace-home', [
       node('信息管理', 'workspace-info', [

@@ -12,7 +12,7 @@ export function UploadField({ label, required, value, onChange, help }) {
   const [helpOpen, setHelpOpen] = useState(false);
   const [removing, setRemoving] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
-  const receiveFile = file => { if (file) { const entry = rememberAttachment(file); onChange(entry.key); } };
+  const receiveFile = file => { if (file) { const entry = rememberAttachment(file); onChange(entry.key, file); } };
   return <div data-field-label={label} className="m-field m-upload-field"><label htmlFor={id}>{required && <em>*</em>}<span className="m-field-name">{label}</span>{help && <button type="button" className="m-help" aria-label={label + "填写说明"} onClick={() => setHelpOpen(true)}><HelpCircle /></button>}</label><div className="m-field-control">
     {value ? <div className="m-uploaded-document"><AttachmentLink value={value} onPreview={() => setPreviewOpen(true)} /><button type="button" className="m-file-remove" aria-label={'移除' + label} onClick={() => setRemoving(true)}><X aria-hidden="true" /></button></div> : <div className="m-upload"><button type="button" className="m-upload-preview" aria-label={'选择' + label} onClick={() => document.getElementById(id)?.click()}><Camera aria-hidden="true" /></button></div>}
     <input className="m-file-input" tabIndex={-1} id={id} type="file" aria-invalid={!!error} aria-describedby={error ? id + '-error' : undefined} aria-label={label} onChange={e => { receiveFile(e.target.files[0]); e.target.value = ''; }} />
@@ -68,10 +68,52 @@ export function AttachmentLink({ value, onPreview }) {
 
 export function AttachmentViewer({ value, title = '查看附件', onClose }) {
   const [opened, setOpened] = useState(false);
-  const file = attachmentFiles.get(value);
+  const [resolved, setResolved] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const request = useRef(null);
+  useEffect(() => () => request.current?.abort(), []);
+  useEffect(() => () => { if (resolved) URL.revokeObjectURL(resolved.url); }, [resolved]);
+
+  const file = attachmentFiles.get(value) || resolved;
   const name = attachmentName(value);
   const isImage = file?.type.startsWith('image/');
-  return <Overlay label="查看附件" onClose={onClose} sheet><div className="m-attachment-viewer"><div className="m-picker-title"><strong>{opened ? name : title}</strong><button type="button" aria-label="关闭附件" onClick={onClose}><X /></button></div>{!opened ? <><p className="m-attachment-count">共 1 个附件</p><div className="m-attachment-list"><button type="button" className="m-attachment-file selected" aria-label={'预览' + name} disabled={!file} onClick={() => setOpened(true)}><span className="m-file-icon"><img src="/mobile-assets/workbench/file.svg" alt="" /></span><span><strong>{name}</strong><small>{file ? isImage ? '图片附件' : '文件附件' : '附件暂不可用'}</small></span></button></div>{!file && <p className="m-attachment-unavailable">附件暂不可用，请联系提供方补充。</p>}<div className="m-picker-actions"><button type="button" onClick={onClose}>返回</button><button type="button" className="primary" disabled={!file} onClick={() => setOpened(true)}>打开附件</button></div></> : <><div className="m-attachment-content">{isImage ? <a href={file.url} target="_blank" rel="noreferrer" aria-label="打开原图"><img className="m-attachment-full" src={file.url} alt={name} /></a> : <p>此文件不支持图片预览。<a href={file.url} target="_blank" rel="noreferrer">打开文件</a></p>}</div><div className="m-picker-actions"><button type="button" onClick={() => setOpened(false)}>返回附件列表</button><button type="button" className="primary" onClick={onClose}>关闭</button></div></>}</div></Overlay>;
+  const canResolve = !!value?.fileId && typeof window.__SUPPLIER_ATTACHMENT_DOWNLOAD__ === 'function';
+  async function open() {
+    if (file) { setOpened(true); return; }
+    if (!canResolve || busy) return;
+    const controller = new AbortController();
+    request.current = controller;
+    setBusy(true);
+    setError('');
+    try {
+      const content = await window.__SUPPLIER_ATTACHMENT_DOWNLOAD__({ fileId: value.fileId, signal: controller.signal });
+      if (!(content instanceof Blob) || !content.size) throw new Error('附件暂不可用，请联系提供方补充。');
+      if (!controller.signal.aborted) {
+        setResolved({ url: URL.createObjectURL(content), type: content.type });
+        setOpened(true);
+      }
+    } catch {
+      if (!controller.signal.aborted) setError('附件打开失败，请重试或联系提供方。');
+    } finally {
+      if (!controller.signal.aborted) setBusy(false);
+    }
+  }
+  return <Overlay label="查看附件" onClose={onClose} sheet><div className="m-attachment-viewer">
+    <div className="m-picker-title"><strong>{opened ? name : title}</strong><button type="button" aria-label="关闭附件" onClick={onClose}><X /></button></div>
+    {!opened ? <>
+      <p className="m-attachment-count">共 1 个附件</p>
+      <div className="m-attachment-list"><button type="button" className="m-attachment-file selected" aria-label={'预览' + name} disabled={busy || (!file && !canResolve)} onClick={open}>
+        <span className="m-file-icon"><img src="/mobile-assets/workbench/file.svg" alt="" /></span><span><strong>{name}</strong><small>{isImage ? '图片附件' : file || canResolve ? '文件附件' : '附件暂不可用'}</small></span>
+      </button></div>
+      {error && <p className="m-attachment-unavailable" role="alert">{error}</p>}
+      {!file && !canResolve && <p className="m-attachment-unavailable">附件暂不可用，请联系提供方补充。</p>}
+      <div className="m-picker-actions"><button type="button" onClick={onClose}>返回</button><button type="button" className="primary" disabled={busy || (!file && !canResolve)} onClick={open}>{busy ? '正在打开…' : '打开附件'}</button></div>
+    </> : <>
+      <div className="m-attachment-content">{isImage ? <a href={file.url} target="_blank" rel="noreferrer" aria-label="打开原图"><img className="m-attachment-full" src={file.url} alt={name} /></a> : <p>此文件不支持图片预览。<a href={file.url} target="_blank" rel="noreferrer">打开文件</a></p>}<p><a href={file.url} download={name}>下载原件</a></p></div>
+      <div className="m-picker-actions"><button type="button" onClick={() => setOpened(false)}>返回附件列表</button><button type="button" className="primary" onClick={onClose}>关闭</button></div>
+    </>}
+  </div></Overlay>;
 }
 
 export function MultiAttachmentField({ label, value, onChange, onPreview }) {

@@ -1,15 +1,16 @@
 import React, { useState } from 'react';
 import { Actions, Overlay, Row } from '../components/mobile/index.js';
+import { displayCertificateNumber } from './mobile-rules.js';
 import { Field } from './mobile-ui.jsx';
 
 // 前端原型使用会话数据生成CSV，不伪造服务端任务和下载地址。
 export function exportSupplierRows(rows, mine = false) {
   if (!rows.length) throw new Error('没有符合条件的供应商，请调整导出条件');
   const columns = mine ? [
-    ['注册编号', s => s.documentNo], ['供应商类型', s => s.type], ['供应商名称', s => s.name], ['证件号码', s => s.code], ['审批状态', s => s.status],
+    ['注册编号', s => s.documentNo], ['供应商类型', s => s.type], ['供应商名称', s => s.name], ['证件号码', displayCertificateNumber], ['审批状态', s => s.status],
     ['联系人姓名', s => s.contact], ['联系人邮箱', s => s.email], ['联系人电话', s => s.phone], ['邀请时间', s => s.date], ['更新时间', s => s.updated],
   ] : [
-    ['注册编号', s => s.documentNo], ['供应商类型', s => s.type], ['供应商名称', s => s.name], ['证件号码', s => s.code], ['审批状态', s => s.status],
+    ['注册编号', s => s.documentNo], ['供应商类型', s => s.type], ['供应商名称', s => s.name], ['证件号码', displayCertificateNumber], ['审批状态', s => s.status],
     ['联系人姓名', s => s.contact], ['联系人电话', s => s.phone], ['联系人邮箱', s => s.email], ['邀请人姓名', s => s.inviter], ['邀请人电话', s => s.inviterPhone],
     ['邀请人工号', s => s.inviterCode], ['邀请人部门板块', s => s.inviterDeptPart], ['邀请人部门', s => s.inviterDept], ['邀请人部门编号', s => s.inviterDeptCode], ['邀请人部门全路径', s => s.inviterFullDept], ['邀请时间', s => s.date], ['更新时间', s => s.updated],
   ];
@@ -25,7 +26,7 @@ export function exportSupplierRows(rows, mine = false) {
 export function SupplierExport({ suppliers, initial = {}, query = '', onClose, onExport, busy = false }) {
   const [dates, setDates] = useState({ start: initial.start || '', end: initial.end || '' });
   const [errors, setErrors] = useState({});
-  const labels = { type: '供应商类型', status: '供应商状态', recommended: '供应商推荐', inviter: '邀请人' };
+  const labels = { type: '供应商类型', status: '供应商状态', recommended: '供应商推荐', inviter: '邀请人', certificate: '证件号码' };
   const conditions = Object.entries(labels).filter(([key]) => initial[key]);
   const count = suppliers.filter(s => (!dates.start || s.date.slice(0, 10) >= dates.start) && (!dates.end || s.date.slice(0, 10) <= dates.end)).length;
   const changeDate = (key, value) => { setDates(old => ({ ...old, [key]: value })); setErrors({}); };

@@ -3,6 +3,35 @@ export function withAccountBank(account, bankName, directory) {
   const bank = directory.find(item => item.name === bankName);
   return { ...account, bank: bankName, branch: '', country: bank?.country || '', province: '', city: '' };
 }
+
+export function restoreBankDirectoryFields(account, directory, branches) {
+  if (!account.bank) return account;
+  const bank = directory.find(entry => entry.name === account.bank);
+  const branch = branches.find(entry => entry.bank === account.bank && entry.name === account.branch);
+  const country = account.country?.trim() ? account.country : bank?.country || account.country;
+  const province = account.province?.trim() ? account.province : branch?.province || account.province;
+  const city = account.city?.trim() ? account.city : branch?.city || account.city;
+  if (country === account.country && province === account.province && city === account.city) return account;
+  return { ...account, country, province, city };
+}
+
+export const effectiveBasicBankDeleteError = '企业供应商基本账户不可删除';
+
+export function isEffectiveBasicBankAccount(account, baseline, company) {
+  return company && !!account?.id && baseline.some(entry => entry.id === account.id && entry.accountType === '基本账户');
+}
+
+export function bankAccountsError(accounts, company, baseline = []) {
+  const active = accounts.filter(account => account.change !== '删除');
+  if (company && baseline.some(account => account.accountType === '基本账户' && !active.some(entry => entry.id === account.id))) {
+    return effectiveBasicBankDeleteError;
+  }
+  if (company && active.filter(account => account.accountType === '基本账户').length !== 1) {
+    return '企业供应商必须有且只有一个基本账户';
+  }
+  return '';
+}
+
 export function reinviteCandidate(records, name, inviter, excludedId) {
   const normalized = (name || '').trim();
   if (!normalized) return undefined;

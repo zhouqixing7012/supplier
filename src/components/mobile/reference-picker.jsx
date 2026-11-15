@@ -6,7 +6,7 @@ import { SearchBox } from './search.jsx';
 
 export function ReferencePicker({
   entries, selected = '', onCancel, onConfirm, initialSearch = '', mode = 'immediate',
-  searchLabel = '搜索', searchPrompt, emptyText = '暂无可用数据', radioName,
+  searchLabel = '搜索', searchPrompt, emptyText = '暂无可用数据', noMatchText = '没有匹配结果，请调整关键词', radioName,
 }) {
   const id = useId();
   const [query, setQuery] = useState(initialSearch);
@@ -32,7 +32,7 @@ export function ReferencePicker({
           {(entry.rows || []).map(([label, value]) => <Row key={label} label={label} compact>{value}</Row>)}
         </div>
       </label>) : <Empty search={!!query}
-        text={query ? '没有匹配结果，请调整关键词' : searchPrompt || emptyText} />}
+        text={query ? noMatchText : searchPrompt || emptyText} />}
     </div>
     <Actions flat items={[
       { label: '取消', muted: true, onClick: onCancel },

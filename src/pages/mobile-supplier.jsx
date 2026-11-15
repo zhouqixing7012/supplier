@@ -12,12 +12,14 @@ import { bankNames, cooperation, exampleBank, initialSuppliers, screenshotScenes
 import { BankApplicationForm, RatingEditor, RatingOperations, RatingWorkspace, initialRatings } from './mobile-workflows.jsx';
 import { InteractionProvider, SwipeArea, useInteraction, useDirtyForm, useBackLayer, usePageIsolation, attachmentName } from './mobile-interaction.jsx';
 import { SupplierExport, exportSupplierRows } from './mobile-export.jsx';
-import { canChangeSupplier, canRateSupplier, canReinviteSupplier, canDeleteSupplier, deleteStatuses } from './mobile-rules.js';
+import { canChangeSupplier, canRateSupplier, canReinviteSupplier, canDeleteSupplier, deleteStatuses, canInviteHistoricalSupplier, certificateNumber, supplierAccount } from './mobile-rules.js';
+import { procurementNoticeRoute } from './mobile-portal-procurement.js';
 import { PortalWorkspace } from './mobile-portal.jsx';
 import { RegistrationPreview } from './mobile-registration-preview.jsx';
+import { RegistrationApprovalDemo } from './mobile-registration-approval.jsx';
 import { SupplierAccountRegistration } from './mobile-account-registration.jsx';
 import { ChangeComparison } from './mobile-changes.jsx';
-import { informationSteps, reinviteCandidate, validEmail, registrationEmailError } from './mobile-edit-rules.js';
+import { informationSteps, reinviteCandidate, validEmail, registrationEmailError, bankAccountsError, isEffectiveBasicBankAccount, effectiveBasicBankDeleteError } from './mobile-edit-rules.js';
 import { PrototypeReview } from './mobile-review.jsx';
 import { MobilePageMap, readPageMapParams } from './mobile-page-map.jsx';
 import { ScreenshotCompare } from './mobile-screenshot-compare.jsx';
@@ -55,8 +57,11 @@ const mobileTitle = scene => {
   if (scene.startsWith('workspace')) return '供应商协同门户';
   if (scene.startsWith('portal')) return '协同门户登录';
   if (scene.startsWith('detail')) return '供应商详情';
+  if (scene === 'registration-approval-demo') return '注册审批演示';
   if (scene.startsWith('approval')) return '审批记录';
   if (scene === 'register-supplier') return '供应商注册';
+  if (scene === 'historical-account') return '历史供应商账号注册';
+  if (scene === 'invite-historical') return '重新邀请注册账号';
   if (scene === 'supplier-registration-result') return '注册结果';
   if (scene.startsWith('register')) return scene.includes('edit') ? '修改供应商信息' : '供应商代注册';
   if (scene === 'inviter-batch') return '批量变更邀请人';
@@ -194,6 +199,7 @@ function MobileSurface({ onComparisonChange, scene, shot, ratings, setRatings, a
   const [debug, setDebug] = useState(false);
   const [banks, setBanks] = useState(() => normalizeBankChanges(supplier.banks, clone(readBankDraft(supplier.id) || supplier.banks)));
   const bankCounts = bankChangeCounts(supplier.banks, banks);
+  const isOriginalBasicBank = bank => isEffectiveBasicBankAccount(bank, supplier.banks, supplier.type === supplierTypes[0]);
   const savedBankCard = useRef(null);
   const [bankLeaving, setBankLeaving] = useState(false);
   const [editingBank, setEditingBank] = useState(-1);
@@ -302,6 +308,7 @@ function MobileSurface({ onComparisonChange, scene, shot, ratings, setRatings, a
 
   const mine = scene.startsWith('mine') || scene === 'export';
   const listScene = scene.startsWith('query') || mine;
+  const filterMine = mine || mapParams.from === 'mine';
   const adminScene = !!shot && shot.index >= 25;
   const menus = shot ? screenshotMenus : managementMenus;
   const menuRoute = listScene ? (mine ? 'mine' : 'query') : scene;
@@ -318,7 +325,8 @@ function MobileSurface({ onComparisonChange, scene, shot, ratings, setRatings, a
     if (['query-add', 'query-more'].includes(scene)) list.sort((a, b) => a.id === '557348' ? -1 : b.id === '557348' ? 1 : 0);
     return list.filter(x => !['draft', 'old', 'person'].includes(x.id));
   }, [suppliers, shot, scene, mine]);
-  const matching = fixtureList.filter(s => (!search || (mine ? [s.name] : [s.name, s.inviter]).some(x => x.includes(search))) && (!filters.type || s.type === filters.type) && (!filters.status || s.status === filters.status) && (!filters.recommended || (s.basic?.industry || s.industry) === filters.recommended) && (!filters.inviter || s.inviter.includes(filters.inviter)));
+  const matching = fixtureList.filter(s => (!search || (mine ? [s.name] : [s.name, s.inviter]).some(x => x.includes(search))) && (!filters.type || s.type === filters.type) && (!filters.status || s.status === filters.status) && (!filters.recommended || (s.basic?.industry || s.industry) === filters.recommended) && (!filters.inviter || s.inviter.includes(filters.inviter))
+    && (mine || !filters.certificate?.trim() || String(certificateNumber(s)).toUpperCase().includes(filters.certificate.trim().toUpperCase())));
   const list = matching.filter(s => (!filters.start || s.date.slice(0, 10) >= filters.start) && (!filters.end || s.date.slice(0, 10) <= filters.end));
   const canChangeInviter = canChangeSupplier;
   const selectableList = mine ? list : list.filter(x => canDeleteSupplier(x, mine));
@@ -359,6 +367,8 @@ function MobileSurface({ onComparisonChange, scene, shot, ratings, setRatings, a
     if (scene.startsWith('workspace-account-')) return go(views.portalSecurityReturn || 'workspace-home');
     if (['rating-filter', 'department'].includes(scene)) return go(filters.return || 'ratings');
     if (scene === 'workspace-travel') return go(views.portalTravelReturn || 'workspace-home');
+    if (scene === 'registration-approval-demo') return go('page-map');
+    if (scene === 'workspace-procurement') return go(views.portalAccount ? 'workspace-tasks' : 'portal');
     if (scene.startsWith('workspace-tax') || scene.startsWith('workspace-quote')) return go('workspace-tasks');
     if (scene === 'workspace-approval' || scene === 'workspace-changes') return go('workspace-info');
     if (scene.startsWith('workspace')) return go('workspace-home');
@@ -376,15 +386,20 @@ function MobileSurface({ onComparisonChange, scene, shot, ratings, setRatings, a
       const targets = suppliers.filter(s => action.ids.includes(s.id));
       if (!targets.length || targets.length !== action.ids.length || targets.some(s => !canChangeSupplier(s))) { setConfirm(null); return setBatchError({ title: '无法变更邀请人', text: '所选供应商状态已变化，请重新选择已审批且未拉黑的供应商。' }); }
       if (targets.some(s => s.inviter === action.inviter)) { setConfirm(null); return setBatchError({ title: '无法变更邀请人', text: '新邀请人不能与所选供应商的原邀请人相同。' }); }
-      setSuppliers(suppliers.map(s => action.ids.includes(s.id) ? { ...s, inviter: action.inviter, updated: now() } : s));
+      setSuppliers(suppliers.map(s => action.ids.includes(s.id) ? { ...s, inviter: action.inviter, updated: now(), ...(s.mode === '历史供应商' ? { historicalHandoverTo: action.inviter, historicalInvite: null } : {}) } : s));
       inviterGuard.accept(); views.mine = { ...views.mine, batch: false, checked: [] }; views.batchInviterIds = []; notify('已更新' + targets.length + '家供应商的邀请人'); go('mine');
     }
     if (action.type === 'delete') {
       const targets = suppliers.filter(s => action.ids.includes(s.id));
+      if (targets.some(s => s.hasCooperation)) return setBatchError({ title: '无法删除', text: '发生过合作的供应商不能删除，请重新选择。' });
       if (!targets.length || targets.length !== action.ids.length || targets.some(s => !canDeleteSupplier(s, mine))) return setBatchError({ title: '无法删除', text: '所选记录状态已变化，仅' + deleteStatuses(mine).join('、') + '可删除，请重新选择。' });
       setSuppliers(suppliers.filter(s => !action.ids.includes(s.id))); setChecked([]); notify('已删除' + targets.length + '家供应商');
     }
-    if (action.type === 'delete-register-bank') setRegisterBanks(registerBanks.filter((_, i) => i !== action.index));
+    if (action.type === 'delete-register-bank') {
+      if (editingAll && isOriginalBasicBank(registerBanks[action.index])) return notify(effectiveBasicBankDeleteError);
+      setRegisterBanks(registerBanks.filter((_, i) => i !== action.index));
+    }
+    if (action.type === 'delete-bank' && isOriginalBasicBank(banks[action.index])) return notify(effectiveBasicBankDeleteError);
     if (action.type === 'delete-bank') persistBanks(banks.flatMap((b, i) => i !== action.index ? [b] : b.change === '新增' ? [] : [{ ...b, change: '删除' }]), '账户删除已保存，待提交审批');
     if (action.type === 'delete-permission') setPermissions(permissions.flatMap((p, i) => i !== action.index ? [p] : p.change === '新增' ? [] : [{ ...p, change: '删除' }]));
   }
@@ -401,7 +416,8 @@ function MobileSurface({ onComparisonChange, scene, shot, ratings, setRatings, a
     if (!bankCounts.total) return notify('请先修改银行信息');
     if (!canChangeSupplier(supplier)) return notify('当前供应商状态不能发起银行变更');
     for (const bank of banks.filter(record => record.change !== '删除')) { const error = bankError(bank, supplier.type === supplierTypes[0]); if (error) return notify(error); }
-    if (supplier.type === supplierTypes[0] && banks.filter(bank => bank.change !== '删除' && bank.accountType === '基本账户').length !== 1) return notify('企业供应商必须有且只有一个基本账户');
+    const accountError = bankAccountsError(banks, supplier.type === supplierTypes[0], supplier.banks);
+    if (accountError) return notify(accountError);
     try { writeBankDraft(supplier.id, null); } catch { return notify('提交失败，请重试'); }
     update({ pendingBanks: clone(banks), status: '变更中' });
     bankGuard.accept(); notify('原型演示：银行变更已提交，等待审批'); go(returnToList());
@@ -429,7 +445,7 @@ function MobileSurface({ onComparisonChange, scene, shot, ratings, setRatings, a
     if (target === 1 && contacts.some(c => !c.name || !c.phone || !validEmail(c.email))) return '请填写联系人的姓名、电话和正确邮箱';
     if (target === 2) {
       if (!registerBanks.length) return '请添加银行信息';
-      if (basic.type === supplierTypes[0] && registerBanks.filter(b => b.accountType === '基本账户').length !== 1) return '企业供应商必须有且只有一个基本账户';
+      return bankAccountsError(registerBanks, basic.type === supplierTypes[0], editingAll ? supplier.banks : []);
       for (const b of registerBanks) { const error = bankError(b, basic.type === supplierTypes[0]); if (error) return error; }
     }
     return '';
@@ -471,7 +487,7 @@ function MobileSurface({ onComparisonChange, scene, shot, ratings, setRatings, a
       setSuppliers(list => list.map(record => record.id === registrationDraftId.current ? { ...record, ...patch, status: '审批中', updated: now() } : record)); notify('草稿已提交，等待审批');
     } else {
       const id = createSessionId();
-      setSuppliers([{ ...patch, id, status: '审批中', mode: '代注册', inviter: '陈才慧', date: now(), updated: now(), score: '未评分', permissions: [] }, ...suppliers]); select(id);
+      setSuppliers([{ ...patch, id, supplierCode: 'DEMO-SUP-' + id, status: '审批中', mode: '代注册', inviter: '陈才慧', date: now(), updated: now(), score: '未评分', permissions: [] }, ...suppliers]); select(id);
       notify('注册已提交，等待审批');
     }
     go(editingAll ? 'information-change' : 'mine');
@@ -493,18 +509,44 @@ function MobileSurface({ onComparisonChange, scene, shot, ratings, setRatings, a
     notify('草稿已保存');
   }
 
+  const historicalToken = scene === 'historical-account' ? new URLSearchParams(location.hash.split('?')[1]).get('invitation') : null;
+  const historicalTarget = historicalToken && suppliers.find(record => record.historicalInvite?.token === historicalToken &&
+    record.historicalInvite.expiresAt > Date.now() && canInviteHistoricalSupplier(record, record.inviter));
+
+  function sendHistoricalInvite(data, accept) {
+    const target = suppliers.find(record => record.id === selectedId);
+    if (!canInviteHistoricalSupplier(target, currentInviter)) return notify('当前记录不能重新邀请注册账号');
+    const token = createSessionId();
+    update({ historicalInvite: { contact: data.contact, email: data.email, phone: data.phone, token, expiresAt: Date.now() + 7 * 86400000 }, invitationNo: 'DEMO-INV-' + token, updated: now() });
+    accept();
+    notify('演示链接已生成，未发送邮件');
+    go('detail');
+  }
+
+  function registerHistoricalAccount({ account }) {
+    if (!historicalTarget || historicalTarget.historicalInvite.expiresAt <= Date.now()) return notify('该地址已失效，请联系邀请人重新邀请！');
+    if (suppliers.some(record => supplierAccount(record) === account)) return notify('该账号已存在，请更换账号');
+    setSuppliers(records => records.map(record => record.id === historicalTarget.id && record.historicalInvite?.token === historicalToken
+      ? { ...record, account, email: record.historicalInvite.email, historicalInvite: null, updated: now() }
+      : record));
+    views.portalRegisteredAccounts = [...(views.portalRegisteredAccounts || []), account];
+    notify('演示账号已注册');
+    go('portal');
+  }
+
   function submitInvitation(data, target) {
     if (target && !canReinviteSupplier(target)) return notify('当前状态不能重新邀请，请返回列表核对');
     if (target && data.type !== target.type) return notify('供应商类型与原记录不一致，请返回修改');
     const name = data.name.trim();
     if ((!target || target.name.trim() !== name)
       && suppliers.some(record => record.id !== target?.id && record.name.trim() === name)) return notify('供应商名称已存在');
-    const invitation = { ...data, name, status: '邀请中', mode: '邀请注册', inviter: target?.inviter || currentInviter, updated: now() };
+    const invitation = { ...data, name, invitationNo: 'DEMO-INV-' + createSessionId(), status: '邀请中', mode: '邀请注册', inviter: target?.inviter || currentInviter, updated: now() };
     if (target) {
       setSuppliers(list => list.map(record => record.id === target.id ? { ...record, ...invitation } : record));
       select(target.id);
     } else {
-      const record = { ...invitation, id: createSessionId(), date: now(), score: '未评分', code: '', banks: [], permissions: [] };
+      const id = createSessionId();
+      const record = { ...invitation, id, supplierCode: 'DEMO-SUP-' + id, date: now(), score: '未评分', code: '', banks: [], permissions: [] };
       setSuppliers(list => [record, ...list]); select(record.id);
     }
     setReinvitePrompt(null); notify(target ? '已重新邀请' : '邀请已提交');
@@ -536,15 +578,16 @@ function MobileSurface({ onComparisonChange, scene, shot, ratings, setRatings, a
       </div>}
       {batch && <footer className={'m-batch-actions' + (mine ? ' m-batch-actions-mine' : '')}><Checkbox label="全选当前结果" disabled={!selectableList.length}
         checked={selectableList.length > 0 && checked.length === selectableList.length}
-        onChange={value => setChecked(value ? selectableList.map(x => x.id) : [])}>全选</Checkbox><span>已选 {checked.length} 项</span><div className="m-batch-buttons"><button disabled={!checked.length} className="m-action-danger" onClick={() => { if (!canBatchDelete) return setBatchError({ title: '无法删除', text: '所选记录包含不可删除的状态，仅' + deleteStatuses(mine).join('、') + '可删除，请重新选择。' }); setConfirm({ type: 'delete', ids: [...checked], text: '确认删除所选供应商？' }); }}>删除</button>{mine && <button disabled={!checked.length} onClick={() => { if (!canBatchInviter) return setBatchError({ title: '无法变更邀请人', text: '所选记录包含未审批或已拉黑的供应商，请重新选择已审批且未拉黑的供应商。' }); views.batchInviterIds = [...checked]; listReturn.current = 'mine'; go('inviter-batch'); }}>批量变更邀请人</button>}</div></footer>}
+        onChange={value => setChecked(value ? selectableList.map(x => x.id) : [])}>全选</Checkbox><span>已选 {checked.length} 项</span><div className="m-batch-buttons"><button disabled={!checked.length} className="m-action-danger" onClick={() => { if (selectedRecords.some(record => record.hasCooperation)) return setBatchError({ title: '无法删除', text: '发生过合作的供应商不能删除，请重新选择。' }); if (!canBatchDelete) return setBatchError({ title: '无法删除', text: '所选记录包含不可删除的状态，仅' + deleteStatuses(mine).join('、') + '可删除，请重新选择。' }); setConfirm({ type: 'delete', ids: [...checked], text: '确认删除所选供应商？' }); }}>删除</button>{mine && <button disabled={!checked.length} onClick={() => { if (!canBatchInviter) return setBatchError({ title: '无法变更邀请人', text: '所选记录包含未审批或已拉黑的供应商，请重新选择已审批且未拉黑的供应商。' }); views.batchInviterIds = [...checked]; listReturn.current = 'mine'; go('inviter-batch'); }}>批量变更邀请人</button>}</div></footer>}
     </>}
-    {(scene === 'filter' || filtering) && <div className={filtering ? 'm-fullscreen-panel' : ''}>{filtering && <Header title="筛选供应商" onBack={() => runMotion(() => setFiltering(false), 'back')} />}<FilterView initial={filters} onApply={v => { if (v.start && v.end && v.start > v.end) return notify('开始时间不能晚于结束时间'); setFilters(v); if (filtering) runMotion(() => setFiltering(false), 'back'); else { views[returnToList()] = { ...views[returnToList()], filters: v }; go(returnToList()); } }} onCancel={() => filtering ? runMotion(() => setFiltering(false), 'back') : go(mapParams.from || 'query')} /></div>}
+    {(scene === 'filter' || filtering) && <div className={filtering ? 'm-fullscreen-panel' : ''}>{filtering && <Header title="筛选供应商" onBack={() => runMotion(() => setFiltering(false), 'back')} />}<FilterView listMine={filterMine} initial={filters} onApply={v => { if (v.start && v.end && v.start > v.end) return notify('开始时间不能晚于结束时间'); setFilters(v); if (filtering) runMotion(() => setFiltering(false), 'back'); else { views[returnToList()] = { ...views[returnToList()], filters: v }; go(returnToList()); } }} onCancel={() => filtering ? runMotion(() => setFiltering(false), 'back') : go(mapParams.from || 'query')} /></div>}
     {scene === 'information-change' && <>{supplier.pendingInformation && supplier.status === '变更中' ? <><ChangeComparison before={supplier} after={supplier.pendingInformation} onPreview={preview} /><Actions items={[{ label: '查看审批', onClick: () => go('approval') }]} /></> : <><Section title="资料变更对比" collapsible={false}><Empty text="暂无待查看的资料变更" /></Section></>}</>}
-    {scene.startsWith('detail') && <SupplierDetail supplier={supplier} initialTab={/^[0-8]$/.test(mapParams.tab) ? Number(mapParams.tab) : scene === 'detail-bank' ? 3 : ['detail-approval', 'detail-approval-empty'].includes(scene) ? 7 : scene === 'detail-ratings' ? 8 : 0} approvalEmpty={scene === 'detail-approval-empty'} onPreview={preview} ratings={ratings} onScore={() => { setActiveRating(null); setRatingReturn('detail-ratings'); go('rating-edit'); }} onRatingOpen={(record, readOnly) => { setActiveRating(record); setRatingReturn('detail-ratings'); go(readOnly ? 'rating-detail' : 'rating-edit'); }} />}
+    {scene.startsWith('detail') && <SupplierDetail supplier={supplier} onHistoricalInvite={canInviteHistoricalSupplier(supplier, currentInviter) ? () => go('invite-historical') : undefined} initialTab={/^[0-8]$/.test(mapParams.tab) ? Number(mapParams.tab) : scene === 'detail-bank' ? 3 : ['detail-approval', 'detail-approval-empty'].includes(scene) ? 7 : scene === 'detail-ratings' ? 8 : 0} approvalEmpty={scene === 'detail-approval-empty'} onPreview={preview} ratings={ratings} onScore={() => { setActiveRating(null); setRatingReturn('detail-ratings'); go('rating-edit'); }} onRatingOpen={(record, readOnly) => { setActiveRating(record); setRatingReturn('detail-ratings'); go(readOnly ? 'rating-detail' : 'rating-edit'); }} />}
+    {scene === 'registration-approval-demo' && mapParams.map && <RegistrationApprovalDemo />}
     {scene.startsWith('approval') && <Approval type={supplier.pendingInformation ? '资料变更' : '注册'} supplier={shot ? { ...supplier, name: '北京初然文化传媒有限公司827583' } : supplier} history={scene === 'approval-history'} number={shot?.time === '194516' ? 'SUP202610140006' : 'SUP202610140004'} showSupplier={!shot || shot.time !== '194516'} onPreview={preview} />}
     {['bank', 'bank-tip'].includes(scene) && <>
       <Section title="供应商信息"><Row label="供应商名称">{supplier.name}</Row><Row label="供应商类型">{supplier.type}</Row></Section>
-      <RecordCollection title="银行信息" count={banks.length} emptyText="暂无银行信息" addLabel="添加银行账户" onAdd={() => { setEditingBank(-1); setBankForm(blankBank(supplier.name)); setShowBankForm(true); }}>{banks.map((b, i) => <BankChangeCard key={b.id} id={'mobile-bank-' + b.id} before={supplier.banks} bank={b} deleteDisabledReason={supplier.type === supplierTypes[0] && b.accountType === '基本账户' && b.change !== '删除' ? '企业供应商的基本账户不可删除' : ''} onPreview={preview} onEdit={b.change === '删除' ? undefined : () => { setEditingBank(i); setBankForm(clone(b)); setShowBankForm(true); }} onDelete={supplier.type === supplierTypes[0] && b.accountType === '基本账户' || b.change === '删除' ? undefined : () => setConfirm({ type: 'delete-bank', index: i, text: '是否将该银行账户标记为待提交删除？' })} />)}</RecordCollection>
+      <RecordCollection title="银行信息" count={banks.length} emptyText="暂无银行信息" addLabel="添加银行账户" onAdd={() => { setEditingBank(-1); setBankForm(blankBank(supplier.name)); setShowBankForm(true); }}>{banks.map((b, i) => <BankChangeCard key={b.id} id={'mobile-bank-' + b.id} before={supplier.banks} bank={b} deleteDisabledReason={isOriginalBasicBank(b) && b.change !== '删除' ? effectiveBasicBankDeleteError : ''} onPreview={preview} onEdit={b.change === '删除' ? undefined : () => { setEditingBank(i); setBankForm(clone(b)); setShowBankForm(true); }} onDelete={isOriginalBasicBank(b) || b.change === '删除' ? undefined : () => setConfirm({ type: 'delete-bank', index: i, text: '是否将该银行账户标记为待提交删除？' })} />)}</RecordCollection>
       {!showBankForm && <Actions className="m-bank-submit-actions" items={[{ label: '提交审批', disabled: !bankCounts.total, onClick: submitBankChanges }]} />}
       {bankLeaving && <Confirm title="银行变更待提交" text="银行信息尚未提交审批，已保存内容将保留，可稍后继续处理。" cancelLabel="继续处理" confirmLabel="确认离开" onCancel={() => setBankLeaving(false)} onConfirm={() => { setBankLeaving(false); bankGuard.accept(); go(returnToList()); }} />}
 
@@ -553,7 +596,7 @@ function MobileSurface({ onComparisonChange, scene, shot, ratings, setRatings, a
     {['bank-select', 'branch-select', 'people', 'people-empty'].includes(scene) && <ReferenceList mode={scene.startsWith('people') ? 'confirm' : 'immediate'} kind={scene.startsWith('people') ? 'people' : scene === 'bank-select' ? 'bank' : 'branch'} selected={scene === 'branch-select' ? exampleBank.branch : ''} initialSearch={scene === 'people' ? '周' : ''} onCancel={() => go(scene.startsWith('people') ? 'inviter' : 'bank')} onConfirm={v => { notify('已选择' + v); go(scene.startsWith('people') ? 'inviter-selected' : 'bank-form-selected'); }} />}
     {scene.startsWith('permissions') && <><Section title="供应商信息"><Row label="供应商名称">{supplier.name}</Row><Row label="供应商类型">{supplier.type}</Row></Section><RecordCollection title="分配权限" count={permissions.length} emptyText="暂无权限记录" addLabel="新增权限" onAdd={() => setPermissionForm({ index: -1 })}>{permissions.map((p, i) => <PermissionCard key={p.id} data={p} onEdit={p.change === '删除' ? undefined : () => setPermissionForm({ data: p, index: i })} onDelete={p.change === '删除' ? undefined : () => setConfirm({ type: 'delete-permission', index: i, text: '是否删除该权限？提交后生效。' })} />)}</RecordCollection>{!permissionForm && <Actions items={[{ label: '取消', onClick: () => go('query') }, { label: '提交变更', onClick: () => { if (!permissions.some(p => p.change)) return notify('请先新增、修改或删除权限'); update({ pendingPermissions: clone(permissions), status: '变更中' }); notify('原型演示：权限分配已提交，等待审批'); go(returnToList()); } }]} />}</>}
     {(scene === 'permission-form' || permissionForm) && <div className={permissionForm ? 'm-fullscreen-panel' : ''}>{permissionForm && <Header title="编辑供应商权限" onBack={() => window.dispatchEvent(new CustomEvent('mobile-close-permission'))} />}<PermissionForm initial={permissionForm?.data} notify={notify} onCancel={() => permissionForm ? setPermissionForm(false) : go('permissions')} onSave={p => { if (permissions.some((x, i) => i !== permissionForm?.index && x.change !== '删除' && x.group === p.group && x.category === p.category)) return notify('该权限已存在'); const next = { ...p, id: permissionForm?.data?.id || createSessionId(), change: permissionForm?.index >= 0 && permissionForm?.data?.change !== '新增' ? '修改' : '新增' }; setPermissions(permissionForm?.index >= 0 ? permissions.map((x, i) => i === permissionForm.index ? next : x) : [next, ...permissions]); permissionForm ? setPermissionForm(false) : go('permissions-added'); }} /></div>}
-    {scene.startsWith('inviter') && scene !== 'inviter-batch' && <><Section title="供应商信息"><Row label="供应商名称">{supplier.name}</Row><Row label="供应商类型">{supplier.type}</Row></Section><Section title="申请人信息" className="m-inviter-applicants"><Row label="原邀请人">{supplier.inviter}</Row><Field label="新邀请人" required value={newInviter} onPick={() => setPeoplePicker(true)} /><aside className="m-inviter-note"><p>审批提醒</p><ol><li>原邀请人在职：由原邀请人审批。</li><li>原邀请人离职：由原部门领导审批。</li><li>原部门无法查询：由异常管理员审批。</li><li>发起人是原邀请人：直接通过。</li></ol></aside></Section><Actions items={[{ label: '取消', onClick: () => go(returnToList()) }, { label: '提交', onClick: () => { if (!newInviter) return notify('请选择新邀请人'); if (newInviter === supplier.inviter) return notify('新邀请人不能与原邀请人相同'); update({ inviter: newInviter, status: supplier.inviter === '陈才慧' ? '已审批' : '变更中' }); notify('原型演示：邀请人变更已提交'); go(returnToList()); } }]} /></>}
+    {scene.startsWith('inviter') && scene !== 'inviter-batch' && <><Section title="供应商信息"><Row label="供应商名称">{supplier.name}</Row><Row label="供应商类型">{supplier.type}</Row></Section><Section title="申请人信息" className="m-inviter-applicants"><Row label="原邀请人">{supplier.inviter}</Row><Field label="新邀请人" required value={newInviter} onPick={() => setPeoplePicker(true)} />{supplier.mode !== '历史供应商' && <aside className="m-inviter-note"><p>审批提醒</p><ol><li>原邀请人在职：由原邀请人审批。</li><li>原邀请人离职：由原部门领导审批。</li><li>原部门无法查询：由异常管理员审批。</li><li>发起人是原邀请人：直接通过。</li></ol></aside>}</Section><Actions items={[{ label: '取消', onClick: () => go(returnToList()) }, { label: '提交', onClick: () => { if (!newInviter) return notify('请选择新邀请人'); if (!canChangeSupplier(supplier)) return notify('当前状态不能变更邀请人'); if (newInviter === supplier.inviter) return notify('新邀请人不能与原邀请人相同'); update(supplier.mode === '历史供应商' ? { inviter: newInviter, status: '已审批', historicalHandoverTo: newInviter, historicalInvite: null } : { inviter: newInviter, status: supplier.inviter === currentInviter ? '已审批' : '变更中' }); notify('原型演示：邀请人变更已提交'); go(returnToList()); } }]} /></>}
     {scene === 'inviter-batch' && <>
       {batchInviterIds.length ? <>
         <Section title="供应商信息" collapsible={false}><div className="m-batch-supplier-list">{suppliers.filter(s => batchInviterIds.includes(s.id)).map(s => <article key={s.id} className="m-batch-supplier"><h3>{s.name}</h3><Row label="供应商类型">{s.type}</Row></article>)}</div></Section>
@@ -561,7 +604,13 @@ function MobileSurface({ onComparisonChange, scene, shot, ratings, setRatings, a
         <Actions items={[{ label: '提交', onClick: () => { if (!newInviter) return notify('请选择新邀请人'); setConfirm({ type: 'batch-inviter', ids: [...batchInviterIds], inviter: newInviter, text: '确认将所选' + batchInviterIds.length + '家供应商的邀请人变更为「' + newInviter + '」？' }); } }]} />
       </> : <><Empty text="请先从我的邀请选择供应商" /></>}
     </>}
-    {peoplePicker && <FullscreenPanel title="选择新邀请人" onBack={() => setPeoplePicker(false)}><ReferenceList kind="people" mode="confirm" selected={newInviter} onCancel={() => setPeoplePicker(false)} onConfirm={v => { setNewInviter(v); setPeoplePicker(false); }} /></FullscreenPanel>}
+    {peoplePicker && <FullscreenPanel title="选择新邀请人" onBack={() => setPeoplePicker(false)}><ReferenceList kind="people" includeCurrent={supplier.mode === '历史供应商'} mode="confirm" selected={newInviter} onCancel={() => setPeoplePicker(false)} onConfirm={v => { setNewInviter(v); setPeoplePicker(false); }} /></FullscreenPanel>}
+    {scene === 'invite-historical' && (canInviteHistoricalSupplier(supplier, currentInviter) ? <InviteForm lockIdentity
+      initial={{ type: supplier.type, name: supplier.name, contact: supplier.historicalInvite?.contact || '', email: supplier.historicalInvite?.email || '', phone: supplier.historicalInvite?.phone || '' }}
+      notify={notify} onCancel={() => go('detail')} onSave={sendHistoricalInvite} /> : <Empty text="请由交接后的邀请人办理历史供应商账号注册" />)}
+    {scene === 'historical-account' && (historicalTarget ? <SupplierAccountRegistration invitation={historicalTarget}
+      accounts={[...suppliers.map(supplierAccount).filter(Boolean), ...(views.portalRegisteredAccounts || [])]} onComplete={registerHistoricalAccount} />
+      : <Empty text="该地址已失效，请联系邀请人重新邀请！" />)}
     {['invite', 'invite-again'].includes(scene) && <InviteForm initial={scene === 'invite-again' ? { type: supplier.type, name: supplier.name, contact: supplier.contact, email: supplier.email, phone: supplier.phone } : undefined} notify={notify} onCancel={() => go(scene === 'invite-again' ? listReturn.current : 'query')} onSave={data => {
       if (scene === 'invite-again') return submitInvitation(data, supplier);
       const candidate = reinviteCandidate(suppliers, data.name, currentInviter);
@@ -581,9 +630,9 @@ function MobileSurface({ onComparisonChange, scene, shot, ratings, setRatings, a
     {isRegistration && (!portalRegistration || accountRegistered) && !['address', 'region'].includes(scene) && <>
       {editingRegistration && <div className="m-form-heading">{editingAll ? '修改全部信息' : '修改草稿'}</div>}
       <RegistrationSteps personal={basic.type === supplierTypes[1]} step={step} expanded={stepsExpanded} onExpandedChange={setStepsExpanded} />
-      {step === 0 && <BasicFields initialPanel={mapParams.panel} data={basic} setData={setBasic} identityReadOnly={portalRegistration} hideSupplierType={portalRegistration} shot={!!shot} onAddress={() => setAddressOpen(true)} initialDate={scene === 'expiry'} />}
+      {step === 0 && <BasicFields initialPanel={mapParams.panel} data={basic} setData={setBasic} identityReadOnly={portalRegistration} hideSupplierType={portalRegistration} lookupEnterprise={!shot && !portalRegistration && !editingAll} shot={!!shot} onAddress={() => setAddressOpen(true)} initialDate={scene === 'expiry'} />}
       {step === 1 && <ContactFields initialPanel={mapParams.panel} contacts={contacts} setContacts={setContacts} />}
-      {step === 2 && <RecordCollection title="银行信息" count={registerBanks.length} emptyText="暂无银行信息" addLabel="添加银行账户" onAdd={() => { setEditingBank(-1); setRegisterBankForm(blankBank(basic.supplierName)); setRegisterBankPicker(true); }}>{registerBanks.map((b, i) => <BankCard key={b.id} bank={b} onPreview={preview} onEdit={() => { setEditingBank(i); setRegisterBankForm(clone(b)); setRegisterBankPicker(true); }} onDelete={() => setConfirm({ type: 'delete-register-bank', index: i, text: '确认删除银行信息' + (i + 1) + '？' })} />)}</RecordCollection>}
+      {step === 2 && <RecordCollection title="银行信息" count={registerBanks.length} emptyText="暂无银行信息" addLabel="添加银行账户" onAdd={() => { setEditingBank(-1); setRegisterBankForm(blankBank(basic.supplierName)); setRegisterBankPicker(true); }}>{registerBanks.map((b, i) => <BankCard key={b.id} bank={b} onPreview={preview} onEdit={() => { setEditingBank(i); setRegisterBankForm(clone(b)); setRegisterBankPicker(true); }} deleteDisabledReason={editingAll && isOriginalBasicBank(b) ? effectiveBasicBankDeleteError : ''} onDelete={editingAll && isOriginalBasicBank(b) ? undefined : () => setConfirm({ type: 'delete-register-bank', index: i, text: '确认删除银行信息' + (i + 1) + '？' })} />)}</RecordCollection>}
       {step === 3 && <RegistrationPreview supplierFacing={portalRegistration} basic={basic} contacts={contacts} banks={registerBanks} mode={portalRegistration ? '邀请注册' : editingRegistration ? supplier.mode : '代注册'} active={previewTab} onTabChange={setPreviewTab} onEdit={next => { setReturnPreview(true); changeStep(next); }} onPreview={preview}>{editingAll && <ChangeComparison before={supplier} after={{ basic, name: basic.supplierName, email: basic.registerEmail, type: basic.type, contacts, banks: registerBanks }} onPreview={preview} />}</RegistrationPreview>}
       <Actions className="m-registration-actions" items={editingAll ? [
         { label: '取消', secondary: true, onClick: () => registrationGuard.leave(() => go(returnToList())) },
@@ -596,7 +645,7 @@ function MobileSurface({ onComparisonChange, scene, shot, ratings, setRatings, a
     </>}
     {addressOpen && <AddressForm sheet regions={regionData} initial={basic.address} onConfirm={v => { setBasic({ ...basic, address: v }); setAddressOpen(false); }} onCancel={() => setAddressOpen(false)} />}
     {['address', 'region'].includes(scene) && <AddressForm regions={regionData} initial={shot ? '云南省/保山市/龙陵县 个哈哈哈哈' : basic.address} startRegion={scene === 'region'} onConfirm={v => { setBasic({ ...basic, address: v }); go('register'); }} onCancel={() => go('register')} />}
-    {registerBankPicker && <div className="m-fullscreen-panel"><Header title={portalRegistration ? (editingBank < 0 ? '添加银行账户' : '修改银行账户') : '供应商管理平台'} onBack={() => window.dispatchEvent(new CustomEvent('mobile-close-register-bank'))} /><BankFields onCancel={() => setRegisterBankPicker(false)} bank={registerBankForm} setBank={setRegisterBankForm} company={basic.type === supplierTypes[0]} /><Actions items={[{ label: '取消', onClick: () => window.dispatchEvent(new CustomEvent('mobile-close-register-bank')) }, { label: '添加', onClick: saveRegisterBank }]} /></div>}
+    {registerBankPicker && <div className="m-fullscreen-panel"><Header title={portalRegistration ? (editingBank < 0 ? '添加银行账户' : '修改银行账户') : '供应商管理平台'} onBack={() => window.dispatchEvent(new CustomEvent('mobile-close-register-bank'))} /><BankFields recognizeCard={!shot && !portalRegistration && !editingAll && basic.type === supplierTypes[1]} onCancel={() => setRegisterBankPicker(false)} bank={registerBankForm} setBank={setRegisterBankForm} company={basic.type === supplierTypes[0]} /><Actions items={[{ label: '取消', onClick: () => window.dispatchEvent(new CustomEvent('mobile-close-register-bank')) }, { label: '添加', onClick: saveRegisterBank }]} /></div>}
     {['ratings', 'my-ratings'].includes(scene) && <RatingWorkspace savedView={views[scene]} onViewChange={value => { views[scene] = { ...views[scene], ...value }; }} mine={scene === 'my-ratings'} records={ratings} filters={filters} go={go} onOpen={(record, readOnly) => { setActiveRating(record); setRatingReturn(scene); go(readOnly ? 'rating-detail' : 'rating-edit'); }} onAdd={() => { setActiveRating(null); setRatingReturn(scene); go('rating-edit'); }} />}
     {['rating-edit', 'rating-detail'].includes(scene) && (scene === 'rating-detail' && !activeRating ? <><Empty text="未选择评分记录，请返回列表重新选择" /></> : <RatingEditor record={activeRating} supplier={activeRating ? suppliers.find(x => x.name === activeRating.name) || { name: activeRating.name, type: '', status: '', inviter: '', date: '', mode: '' } : supplier} readOnly={scene === 'rating-detail'} notify={notify} onSave={record => { setRatings(list => list.some(x => x.id === record.id) ? list.map(x => x.id === record.id ? record : x) : [record, ...list]); notify('演示评分已保存'); go(ratingReturn); }} />)}
     {['rating-filter', 'department'].includes(scene) && <FilterView rating mine={filters.return === 'my-ratings'} initial={filters} onCancel={() => go(filters.return || 'ratings')} onApply={v => { if (v.start && v.end && v.start > v.end) return notify('评分开始时间不能晚于结束时间'); go((filters.return || 'ratings') + '?' + new URLSearchParams(v).toString()); }} />}
@@ -608,7 +657,7 @@ function MobileSurface({ onComparisonChange, scene, shot, ratings, setRatings, a
       {!passwordScreen && !portalEmail && <><Field label="账号" required value={portal.account} onChange={account => setPortal({ ...portal, account })} placeholder="请输入登录账号" /><Field label="密码" required type="password" value={portal.password} onChange={password => setPortal({ ...portal, password })} placeholder="请输入登录密码" /><div className="m-captcha-field"><Field label="验证码" required value={portal.captcha} onChange={v => setPortal({ ...portal, captcha: v })} placeholder="请输入验证码" /><span className="m-captcha">{captcha}</span><button onClick={() => { setCaptcha(captcha === 'cbvs' ? '39qq' : 'cbvs'); setPortal({ ...portal, captcha: '' }); }}>换一张</button></div></>}
       {(portalEmail || passwordScreen) && <><Field label="注册邮箱" required type="email" error={portalErrors.email} value={portal.email} onChange={email => changePortal('email', email)} /><div className="m-login-email-code"><Field label="邮箱验证码" required error={portalErrors.code} value={portal.code} onChange={code => changePortal('code', code)} /><button className="m-send-code" disabled={countdown > 0} onClick={() => { if (!validEmail(portal.email)) return portalError('email', portal.email ? '请输入正确的注册邮箱' : '请填写注册邮箱'); setPortalErrors({}); setCountdown(60); notify('演示验证码：123456；未发送真实邮件'); }}>{countdown ? countdown + ' s 后可重发' : '发送验证码'}</button></div></>}
       {passwordScreen && <Field label="新密码" required type="password" value={newPassword} onChange={setNewPassword} />}
-      {!portalEmail && !passwordScreen && <button className="m-forgot-link" onClick={() => setPasswordScreen(true)}>修改密码</button>}<button className="m-login-button" onClick={() => { if (passwordScreen) { if (!validEmail(portal.email)) return portalError('email', portal.email ? '请输入正确的注册邮箱' : '请填写注册邮箱'); if (portal.code !== '123456') return portalError('code', portal.code ? '邮箱验证码错误' : '请填写邮箱验证码'); if (!newPassword) return notify('请输入新密码'); notify('原型演示：密码修改完成，未更新真实账号'); setPasswordScreen(false); } else if (!portalEmail) { if (!portal.account || !portal.password) return notify('请输入账号和密码'); if (portal.captcha.toLowerCase() !== captcha) return notify('图形验证码错误'); setPortalEmail(true); } else { if (!validEmail(portal.email)) return portalError('email', portal.email ? '请输入正确的注册邮箱' : '请填写注册邮箱'); if (portal.code !== '123456') return portalError('code', portal.code ? '邮箱验证码错误' : '请填写邮箱验证码'); views.portalAccount = { account: portal.account || '演示供应商账号', email: portal.email }; portalGuard.accept(); notify(''); go('workspace-home'); } }}>{passwordScreen ? '提交' : portalEmail ? '登录' : '下一步'}</button>
+      {!portalEmail && !passwordScreen && <button className="m-forgot-link" onClick={() => setPasswordScreen(true)}>修改密码</button>}<button className="m-login-button" onClick={() => { if (passwordScreen) { if (!validEmail(portal.email)) return portalError('email', portal.email ? '请输入正确的注册邮箱' : '请填写注册邮箱'); if (portal.code !== '123456') return portalError('code', portal.code ? '邮箱验证码错误' : '请填写邮箱验证码'); if (!newPassword) return notify('请输入新密码'); notify('原型演示：密码修改完成，未更新真实账号'); setPasswordScreen(false); } else if (!portalEmail) { if (!portal.account || !portal.password) return notify('请输入账号和密码'); if (portal.captcha.toLowerCase() !== captcha) return notify('图形验证码错误'); setPortalEmail(true); } else { if (!validEmail(portal.email)) return portalError('email', portal.email ? '请输入正确的注册邮箱' : '请填写注册邮箱'); if (portal.code !== '123456') return portalError('code', portal.code ? '邮箱验证码错误' : '请填写邮箱验证码'); views.portalAccount = { account: portal.account || '演示供应商账号', email: portal.email }; portalGuard.accept(); notify(''); go(procurementNoticeRoute(location.hash.split('?')[1]) || 'workspace-home'); } }}>{passwordScreen ? '提交' : portalEmail ? '登录' : '下一步'}</button>
     </div></section></div>}
     {scene.startsWith('workspace') && <PortalWorkspace mapParams={mapParams} accountMenu={portalAccountMenu} setAccountMenu={setPortalAccountMenu} scene={scene} go={go} notify={notify} store={views} onPreview={preview} />}
     </SwipeArea>

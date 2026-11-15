@@ -9,13 +9,14 @@ import { BankCard, BankFields, BasicFields, ContactFields, bankError, fieldsFor,
 import { exampleBank as sampleBank, supplierTypes } from './mobile-data.js';
 import { Approval } from './mobile-views.jsx';
 import { createSessionId, SwipeArea, useBackLayer, useDirtyForm } from './mobile-interaction.jsx';
-import { informationSteps, registrationEmailError } from './mobile-edit-rules.js';
+import { informationSteps, registrationEmailError, bankAccountsError, isEffectiveBasicBankAccount, effectiveBasicBankDeleteError } from './mobile-edit-rules.js';
 import { RegistrationPreview } from './mobile-registration-preview.jsx';
 import { ChangeComparison } from './mobile-changes.jsx';
 import { AccountSecurityForm } from './mobile-account.jsx';
 import { PortalTaskList } from './mobile-portal-tasks.jsx';
 import { PortalPricingDetail } from './mobile-portal-pricing.jsx';
 import { createPortalInquiries, createPortalOrders } from './mobile-portal-records.js';
+import { findDemoProcurementTask, readProcurementNotice } from './mobile-portal-procurement.js';
 
 const clone = value => structuredClone(value);
 const homeGroups = [
@@ -109,7 +110,36 @@ function initialProfile() {
   const basic = { ...clone(filledBasic), supplierName: '协同门户演示供应商', registerEmail: 'supplier@example.com', address: '北京市/北京市/朝阳区 演示地址', businessScope: '技术与电子产品服务', cooperation: '平台技术服务', businessAdvantage: '技术服务与项目交付经验' };
   return { name: basic.supplierName, type: basic.type, email: basic.registerEmail, basic, status: '已审批', contacts: [{ id: 'portal-contact', name: '演示联系人', phone: '13800000000', email: 'supplier@example.com', department: '', job: '', wechat: '', note: '' }], banks: [{ ...clone(sampleBank), name: basic.supplierName }] };
 }
-export function PortalWorkspace({ scene, go, notify, store, onPreview, accountMenu, setAccountMenu, mapParams = {} }) {
+function PortalProcurementNotice({ go, notify, store, onPreview }) {
+  const notice = readProcurementNotice(window.location.hash.split('?')[1]);
+  const account = store.portalAccount;
+  const loginRoute = notice && !account ? 'portal?' + new URLSearchParams(notice) : '';
+  useEffect(() => {
+    if (!loginRoute) return;
+    const next = setTimeout(() => go(loginRoute), 0);
+    return () => clearTimeout(next);
+  }, [go, loginRoute]);
+
+  if (loginRoute) return <Empty text="请先登录供应商协同门户" />;
+  const quote = notice?.task === 'quote';
+  const records = quote ? (store.portalInquiries ||= createPortalInquiries()) : (store.portalOrders ||= createPortalOrders());
+  const record = findDemoProcurementTask(notice, account, records);
+  if (!record) return <>
+    <Empty text="找不到该采购任务，或当前账号无权查看" />
+    <Actions items={[{ label: account ? '返回工作台' : '返回登录', onClick: () => go(account ? 'workspace-home' : 'portal') }]} />
+  </>;
+
+  store.portalTaskTab = (quote ? 0 : 2) + Number(record.status === '已处理');
+  return <PortalPricingDetail quote={quote} records={records} store={store} go={go} notify={notify} onPreview={onPreview} />;
+}
+
+export function PortalWorkspace(props) {
+  return props.scene === 'workspace-procurement'
+    ? <div className="m-workspace"><PortalProcurementNotice {...props} /></div>
+    : <PortalWorkspaceContent {...props} />;
+}
+
+function PortalWorkspaceContent({ scene, go, notify, store, onPreview, accountMenu, setAccountMenu, mapParams = {} }) {
   const inquiries = store.portalInquiries ||= createPortalInquiries();
   const orders = store.portalOrders ||= createPortalOrders();
   const [profile] = useState(() => store.portalProfile ||= initialProfile());
@@ -124,6 +154,7 @@ export function PortalWorkspace({ scene, go, notify, store, onPreview, accountMe
   const [bankIndex, setBankIndex] = usePanelState(mapParams.panel === 'bank' ? -1 : null);
   const [bank, setBank] = useState(() => mapParams.panel === 'bank' ? blankBank(profile.name) : null);
   const [removeBank, setRemoveBank] = useState(null);
+  const isOriginalBasicBank = bank => isEffectiveBasicBankAccount(bank, profile.banks, profile.type === supplierTypes[0]);
   const [logout, setLogout] = useState(mapParams.panel === 'logout');
   const guard = useDirtyForm(draft, editing);
   const bankGuard = useDirtyForm(bank, bankIndex !== null);
@@ -149,7 +180,7 @@ export function PortalWorkspace({ scene, go, notify, store, onPreview, accountMe
     if (index === 2) {
       if (!draft.banks.length) return '请添加银行信息';
       for (const entry of draft.banks) { const error = bankError(entry, draft.basic.type === supplierTypes[0]); if (error) return error; }
-      if (draft.basic.type === supplierTypes[0] && draft.banks.filter(bank => bank.accountType === '基本账户').length !== 1) return '企业供应商必须有且只有一个基本账户';
+      return bankAccountsError(draft.banks, draft.basic.type === supplierTypes[0], profile.banks);
     }
     return '';
   };
@@ -211,7 +242,7 @@ export function PortalWorkspace({ scene, go, notify, store, onPreview, accountMe
       {editing ? <RegistrationSteps personal={draft.basic.type === supplierTypes[1]} step={tab} expanded={stepsExpanded} onExpandedChange={setStepsExpanded} /> : <Tabs showDirectory={false} stretch variant="pill" items={['基本信息', '联系人信息', '银行信息']} active={tab} onChange={setInfoTab} />}
       <SwipeArea active={editing ? 0 : tab} count={editing ? 1 : 3} onChange={i => editing ? changeInformationStep(editSteps[i]) : setInfoTab(i)}>
       {!editing && <>{tab === 0 && <><Section title="基本信息" collapsible={false}>{fieldsFor(profile.type).map(([key, label]) => <Row key={key} label={label}>{profile.basic[key] || '—'}</Row>)}<Row label="注册邮箱">{profile.email}</Row><Row label="证照附件">{profile.basic.proof ? <AttachmentLink value={profile.basic.proof} onPreview={onPreview} /> : '—'}</Row></Section><QualificationInfo records={profile.basic.qualifications} onPreview={onPreview} /></>}{tab === 1 && <RecordCollection title="联系人信息" count={profile.contacts.length} emptyText="暂无联系人信息">{profile.contacts.map(c => <RecordCard key={c.id} title={c.name}>{[['phone', '电话'], ['email', '邮箱'], ['department', '部门'], ['job', '职位'], ['wechat', '微信'], ['note', '备注']].map(([key, label]) => <Row key={key} label={label}>{c[key] || '—'}</Row>)}</RecordCard>)}</RecordCollection>}{tab === 2 && <RecordCollection title="银行信息" count={profile.banks.length} emptyText="暂无银行信息">{profile.banks.map(b => <BankCard fileProof key={b.id} bank={b} onPreview={() => onPreview(b.proof)} />)}</RecordCollection>}<Actions items={[pending ? { label: '查看审批', onClick: () => go('workspace-approval') } : { label: '修改', onClick: () => { setDraft(clone(store.portalDraft || profile)); setInfoTab(editSteps.includes(tab) ? tab : 0); setStepsExpanded(!editSteps.includes(tab) || tab === 0); setPreviewTab(0); setEditing(true); } }]} /></>}
-      {editing && <div className="m-edit-mode">{tab === 0 && <BasicFields initialPanel={mapParams.panel} hideSupplierType data={draft.basic} setData={basic => setDraft({ ...draft, basic })} onAddress={() => setAddress(true)} />}{tab === 1 && <ContactFields initialPanel={mapParams.panel} contacts={draft.contacts} setContacts={contacts => setDraft({ ...draft, contacts })} />}{tab === 2 && <RecordCollection title="银行信息" count={draft.banks.length} emptyText="暂无银行信息" addLabel="添加银行账户" onAdd={() => beginBank(blankBank(profile.name), -1)}>{draft.banks.map((b, i) => <BankCard fileProof key={b.id} bank={b} deleteDisabledReason={draft.type === supplierTypes[0] && b.accountType === '基本账户' ? '企业供应商的基本账户不可删除' : ''} onPreview={() => onPreview(b.proof)} onEdit={() => beginBank(b, i)} onDelete={draft.type === supplierTypes[0] && b.accountType === '基本账户' ? undefined : () => setRemoveBank(i)} />)}</RecordCollection>}{tab === 3 && <RegistrationPreview supplierFacing basic={draft.basic} contacts={draft.contacts} banks={draft.banks} active={previewTab} onTabChange={setPreviewTab} onPreview={onPreview}><ChangeComparison before={profile} after={{ ...draft, name: draft.basic.supplierName, type: draft.basic.type, email: draft.basic.registerEmail }} /></RegistrationPreview>}<Actions className="m-registration-actions m-info-edit-actions" items={[{ label: '取消', secondary: true, onClick: cancel }, { label: tab === 3 ? '提交' : '下一步（' + (editSteps.indexOf(tab) + 1) + '/' + editSteps.length + '）', onClick: tab === 3 ? submit : next }]} /></div>}
+      {editing && <div className="m-edit-mode">{tab === 0 && <BasicFields initialPanel={mapParams.panel} hideSupplierType data={draft.basic} setData={basic => setDraft({ ...draft, basic })} onAddress={() => setAddress(true)} />}{tab === 1 && <ContactFields initialPanel={mapParams.panel} contacts={draft.contacts} setContacts={contacts => setDraft({ ...draft, contacts })} />}{tab === 2 && <RecordCollection title="银行信息" count={draft.banks.length} emptyText="暂无银行信息" addLabel="添加银行账户" onAdd={() => beginBank(blankBank(profile.name), -1)}>{draft.banks.map((b, i) => <BankCard fileProof key={b.id} bank={b} deleteDisabledReason={isOriginalBasicBank(b) ? effectiveBasicBankDeleteError : ''} onPreview={() => onPreview(b.proof)} onEdit={() => beginBank(b, i)} onDelete={isOriginalBasicBank(b) ? undefined : () => setRemoveBank(i)} />)}</RecordCollection>}{tab === 3 && <RegistrationPreview supplierFacing basic={draft.basic} contacts={draft.contacts} banks={draft.banks} active={previewTab} onTabChange={setPreviewTab} onPreview={onPreview}><ChangeComparison before={profile} after={{ ...draft, name: draft.basic.supplierName, type: draft.basic.type, email: draft.basic.registerEmail }} /></RegistrationPreview>}<Actions className="m-registration-actions m-info-edit-actions" items={[{ label: '取消', secondary: true, onClick: cancel }, { label: tab === 3 ? '提交' : '下一步（' + (editSteps.indexOf(tab) + 1) + '/' + editSteps.length + '）', onClick: tab === 3 ? submit : next }]} /></div>}
       </SwipeArea>
     </>}
     {scene === 'workspace-changes' && <>{store.portalDraft ? <><ChangeComparison before={profile} after={store.portalDraft} /><Actions items={[{ label: '继续修改', secondary: true, onClick: () => go('workspace-info?edit=1') }, { label: '取消本次修改', secondary: true, onClick: () => { store.portalDraft = null; go('workspace-info'); } }, { label: '提交变更', onClick: () => { store.portalPending = clone(store.portalDraft); store.portalDraft = null; notify('原型演示：资料变更已提交，等待审批'); go('workspace-approval'); } }]} /></> : <><Section title="资料变更" collapsible={false}><Empty text="没有待提交的修改" /></Section></>}</>}
@@ -223,7 +254,7 @@ export function PortalWorkspace({ scene, go, notify, store, onPreview, accountMe
     {['workspace-tax-detail', 'workspace-tax-split'].includes(scene) && <PortalPricingDetail mapParams={mapParams} records={orders} store={store} go={go} notify={notify} onPreview={onPreview} />}
     {address && <AddressForm sheet regions={regionData} initial={draft.basic.address} onCancel={() => setAddress(false)} onConfirm={value => { setDraft({ ...draft, basic: { ...draft.basic, address: value } }); setAddress(false); }} />}
     {bankIndex !== null && <div className="m-fullscreen-panel" role="dialog" aria-modal="true" aria-label="门户银行编辑"><PickerHeading title={bankIndex < 0 ? '新增银行' : '修改银行'} /><BankFields bank={bank} setBank={setBank} company={profile.type === supplierTypes[0]} /><Actions items={[{ label: '取消', secondary: true, onClick: closeBank }, { label: '保存此账户', onClick: () => { const error = bankError(bank, profile.type === supplierTypes[0]); if (error) return notify(error); if (draft.banks.some((b, i) => i !== bankIndex && b.accountType === '基本账户' && bank.accountType === '基本账户')) return notify('基本账户只能有一个'); const entry = { ...bank, id: bankIndex < 0 ? createSessionId() : draft.banks[bankIndex].id }; setDraft({ ...draft, banks: bankIndex < 0 ? [...draft.banks, entry] : draft.banks.map((b, i) => i === bankIndex ? entry : b) }); bankGuard.accept(); setBankIndex(null); } }]} /></div>}
-    {removeBank !== null && <Confirm danger text="确认删除此银行账户？" onCancel={() => setRemoveBank(null)} onConfirm={() => { setDraft({ ...draft, banks: draft.banks.filter((_, i) => i !== removeBank) }); setRemoveBank(null); }} />}
+    {removeBank !== null && <Confirm danger text="确认删除此银行账户？" onCancel={() => setRemoveBank(null)} onConfirm={() => { if (isOriginalBasicBank(draft.banks[removeBank])) { setRemoveBank(null); return notify(effectiveBasicBankDeleteError); } setDraft({ ...draft, banks: draft.banks.filter((_, i) => i !== removeBank) }); setRemoveBank(null); }} />}
     {logout && <Confirm title="退出登录？" confirmLabel="退出登录" text={store.portalDraft ? '还有尚未提交的资料修改，退出将放弃这些修改。确认退出？' : '确认退出协同门户？'} onCancel={() => setLogout(false)} onConfirm={() => { store.portalDraft = null; store.portalAccount = null; notify('已退出登录'); go('portal'); }} />}
     {accountMenu && <Overlay sheet label="账户设置" onClose={() => setAccountMenu(false)}><div className="m-portal-account-panel"><div className="m-picker-title"><strong>账户设置</strong><button type="button" aria-label="关闭账户设置" onClick={() => setAccountMenu(false)}><X /></button></div><div className="m-account-panel-menu">{[[KeyRound, '修改密码', 'workspace-account-password'], [Mail, '修改注册邮箱', 'workspace-account-email']].map(([Icon, label, route]) => <button type="button" key={route} onClick={() => { store.portalSecurityReturn = 'workspace-home'; setAccountMenu(false); go(route); }}><Icon aria-hidden="true" /><span>{label}</span><ChevronRight aria-hidden="true" /></button>)}</div><div className="m-account-panel-logout"><button type="button" onClick={() => { setAccountMenu(false); setLogout(true); }}><LogOut aria-hidden="true" />退出登录</button></div></div></Overlay>}
   </div>;
