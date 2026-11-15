@@ -40,6 +40,19 @@ export function reinviteCandidate(records, name, inviter, excludedId) {
 }
 export function informationSteps(personal) { return personal ? [0, 2, 3] : [0, 1, 2, 3]; }
 
+export const personalCertificateTypes = ['身份证', '港澳通行证', '护照', '台湾通行证'];
+
+export function personalCertificatePhotoFields(type) {
+  if (!type) return [];
+  if (type === '身份证') return [['proof', '身份证正面照片'], ['personalSupplierBackPicture', '身份证反面照片']];
+  return [['proof', '证件照片']];
+}
+
+export function personalCertificatePhotoError(basic) {
+  const missingPhoto = personalCertificatePhotoFields(basic.certificateType).find(([key]) => !basic[key]);
+  return missingPhoto ? '请上传' + missingPhoto[1] : '';
+}
+
 export const validEmail = value => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test((value || '').trim());
 export function registrationEmailError(value) {
   if (!(value || '').trim()) return '请填写供应商注册邮箱';

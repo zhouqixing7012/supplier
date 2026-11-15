@@ -6,11 +6,12 @@ import { fieldsFor } from './mobile-forms.jsx';
 import { displayCertificateNumber } from './mobile-rules.js';
 import { supplierTypes } from './mobile-data.js';
 import { attachmentName } from './mobile-interaction.jsx';
+import { personalCertificatePhotoFields } from './mobile-edit-rules.js';
 
 const contactFields = [['name', '姓名'], ['phone', '电话'], ['email', '邮箱'], ['department', '部门'], ['job', '职位'], ['wechat', '微信'], ['note', '备注']];
 const bankFields = [['accountType', '账户类型'], ['bank', '开户银行'], ['branch', '银行分行'], ['country', '国家/地区'], ['province', '省'], ['city', '市'], ['name', '账户名称'], ['number', '银行账号'], ['currency', '币种'], ['proof', '开户证明'], ['note', '备注']];
 const qualificationChangeFields = [...qualificationFields, ['qualificationCertificatePicture', '附件']];
-const attachmentKeys = new Set(['proof', 'qualificationCertificatePicture']);
+const attachmentKeys = new Set(['proof', 'personalSupplierBackPicture', 'qualificationCertificatePicture']);
 const content = value => value == null ? '' : typeof value === 'object' ? JSON.stringify(value) : String(value);
 const hasContent = value => content(value).trim() !== '';
 const displayValue = (key, value) => attachmentKeys.has(key) ? content(attachmentName(value)) : content(value);
@@ -24,7 +25,10 @@ const basicProfile = profile => ({
 });
 
 function entriesFor(profile, property) {
-  if (property === 'qualifications') return profile?.basic?.qualifications || profile?.qualifications || [];
+  if (property === 'qualifications') {
+    if ((profile?.type || profile?.basic?.type) !== supplierTypes[0]) return [];
+    return profile?.basic?.qualifications || profile?.qualifications || [];
+  }
   if (property === 'contacts') {
     if (Array.isArray(profile?.contacts) && profile.contacts.length) return profile.contacts;
     if ([profile?.contact, profile?.phone, profile?.email].some(hasContent)) {
@@ -79,7 +83,10 @@ export function informationChangeGroups(before, after, ordinaryDetail = false) {
     next.creditCode = displayCertificateNumber({ type: next.type, basic: next });
   } else {
     basicDefinitions.set('registerEmail', '注册邮箱');
-    basicDefinitions.set('proof', '证照附件');
+    for (const basic of [previous, next]) {
+      const attachments = basic.type === supplierTypes[1] ? personalCertificatePhotoFields(basic.certificateType) : [['proof', '证照附件']];
+      for (const [key, label] of attachments) basicDefinitions.set(key, label);
+    }
   }
   const basicFields = comparisonFields([...basicDefinitions], previous, next, '变更');
   if (basicFields.some(field => field.changed)) {

@@ -6,8 +6,8 @@ import { ChangeTag, Field } from './mobile-ui.jsx';
 import { bankNames, bankDirectory, branches, people, permissionGroups, supplierTypes, supplierIndustries } from './mobile-data.js';
 import { createSessionId, useDirtyForm, useBackLayer, attachmentFiles, attachmentName } from './mobile-interaction.jsx';
 
-import { recognizeSupplierDocument, lookupSupplierEnterprise } from './mobile-document-recognition.js';
-import { withAccountBank, restoreBankDirectoryFields } from './mobile-edit-rules.js';
+import { recognizeSupplierDocument } from './mobile-document-recognition.js';
+import { withAccountBank, restoreBankDirectoryFields, personalCertificateTypes, personalCertificatePhotoFields } from './mobile-edit-rules.js';
 
 export const blankBank = name => ({ accountType: '', bank: '', branch: '', country: '', province: '', city: '', name: name || '', number: '', currency: '', proof: '', note: '' });
 export function bankError(bank, company = true) {
@@ -134,18 +134,15 @@ export const fieldsFor = type => type === supplierTypes[1] ? personalFields : ty
 
 export const filledBasic = { registerEmail: 'supplier@example.com', type: supplierTypes[0], proof: '营业执照.jpg', supplierName: '北京初然文化传媒有限公司483920', creditCode: '73652184MACA1H2A43', establishedAt: '2023-03-07', licenseUntil: '2053-03-06', legalRepresentative: '王嵩涵', companyPhone: '010-52867111', companyType: '有限责任公司', industry: '文化、体育、娱乐业', capital: '100', currency: '人民币', country: '国内', address: '', invoiceAddress: '', website: '', taxpayer: '', businessScope: '', cooperation: '', businessAdvantage: '', remark: '' };
 
-export function BasicFields({ data, setData, shot = false, onAddress, initialDate = false, identityReadOnly = false, hideSupplierType = false, initialPanel, lookupEnterprise = false }) {
+export function BasicFields({ data, setData, shot = false, onAddress, initialDate = false, identityReadOnly = false, hideSupplierType = false, initialPanel }) {
   const [nextType, setNextType] = useState('');
   const [picker, setPicker] = useState(initialDate ? { key: 'licenseUntil', title: '证件有效期至' } : null);
   const change = (key, value) => setData({ ...data, [key]: value });
   const basicDraft = useRef(data); basicDraft.current = data;
   const writeBasic = useRef(setData); writeBasic.current = setData;
   const pendingLicense = useRef(null);
-  const pendingLookup = useRef(null);
-  const [searchingEnterprise, setSearchingEnterprise] = useState(false);
-  const [enterpriseMessage, setEnterpriseMessage] = useState('');
   const [recognition, setRecognition] = useState('');
-  useEffect(() => () => { pendingLicense.current = null; pendingLookup.current = null; }, []);
+  useEffect(() => () => { pendingLicense.current = null; }, []);
   async function changeLicense(proof, file) {
     pendingLicense.current = proof;
     const original = basicDraft.current;
@@ -164,37 +161,26 @@ export function BasicFields({ data, setData, shot = false, onAddress, initialDat
       if (pendingLicense.current === proof && basicDraft.current.type === original.type) setRecognition(error.message || '识别失败，请手工填写。');
     }
   }
-  async function lookupEnterpriseInfo() {
-    const original = basicDraft.current;
-    const name = original.supplierName?.trim();
-    if (!name || searchingEnterprise) return;
-    const request = {};
-    pendingLookup.current = request;
-    setSearchingEnterprise(true);
-    setEnterpriseMessage('');
-    try {
-      const result = await lookupSupplierEnterprise(name);
-      if (pendingLookup.current !== request) return;
-      const current = basicDraft.current;
-      if (current.type !== original.type || current.supplierName?.trim() !== name) return;
-      const empty = Object.entries(result).filter(([key]) => !current[key]);
-      writeBasic.current({ ...current, ...Object.fromEntries(empty) });
-      setEnterpriseMessage('已回填可用信息，请核对。');
-    } catch (error) {
-      if (pendingLookup.current === request) setEnterpriseMessage(error.message || '查询失败，请手工填写。');
-    } finally {
-      if (pendingLookup.current === request) setSearchingEnterprise(false);
-    }
-  }
   const renderField = ([key, label, required, kind]) => {
-      const field = <Field key={key} label={label} required={required && !(identityReadOnly && key === 'supplierName')} readOnly={identityReadOnly && key === 'supplierName'} value={data[key] || ''} onChange={identityReadOnly && key === 'supplierName' ? undefined : v => change(key, v)} options={Array.isArray(kind) ? kind : undefined} searchable={key === 'industry'} type={kind === 'date' ? 'date' : kind === 'email' ? 'email' : 'text'} multiline={kind === 'textarea'} maxLength={kind === 'textarea' ? 500 : undefined} onPick={kind === 'date' ? () => setPicker({ key, title: label }) : kind === 'address' ? onAddress : undefined} />;
-      return key === 'supplierName' && !shot ? [field, ...(lookupEnterprise && data.type === supplierTypes[0] ? [<div className="m-record-actions" key="enterprise-lookup"><button type="button" disabled={searchingEnterprise || !data.supplierName?.trim()} onClick={lookupEnterpriseInfo}>{searchingEnterprise ? '查询中…' : '查询企业信息'}</button>{enterpriseMessage && <p className="m-input-note" role="status">{enterpriseMessage}</p>}</div>] : []), <Field key="registerEmail" label="供应商注册邮箱" required type="email" value={data.registerEmail || ''} help="用于供应商登录协同门户及修改密码时接收验证码" onChange={v => change('registerEmail', v)} />] : [field];
+    const isCertificateType = key === 'certificateType';
+    const readOnly = identityReadOnly && key === 'supplierName';
+    const options = isCertificateType ? personalCertificateTypes : Array.isArray(kind) ? kind : undefined;
+    const onChange = value => {
+      if (isCertificateType) {
+        if (value !== data.certificateType) setData({ ...data, certificateType: value, proof: '', personalSupplierBackPicture: '' });
+      } else change(key, value);
+    };
+    const field = <Field key={key} label={label} required={required && !readOnly} readOnly={readOnly} value={data[key] || ''} onChange={readOnly ? undefined : onChange} options={options} searchable={key === 'industry'} type={kind === 'date' ? 'date' : kind === 'email' ? 'email' : 'text'} multiline={kind === 'textarea'} maxLength={kind === 'textarea' ? 500 : undefined} onPick={kind === 'date' ? () => setPicker({ key, title: label }) : kind === 'address' ? onAddress : undefined} />;
+    if (key === 'supplierName' && !shot) return [field, <Field key="registerEmail" label="供应商注册邮箱" required type="email" value={data.registerEmail || ''} help="用于供应商登录协同门户及修改密码时接收验证码" onChange={v => change('registerEmail', v)} />];
+    if (isCertificateType) return [field, ...personalCertificatePhotoFields(data.certificateType).map(([photo, name]) =>
+      <UploadField key={data.certificateType + photo} label={name} required imageOnly value={data[photo]} onChange={value => change(photo, value)} />)];
+    return [field];
   };
   const proof = <>{[supplierTypes[0], supplierTypes[3]].includes(data.type) && <UploadField label={data.type === supplierTypes[0] ? '营业执照' : '证书'} required value={data.proof} onChange={changeLicense} help="上传证照附件。" />}{data.type === supplierTypes[0] && recognition && <p className="m-input-note" role="status">{recognition}</p>}</>;
   return <>
     {!hideSupplierType && <Field label="供应商类型" required={!identityReadOnly} readOnly={identityReadOnly} options={identityReadOnly ? undefined : supplierTypes} value={data.type} onChange={type => { if (type === data.type) return; if (Object.entries(data).some(([key, value]) => !['type', 'supplierName', 'registerEmail'].includes(key) && value)) setNextType(type); else setData({ type, supplierName: data.supplierName || '', registerEmail: data.registerEmail || '' }); }} />}
     {proof}{fieldsFor(data.type).flatMap(renderField)}
-    <QualificationInfo initialEditing={initialPanel === 'qualification'} records={data.qualifications} onChange={qualifications => change('qualifications', qualifications)} />
+    {data.type === supplierTypes[0] && <QualificationInfo initialEditing={initialPanel === 'qualification'} records={data.qualifications} onChange={qualifications => change('qualifications', qualifications)} />}
     {nextType && <Confirm text="切换供应商类型会清除不适用的基本信息，是否继续？" onCancel={() => setNextType('')} onConfirm={() => { setData({ type: nextType, supplierName: data.supplierName || '', registerEmail: data.registerEmail || '' }); setNextType(''); }} />}
     {picker && <DateSheet title={picker.title} value={data[picker.key]} onChange={v => change(picker.key, v)} onClose={() => setPicker(null)} allowLong={picker.key === 'licenseUntil'} />}
   </>;

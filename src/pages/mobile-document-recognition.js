@@ -11,14 +11,6 @@ export async function recognizeSupplierDocument(kind, file) {
   return values;
 }
 
-export async function lookupSupplierEnterprise(name) {
-  if (typeof window.__SUPPLIER_ENTERPRISE_LOOKUP__ !== 'function') throw new Error('企业信息查询暂不可用，请手工填写。');
-  const result = await window.__SUPPLIER_ENTERPRISE_LOOKUP__({ name });
-  const values = normalizeFields(result, licenseFields.filter(key => key !== 'supplierName'));
-  if (!Object.keys(values).length) throw new Error('没有查询到可回填的企业信息，请核对名称或手工填写。');
-  return values;
-}
-
 function normalizeFields(result, fields) {
   return Object.fromEntries(fields.flatMap(key => {
     const value = result?.[key];

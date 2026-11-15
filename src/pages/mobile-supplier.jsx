@@ -19,7 +19,7 @@ import { RegistrationPreview } from './mobile-registration-preview.jsx';
 import { RegistrationApprovalDemo } from './mobile-registration-approval.jsx';
 import { SupplierAccountRegistration } from './mobile-account-registration.jsx';
 import { ChangeComparison } from './mobile-changes.jsx';
-import { informationSteps, reinviteCandidate, validEmail, registrationEmailError, bankAccountsError, isEffectiveBasicBankAccount, effectiveBasicBankDeleteError } from './mobile-edit-rules.js';
+import { informationSteps, reinviteCandidate, validEmail, registrationEmailError, bankAccountsError, isEffectiveBasicBankAccount, effectiveBasicBankDeleteError, personalCertificatePhotoError } from './mobile-edit-rules.js';
 import { PrototypeReview } from './mobile-review.jsx';
 import { MobilePageMap, readPageMapParams } from './mobile-page-map.jsx';
 import { ScreenshotCompare } from './mobile-screenshot-compare.jsx';
@@ -434,6 +434,10 @@ function MobileSurface({ onComparisonChange, scene, shot, ratings, setRatings, a
     if (target === 0) {
       for (const [key, label, required] of fieldsFor(basic.type)) if (required && !basic[key]?.trim()) return '请填写' + label;
       if ([supplierTypes[0], supplierTypes[3]].includes(basic.type) && !basic.proof) return '请上传证照附件';
+      if (basic.type === supplierTypes[1]) {
+        const error = personalCertificatePhotoError(basic);
+        if (error) return error;
+      }
       if (!shot && registrationEmailError(basic.registerEmail)) return registrationEmailError(basic.registerEmail);
       if (basic.email && !validEmail(basic.email)) return '请输入正确的邮箱格式';
       if (basic.capital && !/^\d+$/.test(basic.capital)) return '注册资金只支持整数';
@@ -467,6 +471,10 @@ function MobileSurface({ onComparisonChange, scene, shot, ratings, setRatings, a
   function submitRegister() {
     if (editingAll && !canChangeSupplier(supplier)) return notify('当前状态不能修改全部信息，请返回列表核对');
     if (editingAll) for (const index of editSteps.slice(0, -1)) { const error = registrationStepError(index); if (error) { changeStep(index); notify(error); return; } }
+    if (!editingAll && basic.type === supplierTypes[1]) {
+      const error = registrationStepError(0);
+      if (error) { changeStep(0); notify(error); return; }
+    }
     if (saving) return; setSaving(true);
     const patch = { name: basic.supplierName, type: basic.type, code: basic.creditCode || '', email: (basic.registerEmail || '').trim(), contact: contacts[0]?.name || '', phone: contacts[0]?.phone || '', banks: clone(registerBanks), basic: { ...clone(basic), registerEmail: (basic.registerEmail || '').trim() }, contacts: clone(contacts) };
     if (portalRegistration) {
@@ -630,7 +638,7 @@ function MobileSurface({ onComparisonChange, scene, shot, ratings, setRatings, a
     {isRegistration && (!portalRegistration || accountRegistered) && !['address', 'region'].includes(scene) && <>
       {editingRegistration && <div className="m-form-heading">{editingAll ? '修改全部信息' : '修改草稿'}</div>}
       <RegistrationSteps personal={basic.type === supplierTypes[1]} step={step} expanded={stepsExpanded} onExpandedChange={setStepsExpanded} />
-      {step === 0 && <BasicFields initialPanel={mapParams.panel} data={basic} setData={setBasic} identityReadOnly={portalRegistration} hideSupplierType={portalRegistration} lookupEnterprise={!shot && !portalRegistration && !editingAll} shot={!!shot} onAddress={() => setAddressOpen(true)} initialDate={scene === 'expiry'} />}
+      {step === 0 && <BasicFields initialPanel={mapParams.panel} data={basic} setData={setBasic} identityReadOnly={portalRegistration} hideSupplierType={portalRegistration} shot={!!shot} onAddress={() => setAddressOpen(true)} initialDate={scene === 'expiry'} />}
       {step === 1 && <ContactFields initialPanel={mapParams.panel} contacts={contacts} setContacts={setContacts} />}
       {step === 2 && <RecordCollection title="银行信息" count={registerBanks.length} emptyText="暂无银行信息" addLabel="添加银行账户" onAdd={() => { setEditingBank(-1); setRegisterBankForm(blankBank(basic.supplierName)); setRegisterBankPicker(true); }}>{registerBanks.map((b, i) => <BankCard key={b.id} bank={b} onPreview={preview} onEdit={() => { setEditingBank(i); setRegisterBankForm(clone(b)); setRegisterBankPicker(true); }} deleteDisabledReason={editingAll && isOriginalBasicBank(b) ? effectiveBasicBankDeleteError : ''} onDelete={editingAll && isOriginalBasicBank(b) ? undefined : () => setConfirm({ type: 'delete-register-bank', index: i, text: '确认删除银行信息' + (i + 1) + '？' })} />)}</RecordCollection>}
       {step === 3 && <RegistrationPreview supplierFacing={portalRegistration} basic={basic} contacts={contacts} banks={registerBanks} mode={portalRegistration ? '邀请注册' : editingRegistration ? supplier.mode : '代注册'} active={previewTab} onTabChange={setPreviewTab} onEdit={next => { setReturnPreview(true); changeStep(next); }} onPreview={preview}>{editingAll && <ChangeComparison before={supplier} after={{ basic, name: basic.supplierName, email: basic.registerEmail, type: basic.type, contacts, banks: registerBanks }} onPreview={preview} />}</RegistrationPreview>}

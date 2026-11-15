@@ -1,5 +1,5 @@
 import { usePanelState } from './mobile-motion.jsx';
-import { AddressForm, Actions, PickerHeading, RecordCard, RecordCollection, AttachmentLink, Confirm, Empty, Overlay, Row, Section, Tabs } from '../components/mobile/index.js';
+import { AddressForm, Actions, PickerHeading, RecordCard, RecordCollection, Confirm, Empty, Overlay, Row, Section, Tabs } from '../components/mobile/index.js';
 import { regionData } from './registration-regions.js';
 import React, { useEffect, useRef, useState } from 'react';
 import { Building2, Store, FolderClock, FolderCheck, ReceiptText, Receipt, PlaneTakeoff, Plane, Train, Hotel, Car, Upload, Download, LoaderCircle, Plus, Mail, MailCheck, KeyRound, LockKeyhole, ChevronRight, X, LogOut } from 'lucide-react';
@@ -8,8 +8,9 @@ import { QualificationInfo } from './mobile-qualifications.jsx';
 import { BankCard, BankFields, BasicFields, ContactFields, bankError, fieldsFor, filledBasic, blankBank } from './mobile-forms.jsx';
 import { exampleBank as sampleBank, supplierTypes } from './mobile-data.js';
 import { Approval } from './mobile-views.jsx';
+import { CertificateAttachmentRows } from './mobile-registration-preview.jsx';
 import { createSessionId, SwipeArea, useBackLayer, useDirtyForm } from './mobile-interaction.jsx';
-import { informationSteps, registrationEmailError, bankAccountsError, isEffectiveBasicBankAccount, effectiveBasicBankDeleteError } from './mobile-edit-rules.js';
+import { informationSteps, registrationEmailError, bankAccountsError, isEffectiveBasicBankAccount, effectiveBasicBankDeleteError, personalCertificatePhotoError } from './mobile-edit-rules.js';
 import { RegistrationPreview } from './mobile-registration-preview.jsx';
 import { ChangeComparison } from './mobile-changes.jsx';
 import { AccountSecurityForm } from './mobile-account.jsx';
@@ -175,6 +176,10 @@ function PortalWorkspaceContent({ scene, go, notify, store, onPreview, accountMe
       if (draft.basic.companyPhone && !/^(1\d{10}|\d{3,4}-?\d{8})$/.test(draft.basic.companyPhone)) return '公司电话须为11位手机号或区号加8位号码';
       if (draft.basic.capital && !/^\d+$/.test(draft.basic.capital)) return '注册资金只支持整数';
       if ([supplierTypes[0], supplierTypes[3]].includes(draft.basic.type) && !draft.basic.proof) return '请上传证照附件';
+      if (draft.basic.type === supplierTypes[1]) {
+        const error = personalCertificatePhotoError(draft.basic);
+        if (error) return error;
+      }
     }
     if (index === 1 && draft.contacts.some(contact => !contact.name?.trim() || !contact.phone?.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contact.email || ''))) return '请填写联系人的姓名、电话和正确邮箱';
     if (index === 2) {
@@ -241,7 +246,7 @@ function PortalWorkspaceContent({ scene, go, notify, store, onPreview, accountMe
     {scene === 'workspace-info' && <>
       {editing ? <RegistrationSteps personal={draft.basic.type === supplierTypes[1]} step={tab} expanded={stepsExpanded} onExpandedChange={setStepsExpanded} /> : <Tabs showDirectory={false} stretch variant="pill" items={['基本信息', '联系人信息', '银行信息']} active={tab} onChange={setInfoTab} />}
       <SwipeArea active={editing ? 0 : tab} count={editing ? 1 : 3} onChange={i => editing ? changeInformationStep(editSteps[i]) : setInfoTab(i)}>
-      {!editing && <>{tab === 0 && <><Section title="基本信息" collapsible={false}>{fieldsFor(profile.type).map(([key, label]) => <Row key={key} label={label}>{profile.basic[key] || '—'}</Row>)}<Row label="注册邮箱">{profile.email}</Row><Row label="证照附件">{profile.basic.proof ? <AttachmentLink value={profile.basic.proof} onPreview={onPreview} /> : '—'}</Row></Section><QualificationInfo records={profile.basic.qualifications} onPreview={onPreview} /></>}{tab === 1 && <RecordCollection title="联系人信息" count={profile.contacts.length} emptyText="暂无联系人信息">{profile.contacts.map(c => <RecordCard key={c.id} title={c.name}>{[['phone', '电话'], ['email', '邮箱'], ['department', '部门'], ['job', '职位'], ['wechat', '微信'], ['note', '备注']].map(([key, label]) => <Row key={key} label={label}>{c[key] || '—'}</Row>)}</RecordCard>)}</RecordCollection>}{tab === 2 && <RecordCollection title="银行信息" count={profile.banks.length} emptyText="暂无银行信息">{profile.banks.map(b => <BankCard fileProof key={b.id} bank={b} onPreview={() => onPreview(b.proof)} />)}</RecordCollection>}<Actions items={[pending ? { label: '查看审批', onClick: () => go('workspace-approval') } : { label: '修改', onClick: () => { setDraft(clone(store.portalDraft || profile)); setInfoTab(editSteps.includes(tab) ? tab : 0); setStepsExpanded(!editSteps.includes(tab) || tab === 0); setPreviewTab(0); setEditing(true); } }]} /></>}
+      {!editing && <>{tab === 0 && <><Section title="基本信息" collapsible={false}>{fieldsFor(profile.type).map(([key, label]) => <Row key={key} label={label}>{profile.basic[key] || '—'}</Row>)}<Row label="注册邮箱">{profile.email}</Row><CertificateAttachmentRows basic={profile.basic} type={profile.type} onPreview={onPreview} /></Section>{profile.type === supplierTypes[0] && <QualificationInfo records={profile.basic.qualifications} onPreview={onPreview} />}</>}{tab === 1 && <RecordCollection title="联系人信息" count={profile.contacts.length} emptyText="暂无联系人信息">{profile.contacts.map(c => <RecordCard key={c.id} title={c.name}>{[['phone', '电话'], ['email', '邮箱'], ['department', '部门'], ['job', '职位'], ['wechat', '微信'], ['note', '备注']].map(([key, label]) => <Row key={key} label={label}>{c[key] || '—'}</Row>)}</RecordCard>)}</RecordCollection>}{tab === 2 && <RecordCollection title="银行信息" count={profile.banks.length} emptyText="暂无银行信息">{profile.banks.map(b => <BankCard fileProof key={b.id} bank={b} onPreview={() => onPreview(b.proof)} />)}</RecordCollection>}<Actions items={[pending ? { label: '查看审批', onClick: () => go('workspace-approval') } : { label: '修改', onClick: () => { setDraft(clone(store.portalDraft || profile)); setInfoTab(editSteps.includes(tab) ? tab : 0); setStepsExpanded(!editSteps.includes(tab) || tab === 0); setPreviewTab(0); setEditing(true); } }]} /></>}
       {editing && <div className="m-edit-mode">{tab === 0 && <BasicFields initialPanel={mapParams.panel} hideSupplierType data={draft.basic} setData={basic => setDraft({ ...draft, basic })} onAddress={() => setAddress(true)} />}{tab === 1 && <ContactFields initialPanel={mapParams.panel} contacts={draft.contacts} setContacts={contacts => setDraft({ ...draft, contacts })} />}{tab === 2 && <RecordCollection title="银行信息" count={draft.banks.length} emptyText="暂无银行信息" addLabel="添加银行账户" onAdd={() => beginBank(blankBank(profile.name), -1)}>{draft.banks.map((b, i) => <BankCard fileProof key={b.id} bank={b} deleteDisabledReason={isOriginalBasicBank(b) ? effectiveBasicBankDeleteError : ''} onPreview={() => onPreview(b.proof)} onEdit={() => beginBank(b, i)} onDelete={isOriginalBasicBank(b) ? undefined : () => setRemoveBank(i)} />)}</RecordCollection>}{tab === 3 && <RegistrationPreview supplierFacing basic={draft.basic} contacts={draft.contacts} banks={draft.banks} active={previewTab} onTabChange={setPreviewTab} onPreview={onPreview}><ChangeComparison before={profile} after={{ ...draft, name: draft.basic.supplierName, type: draft.basic.type, email: draft.basic.registerEmail }} /></RegistrationPreview>}<Actions className="m-registration-actions m-info-edit-actions" items={[{ label: '取消', secondary: true, onClick: cancel }, { label: tab === 3 ? '提交' : '下一步（' + (editSteps.indexOf(tab) + 1) + '/' + editSteps.length + '）', onClick: tab === 3 ? submit : next }]} /></div>}
       </SwipeArea>
     </>}
