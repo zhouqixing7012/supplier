@@ -16,7 +16,7 @@ import { ChangeComparison } from './mobile-changes.jsx';
 import { AccountSecurityForm } from './mobile-account.jsx';
 import { PortalTaskList } from './mobile-portal-tasks.jsx';
 import { PortalPricingDetail } from './mobile-portal-pricing.jsx';
-import { createPortalInquiries, createPortalOrders } from './mobile-portal-records.js';
+import { portalPricingRecords } from './mobile-portal-records.js';
 import { findDemoProcurementTask, readProcurementNotice } from './mobile-portal-procurement.js';
 
 const clone = value => structuredClone(value);
@@ -123,7 +123,8 @@ function PortalProcurementNotice({ go, notify, store, onPreview }) {
 
   if (loginRoute) return <Empty text="请先登录供应商协同门户" />;
   const quote = notice?.task === 'quote';
-  const records = quote ? (store.portalInquiries ||= createPortalInquiries()) : (store.portalOrders ||= createPortalOrders());
+  const pricing = portalPricingRecords(store);
+  const records = quote ? pricing.inquiries : pricing.orders;
   const record = findDemoProcurementTask(notice, account, records);
   if (!record) return <>
     <Empty text="找不到该采购任务，或当前账号无权查看" />
@@ -141,8 +142,7 @@ export function PortalWorkspace(props) {
 }
 
 function PortalWorkspaceContent({ scene, go, notify, store, onPreview, accountMenu, setAccountMenu, mapParams = {} }) {
-  const inquiries = store.portalInquiries ||= createPortalInquiries();
-  const orders = store.portalOrders ||= createPortalOrders();
+  const { inquiries, orders } = portalPricingRecords(store);
   const [profile] = useState(() => store.portalProfile ||= initialProfile());
   const [draft, setDraft] = useState(() => clone(store.portalDraft || profile));
   const [editing, setEditing] = useState(scene === 'workspace-info' && new URLSearchParams(window.location.hash.split('?')[1]).get('edit') === '1');

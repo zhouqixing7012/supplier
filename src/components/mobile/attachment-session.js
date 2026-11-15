@@ -13,7 +13,7 @@ export const attachmentName = key => {
 };
 export function rememberAttachment(file) {
   const key = 'attachment:' + createSessionId();
-  const entry = { key, url: URL.createObjectURL(file), type: file.type, name: file.name };
+  const entry = { key, file, url: URL.createObjectURL(file), type: file.type, name: file.name };
   attachmentFiles.set(key, entry);
   try { localStorage.setItem('supplier:attachment-name:' + key, file.name); } catch { /* 本次会话仍使用内存中的附件名称。 */ }
   return entry;

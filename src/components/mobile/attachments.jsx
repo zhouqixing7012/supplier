@@ -12,6 +12,8 @@ export function UploadField({ label, required, value, onChange, help, imageOnly 
   const [helpOpen, setHelpOpen] = useState(false);
   const [removing, setRemoving] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
+  const fileInput = useRef(null);
+  const cameraInput = useRef(null);
   const fileKind = imageOnly ? '照片' : '照片或文件';
   const receiveFile = file => {
     if (!file) return;
@@ -23,9 +25,17 @@ export function UploadField({ label, required, value, onChange, help, imageOnly 
     onChange(entry.key, file);
   };
   return <div data-field-label={label} className="m-field m-upload-field"><label htmlFor={id}>{required && <em>*</em>}<span className="m-field-name">{label}</span>{help && <button type="button" className="m-help" aria-label={label + "填写说明"} onClick={() => setHelpOpen(true)}><HelpCircle /></button>}</label><div className="m-field-control">
-    {value ? <div className="m-uploaded-document"><AttachmentLink value={value} onPreview={() => setPreviewOpen(true)} /><button type="button" className="m-file-remove" aria-label={'移除' + label} onClick={() => setRemoving(true)}><X aria-hidden="true" /></button></div> : <div className="m-upload"><button type="button" className="m-upload-preview" aria-label={'选择' + label} onClick={() => document.getElementById(id)?.click()}><Camera aria-hidden="true" /></button></div>}
-    <input className="m-file-input" tabIndex={-1} id={id} type="file" accept={imageOnly ? 'image/*' : undefined} aria-invalid={!!error} aria-describedby={error ? id + '-error' : undefined} aria-label={label} onChange={e => { receiveFile(e.target.files[0]); e.target.value = ''; }} />
-    <div className="m-upload-tools"><label htmlFor={id + '-camera'}>拍照<input id={id + '-camera'} type="file" accept="image/*" capture="environment" aria-label={'拍照上传' + label} onChange={e => { receiveFile(e.target.files[0]); e.target.value = ''; }} /></label><button type="button" onClick={() => document.getElementById(id)?.click()}>{(value ? '替换' : '选择') + fileKind}</button></div>
+    {value ? <>
+      <div className="m-uploaded-document"><AttachmentLink value={value} onPreview={() => setPreviewOpen(true)} /><button type="button" className="m-file-remove" aria-label={'移除' + label} onClick={() => setRemoving(true)}><X aria-hidden="true" /></button></div>
+      <div className="m-upload-tools"><button type="button" onClick={() => cameraInput.current?.click()}>拍照</button><button type="button" onClick={() => fileInput.current?.click()}>替换{fileKind}</button></div>
+    </> : <div className="m-upload-empty">
+      <button className="m-upload-choose" type="button" aria-label={'选择' + label} onClick={() => fileInput.current?.click()}>
+        <Paperclip aria-hidden="true" /><span>{imageOnly ? '选择照片' : '选择文件'}</span>
+      </button>
+      <button className="m-upload-camera" type="button" aria-label={'拍照上传' + label} onClick={() => cameraInput.current?.click()}><Camera aria-hidden="true" /><span>拍照</span></button>
+    </div>}
+    <input ref={fileInput} className="m-file-input" tabIndex={-1} id={id} type="file" accept={imageOnly ? 'image/*' : undefined} aria-invalid={!!error} aria-describedby={error ? id + '-error' : undefined} aria-label={label} onChange={e => { receiveFile(e.target.files[0]); e.target.value = ''; }} />
+    <input ref={cameraInput} className="m-file-input" tabIndex={-1} type="file" accept="image/*" capture="environment" aria-label={label + '拍照选择器'} onChange={e => { receiveFile(e.target.files[0]); e.target.value = ''; }} />
     {previewOpen && <AttachmentViewer value={value} title={label} onClose={() => setPreviewOpen(false)} />}
   </div>{error && <p id={id + "-error"} className="m-field-error" role="alert">{error}</p>}{helpOpen && <Overlay label={label + "填写说明"} onClose={() => setHelpOpen(false)}><h2>{label}</h2><p>{help}</p><div className="m-dialog-actions"><button onClick={() => setHelpOpen(false)}>知道了</button></div></Overlay>}{removing && <Confirm danger text={"确认移除" + label + "？"} onCancel={() => setRemoving(false)} onConfirm={() => { onChange(''); setRemoving(false); }} />}</div>;
 }
@@ -37,7 +47,7 @@ export function FileUploadField({ label, value, onChange }) {
   return <div className="m-file-upload-field"><span className="m-file-upload-label">{label}</span>
     <input ref={input} type="file" className="m-file-input" tabIndex={-1} aria-label={label} onChange={e => { const file = e.target.files[0]; if (file) onChange(rememberAttachment(file).key); e.target.value = ''; }} />
     {value && <div className="m-file-upload-entry"><AttachmentLink value={value} onPreview={() => setRemoving('preview')} /><button type="button" className="m-file-remove" aria-label={'移除' + label} onClick={() => setRemoving(true)}><X aria-hidden="true" /></button></div>}
-    <button type="button" className="m-file-select" onClick={() => input.current.click()}><Paperclip aria-hidden="true" />{value ? '替换文件' : '选择文件'}</button>
+    <button type="button" className="m-file-select" data-empty={!value || undefined} onClick={() => input.current.click()}><Paperclip aria-hidden="true" />{value ? '替换文件' : '选择文件'}</button>
     {removing === 'preview' && <AttachmentViewer value={value} title={label} onClose={() => setRemoving(false)} />}
     {removing === true && <Confirm danger text={'确认移除' + label + '？'} onCancel={() => setRemoving(false)} onConfirm={() => { onChange(''); setRemoving(false); }} />}
   </div>;
@@ -137,13 +147,13 @@ export function MultiAttachmentField({ label, value, onChange, onPreview }) {
       {files.length ? <ul className="m-multi-attachment-list">{files.map((file, index) => <li className="m-multi-attachment-item" key={String(file) + '-' + index}>
         <AttachmentLink value={file} onPreview={onPreview} />
         <button type="button" aria-label={`删除${label}${index + 1}`} title={`删除${attachmentName(file)}`} onClick={() => setRemoving(index)}>删除</button>
-      </li>)}</ul> : <p className="m-multi-attachment-empty">暂无附件</p>}
+      </li>)}</ul> : null}
       <input ref={input} id={id} className="m-file-input" type="file" multiple aria-label={label} onChange={event => {
         const selected = Array.from(event.target.files || []);
         if (selected.length) onChange([...files, ...selected.map(file => rememberAttachment(file).key)]);
         event.target.value = '';
       }} />
-      <button type="button" className="m-file-select" onClick={() => input.current?.click()}><Plus aria-hidden="true" />添加附件</button>
+      <button type="button" className="m-file-select" data-empty={!files.length || undefined} onClick={() => input.current?.click()}><Plus aria-hidden="true" />添加附件</button>
     </div>
     {removing !== null && pendingFile && <Confirm danger text={`确认删除附件「${attachmentName(pendingFile)}」？`} onCancel={() => setRemoving(null)} onConfirm={() => { onChange(files.filter((_, index) => index !== removing)); setRemoving(null); }} />}
   </div>;

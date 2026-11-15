@@ -1,10 +1,12 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { MultiAttachmentField, Actions, AttachmentLink, CardActions, Empty, FullscreenPanel, Row, Section } from '../components/mobile/index.js';
 import { Pencil } from 'lucide-react';
 import { Field, StatusTag } from './mobile-ui.jsx';
 import { useBackLayer, useDirtyForm } from './mobile-interaction.jsx';
 import { runMotion } from './mobile-motion.jsx';
 import { calculateTax, isDecimal, quoteError, remainingTime } from './mobile-portal-pricing.js';
+import { clearPricingDraft, readPricingDraft, savePricingLine } from './mobile-portal-pricing-drafts.js';
+import { portalPricingRecords } from './mobile-portal-records.js';
 
 const taxFields = [['material', '物料编码'], ['name', '物料名称'], ['category', '物料类别'], ['quantity', '数量'], ['grossUnit', '含税单价'], ['rate', '税率（%）'], ['netUnit', '不含税单价'], ['tax', '税额'], ['net', '不含税金额'], ['gross', '含税金额']];
 const quoteFields = [['material', '物料名称'], ['measure', '单位'], ['quantity', '数量'], ['category', '物料类别'], ['config', '配置'], ['grossUnit', '含税单价'], ['rate', '税率（%）']];
@@ -18,8 +20,9 @@ function FileRow({ label, value, onPreview }) {
 function LineEditor({ line, index, quote, onCancel, onSave, notify, onPreview }) {
   const [draft, setDraft] = useState(() => structuredClone(line));
   const [calculationError, setCalculationError] = useState('');
+  const [saving, setSaving] = useState(false);
   const guard = useDirtyForm(draft);
-  const cancel = () => guard.leave(onCancel);
+  const cancel = () => { if (!saving) guard.leave(onCancel); };
   useBackLayer(true, cancel);
   const change = (key, value) => {
     if (!quote && key === 'rate') {
@@ -27,11 +30,21 @@ function LineEditor({ line, index, quote, onCancel, onSave, notify, onPreview })
       catch { setDraft({ ...draft, rate: value, netUnit: '', net: '', tax: '' }); setCalculationError('请先填写有效的税率和含税金额'); }
     } else { setDraft({ ...draft, [key]: value }); setCalculationError(''); }
   };
-  const save = () => {
+  const save = async () => {
+    if (saving) return;
     if (calculationError) return notify(calculationError);
     const error = quote ? quoteError([draft]).replace('第1项', `第${index + 1}项`) : taxFields.slice(5).find(([key]) => !isDecimal(draft[key]));
     if (error) return notify(typeof error === 'string' ? error : '请输入有效的' + error[1]);
-    guard.accept(); onSave(draft);
+    setSaving(true);
+    try {
+      await onSave(draft);
+      guard.accept();
+      onCancel();
+    } catch {
+      notify('明细保存失败，请重试。');
+    } finally {
+      setSaving(false);
+    }
   };
   return <FullscreenPanel className="m-pricing-editor" title={quote ? '编辑报价明细' : '编辑价税明细'} onBack={cancel}>
     <Section title={quote ? draft.material : draft.name} collapsible={false}>
@@ -42,7 +55,7 @@ function LineEditor({ line, index, quote, onCancel, onSave, notify, onPreview })
       {calculationError && <p className="m-field-error" role="alert">{calculationError}</p>}
       {quote && <><MultiAttachmentField label="报价附件" value={draft.attachment} onChange={attachment => setDraft({ ...draft, attachment })} onPreview={onPreview} /><Field label="报价说明" multiline value={draft.note} onChange={note => setDraft({ ...draft, note })} /></>}
     </Section>
-    <Actions items={[{ label: '取消', secondary: true, onClick: cancel }, { label: '确定', onClick: save }]} />
+    <Actions items={[{ label: '取消', secondary: true, disabled: saving, onClick: cancel }, { label: '确定', disabled: saving, onClick: save }]} />
   </FullscreenPanel>;
 }
 
@@ -53,14 +66,32 @@ export function PortalPricingDetail({ quote, records, store, go, notify, onPrevi
     : null;
   const record = records.find(item => item.number === number) || sample || (!quote && !number ? records[0] : null);
   store.portalTaskTab ??= quote ? (record?.status === '已处理' ? 1 : 0) : (record?.status === '已处理' ? 3 : 2);
-  const [draft, setDraft] = useState(() => structuredClone(record || {}));
+  const [saved, setSaved] = useState(record);
+  const [draft, setDraft] = useState(record);
   const [editor, setEditor] = useState(mapParams.panel === 'line' && record?.status === '待处理' && record.lines?.length ? 0 : null);
   const editable = !!record && record.status === '待处理';
-  const guard = useDirtyForm(draft, editable);
+  const [ready, setReady] = useState(!editable);
+  const [loadError, setLoadError] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const guard = useDirtyForm(JSON.stringify(draft) !== JSON.stringify(saved), editable && ready);
+  useEffect(() => {
+    if (!editable) return;
+    let active = true;
+    readPricingDraft(store, quote, record).then(lines => {
+      if (!active) return;
+      const restored = { ...record, lines: record.lines.map((line, index) => lines[index] ?? line) };
+      setSaved(restored);
+      setDraft(restored);
+      setReady(true);
+    }).catch(() => { if (active) setLoadError(true); });
+    return () => { active = false; };
+  }, [editable, quote, record, store]);
   if (!record) return <Empty text={quote ? '未找到询价单' : '未找到采购订单'} />;
+  if (!ready) return <Empty text={loadError ? '已保存明细读取失败，请重新打开单据。' : '正在读取明细'} />;
   const changeRate = value => setDraft({ ...draft, rate: value, lines: draft.lines.map(line => ({ ...line, rate: value })) });
   const expired = quote && remainingTime(record) === '已过期';
-  const submit = () => {
+  const submit = async () => {
+    if (submitting) return;
     if (expired) return notify('报价已截止，无法提交');
     if (quote) {
       const error = quoteError(draft.lines); if (error) return notify(error);
@@ -69,10 +100,26 @@ export function PortalPricingDetail({ quote, records, store, go, notify, onPrevi
       if (invalid >= 0) return notify(`请填写第${invalid + 1}项完整、有效的价税信息`);
     }
     const next = { ...structuredClone(draft), status: '已处理', ...(quote ? { inquiryStatus: '定价完成' } : {}) };
-    const key = quote ? 'portalInquiries' : 'portalOrders';
-    store[key] = records.map(item => item.number === number || item === record ? next : item);
-    guard.accept(); notify(quote ? '报价已提交' : '价税拆分已提交'); go('workspace-tasks');
+    setSubmitting(true);
+    try {
+      await clearPricingDraft(store, quote, record);
+      const key = quote ? 'inquiries' : 'orders';
+      portalPricingRecords(store)[key] = records.map(item => item === record ? next : item);
+      guard.accept();
+      notify(quote ? '报价已提交' : '价税拆分已提交');
+      go('workspace-tasks');
+    } catch {
+      notify('提交失败，已保存的明细可继续编辑。');
+    } finally {
+      setSubmitting(false);
+    }
   };
+  async function saveLine(line) {
+    await savePricingLine(store, quote, record.number, editor, line);
+    const replace = current => ({ ...current, lines: current.lines.map((entry, index) => index === editor ? line : entry) });
+    setSaved(replace);
+    setDraft(replace);
+  }
   return <div className="m-portal-pricing">
     {quote && <section className="m-portal-object-summary" aria-label={quote ? '询价摘要' : '采购订单摘要'}>
       <div className="m-record-heading"><h2>{quote ? draft.title : draft.number}</h2><StatusTag value={quote ? draft.inquiryStatus : draft.status} /></div>
@@ -94,7 +141,7 @@ export function PortalPricingDetail({ quote, records, store, go, notify, onPrevi
       {quote && <><FileRow label="报价附件" value={line.attachment} onPreview={onPreview} /><Row label="报价说明">{line.note || '—'}</Row></>}
       {editable && <CardActions><button aria-label={'编辑第' + (index + 1) + '项' + (quote ? '报价' : '价税')} onClick={() => runMotion(() => setEditor(index), 'forward')}><Pencil aria-hidden="true" /></button></CardActions>}
     </Section>)}
-    {editable && <Actions items={[{ label: '提交', onClick: submit }]} />}
-    {editor !== null && <LineEditor key={editor} index={editor} quote={quote} line={draft.lines[editor]} notify={notify} onPreview={onPreview} onCancel={() => runMotion(() => setEditor(null), 'back')} onSave={line => { setDraft({ ...draft, lines: draft.lines.map((entry, index) => index === editor ? line : entry) }); runMotion(() => setEditor(null), 'back'); }} />}
+    {editable && <Actions items={[{ label: '提交', disabled: submitting, onClick: submit }]} />}
+    {editor !== null && <LineEditor key={editor} index={editor} quote={quote} line={draft.lines[editor]} notify={notify} onPreview={onPreview} onCancel={() => runMotion(() => setEditor(null), 'back')} onSave={saveLine} />}
   </div>;
 }
