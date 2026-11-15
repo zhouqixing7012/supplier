@@ -1,0 +1,75 @@
+import React, { useEffect, useId, useRef, useState } from 'react';
+import { Camera, HelpCircle, Paperclip, X } from 'lucide-react';
+import { attachmentFiles, attachmentName, rememberAttachment } from './attachment-session.js';
+import { middleEllipsis } from './attachment-name.js';
+import { Confirm, Overlay } from './dialogs.jsx';
+
+export function UploadField({ label, required, value, onChange, help }) {
+  const id = useId();
+  const [error, setError] = useState('');
+  useEffect(() => { const show = e => { if (e.detail.includes(label)) setError(e.detail); }; window.addEventListener('mobile-validation', show); return () => window.removeEventListener('mobile-validation', show); }, [label]);
+  useEffect(() => setError(''), [value]);
+  const [helpOpen, setHelpOpen] = useState(false);
+  const [removing, setRemoving] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const receiveFile = file => { if (file) { const entry = rememberAttachment(file); onChange(entry.key); } };
+  return <div data-field-label={label} className="m-field m-upload-field"><label htmlFor={id}>{required && <em>*</em>}<span className="m-field-name">{label}</span>{help && <button type="button" className="m-help" aria-label={label + "填写说明"} onClick={() => setHelpOpen(true)}><HelpCircle /></button>}</label><div className="m-field-control">
+    {value ? <div className="m-uploaded-document"><AttachmentLink value={value} onPreview={() => setPreviewOpen(true)} /><button type="button" className="m-file-remove" aria-label={'移除' + label} onClick={() => setRemoving(true)}><X aria-hidden="true" /></button></div> : <div className="m-upload"><button type="button" className="m-upload-preview" aria-label={'选择' + label} onClick={() => document.getElementById(id)?.click()}><Camera aria-hidden="true" /></button></div>}
+    <input className="m-file-input" tabIndex={-1} id={id} type="file" aria-invalid={!!error} aria-describedby={error ? id + '-error' : undefined} aria-label={label} onChange={e => { receiveFile(e.target.files[0]); e.target.value = ''; }} />
+    <div className="m-upload-tools"><label htmlFor={id + '-camera'}>拍照<input id={id + '-camera'} type="file" accept="image/*" capture="environment" aria-label={'拍照上传' + label} onChange={e => { receiveFile(e.target.files[0]); e.target.value = ''; }} /></label><button type="button" onClick={() => document.getElementById(id)?.click()}>{value ? '替换照片或文件' : '选择照片或文件'}</button></div>
+    {previewOpen && <AttachmentViewer value={value} title={label} onClose={() => setPreviewOpen(false)} />}
+  </div>{error && <p id={id + "-error"} className="m-field-error" role="alert">{error}</p>}{helpOpen && <Overlay label={label + "填写说明"} onClose={() => setHelpOpen(false)}><h2>{label}</h2><p>{help}</p><div className="m-dialog-actions"><button onClick={() => setHelpOpen(false)}>知道了</button></div></Overlay>}{removing && <Confirm danger text={"确认移除" + label + "？"} onCancel={() => setRemoving(false)} onConfirm={() => { onChange(''); setRemoving(false); }} />}</div>;
+}
+
+// 通用文件上传保留实际文件名，不以拍照缩略图代替附件。
+export function FileUploadField({ label, value, onChange }) {
+  const input = useRef(null);
+  const [removing, setRemoving] = useState(false);
+  return <div className="m-file-upload-field"><span className="m-file-upload-label">{label}</span>
+    <input ref={input} type="file" className="m-file-input" tabIndex={-1} aria-label={label} onChange={e => { const file = e.target.files[0]; if (file) onChange(rememberAttachment(file).key); e.target.value = ''; }} />
+    {value && <div className="m-file-upload-entry"><AttachmentLink value={value} onPreview={() => setRemoving('preview')} /><button type="button" className="m-file-remove" aria-label={'移除' + label} onClick={() => setRemoving(true)}><X aria-hidden="true" /></button></div>}
+    <button type="button" className="m-file-select" onClick={() => input.current.click()}><Paperclip aria-hidden="true" />{value ? '替换文件' : '选择文件'}</button>
+    {removing === 'preview' && <AttachmentViewer value={value} title={label} onClose={() => setRemoving(false)} />}
+    {removing === true && <Confirm danger text={'确认移除' + label + '？'} onCancel={() => setRemoving(false)} onConfirm={() => { onChange(''); setRemoving(false); }} />}
+  </div>;
+}
+
+export function AttachmentLink({ value, onPreview }) {
+  const [opened, setOpened] = useState(false);
+  const name = attachmentName(value);
+  const [displayName, setDisplayName] = useState(name);
+  const ref = useRef(null);
+  useEffect(() => {
+    let active = true;
+    const fit = () => {
+      const node = ref.current;
+      if (!node || !active) return;
+      const style = getComputedStyle(node);
+      const width = node.clientWidth - parseFloat(style.paddingLeft || 0) - parseFloat(style.paddingRight || 0) - 20;
+      if (width <= 0) return;
+      const context = document.createElement('canvas').getContext('2d');
+      context.font = getComputedStyle(node.querySelector('span')).font;
+      let low = 5, high = Array.from(name).length;
+      if (context.measureText(name).width <= width) { setDisplayName(name); return; }
+      while (low < high) {
+        const middle = Math.ceil((low + high) / 2);
+        if (context.measureText(middleEllipsis(name, middle)).width <= width) low = middle;
+        else high = middle - 1;
+      }
+      setDisplayName(middleEllipsis(name, low));
+    };
+    fit();
+    const observer = new ResizeObserver(fit); observer.observe(ref.current);
+    document.fonts.ready.then(fit);
+    return () => { active = false; observer.disconnect(); };
+  }, [name]);
+  return <><button ref={ref} type="button" className="m-attachment-reference" title={name} aria-label={'查看附件：' + name} onClick={() => onPreview ? onPreview(value) : setOpened(true)}><span>{displayName}</span><img className="m-attachment-link-icon" src="/mobile-assets/workbench/attachment-link.svg" alt="" width="16" height="16" /></button>{opened && <AttachmentViewer value={value} onClose={() => setOpened(false)} />}</>;
+}
+
+export function AttachmentViewer({ value, title = '查看附件', onClose }) {
+  const [opened, setOpened] = useState(false);
+  const file = attachmentFiles.get(value);
+  const name = attachmentName(value);
+  const isImage = file?.type.startsWith('image/');
+  return <Overlay label="查看附件" onClose={onClose} sheet><div className="m-attachment-viewer"><div className="m-picker-title"><strong>{opened ? name : title}</strong><button type="button" aria-label="关闭附件" onClick={onClose}><X /></button></div>{!opened ? <><p className="m-attachment-count">共 1 个附件</p><div className="m-attachment-list"><button type="button" className="m-attachment-file selected" aria-label={'预览' + name} disabled={!file} onClick={() => setOpened(true)}><span className="m-file-icon"><img src="/mobile-assets/workbench/file.svg" alt="" /></span><span><strong>{name}</strong><small>{file ? isImage ? '图片附件' : '文件附件' : '附件暂不可用'}</small></span></button></div>{!file && <p className="m-attachment-unavailable">附件暂不可用，请联系提供方补充。</p>}<div className="m-picker-actions"><button type="button" onClick={onClose}>返回</button><button type="button" className="primary" disabled={!file} onClick={() => setOpened(true)}>打开附件</button></div></> : <><div className="m-attachment-content">{isImage ? <a href={file.url} target="_blank" rel="noreferrer" aria-label="打开原图"><img className="m-attachment-full" src={file.url} alt={name} /></a> : <p>此文件不支持图片预览。<a href={file.url} target="_blank" rel="noreferrer">打开文件</a></p>}</div><div className="m-picker-actions"><button type="button" onClick={() => setOpened(false)}>返回附件列表</button><button type="button" className="primary" onClick={onClose}>关闭</button></div></>}</div></Overlay>;
+}

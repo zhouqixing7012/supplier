@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
+import { Actions, AttachmentLink, CardActions, Empty, Header, Row, Section } from '../components/mobile/index.js';
 import { Pencil } from 'lucide-react';
-import { Actions, AttachmentLink, CardActions, Empty, Field, Header, Row, Section, StatusTag } from './mobile-ui.jsx';
+import { Field, StatusTag } from './mobile-ui.jsx';
 import { MultiAttachmentField } from './mobile-portal-files.jsx';
 import { useBackLayer, useDirtyForm } from './mobile-interaction.jsx';
 import { runMotion } from './mobile-motion.jsx';

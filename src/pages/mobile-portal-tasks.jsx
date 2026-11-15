@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Actions, CardActions, FilterSummary, Empty, FilterField, FilterButton, Header, Row, SearchBox, Section, StatusTag } from './mobile-ui.jsx';
+import { Actions, CardActions, FilterSummary, Empty, FilterButton, Header, Row, Section } from '../components/mobile/index.js';
+import { FilterField, SearchBox, StatusTag } from './mobile-ui.jsx';
 import { runMotion } from './mobile-motion.jsx';
 import { useBackLayer } from './mobile-interaction.jsx';
 import { remainingTime } from './mobile-portal-pricing.js';

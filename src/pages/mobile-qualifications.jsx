@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
+import { Actions, CardActions, RecordCard, RecordCollection, AttachmentLink, Confirm, Empty, FileUploadField, Header, Row, Section } from '../components/mobile/index.js';
 import { Plus } from 'lucide-react';
-import { Actions, CardActions, RecordCard, RecordCollection, AttachmentLink, Confirm, Empty, Field, FileUploadField, Header, Row, Section } from './mobile-ui.jsx';
+import { Field } from './mobile-ui.jsx';
 import { createSessionId, useBackLayer, useDirtyForm } from './mobile-interaction.jsx';
 import { usePanelState } from './mobile-motion.jsx';
 

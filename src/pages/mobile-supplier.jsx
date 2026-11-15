@@ -1,11 +1,12 @@
 import { BankChangeCard } from './mobile-bank-change-view.jsx';
+import { Actions, RecordCollection, AttachmentViewer, Confirm, Empty, FilterButton, Header, Overlay, PickerHeading, Row, Section, Tabs } from '../components/mobile/index.js';
 import { bankChangeCounts, normalizeBankChanges, readBankDraft, writeBankDraft } from './mobile-bank-changes.js';
 import { createSessionId } from './mobile-interaction.jsx';
 import React, { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Check, Send, ClipboardPenLine, Landmark, Download, Filter, ListChecks, Plus, Search, Signal, Wifi, Battery, X, CircleUserRound } from 'lucide-react';
-import { Actions, RecordCollection, AttachmentViewer, AppliedFilters, Confirm, Empty, Field, FilterButton, Header, RegistrationSteps, Overlay, PickerHeading, Row, ScreenshotTip, SearchBox, Section } from './mobile-ui.jsx';
+import { AppliedFilters, Field, RegistrationSteps, ScreenshotTip, SearchBox } from './mobile-ui.jsx';
 import { AddressForm, BankCard, BankFields, BasicFields, ContactFields, InviteForm, PermissionForm, ReferenceList, bankError, blankBank, fieldsFor, filledBasic } from './mobile-forms.jsx';
-import { Approval, BankApplication, FilterView, PermissionCard, RatingList, SupplierDetail, SupplierList, Tabs } from './mobile-views.jsx';
+import { Approval, BankApplication, FilterView, PermissionCard, RatingList, SupplierDetail, SupplierList } from './mobile-views.jsx';
 import { bankNames, cooperation, exampleBank, initialSuppliers, screenshotScenes, supplierTypes } from './mobile-data.js';
 import { BankApplicationForm, RatingEditor, RatingOperations, RatingWorkspace, initialRatings } from './mobile-workflows.jsx';
 import { InteractionProvider, SwipeArea, useInteraction, useDirtyForm, useBackLayer, usePageIsolation, attachmentName } from './mobile-interaction.jsx';
@@ -19,9 +20,7 @@ import { informationSteps, reinviteCandidate, validEmail, registrationEmailError
 import { PrototypeReview } from './mobile-review.jsx';
 import { MobilePageMap, readPageMapParams } from './mobile-page-map.jsx';
 import { ScreenshotCompare } from './mobile-screenshot-compare.jsx';
-import './mobile-supplier.css';
-import './mobile-refinement.css';
-import './mobile-motion.css';
+import '../components/mobile/styles.js';
 import { runMotion, useMotionStructure, usePanelState, MotionPresence } from './mobile-motion.jsx';
 import { routeMotion } from './mobile-motion.js';
 
@@ -595,7 +594,7 @@ function MobileSurface({ onComparisonChange, scene, shot, ratings, setRatings, a
     </>}
     {addressOpen && <Overlay sheet label="编辑注册地址" onClose={() => window.dispatchEvent(new CustomEvent('mobile-close-address'))}><div className="m-address-editor"><div className="m-picker-title"><strong>编辑注册地址</strong></div><AddressForm initial={basic.address} onConfirm={v => { setBasic({ ...basic, address: v }); setAddressOpen(false); }} onCancel={() => setAddressOpen(false)} /></div></Overlay>}
     {['address', 'region'].includes(scene) && <AddressForm initial={shot ? '云南省/保山市/龙陵县 个哈哈哈哈' : basic.address} startRegion={scene === 'region'} onConfirm={v => { setBasic({ ...basic, address: v }); go('register'); }} onCancel={() => go('register')} />}
-    {registerBankPicker && <div className="m-fullscreen-panel"><Header title={portalRegistration ? (editingBank < 0 ? '添加银行账户' : '修改银行账户') : undefined} onBack={() => window.dispatchEvent(new CustomEvent('mobile-close-register-bank'))} /><BankFields onCancel={() => setRegisterBankPicker(false)} bank={registerBankForm} setBank={setRegisterBankForm} company={basic.type === supplierTypes[0]} /><Actions items={[{ label: '取消', onClick: () => window.dispatchEvent(new CustomEvent('mobile-close-register-bank')) }, { label: '添加', onClick: saveRegisterBank }]} /></div>}
+    {registerBankPicker && <div className="m-fullscreen-panel"><Header title={portalRegistration ? (editingBank < 0 ? '添加银行账户' : '修改银行账户') : '供应商管理平台'} onBack={() => window.dispatchEvent(new CustomEvent('mobile-close-register-bank'))} /><BankFields onCancel={() => setRegisterBankPicker(false)} bank={registerBankForm} setBank={setRegisterBankForm} company={basic.type === supplierTypes[0]} /><Actions items={[{ label: '取消', onClick: () => window.dispatchEvent(new CustomEvent('mobile-close-register-bank')) }, { label: '添加', onClick: saveRegisterBank }]} /></div>}
     {['ratings', 'my-ratings'].includes(scene) && <RatingWorkspace savedView={views[scene]} onViewChange={value => { views[scene] = { ...views[scene], ...value }; }} mine={scene === 'my-ratings'} records={ratings} filters={filters} go={go} onOpen={(record, readOnly) => { setActiveRating(record); setRatingReturn(scene); go(readOnly ? 'rating-detail' : 'rating-edit'); }} onAdd={() => { setActiveRating(null); setRatingReturn(scene); go('rating-edit'); }} />}
     {['rating-edit', 'rating-detail'].includes(scene) && (scene === 'rating-detail' && !activeRating ? <><Empty text="未选择评分记录，请返回列表重新选择" /></> : <RatingEditor record={activeRating} supplier={activeRating ? suppliers.find(x => x.name === activeRating.name) || { name: activeRating.name, type: '', status: '', inviter: '', date: '', mode: '' } : supplier} readOnly={scene === 'rating-detail'} notify={notify} onSave={record => { setRatings(list => list.some(x => x.id === record.id) ? list.map(x => x.id === record.id ? record : x) : [record, ...list]); notify('演示评分已保存'); go(ratingReturn); }} />)}
     {['rating-filter', 'department'].includes(scene) && <FilterView rating mine={filters.return === 'my-ratings'} initial={filters} onCancel={() => go(filters.return || 'ratings')} onApply={v => { if (v.start && v.end && v.start > v.end) return notify('评分开始时间不能晚于结束时间'); go((filters.return || 'ratings') + '?' + new URLSearchParams(v).toString()); }} />}

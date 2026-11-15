@@ -1,8 +1,9 @@
 import { bankApplicationFields, bankApplicationRequired } from './bank-application.js';
+import { Actions, AttachmentLink, Header, CardActions, FilterSummary, Confirm, Empty, FilterButton, Overlay, Row, Section, UploadField } from '../components/mobile/index.js';
 import { createSessionId, useBackLayer } from './mobile-interaction.jsx';
 import React, { useEffect, useState } from 'react';
 import { Star } from 'lucide-react';
-import { Actions, AttachmentLink, Header, CardActions, FilterSummary, Confirm, Empty, FilterButton, Overlay, Field, FilterField, Row, SearchBox, Section, StatusTag, UploadField, SupplierIdentityCard } from './mobile-ui.jsx';
+import { Field, FilterField, SearchBox, StatusTag, SupplierIdentityCard } from './mobile-ui.jsx';
 import { cooperation } from './mobile-data.js';
 import { useDirtyForm, attachmentName } from './mobile-interaction.jsx';
 

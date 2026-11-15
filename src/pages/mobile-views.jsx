@@ -1,8 +1,9 @@
 import { bankApplicationNotice } from './bank-application.js';
-import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { Actions, CardActions, RecordCard, RecordCollection, AttachmentLink, Empty, OptionSheet, Overlay, PickerHeading, Row, Section, Tabs } from '../components/mobile/index.js';
+import React, { useState } from 'react';
 import { Check, ChevronDown, ClipboardList, Edit3, Filter, List, MoreHorizontal, Plus, X } from 'lucide-react';
 import { QualificationInfo } from './mobile-qualifications.jsx';
-import { Actions, CardActions, RecordCard, RecordCollection, AttachmentLink, ChangeTag, Empty, Field, FilterField, StatusTag, OptionSheet, Overlay, PickerHeading, Row, SearchBox, Section, SupplierIdentityCard } from './mobile-ui.jsx';
+import { ChangeTag, Field, FilterField, StatusTag, SearchBox, SupplierIdentityCard } from './mobile-ui.jsx';
 import { BankCard, fieldsFor } from './mobile-forms.jsx';
 import { cooperation, supplierStates, supplierTypes, supplierIndustries } from './mobile-data.js';
 import { SwipeArea, attachmentName } from './mobile-interaction.jsx';
@@ -10,19 +11,6 @@ import { ChangeComparison } from './mobile-changes.jsx';
 import { canChangeSupplier, canRateSupplier, canReinviteSupplier, canDeleteSupplier } from './mobile-rules.js';
 
 import { MotionDetails, MotionPresence, runMotion } from './mobile-motion.jsx';
-
-export function Tabs({ active, onChange, items, variant = 'line', showDirectory = true, stretch = false }) {
-  const ref = useRef(null);
-  const [directory, setDirectory] = useState(false);
-  useEffect(() => { let cancelled = false; const align = () => { const nav = ref.current; const node = nav?.querySelector('[aria-current="page"]'); if (!cancelled && node) nav.scrollLeft = active === items.length - 1 ? nav.scrollWidth - nav.clientWidth : Math.max(0, node.getBoundingClientRect().left - nav.getBoundingClientRect().left + nav.scrollLeft - (nav.clientWidth - node.clientWidth) / 2); }; align(); document.fonts.ready.then(align); return () => { cancelled = true; }; }, [active, items.length]);
-  const choose = i => { if (i !== active) runMotion(() => onChange(i), i > active ? 'tab-next' : 'tab-prev'); };
-  useLayoutEffect(() => {
-    const nav = ref.current;
-    const align = () => { const button = nav?.querySelector('[aria-current="page"]'); if (!button) return; nav.style.setProperty('--m-indicator-x', button.offsetLeft + 'px'); nav.style.setProperty('--m-indicator-width', button.offsetWidth + 'px'); };
-    align(); const observer = new ResizeObserver(align); observer.observe(nav); return () => observer.disconnect();
-  }, [active, items.length]);
-  return <><div className={'m-tab-bar m-tab-motion ' + (variant === 'pill' ? 'm-tab-bar-pill' : '') + (stretch ? ' m-tab-bar-stretch' : '')}><nav ref={ref} className="m-tabs" data-active={active} aria-label="功能模块">{items.map((label, i) => <button className={active === i ? 'active' : ''} aria-current={active === i ? 'page' : undefined} key={label} onClick={() => choose(i)}><span className="m-tab-label">{label}</span></button>)}<span className="m-tab-indicator" aria-hidden="true" /></nav>{showDirectory && <button className="m-tab-directory" aria-label="全部标签" onClick={() => setDirectory(true)}><ChevronDown /></button>}</div>{showDirectory && directory && <OptionSheet title="全部标签" options={items} value={items[active]} clearable={false} onClose={() => setDirectory(false)} onChange={label => { const index = items.indexOf(label); if (index >= 0) choose(index); }} />}</>;
-}
 
 export function SupplierList({ suppliers, mine = false, batch = false, checked, setChecked, onDetail, onBank, onMore, onInviter, onReinvite, onEdit, onEditAll, onDelete, onScore, admin = false, filtered = false, batchKind = 'delete' }) {
   return <div className="m-supplier-list">{suppliers.length ? suppliers.map(s => <SupplierSummary key={s.id} {...{ s, mine, batch, checked, setChecked, onDetail, onBank, onMore, onInviter, onReinvite, onEdit, onEditAll, onDelete, onScore, admin, batchKind }} />) : <Empty search={filtered} text={filtered ? '暂无匹配结果，请调整搜索或筛选条件' : '暂无供应商记录'} />}</div>;

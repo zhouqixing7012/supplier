@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Actions, Field, Overlay, Row } from './mobile-ui.jsx';
+import { Actions, Overlay, Row } from '../components/mobile/index.js';
+import { Field } from './mobile-ui.jsx';
 
 // 前端原型使用会话数据生成CSV，不伪造服务端任务和下载地址。
 export function exportSupplierRows(rows, mine = false) {

@@ -1,6 +1,6 @@
 import React, { useId, useRef, useState } from 'react';
+import { AttachmentLink, Confirm } from '../components/mobile/index.js';
 import { FileSpreadsheet, Plus, Upload, X } from 'lucide-react';
-import { AttachmentLink, Confirm } from './mobile-ui.jsx';
 import { attachmentName, rememberAttachment } from './mobile-interaction.jsx';
 import { isSpreadsheetName, spreadsheetAccept } from './mobile-portal-files.js';
 

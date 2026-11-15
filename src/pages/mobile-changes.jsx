@@ -1,6 +1,6 @@
 import React from 'react';
+import { AttachmentLink, Section } from '../components/mobile/index.js';
 import { bankChange } from './mobile-bank-changes.js';
-import { AttachmentLink, Section } from './mobile-ui.jsx';
 import { qualificationFields } from './mobile-qualifications.jsx';
 import { fieldsFor } from './mobile-forms.jsx';
 import { attachmentName } from './mobile-interaction.jsx';

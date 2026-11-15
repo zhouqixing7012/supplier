@@ -1,0 +1,28 @@
+.mobile-page.m-catalog .m-catalog-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--m-border);
+  background: var(--m-surface);
+}
+.mobile-page.m-catalog .m-catalog-nav > button {
+  min-height: 44px;
+  padding: 0 8px;
+  color: var(--m-text-secondary);
+}
+.mobile-page.m-catalog .m-catalog-nav > button[aria-pressed="true"] {
+  color: var(--m-action);
+  box-shadow: inset 0 -2px var(--m-action);
+  font-weight: 600;
+}
+.mobile-page.m-catalog .m-catalog-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 12px 0 4px;
+}
+.mobile-page.m-catalog .m-catalog-note {
+  margin: 12px 0 4px;
+  color: var(--m-text-secondary);
+}

@@ -1,3 +1,11 @@
+# 当前：供应商移动端组件库（2026-11-15）
+
+- 分支为 `feat/mobile-change-comparison`。25 个通用组件已集中到 `src/components/mobile/`，移动端原型与组件库预览共用组件和样式。供应商状态、注册步骤等业务适配仍由现有页面维护。
+- 从 `#/mobile/components`、移动端原型导图或 PC 工作区账户菜单打开交互预览。组件参数、接入及维护方式见[移动端组件库](docs/mobile-component-library.md)。
+- 生产构建通过。既有测试及模拟 DOM 交互检查通过 84 项、失败 0 项。Chromium 启动受环境限制，浏览器交互、视觉及真机验证未执行。
+
+## 以下为此前记录
+
 # 当前：移动端三方比对（2026-11-14）
 
 - 对照 `feat/mobile-change-comparison` 的 `10ae64f`、系统使用说明书和移动端 PRD，逐项结果见[供应商移动端三方比对报告](docs/mobile-three-way-comparison-2026-11-14.md)。

@@ -132,6 +132,8 @@
 .page-map-tools output { min-width: 44px; text-align: center; color: var(--map-muted); font-size: 12px; font-variant-numeric: tabular-nums; }
 .page-map-tools .page-map-fit { border-inline-start: 1px solid #e0e7f0; }
 @media (max-width: 510px) {
+  .page-map-header { flex-wrap: wrap; row-gap: 0; }
+  .page-map-header-actions { margin-inline-start: auto; }
   .page-map-hint { display: none; }
   .page-map-tools { right: 12px; }
 }

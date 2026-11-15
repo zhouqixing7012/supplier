@@ -15,7 +15,9 @@
 - `src/pages/mobile-portal-pricing.jsx`：报价与价税详情、全屏行编辑、整单提交和只读结果；复用公共字段、附件与未保存保护。
 - `src/pages/mobile-portal-pricing.js`：十进制分数价税计算、数值检查及剩余时间展示；计算规则由mobile-prd.md维护。
 - `src/pages/mobile-portal-files.jsx`：门户表格文件选择、替换及确认移除；mobile-portal-files.js维护格式检查，复用会话附件存储。
-- `src/pages/mobile-ui.jsx`：移动端字段、上传、弹层、选择器、固定操作栏、FilterSummary查询摘要及Empty空态内容；RecordCollection维护分组空态容器。
+- `src/components/mobile/`：移动端通用组件、语义变量及共享样式入口。业务页面与组件库预览共用 `index.js`。
+- `src/pages/mobile-ui.jsx`：将供应商状态、注册步骤、业务字段和查询条件适配到公共组件。
+- `src/mobile-components-entry.jsx`：独立组件库预览入口，示例在 `catalog.jsx` 中维护。
 - `src/pages/mobile-review.jsx`及`mobile-review.css`：独立原型评审开关、顶层锚点定位、红字引线、详情编辑与本机导入导出；`mobile-review-data.js`维护预置说明与文件校验，不参与供应商业务状态或正式PRD写入。
 - `src/pages/mobile-forms.jsx`：银行、联系人、地址、权限、邀请及注册字段。
 - `src/pages/mobile-views.jsx`：列表、筛选、详情、审批记录、评分与银行信息申请。
@@ -45,7 +47,7 @@
 
 ## 调用关系
 
-移动端：`index.html` → `src/entry.jsx` → `src/mobile-entry.jsx` → `MobileSupplier` → 移动端字段、表单、视图及演示数据。
+移动端：`index.html` → `src/entry.jsx` → `src/mobile-entry.jsx` → `MobileSupplier` → 表单、视图、通用组件及演示数据。组件库在 `#/mobile/components` 独立加载，与移动端业务页面共用组件和样式。
 
 总入口通过独立的加载函数分别动态导入各模块，确保 Vite 预加载各自的 CSS。不得把各入口导入合并为同一动态条件表达式。
 
@@ -86,7 +88,7 @@ PC 门户认证：`src/entry.jsx` → `src/main.jsx` → `src/components/ui/*`�
 
 ## 移动端适配工作流
 
-`mobile-supplier.jsx` 维护移动端会话、供应商、评分及路由状态。`mobile-workflows.jsx` 负责评分工作台、评分表单、运维列表和银行申请表单；复用 `mobile-ui.jsx` 的字段、日期、统一搜索选择弹层和操作栏。`mobile-forms.jsx` 负责银行及注册字段。正式信息与待审批信息分别保存，更新草稿使用原记录ID。
+`mobile-supplier.jsx` 维护移动端会话、供应商、评分及路由状态。`mobile-workflows.jsx` 负责评分工作台、评分表单、运维列表和银行申请表单；复用移动端组件库的日期、搜索选择弹层和操作栏，以及 `mobile-ui.jsx` 的业务字段适配。`mobile-forms.jsx` 负责银行及注册字段。正式信息与待审批信息分别保存，更新草稿使用原记录ID。
 
 移动端使用带顺序标识的History记录处理前进/返回；内部导航保持会话状态，系统返回先关闭当前层或触发未保存保护。`InteractionProvider`集中维护表单快照与返回层级；`SwipeArea`只识别允许区域的横向手势。附件以独立ID关联本次会话的Object URL，退出模块后释放；不存真实服务器附件。
 

@@ -293,6 +293,7 @@ export function MobilePageMap({ go }) {
         <div><h1>移动端原型导图</h1><p>供应商管理平台与协同门户</p></div>
       </div>
       <div className="page-map-header-actions">
+        <a href="#/mobile/components">组件库</a>
         <a href={mobilePrdUrl} download="供应商移动端PRD.md">下载 PRD</a>
         <a href="#/mobile"><ArrowLeft size={16} aria-hidden="true" /><span>返回原型</span></a>
       </div>

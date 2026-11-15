@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Confirm, Overlay, PickerHeading } from '../components/mobile/index.js';
 import { createPortal } from 'react-dom';
 import { ClipboardList, Download, MapPin, MessageSquarePlus, Pencil, Upload, X } from 'lucide-react';
-import { Confirm, Field, Overlay, PickerHeading } from './mobile-ui.jsx';
+import { Field } from './mobile-ui.jsx';
 import { createSessionId } from './mobile-interaction.jsx';
 import { REVIEW_STORAGE_KEY, REVIEW_VERSION, reviewDefinitions, reviewSelectors, reviewActionLabels, reviewAppliesToScope, validateReviewImport } from './mobile-review-data.js';
 import './mobile-review.css';

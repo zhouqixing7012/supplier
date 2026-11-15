@@ -78,6 +78,20 @@ try {
     await button('银行分行').click(); await page.locator('#root .m-reference-card').filter({ hasText: '北京市分行' }).click(); 
     await field('账户名称').fill('移动交互测试企业'); await field('银行账号').fill('001234567890'); await choose('币种', '人民币'); await page.locator('#root').getByLabel('开户证明', { exact: true }).setInputFiles(upload);
   }
+  await check('移动端组件库独立加载公共样式并可预览表单', async () => {
+    await goto('mobile/components');
+    assert.equal(await page.getByRole('heading', { name: '移动端组件库' }).count(), 1);
+    const catalog = page.locator('[data-scene="component-library"]');
+    assert.equal(await catalog.locator('.m-catalog-nav').evaluate(el => getComputedStyle(el).display), 'flex');
+    assert.equal(await catalog.locator('.m-header').evaluate(el => getComputedStyle(el).position), 'sticky');
+    await button('表单').click();
+    await button('校验名称').click();
+    await page.getByRole('alert').filter({ hasText: '请填写供应商名称' }).waitFor();
+    await page.getByRole('combobox', { name: '供应商类型' }).click();
+    const sheet = page.getByRole('dialog');
+    await sheet.getByRole('button', { name: '个人', exact: true }).click();
+    assert.equal(await page.getByRole('combobox', { name: '供应商类型' }).textContent(), '个人');
+  });
   for (const s of screenshotScenes) await check('原入口 ' + s.index + ' ' + s.title, async () => {
     await goto('mobile/shot/' + s.time);
     assert.equal(await page.locator('#root [data-scene="' + s.scene + '"]').count(), 1);

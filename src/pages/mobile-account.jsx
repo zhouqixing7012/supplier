@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Actions, Field, Row, Section } from './mobile-ui.jsx';
+import { Actions, Row, Section } from '../components/mobile/index.js';
+import { Field } from './mobile-ui.jsx';
 import { useDirtyForm } from './mobile-interaction.jsx';
 
 const validEmail = value => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value || '');

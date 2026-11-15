@@ -1,10 +1,13 @@
 import React, { useContext, useEffect, useId, useRef, useState } from 'react';
-import { Confirm } from './mobile-ui.jsx';
+import { Confirm } from '../components/mobile/index.js';
+import { attachmentFiles } from '../components/mobile/attachment-session.js';
 
 import { runMotion, reducedMotion } from './mobile-motion.jsx';
 import { swipeTarget, captureScrollPositions, restoreScrollPositions } from './mobile-motion.js';
 
 import { InteractionContext } from './mobile-context.js';
+export { useBackLayer } from './mobile-context.js';
+export { attachmentFiles, attachmentName, createSessionId, rememberAttachment } from '../components/mobile/attachment-session.js';
 export function InteractionProvider({ children }) {
   const forms = useRef(new Map());
   const layers = useRef([]);
@@ -33,17 +36,6 @@ export function useDirtyForm(data, active = true) {
   context.forms.current.set(id, { initial: !old || !old.active ? serialized : old.initial, value: serialized, active });
   useEffect(() => () => context.forms.current.delete(id), [context.forms, id]);
   return { accept: () => context.clean(id), leave: action => context.request(action, id) };
-}
-export function useBackLayer(active, close) {
-  const context = useInteraction();
-  const closeRef = useRef(close);
-  closeRef.current = close;
-  useEffect(() => {
-    if (!active) return;
-    const entry = () => closeRef.current();
-    context.layers.current.push(entry);
-    return () => { context.layers.current = context.layers.current.filter(x => x !== entry); };
-  }, [active, context.layers]);
 }
 
 // 在内容区判断滑动方向；控件、横向滚动区和屏幕边缘保留原手势。
@@ -109,20 +101,6 @@ export function SwipeArea({ active, count, onChange, children, className = '' })
   }, [active]);
   return <div ref={ref} className={'m-swipe-area ' + className}>{children}</div>;
 }
-export const attachmentFiles = new Map();
-export const attachmentName = key => {
-  if (attachmentFiles.has(key)) return attachmentFiles.get(key).name;
-  if (typeof key !== 'string' || !key.startsWith('attachment:')) return key;
-  try { return localStorage.getItem('supplier:attachment-name:' + key) || '附件'; } catch { return '附件'; }
-};
-export function rememberAttachment(file) {
-  const key = 'attachment:' + createSessionId();
-  const entry = { key, url: URL.createObjectURL(file), type: file.type, name: file.name };
-  attachmentFiles.set(key, entry);
-  try { localStorage.setItem('supplier:attachment-name:' + key, file.name); } catch { /* 本次会话仍使用内存中的附件名称。 */ }
-  return entry;
-}
-
 // 独立填写页与嵌套弹层共用背景隔离，避免容器改为滑动区后背景仍可操作。
 export function usePageIsolation() {
   useEffect(() => {
@@ -157,13 +135,3 @@ export function usePageIsolation() {
     return () => { observer.disconnect(); restore(); window.removeEventListener('keydown', onKey); };
   }, []);
 }
-
-
-// 会话样本标识也支持本地HTTP预览，仍使用浏览器随机源。
-export function createSessionId() {
-  if (crypto.randomUUID) return crypto.randomUUID();
-  return Array.from(crypto.getRandomValues(new Uint8Array(16)), value => value.toString(16).padStart(2, '0')).join('');
-}
-
-
-

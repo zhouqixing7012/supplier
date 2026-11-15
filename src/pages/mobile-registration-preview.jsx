@@ -1,8 +1,8 @@
 import React from 'react';
-import { AttachmentLink, RecordCard, RecordCollection, Empty, Row, Section, SupplierIdentityCard } from './mobile-ui.jsx';
+import { AttachmentLink, RecordCard, RecordCollection, Empty, Row, Section, Tabs } from '../components/mobile/index.js';
+import { SupplierIdentityCard } from './mobile-ui.jsx';
 import { BankCard, fieldsFor } from './mobile-forms.jsx';
 import { QualificationInfo } from './mobile-qualifications.jsx';
-import { Tabs } from './mobile-views.jsx';
 import { SwipeArea } from './mobile-interaction.jsx';
 import { supplierTypes } from './mobile-data.js';
 

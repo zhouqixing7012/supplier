@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Field, Row } from './mobile-ui.jsx';
+import { Row } from '../components/mobile/index.js';
+import { Field } from './mobile-ui.jsx';
 import { useDirtyForm } from './mobile-interaction.jsx';
 import { registrationPasswordError, registrationPasswordRequirement } from './mobile-registration-password.js';
 

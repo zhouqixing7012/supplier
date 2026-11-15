@@ -4,6 +4,8 @@ React + Vite 的可点击原型，包含 PC 供应商管理平台、PC 供应商
 
 移动端原型入口为 `#/mobile`，原页面状态目录为 `#/mobile/scenes`，覆盖提供的 47 张截图。逐张入口见 [截图覆盖表](docs/mobile-screenshot-coverage.md)，规则与范围见 [供应商移动端 PRD](docs/supplier-mobile-prd.md)，演示限制见 [工程说明](docs/mobile-prototype.md)。
 
+移动端通用控件可在 `/#/mobile/components` 查看和操作，复用方式见 [移动端组件库](docs/mobile-component-library.md)。
+
 移动端提供独立“需求评审”悬浮开关，可查看及编辑定位标注；使用方法与保存范围见[评审模式说明](docs/mobile-review-mode.md)。前端重构估时参考[页面与公共组件清单](docs/mobile-frontend-estimate.md)。
 
 ## 页面导航

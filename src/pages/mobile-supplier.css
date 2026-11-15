@@ -1,16 +1,5 @@
-/* 移动语义变量统一映射；桌面组件不读取这些变量。 */
-:root {
-  --m-action: #145cff; --m-action-pressed: #0d42d2;
-  --m-text: #1d2126; --m-input-text: #2c3038; --m-text-secondary: #545b66;
-  --m-placeholder: #697181; --m-surface: #ffffff; --m-border: #d3d9e5;
-  --m-border-subtle: #e2e6f0; --m-control-border: #848b99;
-  --m-info-surface: #e5f1ff; --m-positive: #14ae5c;
-  --m-success-text: #0b6e37; --m-success-surface: #e8f7ee;
-  --m-warning-text: #8a4b00; --m-warning-surface: #fff4e6;
-  --m-danger-text: #b42318; --m-danger-surface: #fff0ee;
-  --m-neutral-surface: #f2f5fa; --m-focus: #145cff;
-  --m-radius-control: 4px; --m-radius-dialog: 12px;
-}
+@import "../components/mobile/tokens.css";
+
 /* 移动端复刻样式只作用于独立入口，避免污染电脑端页面。 */
 @font-face { font-family: 'Supplier Noto SC'; src: url('/mobile-assets/noto-sans-sc-400.woff2') format('woff2'); font-style: normal; font-weight: 400; font-display: swap; }
 :root { color-scheme: light; }

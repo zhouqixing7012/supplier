@@ -1,8 +1,9 @@
 import { usePanelState } from './mobile-motion.jsx';
+import { Actions, AttachmentLink, PickerHeading, SelectionMark, CardActions, RecordCard, RecordCollection, Confirm, DateSheet, Empty, Header, OptionSheet, Overlay, Row, Section, UploadField } from '../components/mobile/index.js';
 import React, { useEffect, useId, useRef, useState } from 'react';
 import { Check, FileText, ChevronDown, ChevronRight, MoreHorizontal, Plus, Trash2, UserRoundPlus } from 'lucide-react';
 import { QualificationInfo } from './mobile-qualifications.jsx';
-import { Actions, AttachmentLink, PickerHeading, SelectionMark, CardActions, RecordCard, RecordCollection, ChangeTag, Confirm, DateSheet, Empty, Field, Header, OptionSheet, Overlay, Row, SearchBox, Section, UploadField } from './mobile-ui.jsx';
+import { ChangeTag, Field, SearchBox } from './mobile-ui.jsx';
 import { bankNames, bankDirectory, branches, people, permissionGroups, supplierTypes, supplierIndustries } from './mobile-data.js';
 import { createSessionId, useDirtyForm, useBackLayer, attachmentFiles, attachmentName } from './mobile-interaction.jsx';
 

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
+import { AttachmentLink, CardActions, Overlay } from '../components/mobile/index.js';
 import { BankCard } from './mobile-forms.jsx';
-import { AttachmentLink, CardActions, Overlay } from './mobile-ui.jsx';
 import { bankChange, bankComparisonFields } from './mobile-bank-changes.js';
 import { attachmentName } from './mobile-interaction.jsx';
 
