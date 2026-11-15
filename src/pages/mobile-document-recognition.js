@@ -1,14 +1,39 @@
-// 宿主负责鉴权、调用识别服务并把结果转换为表单字段。原型不生成识别值。
-const licenseFields = ['supplierName', 'creditCode', 'legalRepresentative', 'licenseUntil', 'capital', 'currency', 'address', 'businessScope'];
+// 宿主负责鉴权并将服务结果转换为表单字段。
+const licenseIdentityFields = ['supplierName', 'creditCode'];
+const companyProfileFields = ['establishedAt', 'licenseUntil', 'legalRepresentative', 'companyType', 'industry', 'capital', 'currency', 'address', 'businessScope'];
 const bankCardFields = ['bank', 'number'];
 
-export async function recognizeSupplierDocument(kind, file) {
+async function recognizeDocument(kind, file, fields) {
   if (typeof window.__SUPPLIER_DOCUMENT_OCR__ !== 'function') throw new Error('识别服务暂不可用，请手工填写。');
-  const fields = kind === 'license' ? licenseFields : bankCardFields;
   const result = await window.__SUPPLIER_DOCUMENT_OCR__({ kind, file });
   const values = normalizeFields(result, fields);
   if (!Object.keys(values).length) throw new Error('未识别到可回填的信息，请手工填写。');
   return values;
+}
+
+export function recognizeBankCard(file) {
+  return recognizeDocument('bank-card', file, bankCardFields);
+}
+
+export async function recognizeCompanyLicense(file, isCurrent) {
+  const identity = await recognizeDocument('license', file, licenseIdentityFields);
+  if (!isCurrent()) return;
+  const { supplierName, creditCode } = identity;
+  if (!supplierName || !creditCode) throw new Error('未能识别完整的供应商名称和统一社会信用代码，请手工填写。');
+  const lookup = window.__SUPPLIER_ENTERPRISE_LOOKUP__;
+  if (typeof lookup !== 'function') throw new Error('企业资料查询暂不可用，请手工填写。');
+  let result;
+  try {
+    result = await lookup({ name: supplierName, creditCode });
+  } catch {
+    throw new Error('查询企业资料失败，请手工填写。');
+  }
+  if (!isCurrent()) return;
+  const profile = normalizeFields(result, [...licenseIdentityFields, ...companyProfileFields]);
+  if (!Object.keys(profile).length || (profile.creditCode && profile.creditCode.toUpperCase() !== creditCode.toUpperCase())) {
+    throw new Error('未查询到匹配的企业资料，请手工填写。');
+  }
+  return { ...profile, ...identity };
 }
 
 function normalizeFields(result, fields) {

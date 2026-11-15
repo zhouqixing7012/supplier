@@ -6,7 +6,7 @@ import { ChangeTag, Field } from './mobile-ui.jsx';
 import { bankNames, bankDirectory, branches, people, permissionGroups, supplierTypes, supplierIndustries } from './mobile-data.js';
 import { createSessionId, useDirtyForm, useBackLayer, attachmentFiles, attachmentName } from './mobile-interaction.jsx';
 
-import { recognizeSupplierDocument } from './mobile-document-recognition.js';
+import { recognizeBankCard, recognizeCompanyLicense } from './mobile-document-recognition.js';
 import { withAccountBank, restoreBankDirectoryFields, personalCertificateTypes, personalCertificatePhotoFields } from './mobile-edit-rules.js';
 
 export const blankBank = name => ({ accountType: '', bank: '', branch: '', country: '', province: '', city: '', name: name || '', number: '', currency: '', proof: '', note: '' });
@@ -45,7 +45,7 @@ export function BankFields({ bank, setBank, company = true, proofRequired = comp
     if (!file || !recognizeCard) return;
     setRecognition('正在识别银行卡…');
     try {
-      const values = await recognizeSupplierDocument('bank-card', file);
+      const values = await recognizeBankCard(file);
       if (pendingProof.current !== proof) return;
       const current = bankDraft.current;
       if (current.proof !== proof) return;
@@ -149,16 +149,17 @@ export function BasicFields({ data, setData, shot = false, onAddress, initialDat
     writeBasic.current({ ...original, proof });
     setRecognition('');
     if (!file || original.type !== supplierTypes[0] || shot) return;
-    setRecognition('正在识别营业执照…');
+    const isCurrent = () => pendingLicense.current === proof && basicDraft.current.type === original.type;
+    setRecognition('正在识别营业执照并查询企业资料…');
     try {
-      const values = await recognizeSupplierDocument('license', file);
+      const values = await recognizeCompanyLicense(file, isCurrent);
       const current = basicDraft.current;
-      if (pendingLicense.current !== proof || current.type !== original.type || current.proof !== proof) return;
+      if (!values || !isCurrent() || current.proof !== proof) return;
       const unchanged = Object.entries(values).filter(([key]) => current[key] === original[key] && !(identityReadOnly && key === 'supplierName'));
       writeBasic.current({ ...current, ...Object.fromEntries(unchanged) });
-      setRecognition('识别完成，请核对并补齐证照信息。');
+      setRecognition('企业资料已回填，请核对并补齐。');
     } catch (error) {
-      if (pendingLicense.current === proof && basicDraft.current.type === original.type) setRecognition(error.message || '识别失败，请手工填写。');
+      if (isCurrent()) setRecognition(error?.message || '未能回填企业资料，请手工填写。');
     }
   }
   const renderField = ([key, label, required, kind]) => {
