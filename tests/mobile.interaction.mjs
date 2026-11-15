@@ -142,21 +142,51 @@ try {
     await link.click();
     assert.equal((await download).suggestedFilename(), '供应商移动端PRD.md');
   });
-  await check('移动端原型导图显示真实截图、红色直角连线并可导出', async () => {
-    await page.goto(base + '/?case=map-export#/mobile/page-map');
-    const capture = page.locator('.page-map-node .page-map-thumbnail').first();
-    await capture.waitFor();
-    assert.equal(await page.locator('.page-map-thumbnail.is-missing').count(), 0);
-    assert.match(await capture.evaluate(el => getComputedStyle(el).backgroundImage), /mobile-map\/preview-\d+\.webp/);
+  await check('移动端原型导图在各节点独立操作并可导出', async () => {
+    await page.goto(base + '/?case=map-embed#/mobile/page-map');
+    const query = page.frameLocator('iframe[title="供应商查询"]');
+    const rootQuery = page.frameLocator('iframe[title="供应商管理平台"]');
     const connector = page.locator('.page-map-connector').first();
     assert.match(await connector.getAttribute('d'), /^M .* H .* V .* H /);
     assert.equal(await connector.evaluate(el => getComputedStyle(el).stroke), 'rgb(180, 35, 24)');
-    await page.getByRole('button', { name: '展开供应商查询', exact: true }).click();
-    await page.locator('.page-map-node').filter({ hasText: '供应商筛选' }).first().waitFor();
-    await page.getByRole('link', { name: '导出流程图', exact: true }).click();
-    await page.locator('.map-print[data-print-status="ready"]').waitFor();
-    assert.equal(await page.locator('.map-print .is-missing').count(), 0);
-    assert.ok(await page.locator('.map-print-sheet').count() > 1);
+    await page.getByRole('button', { name: '放大供应商查询', exact: true }).click();
+    const search = query.getByRole('searchbox').first();
+    await search.fill('代注册草稿');
+    assert.equal(await rootQuery.getByRole('searchbox').first().inputValue(), '');
+
+    await page.getByRole('button', { name: '收起供应商管理平台', exact: true }).evaluate(el => el.click());
+    await page.getByRole('button', { name: '展开供应商管理平台', exact: true }).evaluate(el => el.click());
+    assert.equal(await search.inputValue(), '代注册草稿');
+
+    await page.getByRole('button', { name: '放大供应商查询', exact: true }).evaluate(el => el.click());
+    await query.getByRole('button', { name: '我的邀请', exact: true }).click();
+    await query.locator('#root > [data-scene="mine"]').waitFor();
+    assert.equal(await rootQuery.locator('[data-scene="query"]').count(), 1);
+    assert.match(page.url(), /#\/mobile\/page-map$/);
+    await page.getByRole('button', { name: '展开供应商查询', exact: true }).evaluate(el => el.click());
+    await page.getByRole('button', { name: '放大供应商筛选', exact: true }).first().evaluate(el => el.click());
+    await page.frameLocator('iframe[title="供应商筛选"]').first().locator('#root > [data-scene="filter"]').waitFor();
+
+    const exported = page.getByRole('link', { name: '导出交互原型' });
+    const download = page.waitForEvent('download');
+    await exported.click();
+    assert.equal((await download).suggestedFilename(), '供应商移动端交互原型.html');
+  });
+  await check('移动端原型导图导出的HTML断网可操作', async () => {
+    const offline = await context.newPage();
+    try {
+      await context.setOffline(true);
+      await offline.goto(new URL('../dist/supplier-mobile-interactive.html', import.meta.url).href);
+      const query = offline.frameLocator('iframe[title="供应商查询"]');
+      await offline.getByRole('button', { name: '放大供应商查询', exact: true }).click();
+      await query.getByRole('button', { name: '我的邀请', exact: true }).click();
+      await query.locator('#root > [data-scene="mine"]').waitFor();
+      await query.locator('.m-search img').first().evaluate(img => img.decode());
+      assert.match(offline.url(), /^file:/);
+    } finally {
+      await offline.close();
+      await context.setOffline(false);
+    }
   });
   await check('主模块内容左滑切到我的邀请，右滑返回', async () => {
     await goto('mobile'); await swipe(page.locator('#root .m-supplier-card h3').first(), -130); await page.locator('#root [data-scene="mine"]').waitFor(); await swipe(page.locator('#root .m-supplier-card h3').first(), 130, 0, 100); await page.locator('#root [data-scene="query"]').waitFor();

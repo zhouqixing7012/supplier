@@ -1,20 +1,21 @@
 import React, { useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { ArrowLeft, ArrowUpRight, Maximize2, Minus, Network, Plus } from 'lucide-react';
+import { ArrowLeft, Maximize2, Minus, Network, Plus, Scan } from 'lucide-react';
 import mobilePrdUrl from '../../docs/supplier-mobile-prd.md?url';
 import './mobile-page-map.css';
 
-import { pageMap } from './mobile-page-map-data.js';
-import { MapThumbnail, MobileMapPrint } from './mobile-page-map-print.jsx';
+import { pageMap, previewSize } from './mobile-page-map-data.js';
+import { offlinePrototype, readMobileSearch } from './mobile-prototype-runtime.js';
+import { MobileMapPrint } from './mobile-page-map-print.jsx';
 
 export function readPageMapParams(route) {
-  const params = new URLSearchParams((route ?? window.location.hash).split('?')[1]);
+  const params = new URLSearchParams((route ? route.split('?')[1] : readMobileSearch()));
   return params.get('map') === '1' ? Object.fromEntries(params) : {};
 }
 
-const NODE_WIDTH = 214;
-const NODE_HEIGHT = 514;
-const LEVEL_GAP = 280;
-const ROW_GAP = 556;
+const NODE_WIDTH = previewSize.width + 16;
+const NODE_HEIGHT = previewSize.height + 72;
+const LEVEL_GAP = NODE_WIDTH + 80;
+const ROW_GAP = NODE_HEIGHT + 44;
 const MIN_SCALE = 0.04;
 const MAX_SCALE = 2;
 const clampScale = value => Math.min(MAX_SCALE, Math.max(MIN_SCALE, value));
@@ -28,7 +29,7 @@ function layoutMap(expanded) {
     const start = nodes.length;
     let row = 0;
     function place(item, id, depth) {
-      const x = side * (246 + depth * LEVEL_GAP);
+      const x = side * (334 + depth * LEVEL_GAP);
       const children = expanded.has(id) ? item.children.map((child, i) => place(child, id + '.' + i, depth + 1)) : [];
       const y = children.length ? (children[0].y + children.at(-1).y) / 2 : row++ * ROW_GAP;
       const placed = { item, id, x, y, side, depth };
@@ -58,7 +59,7 @@ function fitCamera(viewport, nodes, overview = false) {
   const bottom = Math.max(...nodes.map(node => node.y)) + NODE_HEIGHT / 2;
   const { clientWidth: width, clientHeight: height } = viewport;
   const fit = Math.min((width - 48) / (right - left), (height - 106) / (bottom - top), 1);
-  const scale = clampScale(overview ? Math.max(0.28, fit) : fit);
+  const scale = clampScale(overview ? Math.max(0.18, fit) : fit);
   return { scale, x: width / 2 - (left + right) / 2 * scale, y: (height - 42) / 2 - (top + bottom) / 2 * scale };
 }
 
@@ -68,12 +69,12 @@ function pointerCenter(points) {
   return { x: (first.x + second.x) / 2, y: (first.y + second.y) / 2, distance: Math.hypot(first.x - second.x, first.y - second.y) };
 }
 
-export function MobilePageMap({ go, route }) {
+export function MobilePageMap({ route }) {
   const params = new URLSearchParams(route?.split('?')[1]);
-  return params.has('print') ? <MobileMapPrint /> : <MobileMapCanvas go={go} />;
+  return params.has('print') && !offlinePrototype ? <MobileMapPrint /> : <MobileMapCanvas />;
 }
 
-function MobileMapCanvas({ go }) {
+function MobileMapCanvas() {
   const viewport = useRef(null);
   const pointers = useRef(new Map());
   const moved = useRef(false);
@@ -81,6 +82,9 @@ function MobileMapCanvas({ go }) {
   const { nodes, edges } = useMemo(() => layoutMap(expanded), [expanded]);
   const [camera, setCamera] = useState({ x: 0, y: 0, scale: 1 });
   const [dragging, setDragging] = useState(false);
+  const visible = new Map(nodes.map(node => [node.id, node]));
+  const [mounted, setMounted] = useState(() => new Map(layoutMap(initialExpanded()).nodes.map(node => [node.id, node])));
+
 
   useLayoutEffect(() => {
     window.scrollTo(0, 0);
@@ -125,11 +129,18 @@ function MobileMapCanvas({ go }) {
     const next = new Set(expanded);
     if (next.has(node.id)) next.delete(node.id);
     else next.add(node.id);
-    const updated = layoutMap(next).nodes.find(item => item.id === node.id);
+    const nextNodes = layoutMap(next).nodes;
+    const updated = nextNodes.find(item => item.id === node.id);
+    setMounted(current => new Map([...current, ...nextNodes.map(item => [item.id, item])]));
     setExpanded(next);
     setCamera(current => ({ ...current, y: current.y + (node.y - updated.y) * current.scale }));
   };
 
+  const focusPrototype = node => {
+    const { clientWidth: width, clientHeight: height } = viewport.current;
+    const scale = Math.min(1, (width - 24) / NODE_WIDTH, (height - 74) / NODE_HEIGHT);
+    setCamera({ scale, x: width / 2 - node.x * scale, y: (height - 44) / 2 - node.y * scale });
+  };
   const point = event => {
     const bounds = viewport.current.getBoundingClientRect();
     return { x: event.clientX - bounds.left, y: event.clientY - bounds.top };
@@ -190,10 +201,11 @@ function MobileMapCanvas({ go }) {
         <div><h1>移动端原型导图</h1><p>供应商管理平台与协同门户</p></div>
       </div>
       <div className="page-map-header-actions">
-        <a className="page-map-export" href="#/mobile/page-map?print=1">导出流程图</a>
-        <a href="#/mobile/components">组件库</a>
+        {!offlinePrototype && !import.meta.env.DEV && <a className="page-map-export"
+          href={import.meta.env.BASE_URL + 'supplier-mobile-interactive.html'} download="供应商移动端交互原型.html">导出交互原型</a>}
+        {!offlinePrototype && <a href="#/mobile/components">组件库</a>}
         <a href={mobilePrdUrl} download="供应商移动端PRD.md">下载 PRD</a>
-        <a href="#/mobile"><ArrowLeft size={16} aria-hidden="true" /><span>返回原型</span></a>
+        {!offlinePrototype && <a href="#/mobile"><ArrowLeft size={16} aria-hidden="true" /><span>返回原型</span></a>}
       </div>
     </header>
     <div className={dragging ? 'page-map-canvas is-dragging' : 'page-map-canvas'} ref={viewport} tabIndex={0}
@@ -217,30 +229,34 @@ function MobileMapCanvas({ go }) {
             d={edgePath(edge)} markerEnd="url(#page-map-arrow)" />)}
         </svg>
         <div className="page-map-center"><Network size={18} aria-hidden="true" />供应商系统</div>
-        {[...nodes].sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true })).map(node => {
-          const { item, id, depth, side } = node;
-          const hasChildren = item.children.length > 0;
+        {[...mounted.values()].sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true })).map(saved => {
+          const node = visible.get(saved.id) || saved;
+          const { item, id } = node;
           const open = expanded.has(id);
-          return <div className="page-map-node" key={id} data-side={side} data-depth={depth}
-            style={{ left: node.x - NODE_WIDTH / 2, top: node.y - NODE_HEIGHT / 2 }}
+          return <div className="page-map-node" key={id} hidden={!visible.has(id)} data-node={id}
+            style={{ left: node.x - NODE_WIDTH / 2, top: node.y - NODE_HEIGHT / 2, width: NODE_WIDTH, height: NODE_HEIGHT }}
             onFocus={event => focusNode(event, node)}>
-            <a href={'#/mobile/' + item.route} title={item.reuse ? item.label + '（复用：' + item.reuse + '）' : item.label}
-              onClick={event => {
-                if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
-                event.preventDefault();
-                go(item.route);
-              }}>
-              <span className="page-map-node-title"><strong>{item.label}</strong><ArrowUpRight size={14} aria-hidden="true" /></span>
-              <MapThumbnail route={item.route} />
-            </a>
-            {hasChildren && <button type="button" aria-expanded={open} aria-label={(open ? '收起' : '展开') + item.label} onClick={() => toggle(node)}>
-              {open ? <Minus size={16} aria-hidden="true" /> : <Plus size={16} aria-hidden="true" />}
-            </button>}
+            <div className="page-map-node-title">
+              <strong>{item.label}</strong>
+              <button type="button" aria-label={'放大' + item.label} title="放大原型" onClick={() => focusPrototype(node)}>
+                <Scan size={17} aria-hidden="true" />
+              </button>
+              {item.children.length > 0 && <button type="button" aria-expanded={open}
+                aria-label={(open ? '收起' : '展开') + item.label} onClick={() => toggle(node)}>
+                {open ? <Minus size={16} aria-hidden="true" /> : <Plus size={16} aria-hidden="true" />}
+              </button>}
+            </div>
+            <iframe className="page-map-prototype" title={item.label} loading="lazy"
+              sandbox="allow-scripts allow-same-origin allow-downloads allow-popups"
+              width={previewSize.width} height={previewSize.height}
+              {...(offlinePrototype
+                ? { srcDoc: window.__SUPPLIER_FRAME_DOCUMENT__(item.route) }
+                : { src: import.meta.env.BASE_URL + '?prototype-node=' + id + '#/mobile/' + item.route })} />
           </div>;
         })}
       </div>
     </div>
-    <div className="page-map-hint"><span>拖拽或双指滑动平移 · 捏合或 Ctrl / ⌘ + 滚轮缩放</span></div>
+    <div className="page-map-hint"><span>页面内直接操作 · 空白处拖动画布 · Ctrl / ⌘ + 滚轮缩放</span></div>
     <div className="page-map-tools" role="group" aria-label="画布缩放">
       <button type="button" aria-label="缩小" onClick={() => zoom(1 / 1.2)} disabled={camera.scale <= MIN_SCALE}><Minus size={18} /></button>
       <output aria-label="当前缩放">{Math.round(camera.scale * 100)}%</output>

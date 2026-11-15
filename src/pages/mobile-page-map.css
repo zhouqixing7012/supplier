@@ -90,8 +90,6 @@
 .page-map-node {
   position: absolute;
   box-sizing: border-box;
-  width: 214px;
-  height: 514px;
   border: 1px solid #cbd6e6;
   border-radius: 11px;
   padding: 7px;
@@ -99,24 +97,40 @@
   background: #fff;
   box-shadow: 0 3px 12px #18253a15;
 }
-.page-map-node a {
-  display: block;
-  color: inherit;
-  text-decoration: none;
-  border-radius: 8px;
-}
 .page-map-node-title {
   box-sizing: border-box;
-  min-height: 55px;
+  height: 56px;
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 4px 7px 8px;
-  font-size: 15px;
+  gap: 7px;
+  padding: 0 4px 7px;
+  font-size: 17px;
   line-height: 1.35;
 }
-.page-map-node:has(> button) .page-map-node-title { padding-inline-end: 39px; }
-.page-map-node-title svg { flex: 0 0 auto; color: #24539d; }
+.page-map-node-title strong { flex: 1; min-width: 0; }
+.page-map-node-title button {
+  flex: 0 0 44px;
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  border: 1px solid #cedaeb;
+  border-radius: 7px;
+  color: #24539d;
+  background: #f5f8fc;
+}
+.page-map-node-title button:hover { background: #edf3ff; }
+.page-map-prototype {
+  display: block;
+  box-sizing: content-box;
+  border: 0;
+  border-radius: 6px;
+  background: #f4f7fa;
+  outline: 1px solid #dce4ee;
+  outline-offset: -1px;
+  touch-action: auto;
+}
 .page-map-thumbnail {
   display: block;
   box-sizing: border-box;
@@ -129,20 +143,6 @@
   border-radius: 6px;
 }
 .page-map-thumbnail.is-missing { display: grid; place-items: center; color: #53647a; font-size: 13px; }
-.page-map-node > button {
-  position: absolute;
-  inset: 10px 9px auto auto;
-  display: grid;
-  place-items: center;
-  width: 33px;
-  height: 36px;
-  cursor: pointer;
-  border: 1px solid #cedaeb;
-  border-radius: 7px;
-  color: #24539d;
-  background: #f5f8fc;
-}
-.page-map-node a:hover .page-map-node-title, .page-map-node button:hover { background: #edf3ff; }
 .page-map-header-actions .page-map-export { color: #18498d; font-weight: 700; }
 .page-map :is(a, button, [tabindex]):focus-visible { outline: 2px solid #2f72d1; outline-offset: -3px; }
 .page-map-tools, .page-map-hint {

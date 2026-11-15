@@ -1,3 +1,4 @@
+import { readMobileSearch } from './mobile-prototype-runtime.js';
 import React, { useEffect, useState } from 'react';
 import { MultiAttachmentField, Actions, AttachmentLink, CardActions, Empty, FullscreenPanel, Row, Section } from '../components/mobile/index.js';
 import { Pencil } from 'lucide-react';
@@ -60,7 +61,7 @@ function LineEditor({ line, index, quote, onCancel, onSave, notify, onPreview })
 }
 
 export function PortalPricingDetail({ quote, records, store, go, notify, onPreview, mapParams = {} }) {
-  const number = new URLSearchParams(window.location.hash.split('?')[1]).get('record');
+  const number = new URLSearchParams(readMobileSearch()).get('record');
   const sample = mapParams.map
     ? records.find(item => (item.status === '已处理') === (Number(mapParams.tab) % 2 === 1))
     : null;

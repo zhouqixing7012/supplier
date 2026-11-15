@@ -1,3 +1,4 @@
+import { mobileStorage } from './mobile-prototype-runtime.js';
 export const bankComparisonFields = [
   ['accountType', '账户类型'], ['bank', '开户银行'], ['branch', '银行分行'],
   ['country', '开户行所在国家/地区'], ['province', '开户所在省'], ['city', '开户所在市'],
@@ -22,9 +23,9 @@ export function bankChangeCounts(before, entries) {
   return counts;
 }
 const storageKey = id => 'supplier:bank-draft:v1:陈才慧:' + id;
-export function readBankDraft(id, storage = localStorage) {
+export function readBankDraft(id, storage = mobileStorage()) {
   try { const draft = JSON.parse(storage.getItem(storageKey(id)) || 'null'); return Array.isArray(draft?.entries) ? draft.entries : null; } catch { return null; }
 }
-export function writeBankDraft(id, entries, storage = localStorage) {
+export function writeBankDraft(id, entries, storage = mobileStorage()) {
   if (entries) storage.setItem(storageKey(id), JSON.stringify({ entries })); else storage.removeItem(storageKey(id));
 }

@@ -1,3 +1,4 @@
+import { readMobileSearch } from './mobile-prototype-runtime.js';
 import { usePanelState } from './mobile-motion.jsx';
 import { AddressForm, Actions, PickerHeading, RecordCard, RecordCollection, Confirm, Empty, Overlay, Row, Section, Tabs } from '../components/mobile/index.js';
 import { regionData } from './registration-regions.js';
@@ -112,7 +113,7 @@ function initialProfile() {
   return { name: basic.supplierName, type: basic.type, email: basic.registerEmail, basic, status: '已审批', contacts: [{ id: 'portal-contact', name: '演示联系人', phone: '13800000000', email: 'supplier@example.com', department: '', job: '', wechat: '', note: '' }], banks: [{ ...clone(sampleBank), name: basic.supplierName }] };
 }
 function PortalProcurementNotice({ go, notify, store, onPreview }) {
-  const notice = readProcurementNotice(window.location.hash.split('?')[1]);
+  const notice = readProcurementNotice(readMobileSearch());
   const account = store.portalAccount;
   const loginRoute = notice && !account ? 'portal?' + new URLSearchParams(notice) : '';
   useEffect(() => {
@@ -145,7 +146,7 @@ function PortalWorkspaceContent({ scene, go, notify, store, onPreview, accountMe
   const { inquiries, orders } = portalPricingRecords(store);
   const [profile] = useState(() => store.portalProfile ||= initialProfile());
   const [draft, setDraft] = useState(() => clone(store.portalDraft || profile));
-  const [editing, setEditing] = useState(scene === 'workspace-info' && new URLSearchParams(window.location.hash.split('?')[1]).get('edit') === '1');
+  const [editing, setEditing] = useState(scene === 'workspace-info' && new URLSearchParams(readMobileSearch()).get('edit') === '1');
   const [tab, setTab] = useState(/^[0-3]$/.test(mapParams.step ?? mapParams.tab) ? Number(mapParams.step ?? mapParams.tab) : Math.min(store.portalInfoTab || 0, 2));
   const [stepsExpanded, setStepsExpanded] = useState(false);
   const [previewTab, setPreviewTab] = useState(0);

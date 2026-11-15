@@ -1,3 +1,4 @@
+import { embeddedPrototype } from './mobile-prototype-runtime.js';
 import { attachmentFiles } from '../components/mobile/attachment-session.js';
 
 function draftKey(store, quote, number, index) {
@@ -26,7 +27,7 @@ async function runTransaction(mode, action) {
 
 export async function readPricingDraft(store, quote, record) {
   const keys = record.lines.map((_, index) => draftKey(store, quote, record.number, index));
-  if (!store.portalAccount) {
+  if (!store.portalAccount || embeddedPrototype) {
     return keys.map(key => store.guestPricingDrafts?.get(key));
   }
   const saved = await runTransaction('readonly', drafts => {
@@ -44,7 +45,7 @@ export async function readPricingDraft(store, quote, record) {
 
 export async function savePricingLine(store, quote, number, index, line) {
   const key = draftKey(store, quote, number, index);
-  if (!store.portalAccount) {
+  if (!store.portalAccount || embeddedPrototype) {
     (store.guestPricingDrafts ||= new Map()).set(key, line);
     return;
   }
@@ -61,7 +62,7 @@ export async function savePricingLine(store, quote, number, index, line) {
 
 export async function clearPricingDraft(store, quote, record) {
   const keys = record.lines.map((_, index) => draftKey(store, quote, record.number, index));
-  if (!store.portalAccount) {
+  if (!store.portalAccount || embeddedPrototype) {
     for (const key of keys) store.guestPricingDrafts?.delete(key);
     return;
   }

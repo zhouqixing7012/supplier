@@ -1,3 +1,4 @@
+import { readMobileRoute } from './mobile-prototype-runtime.js';
 import { bankApplicationNotice } from './bank-application.js';
 import { ActionSheet, Checkbox, Actions, CardActions, RecordCard, RecordCollection, AttachmentLink, Empty, OptionSheet, Row, Section, Tabs } from '../components/mobile/index.js';
 import React, { useState } from 'react';
@@ -17,7 +18,7 @@ export function SupplierList({ suppliers, mine = false, batch = false, checked, 
 }
 function SupplierSummary({ s, mine, batch, checked, setChecked, onDetail, onBank, onMore, onInviter, onReinvite, onEdit, onEditAll, onDelete, onScore, admin, batchKind }) {
   const [menu, setMenu] = useState(false);
-  const historical = window.location.hash.startsWith('#/mobile/shot/');
+  const historical = readMobileRoute().startsWith('shot/');
   const canChangeInviter = canChangeSupplier(s);
   const hasMore = canChangeSupplier(s) || (!mine && canRateSupplier(s)) || canReinviteSupplier(s) || canDeleteSupplier(s, mine) || !['草稿', '邀请中', '注册中', '注册驳回'].includes(s.status);
   const selectable = batchKind === 'all' ? true : batchKind === 'delete' ? canDeleteSupplier(s, mine) : canChangeInviter;

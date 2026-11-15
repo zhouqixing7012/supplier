@@ -1,3 +1,4 @@
+import { mobileAsset } from '../../pages/mobile-prototype-runtime.js';
 import React, { useEffect, useId, useRef, useState } from 'react';
 import { Camera, HelpCircle, Paperclip, Plus, X } from 'lucide-react';
 import { attachmentFiles, attachmentName, rememberAttachment } from './attachment-session.js';
@@ -82,7 +83,7 @@ export function AttachmentLink({ value, onPreview }) {
     document.fonts.ready.then(fit);
     return () => { active = false; observer.disconnect(); };
   }, [name]);
-  return <><button ref={ref} type="button" className="m-attachment-reference" title={name} aria-label={'查看附件：' + name} onClick={() => onPreview ? onPreview(value) : setOpened(true)}><span>{displayName}</span><img className="m-attachment-link-icon" src="/mobile-assets/workbench/attachment-link.svg" alt="" width="16" height="16" /></button>{opened && <AttachmentViewer value={value} onClose={() => setOpened(false)} />}</>;
+  return <><button ref={ref} type="button" className="m-attachment-reference" title={name} aria-label={'查看附件：' + name} onClick={() => onPreview ? onPreview(value) : setOpened(true)}><span>{displayName}</span><img className="m-attachment-link-icon" src={mobileAsset('mobile-assets/workbench/attachment-link.svg')} alt="" width="16" height="16" /></button>{opened && <AttachmentViewer value={value} onClose={() => setOpened(false)} />}</>;
 }
 
 export function AttachmentViewer({ value, title = '查看附件', onClose }) {
@@ -123,7 +124,7 @@ export function AttachmentViewer({ value, title = '查看附件', onClose }) {
     {!opened ? <>
       <p className="m-attachment-count">共 1 个附件</p>
       <div className="m-attachment-list"><button type="button" className="m-attachment-file selected" aria-label={'预览' + name} disabled={busy || (!file && !canResolve)} onClick={open}>
-        <span className="m-file-icon"><img src="/mobile-assets/workbench/file.svg" alt="" /></span><span><strong>{name}</strong><small>{isImage ? '图片附件' : file || canResolve ? '文件附件' : '附件暂不可用'}</small></span>
+        <span className="m-file-icon"><img src={mobileAsset('mobile-assets/workbench/file.svg')} alt="" /></span><span><strong>{name}</strong><small>{isImage ? '图片附件' : file || canResolve ? '文件附件' : '附件暂不可用'}</small></span>
       </button></div>
       {error && <p className="m-attachment-unavailable" role="alert">{error}</p>}
       {!file && !canResolve && <p className="m-attachment-unavailable">附件暂不可用，请联系提供方补充。</p>}

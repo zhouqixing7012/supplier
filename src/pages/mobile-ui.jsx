@@ -1,3 +1,4 @@
+import { mobileAsset } from './mobile-prototype-runtime.js';
 import React from 'react';
 import { Field as MobileField, Overlay, SearchBox as MobileSearchBox, StatusBadge, Steps } from '../components/mobile/index.js';
 import { informationSteps } from './mobile-edit-rules.js';
@@ -43,7 +44,7 @@ export function SupplierIdentityCard({ supplier, children, showMeta = true }) {
 }
 
 export function ScreenshotTip({ onClose }) {
-  return <Overlay label="截屏提示" onClose={onClose}><div className="m-capture-tip"><span className="m-capture-plate"><img src="/mobile-assets/capture-notice-source.jpg" alt="截屏分享提醒" /></span><p>截屏已生效，分享需谨慎</p><button onClick={onClose}>知道了</button></div></Overlay>;
+  return <Overlay label="截屏提示" onClose={onClose}><div className="m-capture-tip"><span className="m-capture-plate"><img src={mobileAsset('mobile-assets/capture-notice-source.jpg')} alt="截屏分享提醒" /></span><p>截屏已生效，分享需谨慎</p><button onClick={onClose}>知道了</button></div></Overlay>;
 }
 
 export function RegistrationSteps({ personal, step, expanded, onExpandedChange }) {

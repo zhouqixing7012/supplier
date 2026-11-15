@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0",
-    "build": "vite build",
+    "build": "vite build && node scripts/export-mobile-map.mjs",
     "preview": "vite preview --host 0.0.0.0",
     "test:mobile": "node tests/mobile.interaction.mjs"
   },

@@ -18,7 +18,7 @@
 - `src/components/mobile/`：移动端通用组件、语义变量及共享样式入口。业务页面与组件库预览共用 `index.js`，供应商业务组合从 `supplier.js` 提供统一导出。
 - `src/pages/mobile-ui.jsx`：将供应商状态、注册步骤、业务字段和查询条件适配到公共组件。
 - `src/mobile-components-entry.jsx`：独立组件库预览入口，通用控件示例在 `catalog.jsx` 维护，业务组件示例在 `supplier-examples.jsx` 维护。
-- `src/pages/mobile-page-map-data.js` 维护原型导图页面树，`mobile-page-map.jsx` 和 `mobile-page-map-print.jsx` 分别用于交互导图和同源打印版。截图由 `scripts/capture-mobile-map.mjs` 从运行中的原型生成。
+- `src/pages/mobile-page-map-data.js` 维护原型导图页面树，`mobile-page-map.jsx` 为各节点嵌入移动端原型。`mobile-prototype-runtime.js` 为每个嵌入实例提供独立路由和存储。`scripts/export-mobile-map.mjs` 打包原型及所需资源，生成可离线打开的 HTML。
 - `src/pages/mobile-review.jsx`及`mobile-review.css`：独立原型评审开关、顶层锚点定位、红字引线、详情编辑与本机导入导出；`mobile-review-data.js`维护预置说明与文件校验，不参与供应商业务状态或正式PRD写入。
 - `src/pages/mobile-forms.jsx`：银行、联系人、地址、权限、邀请及注册字段。
 - `src/pages/mobile-views.jsx`：列表、筛选、详情、审批记录、评分与银行信息申请。

@@ -1,3 +1,4 @@
+import { embeddedPrototype, mobileAsset, readMobileRoute, readMobileSearch, replaceFrameRoute } from './mobile-prototype-runtime.js';
 import { BankChangeCard } from './mobile-bank-change-view.jsx';
 import { ActionSheet, Checkbox, FullscreenPanel, AddressForm, Actions, RecordCollection, AttachmentViewer, Confirm, Empty, FilterButton, FilterSummary, Header, Overlay, Row, Section, Tabs } from '../components/mobile/index.js';
 import { regionData } from './registration-regions.js';
@@ -42,7 +43,6 @@ const screenshotMenus = [
 
 const clone = value => structuredClone(value);
 const currentInviter = '陈才慧';
-const readRoute = () => decodeURIComponent(window.location.hash.replace(/^#\/mobile\/?/, '')) || 'query';
 const now = () => new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Shanghai' });
 const mobileTitle = scene => {
   if (scene === 'workspace-account-email') return '修改注册邮箱';
@@ -97,13 +97,14 @@ function MobileApp() {
   usePageIsolation();
   const views = useRef({});
   const listReturn = useRef('query');
-  const currentRoute = useRef(readRoute());
+  const currentRoute = useRef(readMobileRoute());
+  const startRoute = useRef(currentRoute.current);
   const historyIndex = useRef(0);
   const restoring = useRef(null);
   const approvedBack = useRef(false);
   const [result, setResult] = useState(null);
   const [comparisonState, setComparisonState] = useState({});
-  const [route, setRoute] = useState(readRoute);
+  const [route, setRoute] = useState(readMobileRoute);
   const [suppliers, setSuppliers] = useState(() => {
     registerMobileSupplierSampleFiles();
     return clone([...initialSuppliers, ...mobileSupplierSamples]);
@@ -114,10 +115,11 @@ function MobileApp() {
   const [selected, setSelected] = useState('733324');
   const [message, setMessage] = useState('');
   useEffect(() => {
+    if (embeddedPrototype) return;
     history.replaceState({ ...history.state, mobileIndex: 0 }, '', location.href);
     const change = () => {
       if (restoring.current) { const action = restoring.current; restoring.current = null; action(); return; }
-      const next = readRoute();
+      const next = readMobileRoute();
       const nextIndex = history.state?.mobileIndex ?? historyIndex.current + 1;
       if (next === currentRoute.current && nextIndex === historyIndex.current) return;
       const delta = nextIndex - historyIndex.current;
@@ -146,7 +148,22 @@ function MobileApp() {
     : suppliers.find(s => s.id === '733324'));
   const supplierId = mapSupplier?.id || selected;
   const sampleRating = mapParams.record === 'sample' && scene.startsWith('rating-') ? ratings.find(record => record.status === '已评分') || initialRatings.at(-1) : null;
-  const go = next => interaction.request(() => { if (next === currentRoute.current) return; const previous = currentRoute.current; runMotion(() => { historyIndex.current += 1; history.pushState({ mobileIndex: historyIndex.current }, '', '#/mobile/' + next); currentRoute.current = next; setRoute(next); }, routeMotion(previous, next)); });
+  const go = destination => interaction.request(() => {
+    const previous = currentRoute.current;
+    const next = embeddedPrototype && ['page-map', 'scenes'].includes(destination)
+      ? startRoute.current : destination;
+    if (next === previous) return;
+    runMotion(() => {
+      if (embeddedPrototype) {
+        replaceFrameRoute(next);
+      } else {
+        historyIndex.current += 1;
+        history.pushState({ mobileIndex: historyIndex.current }, '', '#/mobile/' + next);
+      }
+      currentRoute.current = next;
+      setRoute(next);
+    }, routeMotion(previous, next));
+  });
   const notify = text => {
     setMessage(text);
     if (text && /草稿/.test(text)) setResult(null);
@@ -165,7 +182,7 @@ function MobileApp() {
     }
   };
   const update = patch => setSuppliers(list => list.map(s => s.id === supplierId ? { ...s, ...patch, updated: patch.status ? now() : s.updated } : s));
-  return <>{scene === 'page-map' ? <MobilePageMap go={go} route={route} /> : scene === 'scenes' ? <SceneGallery /> : <><aside className="m-preview-nav" data-map-access={!shot && (mapParams.map || scene === 'query' || scene === 'portal') ? 'true' : undefined} aria-label="原型导航"><a href="#/mobile/scenes">47 张截图</a><a className="m-page-map-link" href="#/mobile/page-map">原型导图</a><span>演示数据</span><a href="#/admin/suppliers">电脑端</a></aside><MotionPresence show={!!result} as="aside" className="m-result-banner" role="status">{result && <><strong>操作结果</strong><p>{result.text}</p><button aria-label="关闭操作结果" onClick={() => setResult(null)}>关闭</button></>}</MotionPresence><MobileSurface onComparisonChange={setComparisonState} key={route} scene={scene} shot={shot} ratings={ratings} setRatings={setRatings} activeRating={mapParams.map ? sampleRating : activeRating} setActiveRating={setActiveRating} ratingReturn={mapParams.from || ratingReturn} setRatingReturn={setRatingReturn} views={views.current} listReturn={listReturn} suppliers={suppliers} setSuppliers={setSuppliers} selectedId={supplierId} select={setSelected} update={update} go={go} notify={notify} mapParams={mapParams} /><PrototypeReview route={route} scope={scene} /><ScreenshotCompare state={comparisonState} /></>}<MotionPresence show={!!message} as="div" className="m-toast" role="status">{message}</MotionPresence></>;
+  return <>{scene === 'page-map' ? <MobilePageMap route={route} /> : scene === 'scenes' ? <SceneGallery /> : <>{!embeddedPrototype && <aside className="m-preview-nav" data-map-access={!shot && (mapParams.map || scene === 'query' || scene === 'portal') ? 'true' : undefined} aria-label="原型导航"><a href="#/mobile/scenes">47 张截图</a><a className="m-page-map-link" href="#/mobile/page-map">原型导图</a><span>演示数据</span><a href="#/admin/suppliers">电脑端</a></aside>}<MotionPresence show={!!result} as="aside" className="m-result-banner" role="status">{result && <><strong>操作结果</strong><p>{result.text}</p><button aria-label="关闭操作结果" onClick={() => setResult(null)}>关闭</button></>}</MotionPresence><MobileSurface onComparisonChange={setComparisonState} key={route} scene={scene} shot={shot} ratings={ratings} setRatings={setRatings} activeRating={mapParams.map ? sampleRating : activeRating} setActiveRating={setActiveRating} ratingReturn={mapParams.from || ratingReturn} setRatingReturn={setRatingReturn} views={views.current} listReturn={listReturn} suppliers={suppliers} setSuppliers={setSuppliers} selectedId={supplierId} select={setSelected} update={update} go={go} notify={notify} mapParams={mapParams} />{!embeddedPrototype && <><PrototypeReview route={route} scope={scene} /><ScreenshotCompare state={comparisonState} /></>}</>}<MotionPresence show={!!message} as="div" className="m-toast" role="status">{message}</MotionPresence></>;
 }
 
 function MobileSurface({ onComparisonChange, scene, shot, ratings, setRatings, activeRating, setActiveRating, ratingReturn, setRatingReturn, views, listReturn, suppliers, setSuppliers, selectedId, select, update, go, notify, mapParams }) {
@@ -184,7 +201,7 @@ function MobileSurface({ onComparisonChange, scene, shot, ratings, setRatings, a
     ? suppliers.filter(canChangeSupplier).slice(0, 2).map(item => item.id) : [];
   const [portalAccountMenu, setPortalAccountMenu] = usePanelState(scene === 'workspace-account');
   const [search, setSearch] = useState(views[scene]?.search || '');
-  const [filters, setFilters] = useState(() => mapParams.map ? { return: mapParams.from } : window.location.hash.includes('?') ? Object.fromEntries(new URLSearchParams(window.location.hash.split('?')[1])) : views[scene]?.filters || {});
+  const [filters, setFilters] = useState(() => mapParams.map ? { return: mapParams.from } : readMobileSearch() ? Object.fromEntries(new URLSearchParams(readMobileSearch())) : views[scene]?.filters || {});
   const [filtering, setFiltering] = useState(false);
   const addMenuId = useId();
   const [expanded, setExpanded] = useState(['query-add', 'query-export'].includes(scene));
@@ -521,7 +538,7 @@ function MobileSurface({ onComparisonChange, scene, shot, ratings, setRatings, a
     notify('草稿已保存');
   }
 
-  const historicalToken = scene === 'historical-account' ? new URLSearchParams(location.hash.split('?')[1]).get('invitation') : null;
+  const historicalToken = scene === 'historical-account' ? new URLSearchParams(readMobileSearch()).get('invitation') : null;
   const historicalTarget = historicalToken && suppliers.find(record => record.historicalInvite?.token === historicalToken &&
     record.historicalInvite.expiresAt > Date.now() && canInviteHistoricalSupplier(record, record.inviter));
 
@@ -665,11 +682,11 @@ function MobileSurface({ onComparisonChange, scene, shot, ratings, setRatings, a
     {scene === 'bank-application' && <div className="m-bank-notice-stage"><BankApplication onApply={() => { views.applicationResult = null; go('bank-application-form'); }} />{views.applicationResult && <button className="m-preview-edit" onClick={() => go('bank-application-form')}>查看本次申请</button>}</div>}
     {['bank-application-form', 'application-empty'].includes(scene) && <BankApplicationForm savedApplication={applicationResult} onComplete={data => { views.applicationResult = data; }} notify={notify} onCancel={() => go('bank-application')} />}
     {scene === 'supplier-registration-result' && <section className="m-registration-result" aria-label="注册结果">{registrationResult ? <><div className="m-registration-success"><Check aria-hidden="true" /><h2>注册已提交</h2><p>供应商资料已提交，等待审批</p></div><Section title="注册信息"><Row label="供应商名称">{registrationResult.name}</Row><Row label="供应商账号">{registrationResult.account}</Row><Row label="注册邮箱">{registrationResult.email}</Row><Row label="状态">{registrationResult.status}</Row><Row label="提交时间">{registrationResult.submittedAt}</Row></Section></> : <Empty text="暂无注册提交记录" />}</section>}
-    {scene.startsWith('portal') && <div className="m-portal-login"><div className="m-portal-brand"><img className="m-portal-brand-mark" src={import.meta.env.BASE_URL + 'sohu-logo.png'} alt="搜狐" /><span>供应商协同门户</span></div><section className="m-portal-login-card" aria-labelledby="portal-login-heading"><h2 id="portal-login-heading">{passwordScreen ? '修改密码' : portalEmail ? '验证注册邮箱' : '用户登录'}</h2><p className="m-portal-intro">{passwordScreen ? '验证注册邮箱后，设置新的登录密码' : portalEmail ? '请使用注册邮箱完成身份验证' : '使用供应商账号登录协同门户'}</p><div className="m-portal-form">
+    {scene.startsWith('portal') && <div className="m-portal-login"><div className="m-portal-brand"><img className="m-portal-brand-mark" src={mobileAsset('sohu-logo.png')} alt="搜狐" /><span>供应商协同门户</span></div><section className="m-portal-login-card" aria-labelledby="portal-login-heading"><h2 id="portal-login-heading">{passwordScreen ? '修改密码' : portalEmail ? '验证注册邮箱' : '用户登录'}</h2><p className="m-portal-intro">{passwordScreen ? '验证注册邮箱后，设置新的登录密码' : portalEmail ? '请使用注册邮箱完成身份验证' : '使用供应商账号登录协同门户'}</p><div className="m-portal-form">
       {!passwordScreen && !portalEmail && <><Field label="账号" required value={portal.account} onChange={account => setPortal({ ...portal, account })} placeholder="请输入登录账号" /><Field label="密码" required type="password" value={portal.password} onChange={password => setPortal({ ...portal, password })} placeholder="请输入登录密码" /><div className="m-captcha-field"><Field label="验证码" required value={portal.captcha} onChange={v => setPortal({ ...portal, captcha: v })} placeholder="请输入验证码" /><span className="m-captcha">{captcha}</span><button onClick={() => { setCaptcha(captcha === 'cbvs' ? '39qq' : 'cbvs'); setPortal({ ...portal, captcha: '' }); }}>换一张</button></div></>}
       {(portalEmail || passwordScreen) && <><Field label="注册邮箱" required type="email" error={portalErrors.email} value={portal.email} onChange={email => changePortal('email', email)} /><div className="m-login-email-code"><Field label="邮箱验证码" required error={portalErrors.code} value={portal.code} onChange={code => changePortal('code', code)} /><button className="m-send-code" disabled={countdown > 0} onClick={() => { if (!validEmail(portal.email)) return portalError('email', portal.email ? '请输入正确的注册邮箱' : '请填写注册邮箱'); setPortalErrors({}); setCountdown(60); notify('演示验证码：123456；未发送真实邮件'); }}>{countdown ? countdown + ' s 后可重发' : '发送验证码'}</button></div></>}
       {passwordScreen && <Field label="新密码" required type="password" value={newPassword} onChange={setNewPassword} />}
-      {!portalEmail && !passwordScreen && <button className="m-forgot-link" onClick={() => setPasswordScreen(true)}>修改密码</button>}<button className="m-login-button" onClick={() => { if (passwordScreen) { if (!validEmail(portal.email)) return portalError('email', portal.email ? '请输入正确的注册邮箱' : '请填写注册邮箱'); if (portal.code !== '123456') return portalError('code', portal.code ? '邮箱验证码错误' : '请填写邮箱验证码'); if (!newPassword) return notify('请输入新密码'); notify('原型演示：密码修改完成，未更新真实账号'); setPasswordScreen(false); } else if (!portalEmail) { if (!portal.account || !portal.password) return notify('请输入账号和密码'); if (portal.captcha.toLowerCase() !== captcha) return notify('图形验证码错误'); setPortalEmail(true); } else { if (!validEmail(portal.email)) return portalError('email', portal.email ? '请输入正确的注册邮箱' : '请填写注册邮箱'); if (portal.code !== '123456') return portalError('code', portal.code ? '邮箱验证码错误' : '请填写邮箱验证码'); views.portalAccount = { account: portal.account || '演示供应商账号', email: portal.email }; portalGuard.accept(); notify(''); go(procurementNoticeRoute(location.hash.split('?')[1]) || 'workspace-home'); } }}>{passwordScreen ? '提交' : portalEmail ? '登录' : '下一步'}</button>
+      {!portalEmail && !passwordScreen && <button className="m-forgot-link" onClick={() => setPasswordScreen(true)}>修改密码</button>}<button className="m-login-button" onClick={() => { if (passwordScreen) { if (!validEmail(portal.email)) return portalError('email', portal.email ? '请输入正确的注册邮箱' : '请填写注册邮箱'); if (portal.code !== '123456') return portalError('code', portal.code ? '邮箱验证码错误' : '请填写邮箱验证码'); if (!newPassword) return notify('请输入新密码'); notify('原型演示：密码修改完成，未更新真实账号'); setPasswordScreen(false); } else if (!portalEmail) { if (!portal.account || !portal.password) return notify('请输入账号和密码'); if (portal.captcha.toLowerCase() !== captcha) return notify('图形验证码错误'); setPortalEmail(true); } else { if (!validEmail(portal.email)) return portalError('email', portal.email ? '请输入正确的注册邮箱' : '请填写注册邮箱'); if (portal.code !== '123456') return portalError('code', portal.code ? '邮箱验证码错误' : '请填写邮箱验证码'); views.portalAccount = { account: portal.account || '演示供应商账号', email: portal.email }; portalGuard.accept(); notify(''); go(procurementNoticeRoute(readMobileSearch()) || 'workspace-home'); } }}>{passwordScreen ? '提交' : portalEmail ? '登录' : '下一步'}</button>
     </div></section></div>}
     {scene.startsWith('workspace') && <PortalWorkspace mapParams={mapParams} accountMenu={portalAccountMenu} setAccountMenu={setPortalAccountMenu} scene={scene} go={go} notify={notify} store={views} onPreview={preview} />}
     </SwipeArea>

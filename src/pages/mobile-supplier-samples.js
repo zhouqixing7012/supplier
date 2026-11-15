@@ -1,9 +1,10 @@
+import { mobileAsset } from './mobile-prototype-runtime.js';
 import { attachmentFiles } from '../components/mobile/attachment-session.js';
 import { branches, supplierIndustries, supplierTypes } from './mobile-data.js';
 
 const [enterprise, personal, institution, foreign] = supplierTypes;
 const sampleFiles = new Map();
-const sampleImage = '/mobile-assets/supplier-document-demo.png';
+const sampleImage = mobileAsset('mobile-assets/supplier-document-demo.png');
 const date = '2026-10-08 09:00:00';
 const updated = '2026-10-09 10:00:00';
 
