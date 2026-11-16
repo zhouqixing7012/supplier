@@ -165,7 +165,7 @@ export const reviewDefinitions = [
     "prd-1.9-list",
     ".m-filter-summary, .m-rating-list",
     "1.9 评分运维查询列表无法正常显示",
-    "定位：评分运维查询结果及导出。按当前权限展示合作记录、数量及条件；创建时间从新到旧排序。导出使用同一已应用条件，包含主键、供应商及合作等八项信息。",
+    "定位：评分运维查询结果。按当前权限展示合作记录、数量及条件；创建时间从新到旧排序。",
     "docs/mobile-prd.md",
     [
       "rating-ops"
@@ -323,41 +323,6 @@ export const reviewDefinitions = [
       "address",
       "region",
       "workspace-info"
-    ]
-  ],
-  [
-    "prd-1.19-entry",
-    "button[aria-label=\"导出供应商\"]",
-    "1.19 导出日期隐藏且导出范围不明确",
-    "定位：导出入口。以已应用搜索和筛选范围导出全部匹配记录，覆盖各页；列表勾选不改变导出范围。",
-    "docs/mobile-prd.md",
-    [
-      "query*",
-      "mine*"
-    ]
-  ],
-  [
-    "prd-1.19-date",
-    ".m-export-panel [data-field-label=\"邀请时间（起）\"]",
-    "1.19 导出日期隐藏且导出范围不明确",
-    "定位：导出邀请时间。起止日期均必填，回填列表已应用日期；起始不能晚于结束，两端包含当日。补填只作用本次导出。",
-    "docs/mobile-prd.md",
-    [
-      "query*",
-      "mine*",
-      "export"
-    ]
-  ],
-  [
-    "prd-1.19-scope",
-    ".m-export-conditions",
-    "1.19 导出日期隐藏且导出范围不明确",
-    "定位：导出范围及数量。日期与其他已应用条件共同确定本次范围；零条时提示调整，确认后文件记录与显示数量及范围一致。",
-    "docs/mobile-prd.md",
-    [
-      "query*",
-      "mine*",
-      "export"
     ]
   ],
   [
@@ -532,6 +497,9 @@ export const reviewDefinitions = [
   ]
 ];
 const legacyReviewSelectors = {
+  "prd-1.19-entry": "button[aria-label=\"导出供应商\"]",
+  "prd-1.19-date": ".m-export-panel [data-field-label=\"邀请时间（起）\"]",
+  "prd-1.19-scope": ".m-export-conditions",
   "search": ".m-search-row",
   "filters": ".m-applied-filters",
   "supplier-actions": ".m-supplier-card",

@@ -28,7 +28,7 @@ test('导入文档链接仅保留项目内正式文档', () => {
   assert.equal(result.doc, ''); assert.equal(result.body, '<script>文本仍作为文本保存</script>');
 });
 
-test('预置标注的28项需求均对应正式PRD章节', async () => {
+test('预置标注的27项需求均对应历史优化PRD章节', async () => {
   const { readFile } = await import('node:fs/promises');
   const prd = await readFile(new URL('../docs/mobile-prd.md', import.meta.url), 'utf8');
   const titles = new Set();
@@ -40,7 +40,7 @@ test('预置标注的28项需求均对应正式PRD章节', async () => {
     assert(!/\\bpx\\b|#[0-9a-f]{6}/i.test(body), title);
     titles.add(title);
   }
-  assert.equal(titles.size, 28);
+  assert.equal(titles.size, 27);
   assert.equal(new Set(reviewDefinitions.map(row => row[0])).size, reviewDefinitions.length);
 });
 test('评分查询及邮箱需求按真实业务页面隔离', () => {

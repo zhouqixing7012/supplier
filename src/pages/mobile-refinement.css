@@ -370,6 +370,8 @@
 .m-history-title strong, .m-history-title .m-history-number { display: block; }
 .m-history-title .m-history-number { font-size: 13px; color: var(--m-text-secondary); font-weight: 400; margin-top: 4px; }
 .m-batch-buttons { grid-column: 2; grid-row: 1 / 3; display: flex; gap: 8px; }
+.m-batch-actions:not(:has(> .m-checkbox)) > span { grid-row: 1; padding-left: 0; }
+.m-batch-actions:not(:has(> .m-checkbox)) > .m-batch-buttons { grid-row: 1; }
 .mobile-page .m-batch-buttons button { min-height: 48px; padding: 8px 12px; border-radius: 8px; background: var(--m-action); color: #fff; font-size: 14px; }
 .mobile-page .m-batch-buttons .m-action-danger { border: 1px solid var(--m-danger-text); background: var(--m-danger-surface); }
 .m-batch-actions-mine { column-gap: 8px; }
