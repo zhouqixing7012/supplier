@@ -184,6 +184,12 @@
 .mobile-page:not(.m-shot) .m-tab-bar-pill .m-tab-directory { border: 0 !important; background: #f4f7fa; }
 .mobile-page:not(.m-shot) .m-detail-summary { margin-bottom: 8px; }
 .mobile-page:not(.m-shot) .m-detail > .m-swipe-area > .m-section:first-child { margin-top: 8px; }
+.mobile-page:not(.m-shot) .m-supplier-detail :is(.m-section-content, .m-record-card-body, .m-card-body, .m-history-content) > .m-row {
+  min-height: 36px;
+  padding-block: 6px;
+  border-bottom: 0;
+}
+.mobile-page:not(.m-shot) .m-supplier-detail :is(.m-record-card-body, .m-card-body) { padding-block: 6px; }
 .mobile-page:not(.m-shot) .m-section > h2, .mobile-page:not(.m-shot) .m-section-heading { font-size: 16px; }
 .mobile-page:not(.m-shot) .m-row .m-value { text-align: left; min-width: 0; overflow-wrap: anywhere; }
 .mobile-page:not(.m-shot) .m-reference-card .m-value { text-align: left; }
