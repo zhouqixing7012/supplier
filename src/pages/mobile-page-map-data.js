@@ -29,16 +29,18 @@ const supplierActions = from => {
       link('新增供应商 · 邀请注册', 'invite'),
       node('新增供应商 · 代注册', 'register', registration('register')),
     ] : []),
-    link('更多 · 重新邀请', page('invite-again'), '邀请注册表单'),
-    node('修改草稿', page('register-edit'), registration('register-edit', { from }, form), form),
-    node('修改全部信息', page('register-edit-all'), registration('register-edit-all', { from }, form), form),
+    ...(from === 'mine' ? [
+      link('更多 · 重新邀请', page('invite-again'), '邀请注册表单'),
+      node('修改草稿', page('register-edit'), registration('register-edit', { from }, form), form),
+      node('修改全部信息', page('register-edit-all'), registration('register-edit-all', { from }, form), form),
+    ] : []),
     node(from === 'mine' ? '更多 · 修改银行' : '修改银行', page('bank'), [
       link('银行账户新增／编辑', page('bank', { panel: 'bank' }), '银行账户表单'),
     ]),
     node('更多 · 分配权限', page('permissions'), [link('权限新增／编辑', page('permission-form'))]),
     node('更多 · 单条变更邀请人', page('inviter'), [link('新邀请人选择', page('inviter', { panel: 'people' }))]),
-    link('更多 · 审批记录', page('detail', { tab: 7 }), '供应商详情页签'),
-    link('填写评分', page('rating-edit'), '评分编辑页'),
+    link('更多 · 查看审批进度', page('detail', { tab: 7 }), '供应商详情页签'),
+    ...(from === 'query' ? [link('填写评分', page('rating-edit'), '评分编辑页')] : []),
   ];
 };
 
@@ -64,7 +66,11 @@ const pricing = (quote, handled) => {
 
 export const pageMap = [
   node('供应商管理平台', 'query', [
-    node('供应商查询', 'query', supplierActions('query')),
+    node('供应商查询', target('query', { role: 'employee' }), supplierActions('query')),
+    link('管理员 · 批量删除演示', target('query-batch', { role: 'admin' })),
+    node('历史补账号演示（范围外）', target('detail', { record: 'mock-historical', historyDemo: 1 }), [
+      link('先变更邀请人', target('inviter', { record: 'mock-historical', historyDemo: 1 })),
+    ]),
     node('我的邀请', 'mine', [
       ...supplierActions('mine'),
       node('批量变更邀请人', target('inviter-batch'), [

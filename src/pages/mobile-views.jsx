@@ -9,18 +9,19 @@ import { BankCard, fieldsFor } from './mobile-forms.jsx';
 import { cooperation, supplierStates, supplierTypes, supplierIndustries } from './mobile-data.js';
 import { SwipeArea, attachmentName } from './mobile-interaction.jsx';
 import { ChangeComparison } from './mobile-changes.jsx';
-import { canChangeSupplier, canRateSupplier, canReinviteSupplier, canDeleteSupplier, displayCertificateNumber, supplierAccount } from './mobile-rules.js';
+import { supplierListActions, canChangeSupplier, canRateSupplier, canReinviteSupplier, canDeleteSupplier, displayCertificateNumber, supplierAccount } from './mobile-rules.js';
 
 import { MotionDetails, MotionPresence, runMotion } from './mobile-motion.jsx';
 
-export function SupplierList({ suppliers, mine = false, batch = false, checked, setChecked, onDetail, onBank, onMore, onInviter, onReinvite, onEdit, onEditAll, onDelete, onScore, admin = false, filtered = false, batchKind = 'delete' }) {
-  return <div className="m-supplier-list">{suppliers.length ? suppliers.map(s => <SupplierSummary key={s.id} {...{ s, mine, batch, checked, setChecked, onDetail, onBank, onMore, onInviter, onReinvite, onEdit, onEditAll, onDelete, onScore, admin, batchKind }} />) : <Empty search={filtered} text={filtered ? '暂无匹配结果，请调整搜索或筛选条件' : '暂无供应商记录'} />}</div>;
+export function SupplierList({ suppliers, mine = false, batch = false, checked, setChecked, onDetail, onBank, onMore, onInviter, onReinvite, onEdit, onEditAll, onDelete, onScore, admin = false, currentInviter = '', filtered = false, batchKind = 'delete' }) {
+  return <div className="m-supplier-list">{suppliers.length ? suppliers.map(s => <SupplierSummary key={s.id} {...{ s, mine, batch, checked, setChecked, onDetail, onBank, onMore, onInviter, onReinvite, onEdit, onEditAll, onDelete, onScore, admin, currentInviter, batchKind }} />) : <Empty search={filtered} text={filtered ? '暂无匹配结果，请调整搜索或筛选条件' : '暂无供应商记录'} />}</div>;
 }
-function SupplierSummary({ s, mine, batch, checked, setChecked, onDetail, onBank, onMore, onInviter, onReinvite, onEdit, onEditAll, onDelete, onScore, admin, batchKind }) {
+function SupplierSummary({ s, mine, batch, checked, setChecked, onDetail, onBank, onMore, onInviter, onReinvite, onEdit, onEditAll, onDelete, onScore, admin, currentInviter, batchKind }) {
   const [menu, setMenu] = useState(false);
   const historical = readMobileRoute().startsWith('shot/');
-  const canChangeInviter = canChangeSupplier(s);
-  const hasMore = canChangeSupplier(s) || (!mine && canRateSupplier(s)) || canReinviteSupplier(s) || canDeleteSupplier(s, mine) || !['草稿', '邀请中', '注册中', '注册驳回'].includes(s.status);
+  const allowed = supplierListActions(s, { mine, inviter: currentInviter });
+  const canChangeInviter = allowed.inviter;
+  const hasMore = allowed.permissions || allowed.inviter || allowed.score || allowed.reinvite || allowed.delete || allowed.approval || (mine && allowed.bank);
   const selectable = batchKind === 'all' ? true : batchKind === 'delete' ? canDeleteSupplier(s, mine) : canChangeInviter;
   const fields = mine ? [['证件号码', displayCertificateNumber(s)], ['联系人姓名', s.contact], ['联系人邮箱', s.email], ['联系人电话', s.phone], ...(!historical ? [['邀请单号', s.invitationNo]] : []), ['邀请时间', s.date], ['更新时间', s.updated]] : [['注册方式', s.mode], ['更新时间', s.updated]];
   return <article data-motion-key={"supplier-" + s.id} className={'m-supplier-card' + (mine ? ' m-supplier-card-mine' : '')}>
@@ -29,17 +30,15 @@ function SupplierSummary({ s, mine, batch, checked, setChecked, onDetail, onBank
     {!historical && <p className="m-supplier-kind">{s.type}<span>·</span>{s.mode}</p>}
     <dl>{(historical ? [['供应商类型', s.type], ['审批状态', s.status], ...(!mine ? [['邀请人', s.inviter], ['邀请时间', s.date]] : []), ...fields, ...(!mine ? [['评分', s.score]] : [])] : [...(!mine ? [['邀请人', s.inviter], ['邀请时间', s.date]] : []), ...fields.filter(([label]) => label !== '注册方式'), ...(!mine ? [['评分', s.score]] : [])]).map(([label, value]) => <div className={/时间|邮箱|证件|评分/.test(label) ? 'm-supplier-wide' : ''} key={label}><dt>{label}{historical ? '：' : ''}</dt><dd>{label === '审批状态' ? <StatusTag value={value} /> : value || '—'}</dd></div>)}</dl>
 
-    {!batch && <CardActions split><button onClick={() => onDetail(s)}>查看详情</button>{s.status === '草稿' ? <button onClick={() => onEdit(s)}>修改草稿</button> : canChangeSupplier(s) ? mine ? <button onClick={() => onEditAll(s)}>修改全部信息</button> : <button onClick={() => onBank(s)}>修改银行</button> : null}{hasMore && <button onClick={() => setMenu(true)}>更多操作</button>}</CardActions>}
+    {!batch && <CardActions split><button onClick={() => onDetail(s)}>查看详情</button>{allowed.editDraft ? <button onClick={() => onEdit(s)}>修改草稿</button> : allowed.bank ? mine ? <button onClick={() => onEditAll(s)}>修改全部信息</button> : <button onClick={() => onBank(s)}>修改银行</button> : null}{hasMore && <button onClick={() => setMenu(true)}>更多操作</button>}</CardActions>}
     {menu && <ActionSheet title="更多操作" onClose={() => setMenu(false)}>
-      {canChangeSupplier(s) && <>
-        {mine ? <button onClick={() => { setMenu(false); onBank(s); }}>修改银行</button>
-          : <button onClick={() => { setMenu(false); onMore(s, 'permissions'); }}>分配权限</button>}
-        <button onClick={() => { setMenu(false); onInviter(s); }}>变更邀请人</button>
-      </>}
-      {!mine && canRateSupplier(s) && <button onClick={() => { setMenu(false); onScore(s); }}>评分</button>}
-      {canReinviteSupplier(s) && <button onClick={() => { setMenu(false); onReinvite(s); }}>重新邀请</button>}
-      {canDeleteSupplier(s, mine) && <button className="m-action-danger" onClick={() => { setMenu(false); onDelete(s); }}>删除</button>}
-      {!['草稿', '邀请中', '注册中', '注册驳回'].includes(s.status) && <button onClick={() => { setMenu(false); onMore(s, true); }}>审批记录</button>}
+      {mine && allowed.bank && <button onClick={() => { setMenu(false); onBank(s); }}>修改银行</button>}
+      {allowed.permissions && <button onClick={() => { setMenu(false); onMore(s, 'permissions'); }}>分配权限</button>}
+      {allowed.inviter && <button onClick={() => { setMenu(false); onInviter(s); }}>变更邀请人</button>}
+      {allowed.score && <button onClick={() => { setMenu(false); onScore(s); }}>评分</button>}
+      {allowed.reinvite && <button onClick={() => { setMenu(false); onReinvite(s); }}>重新邀请</button>}
+      {allowed.delete && <button className="m-action-danger" onClick={() => { setMenu(false); onDelete(s); }}>删除</button>}
+      {allowed.approval && <button onClick={() => { setMenu(false); onMore(s, true); }}>查看审批进度</button>}
       <button className="cancel" onClick={() => setMenu(false)}>取消</button>
     </ActionSheet>}
   </article>;
@@ -82,7 +81,7 @@ export function Approval({ supplier, populated = true, history = false, showSupp
   return <div className="m-approval">{supplier.pendingInformation && supplier.status === '变更中' && <ChangeComparison ordinaryDetail before={supplier} after={supplier.pendingInformation} onPreview={onPreview} />}{showSupplier && <Row label="供应商名称">{supplier.name}</Row>}<Section title="当前审批进度" collapsible={false}><Row label="审批类型">{supplier.currentApprovalType || type}</Row><Row label="审批单号">{populated ? supplier.approvalNumber || number : ''}</Row><ApprovalTimeline nodes={currentNodes} /></Section><Section title="审批历史" collapsible={false}><ApprovalHistory records={records} /></Section></div>;
 }
 
-export function SupplierDetail({ supplier, initialTab = 0, approvalEmpty = false, onPreview, ratings = [], onScore, onRatingOpen, onHistoricalInvite }) {
+export function SupplierDetail({ supplier, initialTab = 0, approvalEmpty = false, onPreview, ratings = [], onScore, onRatingOpen, onHistoricalInvite, historicalDemo = false }) {
   const personal = supplier.type === supplierTypes[1];
   const [requestedTab, setTab] = useState(initialTab);
   const tab = personal && [0, 2].includes(requestedTab) ? 1 : requestedTab;
@@ -91,13 +90,13 @@ export function SupplierDetail({ supplier, initialTab = 0, approvalEmpty = false
   const basicRows = fieldsFor(supplier.type).filter(([key]) => personal
     ? ['certificateType', 'creditCode', 'supplierName', 'gender'].includes(key)
     : key !== 'supplierName');
-  const historicalAccount = supplier.mode === '历史供应商' && !supplierAccount(supplier);
+  const historicalAccount = historicalDemo && supplier.mode === '历史供应商' && !supplierAccount(supplier);
   const tabLabels = ['注册信息', '基本信息', '联系人信息', '银行信息', '分配权限', '财务OU', '黑名单操作记录', '审批记录', '合作信息及评分'];
   const visibleTabs = tabLabels.map((label, index) => ({ label, index })).filter(item => !personal || ![0, 2].includes(item.index));
   const visibleTab = visibleTabs.findIndex(item => item.index === tab);
   const changeTab = index => setTab(visibleTabs[index].index);
   return <div className="m-detail m-supplier-detail"><SupplierIdentityCard supplier={supplier} /><Tabs variant="pill" items={visibleTabs.map(item => item.label)} active={visibleTab} onChange={changeTab} /><SwipeArea active={visibleTab} count={visibleTabs.length} onChange={changeTab}>
-    {tab === 0 && <Section title="注册信息" collapsible={false}>{registration.map(([label, value]) => <Row key={label} label={label}>{value || '—'}</Row>)}{historicalAccount && <><p className="m-input-note">历史手工导入供应商，如需生成供应商账号请先变更邀请人，由邀请人重新邀请注册。</p>{onHistoricalInvite && <div className="m-record-actions"><button type="button" onClick={onHistoricalInvite}>重新邀请注册账号</button></div>}{onHistoricalInvite && supplier.historicalInvite && <p className="m-input-note"><a href={'#/mobile/historical-account?invitation=' + encodeURIComponent(supplier.historicalInvite.token)}>打开本次演示注册链接</a></p>}</>}</Section>}
+    {tab === 0 && <Section title="注册信息" collapsible={false}>{registration.map(([label, value]) => <Row key={label} label={label}>{value || '—'}</Row>)}{historicalAccount && <><p className="m-input-note">历史手工导入供应商，如需生成供应商账号请先变更邀请人，由邀请人重新邀请注册。</p>{onHistoricalInvite && <div className="m-record-actions"><button type="button" onClick={onHistoricalInvite}>重新邀请注册账号</button></div>}{onHistoricalInvite && supplier.historicalInvite && <p className="m-input-note"><a href={'#/mobile/historical-account?map=1&historyDemo=1&invitation=' + encodeURIComponent(supplier.historicalInvite.token)}>打开本次演示注册链接</a></p>}</>}</Section>}
     {tab === 1 && <><Section title="基本信息" collapsible={false}>{basicRows.map(([key, label]) => <Row key={key} label={label}>{key === 'creditCode' ? displayCertificateNumber(supplier) || '—' : basic[key] === '' ? '—' : basic[key] ?? '—'}</Row>)}{!personal && <Row label="证照附件">{basic.proof ? <AttachmentLink value={basic.proof} onPreview={onPreview} /> : '—'}</Row>}</Section>{supplier.type === supplierTypes[0] && <QualificationInfo records={basic.qualifications} onPreview={onPreview} />}</>}
     {tab === 2 && <RecordCollection showTitle={false} title="联系人信息" count={supplier.contacts?.length || (supplier.contact ? 1 : 0)} emptyText="暂无联系人信息">{(supplier.contacts?.length ? supplier.contacts : supplier.contact ? [{ id: 'legacy', name: supplier.contact, phone: supplier.phone, email: supplier.email }] : []).map(contact => <RecordCard key={contact.id} title={contact.name || '—'}>{[['phone', '电话'], ['email', '邮箱'], ['department', '部门'], ['job', '职位'], ['wechat', '微信'], ['note', '备注']].map(([key, label]) => <Row key={key} label={label}>{contact[key] || '—'}</Row>)}</RecordCard>)}</RecordCollection>}
     {tab === 3 && <RecordCollection showTitle={false} title="银行信息" count={supplier.banks.length} emptyText="暂无银行信息">{supplier.banks.map(bank => <BankCard fileProof key={bank.id} bank={bank} onPreview={() => onPreview(bank.proof)} />)}</RecordCollection>}

@@ -1,3 +1,5 @@
+import { supplierTypes } from './mobile-data.js';
+import { canReinviteSupplier } from './mobile-rules.js';
 // 原型公共业务规则，目录资料来自移动端演示数据。
 export function withAccountBank(account, bankName, directory) {
   const bank = directory.find(item => item.name === bankName);
@@ -36,7 +38,7 @@ export function reinviteCandidate(records, name, inviter, excludedId) {
   const normalized = (name || '').trim();
   if (!normalized) return undefined;
   return records.find(record => record.id !== excludedId && record.inviter === inviter
-    && (record.name || '').trim() === normalized && ['草稿', '注册驳回'].includes(record.status));
+    && record.type !== supplierTypes[1] && (record.name || '').trim() === normalized && canReinviteSupplier(record));
 }
 export function informationSteps(personal) { return personal ? [0, 2, 3] : [0, 1, 2, 3]; }
 
@@ -55,7 +57,10 @@ export function personalCertificatePhotoError(basic) {
 
 export const validEmail = value => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test((value || '').trim());
 export function registrationEmailError(value) {
-  if (!(value || '').trim()) return '请填写供应商注册邮箱';
-  return validEmail(value) ? '' : '请输入正确的供应商注册邮箱';
+  if (!(value || '').trim()) return '请填写注册邮箱';
+  return validEmail(value) ? '' : '请输入正确的注册邮箱';
 }
 export { middleEllipsis } from '../components/mobile/attachment-name.js';
+
+export const showRegistrationEmail = (type, invited = false) => !(invited && type === supplierTypes[2]);
+export const defaultSupplierCountry = type => type === supplierTypes[3] ? '国外' : '国内';

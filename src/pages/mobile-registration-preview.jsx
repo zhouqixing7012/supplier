@@ -5,7 +5,7 @@ import { BankCard, fieldsFor } from './mobile-forms.jsx';
 import { QualificationInfo } from './mobile-qualifications.jsx';
 import { SwipeArea } from './mobile-interaction.jsx';
 import { supplierTypes } from './mobile-data.js';
-import { personalCertificatePhotoFields } from './mobile-edit-rules.js';
+import { personalCertificatePhotoFields, showRegistrationEmail } from './mobile-edit-rules.js';
 
 export function CertificateAttachmentRows({ basic, type = basic.type, onPreview }) {
   const [enterprise, personal, , foreign] = supplierTypes;
@@ -16,14 +16,14 @@ export function CertificateAttachmentRows({ basic, type = basic.type, onPreview 
   return fields.map(([key, label]) => <Row key={key} label={label}>{basic[key] ? <AttachmentLink value={basic[key]} onPreview={onPreview} /> : '—'}</Row>);
 }
 
-export function RegistrationDetails({ basic, contacts, banks, onPreview, step }) {
+export function RegistrationDetails({ basic, contacts, banks, onPreview, step, invited = false }) {
   const personal = basic.type === supplierTypes[1];
   const show = section => step === undefined || step === section;
   return <>
     {show(0) && <>
       <Section title="基本信息" collapsible={false}>
         {fieldsFor(basic.type).filter(([key]) => key !== 'supplierName').map(([key, label]) => <Row key={key} label={label}>{basic[key] || '—'}</Row>)}
-        <Row label="供应商注册邮箱">{basic.registerEmail || '—'}</Row>
+        {showRegistrationEmail(basic.type, invited) && <Row label="注册邮箱">{basic.registerEmail || '—'}</Row>}
         <CertificateAttachmentRows basic={basic} onPreview={onPreview} />
       </Section>
       {basic.type === supplierTypes[0] && <QualificationInfo records={basic.qualifications} onPreview={onPreview} />}
@@ -39,7 +39,7 @@ export function RegistrationDetails({ basic, contacts, banks, onPreview, step })
   </>;
 }
 
-export function RegistrationPreview({ basic, contacts, banks, mode, active, onTabChange, onPreview, children, supplierFacing = false }) {
+export function RegistrationPreview({ basic, contacts, banks, mode, active, onTabChange, onPreview, children, supplierFacing = false, invited = false }) {
   const personal = basic.type === supplierTypes[1];
   const groups = [{ label: '基本信息', step: 0 }, ...(!personal ? [{ label: '联系人信息', step: 1 }] : []), { label: '银行信息', step: 2 }];
   return <div className="m-detail m-registration-preview">
@@ -47,7 +47,7 @@ export function RegistrationPreview({ basic, contacts, banks, mode, active, onTa
     <Tabs variant="pill" items={groups.map(g => g.label)} active={active} onChange={onTabChange} />
     <SwipeArea active={active} count={groups.length} onChange={onTabChange}>
       {children}
-      <RegistrationDetails basic={basic} contacts={contacts} banks={banks} onPreview={onPreview} step={groups[active].step} />
+      <RegistrationDetails basic={basic} contacts={contacts} banks={banks} onPreview={onPreview} step={groups[active].step} invited={invited} />
     </SwipeArea>
   </div>;
 }

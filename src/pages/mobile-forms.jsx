@@ -1,3 +1,4 @@
+import { showRegistrationEmail, defaultSupplierCountry } from './mobile-edit-rules.js';
 import { usePanelState } from './mobile-motion.jsx';
 import { Actions, AttachmentLink, PickerHeading, ReferencePicker, CardActions, RecordCard, RecordCollection, Confirm, DateSheet, FullscreenPanel, OptionSheet, Overlay, Row, Section, UploadField } from '../components/mobile/index.js';
 import React, { useEffect, useRef, useState } from 'react';
@@ -100,9 +101,9 @@ const basicCompany = [
 const personalFields = [
   ['certificateType', '证件类型', true, ['身份证', '港澳通行证', '护照']], ['supplierName', '姓名', true],
   ['gender', '性别', true, ['男', '女']], ['creditCode', '证件号码', true], ['establishedAt', '证件有效起始日期', true, 'date'], ['licenseUntil', '证件有效截止日期', true, 'date'],
-  ['country', '国家', true, ['国内', '国外']], ['address', '注册地址', true, 'address'], ['email', '邮箱', true, 'email'], ['mobile', '手机', true], ['qq', 'QQ'], ['wechat', '微信'], ['cooperation', '与搜狐合作事项', true, 'textarea'], ['businessAdvantage', '经营优势及业务优势', true, 'textarea'], ['remark', '备注', false, 'textarea'],
+  ['country', '国家', true, ['国内', '国外']], ['address', '注册地址', true, 'address'], ['email', '个人联系邮箱', true, 'email'], ['mobile', '手机', true], ['qq', 'QQ'], ['wechat', '微信'], ['cooperation', '与搜狐合作事项', true, 'textarea'], ['businessAdvantage', '经营优势及业务优势', true, 'textarea'], ['remark', '备注', false, 'textarea'],
 ];
-const governmentFields = [['supplierName', '供应商名称', true], ['country', '国家', true, ['国内', '国外']], ['address', '注册地址', true, 'address'], ['cooperation', '与搜狐合作事项', true, 'textarea'], ['businessAdvantage', '经营优势及业务优势', true, 'textarea'], ['remark', '备注', false, 'textarea']];
+const governmentFields = [['supplierName', '供应商名称', true], ['country', '国家', true, ['国内', '国外']], ['address', '注册地址', true, 'address'], ['cooperation', '与搜狐合作事项', true, 'textarea'], ['remark', '备注', false, 'textarea']];
 const foreignFields = [['supplierName', '供应商名称', true], ['creditCode', '证件号码', true], ['establishedAt', '成立日期', true, 'date'], ['licenseUntil', '证件有效期至', true, 'date'], ['legalRepresentative', '法人代表', true], ['companyPhone', '公司电话'], ['capital', '注册资金', true], ['currency', '注册币种', true, ['人民币', '美元', '港币']], ['country', '国家', true, ['国内', '国外']], ['address', '注册地址', true], ['cooperation', '与搜狐合作事项', true, 'textarea'], ['businessAdvantage', '经营优势及业务优势', true, 'textarea'], ['remark', '备注', false, 'textarea']];
 export const fieldsFor = type => type === supplierTypes[1] ? personalFields : type === supplierTypes[2] ? governmentFields : type === supplierTypes[3] ? foreignFields : basicCompany;
 
@@ -111,6 +112,7 @@ export const filledBasic = { registerEmail: 'supplier@example.com', type: suppli
 export function BasicFields({ data, setData, shot = false, onAddress, initialDate = false, identityReadOnly = false, hideSupplierType = false, initialPanel }) {
   const [nextType, setNextType] = useState('');
   const layout = shot ? undefined : 'stacked';
+  useEffect(() => { if (data.country == null) setData({ ...data, country: defaultSupplierCountry(data.type) }); }, [data.type, data.country]);
   const [picker, setPicker] = useState(initialDate ? { key: 'licenseUntil', title: '证件有效期至' } : null);
   const change = (key, value) => setData({ ...data, [key]: value });
   const basicDraft = useRef(data); basicDraft.current = data;
@@ -147,17 +149,17 @@ export function BasicFields({ data, setData, shot = false, onAddress, initialDat
       } else change(key, value);
     };
     const field = <Field key={key} layout={layout} label={label} required={required && !readOnly} readOnly={readOnly} value={data[key] || ''} onChange={readOnly ? undefined : onChange} options={options} searchable={key === 'industry'} type={kind === 'date' ? 'date' : kind === 'email' ? 'email' : 'text'} multiline={kind === 'textarea'} maxLength={kind === 'textarea' ? 500 : undefined} onPick={kind === 'date' ? () => setPicker({ key, title: label }) : kind === 'address' ? onAddress : undefined} />;
-    if (key === 'supplierName' && !shot) return [field, <Field key="registerEmail" layout="stacked" label="供应商注册邮箱" required type="email" value={data.registerEmail || ''} help="用于供应商登录协同门户及修改密码时接收验证码" onChange={v => change('registerEmail', v)} />];
+    if (key === 'supplierName' && !shot && showRegistrationEmail(data.type, identityReadOnly)) return [field, <Field key="registerEmail" layout="stacked" label="注册邮箱" required type="email" value={data.registerEmail || ''} help="用于供应商登录协同门户及修改密码时接收验证码" onChange={v => change('registerEmail', v)} />];
     if (isCertificateType) return [field, ...personalCertificatePhotoFields(data.certificateType).map(([photo, name]) =>
       <UploadField key={data.certificateType + photo} label={name} required imageOnly value={data[photo]} onChange={value => change(photo, value)} />)];
     return [field];
   };
   const proof = <>{[supplierTypes[0], supplierTypes[3]].includes(data.type) && <UploadField variant={!shot && data.type === supplierTypes[0] ? 'certificate' : undefined} label={data.type === supplierTypes[0] ? '营业执照' : '证书'} required value={data.proof} onChange={changeLicense} help={data.type === supplierTypes[0] ? '支持 PDF、PNG、JPG、GIF、JPC、BMP，最多 1 份，不超过 50 MB。上传后自动识别企业资料。' : '上传证照附件。'} />}{data.type === supplierTypes[0] && recognition && <p className="m-input-note" role="status">{recognition}</p>}</>;
   const content = <>
-    {!hideSupplierType && <Field layout={layout} label="供应商类型" required={!identityReadOnly} readOnly={identityReadOnly} options={identityReadOnly ? undefined : supplierTypes} value={data.type} onChange={type => { if (type === data.type) return; if (Object.entries(data).some(([key, value]) => !['type', 'supplierName', 'registerEmail'].includes(key) && value)) setNextType(type); else setData({ type, supplierName: data.supplierName || '', registerEmail: data.registerEmail || '' }); }} />}
+    {!hideSupplierType && <Field layout={layout} label="供应商类型" required={!identityReadOnly} readOnly={identityReadOnly} options={identityReadOnly ? undefined : supplierTypes} value={data.type} onChange={type => { if (type === data.type) return; if (Object.entries(data).some(([key, value]) => !['type', 'supplierName', 'registerEmail'].includes(key) && value)) setNextType(type); else setData({ type, country: defaultSupplierCountry(type), supplierName: data.supplierName || '', registerEmail: data.registerEmail || '' }); }} />}
     {proof}{fieldsFor(data.type).flatMap(renderField)}
     {data.type === supplierTypes[0] && <QualificationInfo initialEditing={initialPanel === 'qualification'} records={data.qualifications} onChange={qualifications => change('qualifications', qualifications)} />}
-    {nextType && <Confirm text="切换供应商类型会清除不适用的基本信息，是否继续？" onCancel={() => setNextType('')} onConfirm={() => { setData({ type: nextType, supplierName: data.supplierName || '', registerEmail: data.registerEmail || '' }); setNextType(''); }} />}
+    {nextType && <Confirm text="切换供应商类型会清除不适用的基本信息，是否继续？" onCancel={() => setNextType('')} onConfirm={() => { setData({ type: nextType, country: defaultSupplierCountry(nextType), supplierName: data.supplierName || '', registerEmail: data.registerEmail || '' }); setNextType(''); }} />}
     {picker && <DateSheet title={picker.title} value={data[picker.key]} onChange={v => change(picker.key, v)} onClose={() => setPicker(null)} allowLong={picker.key === 'licenseUntil'} />}
   </>;
   return shot ? content : <div className="m-supplier-form-fields m-supplier-basic-fields">{content}</div>;
