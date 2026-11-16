@@ -1,4 +1,4 @@
-import React, { useEffect, useId, useRef, useState } from 'react';
+import React, { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
 import { Overlay, PickerHeading, SelectionMark } from './dialogs.jsx';
 import { Empty } from './feedback.jsx';
 import { SearchBox } from './search.jsx';
@@ -8,7 +8,8 @@ function DateWheel({ label, values, value, onChange }) {
   const ref = useRef(null);
   const timer = useRef(null);
   const id = useId();
-  useEffect(() => {
+  useLayoutEffect(() => {
+    clearTimeout(timer.current);
     const node = ref.current;
     const top = Math.max(0, values.indexOf(value)) * 44;
     if (Math.abs(node.scrollTop - top) > 1) node.scrollTop = top;
@@ -16,9 +17,9 @@ function DateWheel({ label, values, value, onChange }) {
   useEffect(() => () => clearTimeout(timer.current), []);
   const chooseAt = index => onChange(values[Math.max(0, Math.min(values.length - 1, index))]);
   return <div ref={ref} className="m-date-wheel" role="listbox" aria-label={label} aria-activedescendant={id + '-' + value} tabIndex={0}
-    onScroll={e => { const index = Math.round(e.currentTarget.scrollTop / 44); clearTimeout(timer.current); timer.current = setTimeout(() => chooseAt(index), 100); }}
+    onScroll={e => { const node = e.currentTarget; clearTimeout(timer.current); timer.current = setTimeout(() => chooseAt(Math.round(node.scrollTop / 44)), 100); }}
     onKeyDown={e => { const index = values.indexOf(value); if (['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(e.key)) { e.preventDefault(); chooseAt(e.key === 'Home' ? 0 : e.key === 'End' ? values.length - 1 : index + (e.key === 'ArrowDown' ? 1 : -1)); } }}>
-    {values.map(x => <button type="button" role="option" id={id + '-' + x} key={x} tabIndex={-1} aria-selected={x === value} onClick={() => { clearTimeout(timer.current); onChange(x); }}>{x}{label}</button>)}
+    {values.map(x => <button type="button" role="option" id={id + '-' + x} key={x} tabIndex={-1} aria-selected={x === value} onClick={() => { clearTimeout(timer.current); ref.current.scrollTop = values.indexOf(x) * 44; onChange(x); }}>{x}{label}</button>)}
   </div>;
 }
 

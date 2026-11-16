@@ -13,5 +13,9 @@ const cases = [
   ['缺小写不通过', 'ABC12345', false],
   ['特殊字符不作为必填', 'Abc12345!', true],
   ['特殊字符不能替代数字', 'Abcdefg!', false],
+  ['密码首尾空格不通过', ' Abc12345 ', false],
+  ['密码中间空格不通过', 'Abc 12345', false],
+  ['密码全角空格不通过', 'Abc12345　', false],
+  ['密码制表符不通过', 'Abc12345\t', false],
 ];
 for (const [name, value, valid] of cases) test(name, () => assert.equal(registrationPasswordError(value) === '', valid));

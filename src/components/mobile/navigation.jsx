@@ -64,10 +64,31 @@ export function Tabs({ active, onChange, items, variant = 'line', showDirectory 
   </>;
 }
 
-export function Steps({ items, active, expanded, onExpandedChange, label = '办理步骤' }) {
+export function CountTabs({ items, active, onChange, label }) {
+  return <div className="m-status-tabs m-count-tabs" role="group" aria-label={label}>
+    {items.map(item => <button key={item.label} type="button" className={active === item.label ? 'active' : ''}
+      aria-label={item.label} aria-description={'共' + item.count + '条'} aria-pressed={active === item.label}
+      onClick={() => onChange(item.label)}>
+      <strong>{item.count}</strong><span>{item.label}</span>
+    </button>)}
+  </div>;
+}
+
+export function Steps({ items, active, expanded, onExpandedChange, label = '办理步骤', collapsible = false }) {
   const id = useId();
   if (items[active] === undefined) return null;
 
+  const list = <ol>{items.map((title, index) => {
+    const complete = index < active;
+    const current = index === active;
+    return <li key={title} aria-current={current ? 'step' : undefined}
+      className={complete ? 'completed' : current ? 'current' : ''}>
+      <span className="m-step-number">{complete ? <Check aria-label="已完成" /> : index + 1}</span>
+      <span className="m-step-name">{title}</span>
+      <span className="m-step-state">{complete ? '已完成' : current ? '当前步骤' : '待填写'}</span>
+    </li>;
+  })}</ol>;
+  if (!collapsible) return <nav className="m-registration-steps m-registration-steps-horizontal" aria-label={label} data-no-swipe>{list}</nav>;
   return <nav className="m-registration-steps" aria-label={label} data-no-swipe>
     <button type="button" className="m-steps-toggle" aria-expanded={expanded} aria-controls={id}
       onClick={() => onExpandedChange(!expanded)}>
@@ -81,16 +102,7 @@ export function Steps({ items, active, expanded, onExpandedChange, label = '办�
     <div id={id} className="m-registration-step-list" data-open={expanded} aria-hidden={!expanded}
       inert={!expanded ? true : undefined}>
       <div className="m-registration-step-list-inner">
-        <ol>{items.map((title, index) => {
-          const complete = index < active;
-          const current = index === active;
-          return <li key={title} aria-current={current ? 'step' : undefined}
-            className={complete ? 'completed' : current ? 'current' : ''}>
-            <span className="m-step-number">{complete ? <Check aria-label="已完成" /> : index + 1}</span>
-            <span className="m-step-name">{title}</span>
-            <span className="m-step-state">{complete ? '已完成' : current ? '当前步骤' : '待填写'}</span>
-          </li>;
-        })}</ol>
+        {list}
       </div>
     </div>
   </nav>;

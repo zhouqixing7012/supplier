@@ -7,7 +7,7 @@ export function Field({
   label, value = '', onChange, required = false, options, onPick, type = 'text', placeholder,
   maxLength, help, readOnly = false, multiline = false, error: fieldError, inputMode, autoComplete,
   selectionMode = 'immediate', searchable = false, layout, allowClearDate = false, trailing,
-  hideLabel = false,
+  hideLabel = false, onBlur, onPaste,
 }) {
   const id = useId();
   const [validation, setValidation] = useState('');
@@ -27,7 +27,7 @@ export function Field({
   const errorId = error ? id + '-error' : undefined;
   const accessibility = { id, 'aria-label': label, 'aria-invalid': !!error, 'aria-describedby': errorId };
   const input = {
-    ...accessibility, value, maxLength, required, readOnly, inputMode, enterKeyHint: 'next',
+    ...accessibility, value, maxLength, required, readOnly, inputMode, onBlur, onPaste, enterKeyHint: 'next',
     autoComplete: autoComplete || (type === 'password' ? 'current-password' : 'off'),
   };
   const selection = { ...accessibility, type: 'button', className: 'm-select-field' };
@@ -59,7 +59,7 @@ export function Field({
 
   const classes = [
     'm-field', hideLabel && 'm-field-placeholder-only', layout === 'inline' && 'm-field-force-inline',
-    multiline ? 'm-field-stacked' : 'm-field-inline', error && 'has-error', multiline && 'm-field-block',
+    multiline || layout === 'stacked' ? 'm-field-stacked' : 'm-field-inline', error && 'has-error', multiline && 'm-field-block',
   ].filter(Boolean).join(' ');
   const clearable = onChange && value && !readOnly && !options && !onPick && type !== 'date' && type !== 'password';
   const showHelp = () => setHelpOpen(true);
@@ -97,6 +97,16 @@ export function Field({
     {dateOpen && <DateSheet title={label} value={value} onChange={onChange}
       onClose={() => setDateOpen(false)} allowClear={allowClearDate} />}
   </>;
+}
+
+export function DateRange({ label, value = ['', ''], onChange }) {
+  return <div className="m-date-range" role="group" aria-label={label}>
+    <Field label={label + '（起）'} hideLabel type="date" placeholder="开始日期" allowClearDate
+      value={value[0]} onChange={start => onChange([start, value[1]])} />
+    <span className="m-date-range-separator" aria-hidden="true">—</span>
+    <Field label={label + '（止）'} hideLabel type="date" placeholder="结束日期" allowClearDate
+      value={value[1]} onChange={end => onChange([value[0], end])} />
+  </div>;
 }
 
 export function Checkbox({ label, checked, disabled, onChange, children }) {

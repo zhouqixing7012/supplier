@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Row } from '../components/mobile/index.js';
 import { Field } from './mobile-ui.jsx';
 import { useDirtyForm } from './mobile-interaction.jsx';
-import { registrationPasswordError, registrationPasswordRequirement } from './mobile-registration-password.js';
+import { passwordWhitespaceError, registrationPasswordError, registrationPasswordRequirement } from './mobile-registration-password.js';
 
 // 账号注册只演示前端校验，不保存密码或创建真实账号。
 export function SupplierAccountRegistration({ invitation, accounts, onComplete }) {
@@ -17,12 +17,13 @@ export function SupplierAccountRegistration({ invitation, accounts, onComplete }
   const submit = event => {
     event.preventDefault();
     const next = {};
-    const account = form.account;
+    const account = form.account.trim();
     if (!account.trim()) next.account = '请输入账号';
-    else if (accounts.includes(account)) next.account = '该账号已存在，请更换账号';
+    else if (accounts.some(value => value.trim() === account)) next.account = '该账号已存在，请更换账号';
     const passwordError = registrationPasswordError(form.password);
     if (passwordError) next.password = passwordError;
     if (!form.confirmPassword) next.confirmPassword = '请再次输入密码';
+    else if (passwordWhitespaceError(form.confirmPassword)) next.confirmPassword = passwordWhitespaceError(form.confirmPassword, '确认密码');
     else if (form.password !== form.confirmPassword) next.confirmPassword = '两次输入的密码不一致';
     if (!form.verification.trim()) next.verification = '请输入验证码';
     else if (form.verification.toLowerCase() !== captcha) next.verification = '验证码错误，请重新输入';

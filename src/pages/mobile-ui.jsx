@@ -2,6 +2,8 @@ import { mobileAsset } from './mobile-prototype-runtime.js';
 import React from 'react';
 import { Field as MobileField, Overlay, SearchBox as MobileSearchBox, StatusBadge, Steps } from '../components/mobile/index.js';
 import { informationSteps } from './mobile-edit-rules.js';
+import { readMobileRoute } from './mobile-prototype-runtime.js';
+import { passwordWhitespaceError } from './mobile-registration-password.js';
 
 export function ChangeTag({ value }) {
   if (!value) return null;
@@ -19,13 +21,32 @@ export function StatusTag({ value }) {
 }
 
 // 保留供应商字段已有的键盘类型及自动填充规则。
-export function Field({ label, type = 'text', inputMode, autoComplete, ...props }) {
+export function Field({ label, type = 'text', inputMode, autoComplete, value, onChange, error, help, ...props }) {
   const numeric = /邮箱验证码|注册资金|QQ/.test(label);
   const keyboard = numeric ? 'numeric' : /电话|手机/.test(label) ? 'tel' : /邮箱/.test(label) ? 'email' : undefined;
   const completion = type === 'password'
     ? (/新/.test(label) ? 'new-password' : 'current-password')
     : /邮箱/.test(label) ? 'email' : /账号/.test(label) ? 'username' : /电话|手机/.test(label) ? 'tel' : 'off';
-  return <MobileField {...props} label={label} type={type} inputMode={inputMode || keyboard} autoComplete={autoComplete || completion} />;
+  const trimWhitespace = type === 'email' || (/邮箱/.test(label) && !/验证码/.test(label)) || /^(账号|登录账号)$/.test(label);
+  const trimField = trimWhitespace && onChange ? () => {
+    const trimmed = (value || '').trim();
+    if (trimmed !== value) onChange(trimmed);
+  } : undefined;
+  const checkPasswordPaste = type === 'password' && onChange ? event => {
+    const pasted = event.clipboardData.getData('text');
+    if (!passwordWhitespaceError(pasted)) return;
+    event.preventDefault();
+    const { selectionStart, selectionEnd } = event.target;
+    const text = value || '';
+    onChange(text.slice(0, selectionStart) + pasted + text.slice(selectionEnd));
+  } : undefined;
+  const whitespaceHelp = trimWhitespace ? '填完后自动去除首尾空格。'
+    : type === 'password' ? '密码不能包含空格，请检查输入和粘贴的内容。' : '';
+  return <MobileField {...props} label={label} type={type} value={value} onChange={onChange} onBlur={trimField}
+    onPaste={checkPasswordPaste}
+    help={[help, whitespaceHelp].filter(Boolean).join('。').replace('。。', '。')}
+    error={error || (type === 'password' ? passwordWhitespaceError(value, label) : '')}
+    inputMode={inputMode || keyboard} autoComplete={autoComplete || completion} />;
 }
 
 // 筛选项以提示文案表达字段名，关联标签及 aria-label 继续保留。
@@ -51,5 +72,5 @@ export function RegistrationSteps({ personal, step, expanded, onExpandedChange }
   const stages = informationSteps(personal);
   const labels = ['基本信息', '联系人信息', '银行信息', '预览提交'];
   return <Steps label="注册步骤" items={stages.map(stage => labels[stage])} active={stages.indexOf(step)}
-    expanded={expanded} onExpandedChange={onExpandedChange} />;
+    collapsible={readMobileRoute().startsWith('shot/')} expanded={expanded} onExpandedChange={onExpandedChange} />;
 }

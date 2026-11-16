@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import {
-  ActionSheet, Actions, AddressForm, CardActions, Checkbox, Confirm, DateSheet, Empty, Field, FileUploadField, FilterButton, FilterSummary,
+  ActionSheet, Actions, AddressForm, CardActions, Checkbox, Confirm, CountTabs, DateRange, DateSheet, Empty, Field, FileUploadField, FilterButton, FilterSummary,
   FullscreenPanel, Header, MultiAttachmentField, OptionSheet, Overlay, PickerHeading,
   RecordCard, RecordCollection, ReferencePicker, Row, SearchBox,
   Section, StatusBadge, Steps, Tabs, UploadField,
@@ -28,6 +28,7 @@ function NavigationExamples() {
   const [step, setStep] = useState(0);
   const [expanded, setExpanded] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [countStatus, setCountStatus] = useState('全部');
 
   return <>
     <Section title="页签" collapsible={false}>
@@ -37,6 +38,10 @@ function NavigationExamples() {
     <Section title="步骤条与操作栏" collapsible={false}>
       <Steps items={stages} active={step} expanded={expanded} onExpandedChange={setExpanded} />
       {saved && <p role="status" className="m-catalog-note">已保存演示数据</p>}
+    </Section>
+    <Section title="数量页签" collapsible={false}>
+      <CountTabs label="示例记录状态" items={[{ label: '全部', count: 3 }, { label: '未评分', count: 2 }, { label: '已评分', count: 1 }]}
+        active={countStatus} onChange={setCountStatus} />
     </Section>
     <Actions items={[
       { label: '上一步', secondary: true, disabled: step === 0, onClick: () => { setStep(step - 1); setSaved(false); } },
@@ -51,6 +56,7 @@ function FieldExamples() {
   const [name, setName] = useState('');
   const [type, setType] = useState('');
   const [date, setDate] = useState('');
+  const [dateRange, setDateRange] = useState(['', '']);
   const [notes, setNotes] = useState('');
   const [checked, setChecked] = useState(false);
 
@@ -61,6 +67,7 @@ function FieldExamples() {
       <Field label="供应商类型" options={['企业', '个人', '政府机构', '国外供应商']}
         value={type} onChange={setType} searchable />
       <Field label="申请日期" type="date" value={date} onChange={setDate} allowClearDate />
+      <DateRange label="邀请时间" value={dateRange} onChange={setDateRange} />
       <Field label="登记方式" value="邀请注册" readOnly />
       <Field label="备注" value={notes} onChange={setNotes} multiline maxLength={100} />
     </Section>

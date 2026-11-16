@@ -1239,3 +1239,42 @@
   flex-direction: column;
   align-items: flex-end;
 }
+
+/* 邀请时间作为一个范围字段，两个日期共用同一行。 */
+.mobile-page .m-date-range { display: flex; align-items: center; min-width: 0; gap: 8px; margin-bottom: 12px; }
+.mobile-page .m-date-range > .m-field { flex: 1; min-width: 0; width: 0; margin: 0; padding: 10px 12px; border: 0; border-radius: 8px; background: var(--m-surface); }
+.mobile-page .m-date-range > .m-field > label { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); }
+.mobile-page .m-date-range .m-field-control { width: 100%; min-width: 0; }
+.mobile-page .m-date-range .m-select-field { display: flex; gap: 4px; padding-inline: 0 !important; min-width: 0; border: 0; background: transparent; }
+.mobile-page .m-date-range .m-select-field > span { flex: 1; min-width: 0; white-space: nowrap; font-size: 13px; }
+.mobile-page .m-date-range .m-select-field > svg { flex: 0 0 16px; width: 16px; height: 16px; }
+.mobile-page .m-date-range-separator { flex: 0 0 auto; color: var(--m-text-secondary); }
+
+/* 所有办理步骤同时展示，当前步骤和完成状态可直接识别。 */
+.mobile-page .m-registration-steps-horizontal { padding: 16px; margin-top: 0; border-bottom: 0; }
+.mobile-page .m-registration-steps-horizontal ol { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); padding: 0; }
+.mobile-page .m-registration-steps-horizontal li { display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 0; min-height: 0; padding: 0; }
+.mobile-page .m-registration-steps-horizontal li:not(:last-child)::after { left: calc(50% + 18px); top: 12px; width: calc(100% - 36px); height: 1px; background: var(--m-border); }
+.mobile-page .m-registration-steps-horizontal li.completed::after { background: var(--m-action); }
+.mobile-page .m-registration-steps-horizontal .m-step-number { width: 24px; height: 24px; font-size: 12px; border-color: var(--m-action); color: var(--m-action); }
+.mobile-page .m-registration-steps-horizontal li:is(.completed, .current) .m-step-number { color: var(--m-surface); background: var(--m-action); }
+.mobile-page .m-registration-steps-horizontal .m-step-number svg { width: 14px; height: 14px; }
+.mobile-page .m-registration-steps-horizontal .m-step-name { flex: none; font-size: 12px; line-height: 18px; text-align: center; white-space: nowrap; }
+.mobile-page .m-registration-steps-horizontal .m-step-state { font-size: 12px; line-height: 18px; }
+.mobile-page:not(.m-shot) .m-field.m-field-stacked > label { width: 100%; max-width: none; margin-bottom: 6px; }
+
+/* 筛选旁的文字明确批量模式。 */
+.mobile-page .m-search-row > .m-batch-toggle { display: inline-flex; align-items: center; justify-content: center; gap: 4px; width: auto; min-height: 44px; padding: 0 4px; color: var(--m-action); font-size: 13px; white-space: nowrap; }
+.mobile-page .m-search-row > .m-batch-toggle svg { width: 14px; height: 14px; flex: none; }
+.mobile-page:not(.m-shot) .m-supplier-card > .m-card-actions-split:has(> button:nth-child(3)) { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); }
+.mobile-page:not(.m-shot) .m-supplier-card > .m-card-actions-split:has(> button:nth-child(3)) > button:last-child { justify-self: end; }
+.mobile-page .m-action-sheet > button:not(.cancel) { width: calc(100% - 32px); margin-inline: 16px; border-bottom: 1px solid var(--m-border-subtle); }
+.mobile-page .m-action-sheet > button:not(.cancel):last-of-type { border-bottom: 0; }
+
+/* 评分数量按同一查询结果统计，当前状态只决定下面展示的记录。 */
+.mobile-page .m-status-tabs.m-count-tabs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; padding: 0 16px; margin: 8px 0 12px; }
+.mobile-page .m-status-tabs.m-count-tabs > button { display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 4px; min-width: 0; min-height: 60px; padding: 8px; border-radius: 8px; background: var(--m-surface); color: var(--m-text); }
+.mobile-page .m-status-tabs.m-count-tabs > button.active { background: var(--m-action); color: var(--m-surface); }
+.mobile-page .m-status-tabs.m-count-tabs > button::before { display: none; }
+.mobile-page .m-status-tabs.m-count-tabs strong { font-size: 16px; line-height: 20px; font-weight: 600; }
+.mobile-page .m-status-tabs.m-count-tabs span { font-size: 12px; line-height: 16px; }

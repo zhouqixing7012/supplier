@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Actions, Row, Section } from '../components/mobile/index.js';
 import { Field } from './mobile-ui.jsx';
 import { useDirtyForm } from './mobile-interaction.jsx';
+import { passwordWhitespaceError, registrationPasswordError } from './mobile-registration-password.js';
 
 const validEmail = value => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value || '');
 const codeLifetime = 5 * 60 * 1000;
@@ -16,14 +17,14 @@ export function AccountSecurityForm({ kind, email, onCancel, onComplete, initial
   const issued = useRef(null);
   const oldVerified = useRef(false);
   const guard = useDirtyForm(data);
-  const target = changingEmail && step === 1 ? data.newEmail.trim() : email;
+  const target = changingEmail && step === 1 ? data.newEmail.trim() : (email || '').trim();
   useEffect(() => { if (!countdown) return; const timer = setTimeout(() => setCountdown(value => value - 1), 1000); return () => clearTimeout(timer); }, [countdown]);
   const change = (key, value) => {
     setErrors({});
     if (key === 'newEmail') { issued.current = null; setCountdown(0); setData(old => ({ ...old, newEmail: value, code: '' })); }
     else setData(old => ({ ...old, [key]: value }));
   };
-  const emailError = () => !validEmail(target) ? '请输入正确的新邮箱' : changingEmail && step === 1 && target === email ? '新邮箱不能与原邮箱相同' : '';
+  const emailError = () => !validEmail(target) ? '请输入正确的新邮箱' : changingEmail && step === 1 && target === (email || '').trim() ? '新邮箱不能与原邮箱相同' : '';
   const sendCode = () => {
     const error = emailError();
     if (error) return setErrors({ newEmail: error });
@@ -38,8 +39,10 @@ export function AccountSecurityForm({ kind, email, onCancel, onComplete, initial
     else if (Date.now() > issued.current.expires) next.code = '验证码已过期，请重新获取';
     else if (data.code.trim() !== '1234') next.code = '邮箱验证码错误';
     if (!changingEmail) {
-      if (!data.password.trim()) next.password = '请输入新密码';
+      const passwordError = registrationPasswordError(data.password);
+      if (passwordError) next.password = passwordError;
       if (!data.confirmation) next.confirmation = '请再次输入新密码';
+      else if (passwordWhitespaceError(data.confirmation)) next.confirmation = passwordWhitespaceError(data.confirmation, '确认新密码');
       else if (data.confirmation !== data.password) next.confirmation = '两次输入的密码不一致';
     }
     setErrors(next);

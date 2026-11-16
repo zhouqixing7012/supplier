@@ -1,6 +1,6 @@
 import { readMobileRoute } from './mobile-prototype-runtime.js';
 import { bankApplicationNotice } from './bank-application.js';
-import { ActionSheet, Checkbox, Actions, CardActions, RecordCard, RecordCollection, AttachmentLink, Empty, OptionSheet, Row, Section, Tabs } from '../components/mobile/index.js';
+import { ActionSheet, Checkbox, Actions, CardActions, DateRange, RecordCard, RecordCollection, AttachmentLink, Empty, OptionSheet, Row, Section, Tabs } from '../components/mobile/index.js';
 import React, { useState } from 'react';
 import { ChevronDown, ClipboardList, Edit3, Filter, List, MoreHorizontal, Plus, X } from 'lucide-react';
 import { QualificationInfo } from './mobile-qualifications.jsx';
@@ -29,7 +29,7 @@ function SupplierSummary({ s, mine, batch, checked, setChecked, onDetail, onBank
     {!historical && <p className="m-supplier-kind">{s.type}<span>·</span>{s.mode}</p>}
     <dl>{(historical ? [['供应商类型', s.type], ['审批状态', s.status], ...(!mine ? [['邀请人', s.inviter], ['邀请时间', s.date]] : []), ...fields, ...(!mine ? [['评分', s.score]] : [])] : [...(!mine ? [['邀请人', s.inviter], ['邀请时间', s.date]] : []), ...fields.filter(([label]) => label !== '注册方式'), ...(!mine ? [['评分', s.score]] : [])]).map(([label, value]) => <div className={/时间|邮箱|证件|评分/.test(label) ? 'm-supplier-wide' : ''} key={label}><dt>{label}{historical ? '：' : ''}</dt><dd>{label === '审批状态' ? <StatusTag value={value} /> : value || '—'}</dd></div>)}</dl>
 
-    {!batch && <CardActions split><button onClick={() => onDetail(s)}>详情</button>{s.status === '草稿' ? <button onClick={() => onEdit(s)}>修改</button> : canChangeSupplier(s) ? mine ? <button onClick={() => onEditAll(s)}>修改全部信息</button> : <button onClick={() => onBank(s)}>修改银行</button> : null}{hasMore && <button onClick={() => setMenu(true)}>更多操作</button>}</CardActions>}
+    {!batch && <CardActions split><button onClick={() => onDetail(s)}>查看详情</button>{s.status === '草稿' ? <button onClick={() => onEdit(s)}>修改草稿</button> : canChangeSupplier(s) ? mine ? <button onClick={() => onEditAll(s)}>修改全部信息</button> : <button onClick={() => onBank(s)}>修改银行</button> : null}{hasMore && <button onClick={() => setMenu(true)}>更多操作</button>}</CardActions>}
     {menu && <ActionSheet title="更多操作" onClose={() => setMenu(false)}>
       {canChangeSupplier(s) && <>{mine ? <><button onClick={() => { setMenu(false); onInviter(s); }}>变更邀请人</button><button onClick={() => { setMenu(false); onEditAll(s); }}>修改全部信息</button></> : <><button onClick={() => { setMenu(false); onBank(s); }}>修改银行</button><button onClick={() => { setMenu(false); onMore(s, 'permissions'); }}>分配权限</button><button onClick={() => { setMenu(false); onInviter(s); }}>变更邀请人</button></>}</>}
       {!mine && canRateSupplier(s) && <button onClick={() => { setMenu(false); onScore(s); }}>评分</button>}
@@ -46,7 +46,15 @@ export function FilterView({ rating = false, mine = false, listMine = false, ini
   const [data, setData] = useState(() => rating && mine ? Object.fromEntries(Object.entries(initial).filter(([key]) => !['person', 'department'].includes(key))) : initial);
   const update = (key, value) => setData({ ...data, [key]: value });
   const fields = rating ? [['cooperationType', '合作类型', ['技术服务', '电子产品']], ...(!mine ? [['person', '业务线联系人'], ['department', '所属部门']] : []), ['start', '评分开始时间', 'date'], ['end', '评分结束时间', 'date']] : [['type', '供应商类型', supplierTypes], ['status', '供应商状态', supplierStates], ['start', '邀请时间（起）', 'date'], ['end', '邀请时间（止）', 'date'], ['recommended', '供应商推荐', supplierIndustries], ['inviter', '邀请人'], ...(!listMine ? [['certificate', '证件号码']] : [])];
-  return <div className="m-filter-view">{fields.map(([key, label, kind]) => <FilterField key={key} label={label} allowClearDate={kind === 'date'} layout={kind === 'date' ? 'inline' : undefined} selectionMode="immediate" searchable={key === 'recommended'} value={data[key] || ''} type={kind === 'date' ? 'date' : 'text'} options={Array.isArray(kind) ? kind : undefined} onChange={v => update(key, v)} placeholder={rating && ['person', 'department'].includes(key) ? '请输入' + label : undefined} />)}<Actions flat items={[{ label: '重置', muted: true, onClick: () => setData({}) }, { label: '应用筛选', onClick: () => onApply(data) }]} /></div>;
+  return <div className="m-filter-view">{fields.map(([key, label, kind]) => {
+    if (!rating && key === 'end') return null;
+    if (!rating && key === 'start') return <DateRange key={key} label="邀请时间" value={[data.start || '', data.end || '']}
+      onChange={([start, end]) => setData({ ...data, start, end })} />;
+    return <FilterField key={key} label={label} allowClearDate={kind === 'date'} layout={kind === 'date' ? 'inline' : undefined}
+      selectionMode="immediate" searchable={['recommended', 'status'].includes(key)} value={data[key] || ''}
+      type={kind === 'date' ? 'date' : 'text'} options={Array.isArray(kind) ? kind : undefined} onChange={v => update(key, v)}
+      placeholder={rating && ['person', 'department'].includes(key) ? '请输入' + label : undefined} />;
+  })}<Actions flat items={[{ label: '重置', muted: true, onClick: () => setData({}) }, { label: '应用筛选', onClick: () => onApply(data) }]} /></div>;
 }
 
 function ApprovalTimeline({ nodes = [] }) {
