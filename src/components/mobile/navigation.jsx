@@ -31,6 +31,7 @@ export function Tabs({ active, onChange, items, variant = 'line', showDirectory 
       if (!button) return;
       nav.style.setProperty('--m-indicator-x', button.offsetLeft + 'px');
       nav.style.setProperty('--m-indicator-width', button.offsetWidth + 'px');
+      nav.style.setProperty('--m-indicator-label-width', button.querySelector('.m-tab-label').getBoundingClientRect().width + 'px');
     };
     align();
     const observer = new ResizeObserver(align);

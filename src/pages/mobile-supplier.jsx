@@ -5,7 +5,7 @@ import { regionData } from './registration-regions.js';
 import { bankChangeCounts, normalizeBankChanges, readBankDraft, writeBankDraft } from './mobile-bank-changes.js';
 import { createSessionId } from './mobile-interaction.jsx';
 import React, { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { Check, Send, ClipboardPenLine, Landmark, Download, Filter, ListChecks, Plus, Search, Signal, Wifi, Battery, X, CircleUserRound } from 'lucide-react';
+import { Check, Send, ClipboardPenLine, Landmark, Download, Filter, Plus, Search, Signal, Wifi, Battery, X, CircleUserRound } from 'lucide-react';
 import { Field, RegistrationSteps, ScreenshotTip, SearchBox } from './mobile-ui.jsx';
 import { BankCard, BankFields, BasicFields, ContactFields, InviteForm, PermissionForm, ReferenceList, bankError, blankBank, fieldsFor, filledBasic } from './mobile-forms.jsx';
 import { Approval, BankApplication, FilterView, PermissionCard, RatingList, SupplierDetail, SupplierList } from './mobile-views.jsx';
@@ -600,9 +600,15 @@ function MobileSurface({ onComparisonChange, scene, shot, ratings, setRatings, a
       <SearchBox value={search} onChange={setSearch} placeholder={mine ? "搜索供应商名称" : "搜索供应商名称或邀请人"}>
         {shot && <button className="m-icon-button" aria-label={exportBusy ? '导出中' : '导出供应商'} disabled={exportBusy} onClick={startExport}><Download /></button>}
         <FilterButton label="筛选供应商" onClick={() => runMotion(() => setFiltering(true), 'forward')} />
-        <button className="m-icon-button m-batch-toggle" aria-label={batch ? '退出批量选择' : '批量选择'} onClick={() => { runMotion(() => { setBatch(!batch); setChecked([]); }, 'record'); }}>{batch ? <X /> : <ListChecks />}<span>{batch ? '退出批量' : '批量操作'}</span></button>
       </SearchBox>
-      <FilterSummary count={list.length} unit="家供应商" label="查询结果" />
+      <FilterSummary count={list.length} unit="家供应商" label="查询结果" action={
+        <button type="button" className="m-batch-toggle" aria-pressed={batch}
+          onClick={() => runMotion(() => { setBatch(!batch); setChecked([]); }, 'record')}>
+          <img src={mobileAsset('mobile-assets/workbench/supplier-batch-' + (batch ? 'cancel' : 'select') + '.svg')}
+            alt="" width="16" height="16" />
+          {batch ? '取消批量操作' : '批量操作'}
+        </button>
+      } />
       <SupplierList filtered={!!search || Object.values(filters).some(Boolean)} suppliers={list} mine={mine} batch={batch} checked={checked} setChecked={setChecked} admin={adminScene} batchKind={batchKind} onDetail={s => pick(s, 'detail')} onBank={s => pick(s, 'bank')} onMore={(s, approval) => { listReturn.current = mine ? 'mine' : 'query'; select(s.id); approval === 'permissions' ? go('permissions') : approval ? go('detail-approval') : setSheet('more'); }} onInviter={s => pick(s, 'inviter')} onScore={startScore} onReinvite={s => { if (canReinviteSupplier(s)) pick(s, 'invite-again'); }} onEdit={s => pick(s, 'register-edit')} onEditAll={s => pick(s, 'register-edit-all')} onDelete={s => setConfirm({ type: 'delete', ids: [s.id], text: '确认删除供应商「' + s.name + '」？删除后原有信息全部作废。' })} />
       {!batch && <div className="m-fab-group">
         <div id={addMenuId} className="m-fab-menu" data-open={expanded} inert={!expanded} aria-hidden={!expanded || undefined}>
@@ -663,7 +669,7 @@ function MobileSurface({ onComparisonChange, scene, shot, ratings, setRatings, a
       runMotion(() => { setAccountRegistered(true); window.scrollTo(0, 0); }, 'forward');
     }} /> : <Empty text="暂无可注册的邀请信息" />)}
     {isRegistration && (!portalRegistration || accountRegistered) && !['address', 'region'].includes(scene) && <>
-      {editingRegistration && <div className="m-form-heading">{editingAll ? '修改全部信息' : '修改草稿'}</div>}
+      {editingRegistration && !editingAll && <div className="m-form-heading">修改草稿</div>}
       <RegistrationSteps personal={basic.type === supplierTypes[1]} step={step} expanded={stepsExpanded} onExpandedChange={setStepsExpanded} />
       {step === 0 && <BasicFields initialPanel={mapParams.panel} data={basic} setData={setBasic} identityReadOnly={portalRegistration} hideSupplierType={portalRegistration} shot={!!shot} onAddress={() => setAddressOpen(true)} initialDate={scene === 'expiry'} />}
       {step === 1 && <ContactFields initialPanel={mapParams.panel} contacts={contacts} setContacts={setContacts} />}
@@ -680,7 +686,7 @@ function MobileSurface({ onComparisonChange, scene, shot, ratings, setRatings, a
     </>}
     {addressOpen && <AddressForm sheet regions={regionData} initial={basic.address} onConfirm={v => { setBasic({ ...basic, address: v }); setAddressOpen(false); }} onCancel={() => setAddressOpen(false)} />}
     {['address', 'region'].includes(scene) && <AddressForm regions={regionData} initial={shot ? '云南省/保山市/龙陵县 个哈哈哈哈' : basic.address} startRegion={scene === 'region'} onConfirm={v => { setBasic({ ...basic, address: v }); go('register'); }} onCancel={() => go('register')} />}
-    {registerBankPicker && <div className="m-fullscreen-panel"><Header title={portalRegistration ? (editingBank < 0 ? '添加银行账户' : '修改银行账户') : '供应商管理平台'} onBack={() => window.dispatchEvent(new CustomEvent('mobile-close-register-bank'))} /><BankFields onCancel={() => setRegisterBankPicker(false)} bank={registerBankForm} setBank={setRegisterBankForm} company={basic.type === supplierTypes[0]} /><Actions items={[{ label: '取消', onClick: () => window.dispatchEvent(new CustomEvent('mobile-close-register-bank')) }, { label: '添加', onClick: saveRegisterBank }]} /></div>}
+    {registerBankPicker && <div className="m-fullscreen-panel"><Header title={portalRegistration ? (editingBank < 0 ? '添加银行账户' : '修改银行账户') : '供应商管理平台'} onBack={() => window.dispatchEvent(new CustomEvent('mobile-close-register-bank'))} /><BankFields layout="stacked" onCancel={() => setRegisterBankPicker(false)} bank={registerBankForm} setBank={setRegisterBankForm} company={basic.type === supplierTypes[0]} /><Actions items={[{ label: '取消', onClick: () => window.dispatchEvent(new CustomEvent('mobile-close-register-bank')) }, { label: '添加', onClick: saveRegisterBank }]} /></div>}
     {['ratings', 'my-ratings'].includes(scene) && <RatingWorkspace savedView={views[scene]} onViewChange={value => { views[scene] = { ...views[scene], ...value }; }} mine={scene === 'my-ratings'} records={ratings} filters={filters} go={go} onOpen={(record, readOnly) => { setActiveRating(record); setRatingReturn(scene); go(readOnly ? 'rating-detail' : 'rating-edit'); }} onAdd={() => { setActiveRating(null); setRatingReturn(scene); go('rating-edit'); }} />}
     {['rating-edit', 'rating-detail'].includes(scene) && (scene === 'rating-detail' && !activeRating ? <><Empty text="未选择评分记录，请返回列表重新选择" /></> : <RatingEditor record={activeRating} supplier={activeRating ? suppliers.find(x => x.name === activeRating.name) || { name: activeRating.name, type: '', status: '', inviter: '', date: '', mode: '' } : supplier} readOnly={scene === 'rating-detail'} notify={notify} onSave={record => { setRatings(list => list.some(x => x.id === record.id) ? list.map(x => x.id === record.id ? record : x) : [record, ...list]); notify('演示评分已保存'); go(ratingReturn); }} />)}
     {['rating-filter', 'department'].includes(scene) && <FilterView rating mine={filters.return === 'my-ratings'} initial={filters} onCancel={() => go(filters.return || 'ratings')} onApply={v => { if (v.start && v.end && v.start > v.end) return notify('评分开始时间不能晚于结束时间'); go((filters.return || 'ratings') + '?' + new URLSearchParams(v).toString()); }} />}
@@ -702,7 +708,7 @@ function MobileSurface({ onComparisonChange, scene, shot, ratings, setRatings, a
       submitInvitation(reinvitePrompt.data, target);
     }} />}
     {exportOpen && <SupplierExport suppliers={matching} initial={filters} query={search} busy={exportBusy} onExport={performExport} onClose={closeExport} />}
-    {sheet === 'more' && <ActionSheet title="更多操作" onClose={() => setSheet(null)}>{canChangeSupplier(supplier) && ['修改银行', '分配权限', '变更邀请人'].map((label, i) => <button key={label} onClick={() => { setSheet(null); go(['bank', 'permissions', 'inviter'][i]); }}>{label}</button>)}{canRateSupplier(supplier) && <button onClick={() => { setSheet(null); startScore(supplier); }}>评分</button>}<button onClick={() => { setSheet(null); go('detail-approval'); }}>审批记录</button><button className="cancel" onClick={() => setSheet(null)}>取消</button></ActionSheet>}
+    {sheet === 'more' && <ActionSheet title="更多操作" onClose={() => setSheet(null)}>{canChangeSupplier(supplier) && ['修改银行', '分配权限', '变更邀请人'].map((label, i) => <button key={label} className={i === 0 ? 'm-sheet-action-primary' : undefined} onClick={() => { setSheet(null); go(['bank', 'permissions', 'inviter'][i]); }}>{label}</button>)}{canRateSupplier(supplier) && <button onClick={() => { setSheet(null); startScore(supplier); }}>评分</button>}<button onClick={() => { setSheet(null); go('detail-approval'); }}>审批记录</button><button className="cancel" onClick={() => setSheet(null)}>取消</button></ActionSheet>}
     {sheet?.kind === 'attachment' && <AttachmentViewer value={sheet.name} onClose={() => setSheet(null)} />}
     {batchError && <Overlay label="批量操作校验" onClose={() => setBatchError(null)}><h2>{batchError.title}</h2><p>{batchError.text}</p><div className="m-dialog-actions"><button type="button" onClick={() => setBatchError(null)}>知道了</button></div></Overlay>}
     {confirm && <Confirm danger={confirm.type.startsWith('delete')} text={confirm.text} onCancel={() => setConfirm(null)} onConfirm={runConfirmation} />}

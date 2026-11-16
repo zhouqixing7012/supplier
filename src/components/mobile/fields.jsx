@@ -1,5 +1,6 @@
 import React, { useEffect, useId, useState } from 'react';
 import { CalendarDays, Check, ChevronDown, ChevronRight, HelpCircle, Eye, EyeOff, X } from 'lucide-react';
+import { mobileAsset } from '../../pages/mobile-prototype-runtime.js';
 import { Overlay } from './dialogs.jsx';
 import { DateSheet, OptionSheet } from './pickers.jsx';
 
@@ -7,7 +8,7 @@ export function Field({
   label, value = '', onChange, required = false, options, onPick, type = 'text', placeholder,
   maxLength, help, readOnly = false, multiline = false, error: fieldError, inputMode, autoComplete,
   selectionMode = 'immediate', searchable = false, layout, allowClearDate = false, trailing,
-  hideLabel = false, onBlur, onPaste,
+  hideLabel = false, onBlur, onPaste, dateIndicator,
 }) {
   const id = useId();
   const [validation, setValidation] = useState('');
@@ -46,7 +47,7 @@ export function Field({
       onClick={() => setChoosing(true)}>{selectedText}<ChevronDown /></button>;
   } else if (type === 'date') {
     control = <button {...selection} onClick={() => setDateOpen(true)}>
-      {selectedText}<CalendarDays className="m-date-icon" /><ChevronDown className="m-date-shot-icon" />
+      {selectedText}{dateIndicator ?? <><CalendarDays className="m-date-icon" /><ChevronDown className="m-date-shot-icon" /></>}
     </button>;
   } else if (multiline) {
     control = <textarea {...input} onChange={event => onChange(event.target.value)}
@@ -100,11 +101,12 @@ export function Field({
 }
 
 export function DateRange({ label, value = ['', ''], onChange }) {
+  const indicator = <img src={mobileAsset('mobile-assets/workbench/date-range-expand.svg')} alt="" width="16" height="16" />;
   return <div className="m-date-range" role="group" aria-label={label}>
-    <Field label={label + '（起）'} hideLabel type="date" placeholder="开始日期" allowClearDate
+    <Field label={label + '（起）'} hideLabel type="date" placeholder="选择开始日期" dateIndicator={indicator} allowClearDate
       value={value[0]} onChange={start => onChange([start, value[1]])} />
-    <span className="m-date-range-separator" aria-hidden="true">—</span>
-    <Field label={label + '（止）'} hideLabel type="date" placeholder="结束日期" allowClearDate
+    <img className="m-date-range-separator" src={mobileAsset('mobile-assets/workbench/date-range-separator.svg')} alt="" width="16" height="16" />
+    <Field label={label + '（止）'} hideLabel type="date" placeholder="选择结束日期" dateIndicator={indicator} allowClearDate
       value={value[1]} onChange={end => onChange([value[0], end])} />
   </div>;
 }

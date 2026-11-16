@@ -3,9 +3,9 @@ import React, { useEffect, useId, useRef, useState } from 'react';
 import { Camera, HelpCircle, Paperclip, Plus, X } from 'lucide-react';
 import { attachmentFiles, attachmentName, rememberAttachment } from './attachment-session.js';
 import { middleEllipsis } from './attachment-name.js';
-import { Confirm, Overlay } from './dialogs.jsx';
+import { ActionSheet, Confirm, Overlay } from './dialogs.jsx';
 
-export function UploadField({ label, required, value, onChange, help, imageOnly = false }) {
+export function UploadField({ label, required, value, onChange, help, imageOnly = false, variant = 'compact' }) {
   const id = useId();
   const [error, setError] = useState('');
   useEffect(() => { const show = e => { if (e.detail.includes(label)) setError(e.detail); }; window.addEventListener('mobile-validation', show); return () => window.removeEventListener('mobile-validation', show); }, [label]);
@@ -13,6 +13,7 @@ export function UploadField({ label, required, value, onChange, help, imageOnly 
   const [helpOpen, setHelpOpen] = useState(false);
   const [removing, setRemoving] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [choosingSource, setChoosingSource] = useState(false);
   const fileInput = useRef(null);
   const cameraInput = useRef(null);
   const fileKind = imageOnly ? '照片' : '照片或文件';
@@ -29,7 +30,11 @@ export function UploadField({ label, required, value, onChange, help, imageOnly 
     {value ? <>
       <div className="m-uploaded-document"><AttachmentLink value={value} onPreview={() => setPreviewOpen(true)} /><button type="button" className="m-file-remove" aria-label={'移除' + label} onClick={() => setRemoving(true)}><X aria-hidden="true" /></button></div>
       <div className="m-upload-tools"><button type="button" onClick={() => cameraInput.current?.click()}>拍照</button><button type="button" onClick={() => fileInput.current?.click()}>替换{fileKind}</button></div>
-    </> : <div className="m-upload-empty">
+    </> : variant === 'certificate' ? <button type="button" className="m-certificate-upload"
+      aria-label={'上传' + label} onClick={() => setChoosingSource(true)}>
+      <img src={mobileAsset('mobile-assets/workbench/certificate-upload.svg')} width="28" height="28" alt="" />
+      <span>上传图片</span>
+    </button> : <div className="m-upload-empty">
       <button className="m-upload-choose" type="button" aria-label={'选择' + label} onClick={() => fileInput.current?.click()}>
         <Paperclip aria-hidden="true" /><span>{imageOnly ? '选择照片' : '选择文件'}</span>
       </button>
@@ -37,6 +42,11 @@ export function UploadField({ label, required, value, onChange, help, imageOnly 
     </div>}
     <input ref={fileInput} className="m-file-input" tabIndex={-1} id={id} type="file" accept={imageOnly ? 'image/*' : undefined} aria-invalid={!!error} aria-describedby={error ? id + '-error' : undefined} aria-label={label} onChange={e => { receiveFile(e.target.files[0]); e.target.value = ''; }} />
     <input ref={cameraInput} className="m-file-input" tabIndex={-1} type="file" accept="image/*" capture="environment" aria-label={label + '拍照选择器'} onChange={e => { receiveFile(e.target.files[0]); e.target.value = ''; }} />
+    {choosingSource && <ActionSheet title={'上传' + label} onClose={() => setChoosingSource(false)}>
+      <button type="button" onClick={() => { fileInput.current?.click(); setChoosingSource(false); }}>{imageOnly ? '选择照片' : '选择文件'}</button>
+      <button type="button" onClick={() => { cameraInput.current?.click(); setChoosingSource(false); }}>拍照</button>
+      <button type="button" className="cancel" onClick={() => setChoosingSource(false)}>取消</button>
+    </ActionSheet>}
     {previewOpen && <AttachmentViewer value={value} title={label} onClose={() => setPreviewOpen(false)} />}
   </div>{error && <p id={id + "-error"} className="m-field-error" role="alert">{error}</p>}{helpOpen && <Overlay label={label + "填写说明"} onClose={() => setHelpOpen(false)}><h2>{label}</h2><p>{help}</p><div className="m-dialog-actions"><button onClick={() => setHelpOpen(false)}>知道了</button></div></Overlay>}{removing && <Confirm danger text={"确认移除" + label + "？"} onCancel={() => setRemoving(false)} onConfirm={() => { onChange(''); setRemoving(false); }} />}</div>;
 }

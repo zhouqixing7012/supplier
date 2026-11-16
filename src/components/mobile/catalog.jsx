@@ -194,11 +194,13 @@ function DialogExamples() {
 }
 
 function AttachmentExamples() {
+  const [certificate, setCertificate] = useState('');
   const [image, setImage] = useState('');
   const [file, setFile] = useState('');
   const [attachments, setAttachments] = useState([]);
 
   return <Section title="上传与预览">
+    <UploadField label="营业执照" variant="certificate" value={certificate} onChange={setCertificate} />
     <UploadField label="证件照片" value={image} onChange={setImage} />
     <FileUploadField label="证明文件" value={file} onChange={setFile} />
     <MultiAttachmentField label="多份附件" value={attachments} onChange={setAttachments} />

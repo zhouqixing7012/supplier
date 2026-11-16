@@ -1240,15 +1240,20 @@
   align-items: flex-end;
 }
 
-/* 邀请时间作为一个范围字段，两个日期共用同一行。 */
-.mobile-page .m-date-range { display: flex; align-items: center; min-width: 0; gap: 8px; margin-bottom: 12px; }
-.mobile-page .m-date-range > .m-field { flex: 1; min-width: 0; width: 0; margin: 0; padding: 10px 12px; border: 0; border-radius: 8px; background: var(--m-surface); }
+/* 两个日期使用等宽列，分隔符只以当前行的两个控件为基准。 */
+.mobile-page .m-date-range { display: grid; grid-template-columns: minmax(0, 1fr) 16px minmax(0, 1fr); align-items: center; gap: 8px; margin-bottom: 16px; }
+.mobile-page .m-date-range > .m-field,
+.mobile-page .m-filter-view .m-date-range > .m-field.m-field-placeholder-only { width: 100%; min-width: 0; min-height: 44px; margin: 0; padding: 0 12px; border: 0; border-radius: 12px; background: var(--m-surface); }
 .mobile-page .m-date-range > .m-field > label { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); }
 .mobile-page .m-date-range .m-field-control { width: 100%; min-width: 0; }
-.mobile-page .m-date-range .m-select-field { display: flex; gap: 4px; padding-inline: 0 !important; min-width: 0; border: 0; background: transparent; }
-.mobile-page .m-date-range .m-select-field > span { flex: 1; min-width: 0; white-space: nowrap; font-size: 13px; }
-.mobile-page .m-date-range .m-select-field > svg { flex: 0 0 16px; width: 16px; height: 16px; }
-.mobile-page .m-date-range-separator { flex: 0 0 auto; color: var(--m-text-secondary); }
+.mobile-page .m-date-range .m-select-field { display: flex; justify-content: space-between; gap: 3px; padding-inline: 0 !important; min-width: 0; min-height: 44px; border: 0; background: transparent; }
+.mobile-page .m-date-range .m-select-field > span,
+.mobile-page .m-filter-view .m-date-range .m-field.m-field-placeholder-only .m-select-field > span { min-width: 0; white-space: nowrap; font-size: 14px; }
+.mobile-page .m-date-range .m-select-field > img { flex: 0 0 auto; }
+.mobile-page .m-date-range-separator { display: block; }
+@media (max-width: 359px) {
+  .mobile-page .m-filter-view .m-date-range > .m-field.m-field-placeholder-only { padding-inline: 8px; }
+}
 
 /* 所有办理步骤同时展示，当前步骤和完成状态可直接识别。 */
 .mobile-page .m-registration-steps-horizontal { padding: 16px; margin-top: 0; border-bottom: 0; }
@@ -1263,13 +1268,45 @@
 .mobile-page .m-registration-steps-horizontal .m-step-state { font-size: 12px; line-height: 18px; }
 .mobile-page:not(.m-shot) .m-field.m-field-stacked > label { width: 100%; max-width: none; margin-bottom: 6px; }
 
-/* 筛选旁的文字明确批量模式。 */
-.mobile-page .m-search-row > .m-batch-toggle { display: inline-flex; align-items: center; justify-content: center; gap: 4px; width: auto; min-height: 44px; padding: 0 4px; color: var(--m-action); font-size: 13px; white-space: nowrap; }
-.mobile-page .m-search-row > .m-batch-toggle svg { width: 14px; height: 14px; flex: none; }
+/* 供应商列表的结果数量、卡片和批量操作共用页面内边距。 */
+.mobile-page:not(.m-shot).m-list-page .m-applied-filters { padding: 0 16px; }
+.mobile-page.m-list-page .m-filter-summary:has(> .m-batch-toggle) { flex-wrap: nowrap; min-height: 44px; }
+.mobile-page:not(.m-shot).m-list-page .m-result-count { color: var(--m-text); white-space: nowrap; }
+.mobile-page.m-list-page .m-result-count-value { color: var(--m-action); font-weight: 600; }
+.mobile-page .m-filter-summary > .m-batch-toggle { display: inline-flex; align-items: center; gap: 4px; flex: none; min-height: 44px; padding: 0 !important; color: var(--m-action); font-size: 14px; white-space: nowrap; }
+.mobile-page:not(.m-shot) .m-supplier-card .m-supplier-heading { flex-wrap: nowrap; }
+.mobile-page:not(.m-shot) .m-supplier-card .m-supplier-heading h3 { flex-basis: 0; }
+.mobile-page:not(.m-shot) .m-supplier-card .m-supplier-heading > .m-status { border: 1px solid currentColor; border-radius: 999px; font-size: 12px; line-height: 16px; }
+.mobile-page:not(.m-shot) .m-supplier-card dl { grid-template-columns: minmax(0, 1fr); }
+.mobile-page:not(.m-shot) .m-supplier-card dd { color: var(--m-text); text-align: right; }
 .mobile-page:not(.m-shot) .m-supplier-card > .m-card-actions-split:has(> button:nth-child(3)) { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); }
 .mobile-page:not(.m-shot) .m-supplier-card > .m-card-actions-split:has(> button:nth-child(3)) > button:last-child { justify-self: end; }
-.mobile-page .m-action-sheet > button:not(.cancel) { width: calc(100% - 32px); margin-inline: 16px; border-bottom: 1px solid var(--m-border-subtle); }
-.mobile-page .m-action-sheet > button:not(.cancel):last-of-type { border-bottom: 0; }
+.mobile-page:not(.m-shot) .m-batch-actions-mine .m-batch-buttons > .m-action-danger { color: var(--m-danger-fill) !important; background: var(--m-surface) !important; }
+.mobile-page .m-action-sheet > button:not(.cancel) { width: calc(100% - 32px); margin-inline: 16px; border-bottom: 1px solid var(--m-border-subtle); outline-offset: -2px; }
+.mobile-page .m-action-sheet > button:has(+ .cancel) { border-bottom: 0; }
+.mobile-page:not(.m-shot) .m-action-sheet > button.m-sheet-action-primary { background: var(--m-info-surface); color: var(--m-action); border-bottom-color: transparent; border-radius: 8px; font-weight: 600; }
+.mobile-page:not(.m-shot) .m-action-sheet > button.cancel { border-top: 1px solid var(--m-border-subtle); color: var(--m-text-secondary); }
+
+.mobile-page:not(.m-shot) > .m-tab-bar-stretch:not(.m-tab-bar-pill) .m-tab-indicator {
+  --m-line-x: var(--m-indicator-x, 0px);
+  --m-line-track-width: var(--m-indicator-width, 24px);
+  --m-line-width: var(--m-indicator-label-width, 24px);
+  width: var(--m-line-width);
+  height: 2px;
+  transform: translateX(calc(var(--m-line-x) + (var(--m-line-track-width) - var(--m-line-width)) / 2));
+}
+.mobile-page:not(.m-shot) > .m-tab-bar-stretch:not(.m-tab-bar-pill) .m-gesture-tabs .m-tab-indicator {
+  --m-line-x: var(--m-gesture-x, 0px);
+  --m-line-track-width: var(--m-gesture-width, 24px);
+}
+
+/* 供应商资料编辑按统一的上下布局和字段间距展示。 */
+.mobile-page:not(.m-shot) .m-supplier-basic-fields { padding: 16px 16px 0; background: var(--m-surface); }
+.mobile-page:not(.m-shot) .m-supplier-form-fields .m-field { min-height: 0; padding-block: 0; margin-bottom: 16px; border-bottom: 0; }
+.mobile-page:not(.m-shot) .m-supplier-basic-fields > .m-field { padding-inline: 0; }
+.mobile-page:not(.m-shot) .m-supplier-form-fields .m-field > label { width: 100%; max-width: none; min-height: 20px; margin-bottom: 8px; line-height: 20px; color: var(--m-text); }
+.mobile-page:not(.m-shot) .m-supplier-form-fields .m-field-control > :where(input:not([type=file]), textarea, .m-select-field) { border-radius: 12px; }
+.mobile-page .m-field-control > button.m-certificate-upload { display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 8px; width: 100%; min-height: 102px; padding: 24px 12px; border: 1px solid var(--m-border); border-radius: 12px; background: var(--m-surface); color: var(--m-text-secondary); font-size: 12px; line-height: 16px; }
 
 /* 评分数量按同一查询结果统计，当前状态只决定下面展示的记录。 */
 .mobile-page .m-status-tabs.m-count-tabs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; padding: 0 16px; margin: 8px 0 12px; }
@@ -1278,3 +1315,6 @@
 .mobile-page .m-status-tabs.m-count-tabs > button::before { display: none; }
 .mobile-page .m-status-tabs.m-count-tabs strong { font-size: 16px; line-height: 20px; font-weight: 600; }
 .mobile-page .m-status-tabs.m-count-tabs span { font-size: 12px; line-height: 16px; }
+.mobile-page:not(.m-shot)[data-scene="my-ratings"] .m-count-tabs { margin-bottom: 0; }
+.mobile-page:not(.m-shot)[data-scene="my-ratings"] .m-rating-list .m-row > .m-value { text-align: right; }
+.mobile-page:not(.m-shot)[data-scene="my-ratings"] .m-rating-card-state > .m-status { border: 1px solid currentColor; border-radius: 999px; font-size: 12px; line-height: 16px; }

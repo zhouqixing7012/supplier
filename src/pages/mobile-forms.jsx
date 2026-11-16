@@ -19,7 +19,7 @@ export function bankError(bank, company = true) {
   return '';
 }
 
-export function BankFields({ bank, setBank, company = true, proofRequired = company, onCancel }) {
+export function BankFields({ bank, setBank, company = true, proofRequired = company, onCancel, layout }) {
   const [picker, setPicker] = useState(null);
   const guard = useDirtyForm(bank);
   useEffect(() => {
@@ -33,17 +33,17 @@ export function BankFields({ bank, setBank, company = true, proofRequired = comp
     return () => window.removeEventListener('mobile-close-register-bank', close);
   });
   const change = (key, value) => setBank({ ...bank, [key]: value });
-  return <div className="m-bank-fields"><Section title="开户银行信息">
-    {company && <Field label="账户类型" required options={['基本账户', '一般账户']} value={bank.accountType} onChange={v => change('accountType', v)} />}
-    <Field label="开户银行" required value={bank.bank} help="开户银行来自银行基础数据，未查询到时请联系业务对接人。" onPick={() => setPicker('bank')} />
-    <Field label="银行分行" required value={bank.branch} help="选择开户银行后选择对应分行。" onPick={() => bank.bank ? setPicker('branch') : window.dispatchEvent(new CustomEvent('mobile-validation', { detail: '请先选择开户银行' }))} />
-    <Field label="开户行所在国家/地区" required value={bank.country} readOnly />
-    <Field label="开户所在省" required value={bank.province} readOnly /><Field label="开户所在市" required value={bank.city} readOnly />
-    </Section><Section title="账户信息"><Field label="账户名称" required value={bank.name} onChange={v => change('name', v)} maxLength={100} />
-    <Field label="银行账号" required value={bank.number} onChange={v => change('number', v)} maxLength={50} />
-    <Field label="币种" required options={['人民币', '美元', '港币']} value={bank.currency} onChange={v => change('currency', v)} />
+  return <div className={'m-bank-fields' + (layout === 'stacked' ? ' m-supplier-form-fields' : '')}><Section title="开户银行信息">
+    {company && <Field layout={layout} label="账户类型" required options={['基本账户', '一般账户']} value={bank.accountType} onChange={v => change('accountType', v)} />}
+    <Field layout={layout} label="开户银行" required value={bank.bank} help="开户银行来自银行基础数据，未查询到时请联系业务对接人。" onPick={() => setPicker('bank')} />
+    <Field layout={layout} label="银行分行" required value={bank.branch} help="选择开户银行后选择对应分行。" onPick={() => bank.bank ? setPicker('branch') : window.dispatchEvent(new CustomEvent('mobile-validation', { detail: '请先选择开户银行' }))} />
+    <Field layout={layout} label="开户行所在国家/地区" required value={bank.country} readOnly />
+    <Field layout={layout} label="开户所在省" required value={bank.province} readOnly /><Field layout={layout} label="开户所在市" required value={bank.city} readOnly />
+    </Section><Section title="账户信息"><Field layout={layout} label="账户名称" required value={bank.name} onChange={v => change('name', v)} maxLength={100} />
+    <Field layout={layout} label="银行账号" required value={bank.number} onChange={v => change('number', v)} maxLength={50} />
+    <Field layout={layout} label="币种" required options={['人民币', '美元', '港币']} value={bank.currency} onChange={v => change('currency', v)} />
     </Section><Section title="证明及备注"><UploadField label="开户证明" required={proofRequired} value={bank.proof} onChange={proof => change('proof', proof)} help="上传银行开户证明。" />
-    <Field label="备注" multiline value={bank.note} onChange={v => change('note', v)} maxLength={400} />
+    <Field layout={layout} label="备注" multiline value={bank.note} onChange={v => change('note', v)} maxLength={400} />
     </Section>{picker && <Overlay label={picker === 'bank' ? '开户银行' : '银行分行'} onClose={() => setPicker(null)} sheet><PickerHeading title={picker === 'bank' ? '开户银行' : '银行分行'} /><ReferenceList kind={picker} selected={picker === 'bank' ? bank.bank : bank.branch} bank={bank.bank} onCancel={() => setPicker(null)} onConfirm={v => { if (picker === 'bank') setBank(withAccountBank(bank, v, bankDirectory)); else { const branch = branches.find(x => x.bank === bank.bank && x.name === v); setBank({ ...bank, branch: v, country: branch?.country || bankDirectory.find(entry => entry.name === bank.bank)?.country || '', province: branch?.province || '', city: branch?.city || '' }); } setPicker(null); }} /></Overlay>}
   </div>;
 }
@@ -110,6 +110,7 @@ export const filledBasic = { registerEmail: 'supplier@example.com', type: suppli
 
 export function BasicFields({ data, setData, shot = false, onAddress, initialDate = false, identityReadOnly = false, hideSupplierType = false, initialPanel }) {
   const [nextType, setNextType] = useState('');
+  const layout = shot ? undefined : 'stacked';
   const [picker, setPicker] = useState(initialDate ? { key: 'licenseUntil', title: '证件有效期至' } : null);
   const change = (key, value) => setData({ ...data, [key]: value });
   const basicDraft = useRef(data); basicDraft.current = data;
@@ -145,20 +146,21 @@ export function BasicFields({ data, setData, shot = false, onAddress, initialDat
         if (value !== data.certificateType) setData({ ...data, certificateType: value, proof: '', personalSupplierBackPicture: '' });
       } else change(key, value);
     };
-    const field = <Field key={key} layout={!shot && ['supplierName', 'creditCode', 'address', 'invoiceAddress', 'website', 'email'].includes(key) ? 'stacked' : undefined} label={label} required={required && !readOnly} readOnly={readOnly} value={data[key] || ''} onChange={readOnly ? undefined : onChange} options={options} searchable={key === 'industry'} type={kind === 'date' ? 'date' : kind === 'email' ? 'email' : 'text'} multiline={kind === 'textarea'} maxLength={kind === 'textarea' ? 500 : undefined} onPick={kind === 'date' ? () => setPicker({ key, title: label }) : kind === 'address' ? onAddress : undefined} />;
+    const field = <Field key={key} layout={layout} label={label} required={required && !readOnly} readOnly={readOnly} value={data[key] || ''} onChange={readOnly ? undefined : onChange} options={options} searchable={key === 'industry'} type={kind === 'date' ? 'date' : kind === 'email' ? 'email' : 'text'} multiline={kind === 'textarea'} maxLength={kind === 'textarea' ? 500 : undefined} onPick={kind === 'date' ? () => setPicker({ key, title: label }) : kind === 'address' ? onAddress : undefined} />;
     if (key === 'supplierName' && !shot) return [field, <Field key="registerEmail" layout="stacked" label="供应商注册邮箱" required type="email" value={data.registerEmail || ''} help="用于供应商登录协同门户及修改密码时接收验证码" onChange={v => change('registerEmail', v)} />];
     if (isCertificateType) return [field, ...personalCertificatePhotoFields(data.certificateType).map(([photo, name]) =>
       <UploadField key={data.certificateType + photo} label={name} required imageOnly value={data[photo]} onChange={value => change(photo, value)} />)];
     return [field];
   };
-  const proof = <>{[supplierTypes[0], supplierTypes[3]].includes(data.type) && <UploadField label={data.type === supplierTypes[0] ? '营业执照' : '证书'} required value={data.proof} onChange={changeLicense} help="上传证照附件。" />}{data.type === supplierTypes[0] && recognition && <p className="m-input-note" role="status">{recognition}</p>}</>;
-  return <>
-    {!hideSupplierType && <Field label="供应商类型" required={!identityReadOnly} readOnly={identityReadOnly} options={identityReadOnly ? undefined : supplierTypes} value={data.type} onChange={type => { if (type === data.type) return; if (Object.entries(data).some(([key, value]) => !['type', 'supplierName', 'registerEmail'].includes(key) && value)) setNextType(type); else setData({ type, supplierName: data.supplierName || '', registerEmail: data.registerEmail || '' }); }} />}
+  const proof = <>{[supplierTypes[0], supplierTypes[3]].includes(data.type) && <UploadField variant={!shot && data.type === supplierTypes[0] ? 'certificate' : undefined} label={data.type === supplierTypes[0] ? '营业执照' : '证书'} required value={data.proof} onChange={changeLicense} help={data.type === supplierTypes[0] ? '支持 PDF、PNG、JPG、GIF、JPC、BMP，最多 1 份，不超过 50 MB。上传后自动识别企业资料。' : '上传证照附件。'} />}{data.type === supplierTypes[0] && recognition && <p className="m-input-note" role="status">{recognition}</p>}</>;
+  const content = <>
+    {!hideSupplierType && <Field layout={layout} label="供应商类型" required={!identityReadOnly} readOnly={identityReadOnly} options={identityReadOnly ? undefined : supplierTypes} value={data.type} onChange={type => { if (type === data.type) return; if (Object.entries(data).some(([key, value]) => !['type', 'supplierName', 'registerEmail'].includes(key) && value)) setNextType(type); else setData({ type, supplierName: data.supplierName || '', registerEmail: data.registerEmail || '' }); }} />}
     {proof}{fieldsFor(data.type).flatMap(renderField)}
     {data.type === supplierTypes[0] && <QualificationInfo initialEditing={initialPanel === 'qualification'} records={data.qualifications} onChange={qualifications => change('qualifications', qualifications)} />}
     {nextType && <Confirm text="切换供应商类型会清除不适用的基本信息，是否继续？" onCancel={() => setNextType('')} onConfirm={() => { setData({ type: nextType, supplierName: data.supplierName || '', registerEmail: data.registerEmail || '' }); setNextType(''); }} />}
     {picker && <DateSheet title={picker.title} value={data[picker.key]} onChange={v => change(picker.key, v)} onClose={() => setPicker(null)} allowLong={picker.key === 'licenseUntil'} />}
   </>;
+  return shot ? content : <div className="m-supplier-form-fields m-supplier-basic-fields">{content}</div>;
 }
 
 export function ContactFields({ contacts, setContacts, initialPanel }) {
@@ -171,8 +173,8 @@ export function ContactFields({ contacts, setContacts, initialPanel }) {
   return <><RecordCollection title="联系人信息" count={contacts.length} emptyText="暂无联系人信息" addLabel="添加联系人" onAdd={() => { setDraft({ id: createSessionId(), name: '', phone: '', email: '', department: '', job: '', wechat: '', note: '' }); setEditing(-1); }}>
     {contacts.map((c, i) => <RecordCard motionKey={'contact-' + c.id} key={c.id} title={c.name || '联系人 ' + (i + 1)}><Row label="电话">{c.phone || '—'}</Row><Row label="邮箱">{c.email || '—'}</Row><CardActions><button type="button" onClick={() => { setDraft({ ...c }); setEditing(i); }}>编辑</button><button type="button" className="m-action-danger" onClick={() => setRemoving(i)}>删除</button></CardActions></RecordCard>)}
   </RecordCollection>
-    {editing !== null && <FullscreenPanel className="m-record-editor" title={editing === -1 ? '新增联系人' : '编辑联系人'} onBack={close}>
-      <Section title="联系人信息" collapsible={false}>{[['name', '姓名', true], ['phone', '电话', true], ['email', '邮箱', true], ['department', '部门'], ['job', '职位'], ['wechat', '微信'], ['note', '备注']].map(([key, label, required]) => <Field key={key} label={label} required={required} value={draft[key] || ''} type={key === 'email' ? 'email' : 'text'} multiline={key === 'note'} maxLength={['department', 'job'].includes(key) ? 50 : key === 'note' ? 400 : undefined} onChange={value => setDraft({ ...draft, [key]: value })} />)}</Section>
+    {editing !== null && <FullscreenPanel className="m-record-editor m-supplier-form-fields" title={editing === -1 ? '新增联系人' : '编辑联系人'} onBack={close}>
+      <Section title="联系人信息" collapsible={false}>{[['name', '姓名', true], ['phone', '电话', true], ['email', '邮箱', true], ['department', '部门'], ['job', '职位'], ['wechat', '微信'], ['note', '备注']].map(([key, label, required]) => <Field layout="stacked" key={key} label={label} required={required} value={draft[key] || ''} type={key === 'email' ? 'email' : 'text'} multiline={key === 'note'} maxLength={['department', 'job'].includes(key) ? 50 : key === 'note' ? 400 : undefined} onChange={value => setDraft({ ...draft, [key]: value })} />)}</Section>
       <Actions items={[{ label: '取消', secondary: true, onClick: close }, { label: '保存', onClick: () => {
         const email = (draft.email || '').trim();
         const error = !(draft.name || '').trim() ? '请填写姓名' : !(draft.phone || '').trim() ? '请填写电话' : !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? '请输入正确的邮箱格式' : '';
