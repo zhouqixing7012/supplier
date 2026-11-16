@@ -127,6 +127,13 @@ try {
       await menu.getByRole('button', { name: label, exact: true }).click();
       await page.locator('#root [data-scene="' + scene + '"]').waitFor();
       assert.equal(await button('全部标签').count(), 0);
+      const borders = await menu.evaluate(el => {
+        const style = getComputedStyle(el.parentElement);
+        return [style.borderTopWidth, style.borderBottomWidth, style.borderTopColor, style.borderBottomColor];
+      });
+      assert.deepEqual(borders.slice(0, 2), ['1px', '1px']);
+      assert.equal(borders[2], borders[3]);
+      assert.notEqual(borders[2], 'rgba(0, 0, 0, 0)');
     }
   });
   await check('移动端原型导图可下载当前PRD', async () => {
@@ -389,7 +396,25 @@ try {
     await goto('mobile'); const records = page.locator('#root .m-supplier-card'); assert.equal(await records.locator('h3 .m-blue-mark').count(), await records.count());
     const sample = card('北京初然'); assert.ok(await sample.locator('.m-supplier-kind').filter({ hasText: '企业供应商' }).isVisible()); assert.ok(await sample.getByText('未评分', { exact: true }).isVisible()); assert.ok(await sample.getByRole('button', { name: '修改银行', exact: true }).isVisible());
     assert.ok((await sample.locator('.m-supplier-kind').innerText()).includes('代注册')); const mark = await sample.locator('.m-blue-mark').boundingBox(); assert.ok(mark.width > 0 && mark.height > 0); await page.screenshot({ path: path.join(output, 'query-viewport.png') }); await shot('supplier-summary');
-    await goto('mobile/mine'); assert.ok(await card('代注册草稿').getByRole('button', { name: '修改草稿', exact: true }).isVisible()); assert.ok(await card('北京初然').getByRole('button', { name: '修改全部信息', exact: true }).isVisible());
+    const more = page.locator('#root').getByRole('dialog', { name: '更多操作', exact: true });
+    await sample.getByRole('button', { name: '更多操作', exact: true }).click();
+    assert.equal(await more.getByRole('button', { name: '修改银行', exact: true }).count(), 0);
+    assert.ok(await more.getByRole('button', { name: '分配权限', exact: true }).isVisible());
+    await more.getByRole('button', { name: '取消', exact: true }).click();
+    const draft = card('代注册草稿');
+    assert.ok(await draft.getByRole('button', { name: '修改草稿', exact: true }).isVisible());
+    await draft.getByRole('button', { name: '更多操作', exact: true }).click();
+    assert.equal(await more.getByRole('button', { name: /^修改/ }).count(), 0);
+    assert.ok(await more.getByRole('button', { name: '重新邀请', exact: true }).isVisible());
+    await goto('mobile/query-more');
+    assert.equal(await more.getByRole('button', { name: '修改银行', exact: true }).count(), 0);
+    await goto('mobile/mine');
+    assert.ok(await sample.getByRole('button', { name: '修改全部信息', exact: true }).isVisible());
+    await sample.getByRole('button', { name: '更多操作', exact: true }).click();
+    assert.equal(await more.getByRole('button', { name: '修改全部信息', exact: true }).count(), 0);
+    await more.getByRole('button', { name: '修改银行', exact: true }).click();
+    await page.locator('#root [data-scene="bank"]').waitFor();
+    assert.match(await page.locator('#root .m-row').first().innerText(), /北京初然/);
   });
   await check('权限入口不经过二级更多，常用修改可直接进入', async () => {
     await goto('mobile'); await card('代注册草稿').getByRole('button', { name: '修改草稿', exact: true }).click(); await headerBack(); await page.locator('#root [data-scene="query"]').waitFor(); await action('北京初然', '分配权限'); await page.locator('#root [data-scene="permissions"]').waitFor(); await button('取消').click(); await card('北京初然').getByRole('button', { name: '修改银行', exact: true }).click(); await page.locator('#root [data-scene="bank"]').waitFor();
@@ -429,11 +454,13 @@ try {
     await goto('mobile/workspace-info'); await button('银行信息').click(); await button('修改').click(); await page.locator('#root .m-bank-card').getByRole('button', { name: '修改', exact: true }).click(); assert.equal(await field('开户所在省').inputValue(), '北京市'); assert.equal(await field('银行账号').inputValue(), '6214589503254174'); await page.locator('#root').getByRole('dialog', { name: '门户银行编辑' }).locator('.m-actions').getByRole('button', { name: '取消', exact: true }).click(); await button('取消修改').click(); await button('联系人信息').click(); await button('修改').click(); assert.equal(await button('添加联系人').locator('svg').count(), 1);
   });
   await check('批量邀请人按钮在320宽完整可见', async () => {
-    await page.setViewportSize({ width: 320, height: 845 }); await goto('mobile/mine-batch'); const target = button('批量变更邀请人'); assert.ok(await target.isVisible()); assert.equal(await target.evaluate(n => n.scrollWidth <= n.clientWidth), true); await shot('batch-320'); await page.setViewportSize({ width: 390, height: 845 });
+    await page.setViewportSize({ width: 320, height: 845 }); await goto('mobile/mine-batch'); const target = button('批量变更邀请人'); assert.ok(await target.isVisible()); assert.equal(await target.evaluate(n => n.scrollWidth <= n.clientWidth && getComputedStyle(n).whiteSpace === 'nowrap'), true); await shot('batch-320'); await page.setViewportSize({ width: 390, height: 845 });
   });
   await check('管理全部信息保存后与审批页对比且正式版本保留', async () => {
-    await goto('mobile/mine'); await action('北京初然', '修改全部信息'); await fillBasic('管理信息变更测试');
-    await button('下一步').click(); await button('编辑联系人1').click(); await field('电话').fill('13800000003'); await button('保存联系人').click(); await button('添加联系人').click(); await field('姓名').fill('新增联系人'); await field('电话').fill('13800138002'); await field('邮箱').fill('new-contact@example.com'); await button('保存联系人').click(); await button('下一步').click(); await button('下一步').click(); await page.locator('#root').getByText('修改前后对比', { exact: true }).waitFor(); const comparison = page.locator('#root .m-change-comparison'); const unchangedCompanyType = comparison.locator('.m-change-field-row').filter({ hasText: '企业类型' }); assert.equal(await unchangedCompanyType.count(), 1); assert.ok((await unchangedCompanyType.innerText()).includes('有限责任公司')); assert.equal(await unchangedCompanyType.locator('.m-change-value-normal').count(), 1); const changedContact = comparison.locator('.m-change-group').filter({ hasText: '联系人1 · 林晓' }); assert.equal(await changedContact.locator('.m-change-badge').evaluate(n => getComputedStyle(n).color), 'rgb(242, 125, 12)'); const changedContactPhone = changedContact.locator('.m-change-field-row').filter({ hasText: '电话' }); assert.equal(await changedContactPhone.count(), 1); assert.equal(await changedContactPhone.locator('.m-change-value-new').count(), 1); assert.equal(await changedContactPhone.locator('.m-change-value-old').count(), 1); const unchangedContactName = changedContact.locator('.m-change-field-row').filter({ hasText: '姓名' }); assert.equal(await unchangedContactName.count(), 1); assert.equal(await unchangedContactName.locator('.m-change-value-normal').count(), 1); const changedLegal = comparison.locator('.m-change-field-row').filter({ hasText: '法人代表' }); assert.equal(await changedLegal.count(), 1); assert.ok((await changedLegal.locator('.m-change-value-new').innerText()).includes('测试法人')); assert.equal(await changedLegal.locator('.m-change-value-old').count(), 1); const addedContact = comparison.locator('.m-change-group').filter({ hasText: '新增联系人' }); assert.equal(await addedContact.count(), 1); assert.equal(await addedContact.locator('.m-change-badge').innerText(), '新增'); assert.ok(await addedContact.locator('.m-change-field-row').count() > 0); assert.equal(await addedContact.locator('.m-change-value-new').count(), 0); assert.ok(await addedContact.locator('.m-change-value-normal').count() > 0); assert.equal(await addedContact.locator('.m-change-badge').evaluate(n => getComputedStyle(n).color), 'rgb(20, 92, 255)'); assert.equal(await addedContact.locator('.m-change-badge').evaluate(n => getComputedStyle(n).backgroundColor), 'rgb(229, 241, 255)'); assert.equal(await changedContactPhone.locator('.m-change-field-label').evaluate(n => getComputedStyle(n).fontSize), '14px'); assert.equal(await changedContactPhone.locator('.m-change-field-values').evaluate(n => getComputedStyle(n).columnGap), '4px'); assert.equal(await changedContactPhone.locator('.m-change-value-old').evaluate(n => getComputedStyle(n).fontWeight), '500'); assert.equal(await comparison.locator('.m-change-group').first().evaluate(n => getComputedStyle(n).boxShadow), 'none'); await button('提交').click(); await page.locator('#root [data-scene="information-change"]').waitFor(); await button('查看审批').click(); await page.locator('#root').getByText('修改前后对比', { exact: true }).waitFor(); await headerBack(); await card('北京初然').getByRole('button', { name: '查看详情', exact: true }).click(); assert.equal(await page.locator('#root').getByText('管理信息变更测试', { exact: true }).count(), 0); await button('审批记录').click(); assert.equal(await page.locator('#root').getByText('修改前后对比', { exact: true }).count(), 1);
+    await goto('mobile/mine'); await card('北京初然').getByRole('button', { name: '修改全部信息', exact: true }).click(); await page.locator('#root').getByLabel('营业执照', { exact: true }).setInputFiles(upload);
+    await field('供应商名称').fill('管理信息变更测试');
+    await field('法人代表').fill('测试法人');
+    await button('下一步（1/4）').click(); await page.locator('#root .m-record-card').getByRole('button', { name: '编辑', exact: true }).click(); await field('电话').fill('13800000003'); await page.locator('#root .m-record-editor').getByRole('button', { name: '保存', exact: true }).click(); await button('添加联系人').click(); await field('姓名').fill('新增联系人'); await field('电话').fill('13800138002'); await field('邮箱').fill('new-contact@example.com'); await page.locator('#root .m-record-editor').getByRole('button', { name: '保存', exact: true }).click(); await button('下一步（2/4）').click(); await button('下一步（3/4）').click(); await page.locator('#root').getByText('修改前后对比', { exact: true }).waitFor(); const comparison = page.locator('#root .m-change-comparison'); const unchangedCompanyType = comparison.locator('.m-change-field-row').filter({ hasText: '企业类型' }); assert.equal(await unchangedCompanyType.count(), 1); assert.ok((await unchangedCompanyType.innerText()).includes('有限责任公司')); assert.equal(await unchangedCompanyType.locator('.m-change-value-normal').count(), 1); const changedContact = comparison.locator('.m-change-group').filter({ hasText: '联系人1 · 林晓' }); assert.equal(await changedContact.locator('.m-change-badge').evaluate(n => getComputedStyle(n).color), 'rgb(242, 125, 12)'); const changedContactPhone = changedContact.locator('.m-change-field-row').filter({ hasText: '电话' }); assert.equal(await changedContactPhone.count(), 1); assert.equal(await changedContactPhone.locator('.m-change-value-new').count(), 1); assert.equal(await changedContactPhone.locator('.m-change-value-old').count(), 1); const unchangedContactName = changedContact.locator('.m-change-field-row').filter({ hasText: '姓名' }); assert.equal(await unchangedContactName.count(), 1); assert.equal(await unchangedContactName.locator('.m-change-value-normal').count(), 1); const changedLegal = comparison.locator('.m-change-field-row').filter({ hasText: '法人代表' }); assert.equal(await changedLegal.count(), 1); assert.ok((await changedLegal.locator('.m-change-value-new').innerText()).includes('测试法人')); assert.equal(await changedLegal.locator('.m-change-value-old').count(), 1); const addedContact = comparison.locator('.m-change-group').filter({ hasText: '新增联系人' }); assert.equal(await addedContact.count(), 1); assert.equal(await addedContact.locator('.m-change-badge').innerText(), '新增'); assert.ok(await addedContact.locator('.m-change-field-row').count() > 0); assert.equal(await addedContact.locator('.m-change-value-new').count(), 0); assert.ok(await addedContact.locator('.m-change-value-normal').count() > 0); assert.equal(await addedContact.locator('.m-change-badge').evaluate(n => getComputedStyle(n).color), 'rgb(20, 92, 255)'); assert.equal(await addedContact.locator('.m-change-badge').evaluate(n => getComputedStyle(n).backgroundColor), 'rgb(237, 244, 255)'); assert.equal(await changedContactPhone.locator('.m-change-field-label').evaluate(n => getComputedStyle(n).fontSize), '14px'); assert.equal(await changedContactPhone.locator('.m-change-field-values').evaluate(n => getComputedStyle(n).columnGap), '4px'); assert.equal(await changedContactPhone.locator('.m-change-value-old').evaluate(n => getComputedStyle(n).fontWeight), '500'); assert.equal(await comparison.locator('.m-change-group').first().evaluate(n => getComputedStyle(n).boxShadow), 'none'); await button('提交').click(); await page.locator('#root [data-scene="information-change"]').waitFor(); await button('查看审批').click(); await page.locator('#root').getByText('修改前后对比', { exact: true }).waitFor(); await headerBack(); await card('北京初然').getByRole('button', { name: '查看详情', exact: true }).click(); assert.equal(await page.locator('#root').getByText('管理信息变更测试', { exact: true }).count(), 0); await button('审批记录').click(); assert.equal(await page.locator('#root').getByText('修改前后对比', { exact: true }).count(), 1);
   });
   await check('门户内容紧接标题且底部导航不遮挡末项', async () => {
     await goto('mobile/workspace-home'); assert.ok((await page.locator('#root .m-workspace').boundingBox()).y < 150); await page.screenshot({ path: path.join(output, 'portal-home-viewport.png') });
@@ -515,11 +542,30 @@ try {
     }
     await goto('mobile/query-batch');
     assert.equal(await selectAll.count(), 0);
-    await goto('mobile/mine');
-    await searchBatch.click();
-    await selectAll.check();
-    assert.equal(await checked.count(), await page.locator('#root .m-supplier-card input[type=checkbox]:enabled').count());
-    assert.ok(await button('批量变更邀请人').isEnabled());
+    for (const width of [320, 375, 430]) {
+      await page.setViewportSize({ width, height: 845 });
+      await goto('mobile/mine');
+      await searchBatch.click();
+      const choices = page.locator('#root .m-supplier-card input[type=checkbox]:enabled');
+      const measures = () => page.locator('#root .m-batch-toggle, #root .m-batch-actions :is(label, button)')
+        .evaluateAll(nodes => nodes.map(node => {
+          const box = node.getBoundingClientRect();
+          return [box.x, box.width, box.height];
+        }));
+      const initial = await measures();
+      await choices.first().check();
+      assert.deepEqual(await measures(), initial, '选一项时的批量工具条');
+      await selectAll.check();
+      const total = await choices.count();
+      assert.ok(total >= 10);
+      assert.equal(await checked.count(), total);
+      assert.ok(await button('批量变更邀请人').isEnabled());
+      assert.deepEqual(await measures(), initial, '全选且数量达到两位数时的批量工具条');
+      await selectAll.uncheck();
+      assert.equal(await checked.count(), 0);
+      assert.deepEqual(await measures(), initial, '清空时的批量工具条');
+    }
+    await page.setViewportSize({ width: 390, height: 845 });
     await goto('mobile/shot/201829');
     assert.ok(await selectAll.isVisible());
   });
@@ -919,6 +965,12 @@ try {
         const card = page.locator('#root .m-supplier-card').first();
         assert.equal(await card.locator('.m-supplier-heading').evaluate(el => getComputedStyle(el).flexWrap), 'nowrap');
         assert.equal(await card.locator('dd').first().evaluate(el => getComputedStyle(el).textAlign), 'right');
+        const tags = await page.locator('#root .m-supplier-heading > .m-status').evaluateAll(nodes => nodes.map(node => {
+          const style = getComputedStyle(node);
+          return { tone: node.dataset.tone, text: style.color, stroke: style.borderTopColor, width: style.borderTopWidth };
+        }));
+        assert.ok(tags.length > 0 && tags.every(tag => tag.stroke !== tag.text && tag.width === '1px'));
+        assert.equal(tags.find(tag => tag.tone === 'neutral').text, 'rgb(104, 113, 130)');
         await action.click();
         assert.ok(await results.getByRole('button', { name: '取消批量操作', exact: true }).isVisible());
         await shot('result-' + route + '-' + width);
@@ -963,6 +1015,46 @@ try {
     await link.click();
     await page.locator('#root').getByRole('button', { name: '打开附件', exact: true }).click();
     await page.locator('#root .m-attachment-full').waitFor();
+  });
+  await check('资质空卡和已填卡片与输入框对齐，底边可完整查看', async () => {
+    for (const [route, width] of [
+      ['register', 320],
+      ['register-edit?map=1', 375],
+      ['register-edit-all?map=1', 430],
+      ['register-supplier?map=1&step=0', 320],
+      ['workspace-info?edit=1', 375],
+    ]) {
+      await page.setViewportSize({ width, height: 740 });
+      await goto('mobile/' + route);
+      const section = page.locator('#root .m-supplier-basic-fields .m-qualification-section');
+      const control = page.locator('#root .m-supplier-basic-fields [data-field-label="经营优势及业务优势"] textarea');
+      const card = section.locator(':is(.m-record-empty-card, .m-record-card)').last();
+      await card.waitFor();
+      if (route === 'register') {
+        assert.ok(await section.getByText('暂无资质信息').isVisible());
+      }
+      const checkCard = async () => {
+        await page.evaluate(() => scrollTo(0, document.documentElement.scrollHeight));
+        const [box, input, footer] = await Promise.all([
+          card.boundingBox(), control.boundingBox(), page.locator('#root .m-registration-actions').boundingBox(),
+        ]);
+        assert.ok(Math.abs(box.x - input.x) < 1 && Math.abs(box.width - input.width) < 1, route + ' · 卡片宽度');
+        assert.ok(footer.y - box.y - box.height >= 12, route + ' · 卡片底边露出');
+        assert.ok(await card.evaluate(el => {
+          const rect = el.getBoundingClientRect();
+          return el.contains(document.elementFromPoint(rect.left + rect.width / 2, rect.bottom - 1));
+        }), route + ' · 卡片底边可见');
+      };
+      await checkCard();
+      if (route === 'register') {
+        await button('添加资质').click();
+        await field('资质名称').fill('移动端资质检查');
+        await button('保存').click();
+        await section.getByRole('heading', { name: '移动端资质检查', exact: true }).waitFor();
+        await checkCard();
+      }
+    }
+    await page.setViewportSize({ width: 390, height: 845 });
   });
   const passed = results.filter(x => x.passed).length, failed = results.length - passed;
   await fs.writeFile(path.join(output, 'results.json'), JSON.stringify({ passed, failed, results }, null, 2));

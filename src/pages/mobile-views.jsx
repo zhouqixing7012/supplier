@@ -31,10 +31,13 @@ function SupplierSummary({ s, mine, batch, checked, setChecked, onDetail, onBank
 
     {!batch && <CardActions split><button onClick={() => onDetail(s)}>查看详情</button>{s.status === '草稿' ? <button onClick={() => onEdit(s)}>修改草稿</button> : canChangeSupplier(s) ? mine ? <button onClick={() => onEditAll(s)}>修改全部信息</button> : <button onClick={() => onBank(s)}>修改银行</button> : null}{hasMore && <button onClick={() => setMenu(true)}>更多操作</button>}</CardActions>}
     {menu && <ActionSheet title="更多操作" onClose={() => setMenu(false)}>
-      {canChangeSupplier(s) && <>{mine ? <><button onClick={() => { setMenu(false); onInviter(s); }}>变更邀请人</button><button onClick={() => { setMenu(false); onEditAll(s); }}>修改全部信息</button></> : <><button className="m-sheet-action-primary" onClick={() => { setMenu(false); onBank(s); }}>修改银行</button><button onClick={() => { setMenu(false); onMore(s, 'permissions'); }}>分配权限</button><button onClick={() => { setMenu(false); onInviter(s); }}>变更邀请人</button></>}</>}
+      {canChangeSupplier(s) && <>
+        {mine ? <button onClick={() => { setMenu(false); onBank(s); }}>修改银行</button>
+          : <button onClick={() => { setMenu(false); onMore(s, 'permissions'); }}>分配权限</button>}
+        <button onClick={() => { setMenu(false); onInviter(s); }}>变更邀请人</button>
+      </>}
       {!mine && canRateSupplier(s) && <button onClick={() => { setMenu(false); onScore(s); }}>评分</button>}
       {canReinviteSupplier(s) && <button onClick={() => { setMenu(false); onReinvite(s); }}>重新邀请</button>}
-      {s.status === '草稿' && <button onClick={() => { setMenu(false); onEdit(s); }}>修改</button>}
       {canDeleteSupplier(s, mine) && <button className="m-action-danger" onClick={() => { setMenu(false); onDelete(s); }}>删除</button>}
       {!['草稿', '邀请中', '注册中', '注册驳回'].includes(s.status) && <button onClick={() => { setMenu(false); onMore(s, true); }}>审批记录</button>}
       <button className="cancel" onClick={() => setMenu(false)}>取消</button>

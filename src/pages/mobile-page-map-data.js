@@ -30,9 +30,9 @@ const supplierActions = from => {
       node('新增供应商 · 代注册', 'register', registration('register')),
     ] : []),
     link('更多 · 重新邀请', page('invite-again'), '邀请注册表单'),
-    node('更多 · 修改草稿', page('register-edit'), registration('register-edit', { from }, form), form),
-    node('更多 · 修改全部信息', page('register-edit-all'), registration('register-edit-all', { from }, form), form),
-    node('更多 · 修改银行', page('bank'), [
+    node('修改草稿', page('register-edit'), registration('register-edit', { from }, form), form),
+    node('修改全部信息', page('register-edit-all'), registration('register-edit-all', { from }, form), form),
+    node(from === 'mine' ? '更多 · 修改银行' : '修改银行', page('bank'), [
       link('银行账户新增／编辑', page('bank', { panel: 'bank' }), '银行账户表单'),
     ]),
     node('更多 · 分配权限', page('permissions'), [link('权限新增／编辑', page('permission-form'))]),
