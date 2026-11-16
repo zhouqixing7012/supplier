@@ -43,7 +43,7 @@
 .mobile-page:not(.m-shot) .m-blue-mark { width: 3px; height: 14px; border-radius: 3px; background: #3370ff; }
 .mobile-page:not(.m-shot) .m-supplier-heading > .m-status { flex: none; margin-top: 1px; }
 .mobile-page:not(.m-shot) .m-status { padding: 1px 7px; font-size: 14px; line-height: 20px; border-radius: 5px; font-weight: 500; }
-.mobile-page:not(.m-shot) .m-status[data-tone="neutral"] { color: #687182; --m-status-stroke: #d7dae1; }
+.mobile-page:not(.m-shot) .m-status[data-tone="neutral"] { color: #666f81; --m-status-stroke: #d7dae1; }
 .mobile-page:not(.m-shot) .m-status[data-tone="info"] { color: #1354df; background: #e5f1ff; --m-status-stroke: #b0cbff; }
 .mobile-page:not(.m-shot) .m-status[data-tone="success"] { background: #e8ffef; --m-status-stroke: #b3ebcb; }
 .mobile-page:not(.m-shot) .m-status[data-tone="warning"] { background: #fff7e8; --m-status-stroke: #fbd8b1; }

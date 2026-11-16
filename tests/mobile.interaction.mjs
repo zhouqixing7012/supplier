@@ -970,7 +970,7 @@ try {
           return { tone: node.dataset.tone, text: style.color, stroke: style.borderTopColor, width: style.borderTopWidth };
         }));
         assert.ok(tags.length > 0 && tags.every(tag => tag.stroke !== tag.text && tag.width === '1px'));
-        assert.equal(tags.find(tag => tag.tone === 'neutral').text, 'rgb(104, 113, 130)');
+        assert.equal(tags.find(tag => tag.tone === 'neutral').text, 'rgb(102, 111, 129)');
         await action.click();
         assert.ok(await results.getByRole('button', { name: '取消批量操作', exact: true }).isVisible());
         await shot('result-' + route + '-' + width);
