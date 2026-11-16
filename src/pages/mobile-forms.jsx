@@ -33,7 +33,7 @@ export function BankFields({ bank, setBank, company = true, proofRequired = comp
     return () => window.removeEventListener('mobile-close-register-bank', close);
   });
   const change = (key, value) => setBank({ ...bank, [key]: value });
-  return <div className={'m-bank-fields' + (layout === 'stacked' ? ' m-supplier-form-fields' : '')}><Section title="开户银行信息">
+  return <div className="m-bank-fields m-supplier-form-fields"><Section title="开户银行信息">
     {company && <Field layout={layout} label="账户类型" required options={['基本账户', '一般账户']} value={bank.accountType} onChange={v => change('accountType', v)} />}
     <Field layout={layout} label="开户银行" required value={bank.bank} help="开户银行来自银行基础数据，未查询到时请联系业务对接人。" onPick={() => setPicker('bank')} />
     <Field layout={layout} label="银行分行" required value={bank.branch} help="选择开户银行后选择对应分行。" onPick={() => bank.bank ? setPicker('branch') : window.dispatchEvent(new CustomEvent('mobile-validation', { detail: '请先选择开户银行' }))} />
@@ -83,7 +83,7 @@ export function PermissionForm({ initial = {}, onSave, onCancel, notify }) {
   const [data, setData] = useState({ group: '', category: '', note: '', ...initial });
   const guard = useDirtyForm(data);
   useEffect(() => { const close = () => guard.leave(onCancel); window.addEventListener('mobile-close-permission', close); return () => window.removeEventListener('mobile-close-permission', close); });
-  return <><Field label="所属权限" searchable required options={Object.keys(permissionGroups)} value={data.group} onChange={group => setData({ ...data, group, category: '' })} /><Field label="权限分类" searchable={data.group === '媒体权限'} required options={permissionGroups[data.group] || []} value={data.category} onChange={category => setData({ ...data, category })} /><Field label="备注" multiline value={data.note} maxLength={100} onChange={note => setData({ ...data, note })} /><Actions items={[{ label: '取消', onClick: () => guard.leave(onCancel) }, { label: '保存此权限', onClick: () => data.group && data.category ? onSave(data) : notify('请选择所属权限和权限分类') }]} /></>;
+  return <><div className="m-supplier-form-fields m-supplier-form-body"><Field label="所属权限" searchable required options={Object.keys(permissionGroups)} value={data.group} onChange={group => setData({ ...data, group, category: '' })} /><Field label="权限分类" searchable={data.group === '媒体权限'} required options={permissionGroups[data.group] || []} value={data.category} onChange={category => setData({ ...data, category })} /><Field label="备注" multiline value={data.note} maxLength={100} onChange={note => setData({ ...data, note })} /></div><Actions items={[{ label: '取消', onClick: () => guard.leave(onCancel) }, { label: '保存此权限', onClick: () => data.group && data.category ? onSave(data) : notify('请选择所属权限和权限分类') }]} /></>;
 }
 
 const basicCompany = [
@@ -187,11 +187,11 @@ export function ContactFields({ contacts, setContacts, initialPanel }) {
   </>;
 }
 
-export function InviteForm({ initial, onSave, onCancel, notify, lockIdentity = false }) {
+export function InviteForm({ initial, onSave, onCancel, notify, lockIdentity = false, historical = false }) {
   const [data, setData] = useState({ type: '', name: '', contact: '', email: '', phone: '', ...initial });
   const guard = useDirtyForm(data);
   const change = (key, value) => setData({ ...data, [key]: value });
-  return <><Section title="企业名称"><Field label="供应商类型" required readOnly={lockIdentity} options={lockIdentity ? undefined : supplierTypes} value={data.type} onChange={v => change('type', v)} /><p className="m-orange-copy">请选择正确的供应商类型，以免影响供应商准入、合同及付款业务</p><Field label="供应商名称" required readOnly={lockIdentity} value={data.name} onChange={v => change('name', v)} /><Field label="联系人姓名" required value={data.contact} onChange={v => change('contact', v)} /><Field label="邮箱" required type="email" value={data.email} onChange={v => change('email', v)} /><Field label="手机号" required value={data.phone} onChange={v => change('phone', v)} /><div className="m-orange-copy"><p>邀请须知：</p><p>1、邀请提交后，邀请注册地址将通过邮件发送至填写的联系人邮箱内</p><p>2、请通知供应商通过邮件内的邀请注册地址，登陆供应商协同门户注册账号</p><p>3、系统将引导供应商填写基本信息、证照、联系人、银行信息</p></div></Section><Actions items={[{ label: '取消', onClick: () => guard.leave(onCancel) }, { label: '提交', onClick: () => { for (const [key, label] of [['type', '供应商类型'], ['name', '供应商名称'], ['contact', '联系人姓名'], ['email', '邮箱'], ['phone', '手机号']]) if (!data[key].trim()) return notify('请填写' + label); const email = data.email.trim(); if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return notify('请输入正确的邮箱格式'); if (!/^1\d{10}$/.test(data.phone)) return notify('请输入11位手机号'); onSave({ ...data, email }, guard.accept); } }]} /></>;
+  return <><Section title={historical ? "企业名称" : undefined} collapsible={historical} className="m-supplier-form-fields m-invite-edit"><Field label="供应商类型" required readOnly={lockIdentity} options={lockIdentity ? undefined : supplierTypes} value={data.type} onChange={v => change('type', v)} /><p className="m-orange-copy">请选择正确的供应商类型，以免影响供应商准入、合同及付款业务</p><Field label="供应商名称" required readOnly={lockIdentity} value={data.name} onChange={v => change('name', v)} /><Field label="联系人姓名" required value={data.contact} onChange={v => change('contact', v)} /><Field label="邮箱" required type="email" value={data.email} onChange={v => change('email', v)} /><Field label="手机号" required value={data.phone} onChange={v => change('phone', v)} /><div className="m-orange-copy"><p>邀请须知：</p><p>1、邀请提交后，邀请注册地址将通过邮件发送至填写的联系人邮箱内</p><p>2、请通知供应商通过邮件内的邀请注册地址，登陆供应商协同门户注册账号</p><p>3、系统将引导供应商填写基本信息、证照、联系人、银行信息</p></div></Section><Actions items={[{ label: '取消', onClick: () => guard.leave(onCancel) }, { label: '提交', onClick: () => { for (const [key, label] of [['type', '供应商类型'], ['name', '供应商名称'], ['contact', '联系人姓名'], ['email', '邮箱'], ['phone', '手机号']]) if (!data[key].trim()) return notify('请填写' + label); const email = data.email.trim(); if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return notify('请输入正确的邮箱格式'); if (!/^1\d{10}$/.test(data.phone)) return notify('请输入11位手机号'); onSave({ ...data, email }, guard.accept); } }]} /></>;
 }
 
 

@@ -42,7 +42,7 @@ export function RegistrationApprovalDemo({ sampleId = 'mock-person-id-card', onP
       <Row label="注册审批结果">{result.status}</Row>
       {result.status === '审批驳回' && <Row label="驳回原因">{result.opinion || '—'}</Row>}
       <p className="m-input-note">此处为工作流结果演示，未发送邮件。</p>
-    </Section> : <Section title="审批办理" collapsible={false}>
+    </Section> : <Section title="审批办理" collapsible={false} className="m-supplier-form-fields">
       {stage === 0 && <Field label="付款公司" required searchable selectionMode="confirm" options={companies}
         value={company} error={companyError} onChange={value => { setCompany(value); setCompanyError(''); }} />}
       <Field label="审批意见" multiline value={opinion} onChange={setOpinion} />

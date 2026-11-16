@@ -602,8 +602,6 @@
 .mobile-page .m-control-trailing .m-field-clear { display: none; }
 .mobile-page .m-account-code-button { flex-shrink: 0; min-height: 44px; padding: 0 4px; color: var(--m-action); font-size: 14px; white-space: nowrap; }
 .mobile-page .m-account-code-button:disabled { color: var(--m-text-secondary); }
-.mobile-page[data-scene^="workspace-account-"] .m-field-inline > label { width: 112px; }
-@media (max-width: 389px) { .mobile-page[data-scene^="workspace-account-"] .m-field-inline > label { width: 96px; } }
 .m-file-upload-field { position: relative; padding: 16px 0; border-bottom: 1px solid var(--m-border-subtle); }
 .m-file-upload-label { display: block; margin: 0 0 12px; padding-left: 12px; color: var(--m-text-secondary); font-size: 14px; }
 .m-file-upload-entry { display: flex; align-items: center; gap: 8px; padding: 8px 12px; margin-bottom: 12px; border: 1px solid var(--m-border); border-radius: 8px; }
@@ -1301,8 +1299,8 @@
 .mobile-page .m-action-sheet > button:has(+ .cancel) { border-bottom: 0; }
 .mobile-page:not(.m-shot) .m-action-sheet > button.cancel { border-top: 1px solid var(--m-border-subtle); color: var(--m-text-secondary); }
 
-.mobile-page:not(.m-shot) > .m-header:has(+ .m-tab-bar-stretch:not(.m-tab-bar-pill)) { border-bottom-color: transparent; }
-.mobile-page:not(.m-shot) > .m-tab-bar-stretch:not(.m-tab-bar-pill) { border-block: 1px solid var(--m-border); }
+.mobile-page:not(.m-shot) > .m-header:has(+ .m-tab-bar-stretch:not(.m-tab-bar-pill)) { border-bottom: 0; }
+.mobile-page:not(.m-shot) > .m-tab-bar-stretch:not(.m-tab-bar-pill) { border-block: 0; }
 .mobile-page:not(.m-shot) > .m-tab-bar-stretch:not(.m-tab-bar-pill) .m-tab-indicator {
   --m-line-x: var(--m-indicator-x, 0px);
   --m-line-track-width: var(--m-indicator-width, 24px);
@@ -1316,13 +1314,22 @@
   --m-line-track-width: var(--m-gesture-width, 24px);
 }
 
-/* 供应商资料编辑按统一的上下布局和字段间距展示。 */
-.mobile-page:not(.m-shot) .m-supplier-basic-fields { padding: 16px; background: var(--m-surface); }
+/* 普通办理表单复用标签在上、控件在下的布局。 */
+.mobile-page:not(.m-shot) :is(.m-supplier-basic-fields, .m-supplier-form-body) { padding: 16px; background: var(--m-surface); }
+.mobile-page:not(.m-shot) .m-invite-edit { margin: 0; padding-bottom: 16px; border: 0; border-radius: 0; }
+.mobile-page:not(.m-shot) .m-invite-edit .m-orange-copy { margin: 0 0 16px; padding: 0; color: var(--m-warning-text); font-size: 13px; }
+.mobile-page:not(.m-shot) .m-invite-edit .m-orange-copy:last-child { margin-bottom: 0; }
+.mobile-page:not(.m-shot) .m-invite-edit .m-orange-copy > p { margin: 0 0 4px; }
+.mobile-page:not(.m-shot) .m-invite-edit .m-orange-copy > p:last-child { margin-bottom: 0; }
 .m-supplier-basic-fields .m-qualification-section :is(.m-record-card, .m-record-empty-card) { border-color: var(--m-control-border); }
-.mobile-page:not(.m-shot) .m-supplier-form-fields .m-field { min-height: 0; padding-block: 0; margin-bottom: 16px; border-bottom: 0; }
-.mobile-page:not(.m-shot) .m-supplier-basic-fields > .m-field { padding-inline: 0; }
+.mobile-page:not(.m-shot) .m-supplier-form-fields .m-section-content:has(> .m-field) { padding-top: 12px; }
+.mobile-page:not(.m-shot) .m-address-fields.m-supplier-form-fields { padding-top: 12px; background: var(--m-surface); }
+.mobile-page:not(.m-shot) .m-address-fields.m-supplier-form-fields > .m-field:last-child { margin-bottom: 0; }
+.mobile-page:not(.m-shot) .m-supplier-form-fields .m-field { display: block; min-height: 0; padding-block: 0; margin-bottom: 16px; border-bottom: 0; }
+.mobile-page:not(.m-shot) :is(.m-supplier-basic-fields, .m-supplier-form-body) > .m-field { padding-inline: 0; }
 .mobile-page:not(.m-shot) .m-supplier-form-fields .m-field > label { width: 100%; max-width: none; min-height: 20px; margin-bottom: 8px; line-height: 20px; color: var(--m-text); }
-.mobile-page:not(.m-shot) .m-supplier-form-fields .m-field-control > :where(input:not([type=file]), textarea, .m-select-field) { border-radius: 12px; }
+.mobile-page:not(.m-shot) .m-supplier-form-fields .m-field > .m-field-control { width: 100%; }
+.mobile-page:not(.m-shot) .m-supplier-form-fields :is(.m-control-trailing, .m-field-control > :where(input:not([type=file]), textarea, .m-select-field)) { border-radius: 12px; }
 .mobile-page .m-field-control > button.m-certificate-upload { display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 8px; width: 100%; min-height: 102px; padding: 24px 12px; border: 1px solid var(--m-border); border-radius: 12px; background: var(--m-surface); color: var(--m-text-secondary); font-size: 12px; line-height: 16px; }
 
 /* 评分数量按同一查询结果统计，当前状态只决定下面展示的记录。 */

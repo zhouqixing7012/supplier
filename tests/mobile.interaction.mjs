@@ -127,13 +127,14 @@ try {
       await menu.getByRole('button', { name: label, exact: true }).click();
       await page.locator('#root [data-scene="' + scene + '"]').waitFor();
       assert.equal(await button('全部标签').count(), 0);
-      const borders = await menu.evaluate(el => {
-        const style = getComputedStyle(el.parentElement);
-        return [style.borderTopWidth, style.borderBottomWidth, style.borderTopColor, style.borderBottomColor];
+      const navigation = await menu.evaluate(el => {
+        const bar = getComputedStyle(el.parentElement);
+        const header = getComputedStyle(el.parentElement.previousElementSibling);
+        const indicator = getComputedStyle(el.querySelector('.m-tab-indicator'));
+        return { borders: [header.borderBottomWidth, bar.borderTopWidth, bar.borderBottomWidth], indicator: indicator.height };
       });
-      assert.deepEqual(borders.slice(0, 2), ['1px', '1px']);
-      assert.equal(borders[2], borders[3]);
-      assert.notEqual(borders[2], 'rgba(0, 0, 0, 0)');
+      assert.deepEqual(navigation.borders, ['0px', '0px', '0px']);
+      assert.equal(navigation.indicator, '2px');
     }
   });
   await check('移动端原型导图可下载当前PRD', async () => {
@@ -271,6 +272,31 @@ try {
   });
   await check('表单未保存返回可继续编辑或放弃', async () => {
     await goto('mobile/invite'); await field('供应商名称').fill('尚未保存'); await headerBack(); await button('继续编辑').click(); assert.equal(await field('供应商名称').inputValue(), '尚未保存'); await button('取消').click(); await button('放弃修改').click(); await page.locator('#root [data-scene="query"]').waitFor();
+  });
+  await check('邀请注册校验后可提交并重新邀请', async () => {
+    await goto('mobile');
+    await button('新增供应商').click();
+    await button('邀请注册').click();
+    await choose('供应商类型', '企业供应商');
+    const supplierName = '移动邀请表单测试';
+    for (const [label, value] of [['供应商名称', supplierName], ['联系人姓名', '表单联系人'], ['邮箱', 'invite@example.invalid'], ['手机号', '123']]) {
+      await field(label).fill(value);
+    }
+    await button('提交').click();
+    assert.equal(await field('手机号').getAttribute('aria-invalid'), 'true');
+    await field('手机号').fill('13800000022');
+    await button('提交').click();
+    await page.locator('#root [data-scene="mine"]').waitFor();
+    assert.match(await card(supplierName).innerText(), /邀请中.*invite@example.invalid/s);
+    await action('代注册草稿', '重新邀请');
+    assert.equal(await field('供应商名称').inputValue(), '代注册草稿');
+    for (const [label, value] of [['联系人姓名', '重新邀请联系人'], ['邮箱', 'reinvite@example.invalid'], ['手机号', '13800000023']]) {
+      await field(label).fill(value);
+    }
+    await button('提交').click();
+    await page.locator('#root [data-scene="mine"]').waitFor();
+    assert.match(await card('代注册草稿').innerText(), /邀请中.*13800000023/s);
+    assert.equal(await card('代注册草稿').count(), 1);
   });
   await check('系统返回先关闭选择层而非跳离填写页', async () => {
     await goto('mobile'); await button('新增供应商').click(); await button('邀请注册').click(); await page.locator('#root').getByRole('combobox', { name: '供应商类型', exact: true }).click(); await page.goBack(); await page.waitForURL(/#\/mobile\/invite$/); assert.equal(await page.locator('#root').getByRole('dialog').count(), 0); await page.goBack(); await page.locator('#root [data-scene="query"]').waitFor();
@@ -419,10 +445,37 @@ try {
   await check('权限入口不经过二级更多，常用修改可直接进入', async () => {
     await goto('mobile'); await card('代注册草稿').getByRole('button', { name: '修改草稿', exact: true }).click(); await headerBack(); await page.locator('#root [data-scene="query"]').waitFor(); await action('北京初然', '分配权限'); await page.locator('#root [data-scene="permissions"]').waitFor(); await button('取消').click(); await card('北京初然').getByRole('button', { name: '修改银行', exact: true }).click(); await page.locator('#root [data-scene="bank"]').waitFor();
   });
-  await check('窄屏与长名称字段保持标签输入同行', async () => {
-    await page.setViewportSize({ width: 390, height: 845 }); await goto('mobile/register'); const short = page.locator('[data-field-label="法人代表"]'); const long = page.locator('[data-field-label="供应商名称"]');
-    assert.equal(await short.evaluate(n => getComputedStyle(n).display), 'flex'); assert.equal(await long.evaluate(n => getComputedStyle(n).display), 'flex');
-    await page.setViewportSize({ width: 320, height: 845 }); assert.equal(await short.evaluate(n => getComputedStyle(n).display), 'flex'); await page.setViewportSize({ width: 390, height: 845 });
+  await check('邀请及其他移动办理表单标签在上、控件等宽对齐', async () => {
+    const routes = [
+      ['invite', 5], ['invite-again', 5], ['bank-form', 11], ['permission-form', 3],
+      ['inviter', 1], ['inviter-batch?map=1', 1],
+      ['register?map=1&panel=qualification', 6], ['register?map=1&step=1&panel=contact', 7],
+      ['address', 2], ['rating-edit', 4], ['bank-application-form', 8],
+      ['workspace-account-email?map=1&step=1', 2], ['workspace-account-password?map=1', 3],
+      ['registration-approval-demo?map=1', 2],
+    ];
+    for (const width of [320, 390]) {
+      await page.setViewportSize({ width, height: 740 });
+      for (const [route, expected] of routes) {
+        await goto('mobile/' + route);
+        const visibleForm = page.locator('#root .m-supplier-form-fields .m-field:visible');
+        await visibleForm.first().waitFor();
+        const fields = await visibleForm.evaluateAll(nodes => nodes.filter(node => !node.closest('[inert]')).map(node => {
+          const label = node.querySelector(':scope > label');
+          const control = node.querySelector(':scope > .m-field-control');
+          const row = node.getBoundingClientRect();
+          const l = label.getBoundingClientRect();
+          const c = control.getBoundingClientRect();
+          return { label: label.innerText, above: c.top >= l.bottom + 6, aligned: Math.abs(c.left - l.left) < 1, full: Math.abs(row.width - c.width) < 1 };
+        }));
+        assert.equal(fields.length, expected, route);
+        for (const { label, above, aligned, full } of fields) {
+          assert.ok(above && aligned && full, route + ' · ' + label);
+        }
+        assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), route);
+      }
+    }
+    await page.setViewportSize({ width: 390, height: 845 });
   });
   await check('评分页先展示评分项，基础信息可展开且结果不浮动遮挡', async () => {
     await goto('mobile/rating-edit'); assert.equal(await page.locator('#root .m-detail-summary').count(), 1); assert.equal(await page.locator('#root .m-rating-summary').count(), 0); assert.ok((await page.locator('#root .m-rating-dimension').first().boundingBox()).y < 845); await shot('rating-focused'); assert.ok(await page.locator('#root .m-detail-summary .m-summary-meta').isVisible()); await shot('rating-basic-card');
@@ -451,7 +504,7 @@ try {
     await button('修改').click(); await button('清空法人代表').click(); assert.equal(await field('法人代表').inputValue(), ''); await button('保存修改').click(); assert.equal(await page.locator('[aria-invalid="true"]').count(), 1); assert.equal(await page.locator('#root').getByRole('alert').count(), 1); await field('法人代表').fill('变更后的法人'); await shot('portal-edit'); await button('保存修改').click(); await page.locator('#root [data-scene="workspace-changes"]').waitFor(); assert.ok((await page.locator('#root .m-change-comparison').innerText()).includes('变更后的法人')); await button('提交变更').click(); await page.locator('#root [data-scene="workspace-approval"]').waitFor(); assert.ok(await page.locator('#root').getByText('修改前后对比', { exact: true }).isVisible()); await headerBack(); assert.equal(await page.locator('#root').getByText('变更后的法人', { exact: true }).count(), 0); await button('查看审批').click(); await shot('portal-change-approval');
   });
   await check('门户银行修改回填和联系人专用图标', async () => {
-    await goto('mobile/workspace-info'); await button('银行信息').click(); await button('修改').click(); await page.locator('#root .m-bank-card').getByRole('button', { name: '修改', exact: true }).click(); assert.equal(await field('开户所在省').inputValue(), '北京市'); assert.equal(await field('银行账号').inputValue(), '6214589503254174'); await page.locator('#root').getByRole('dialog', { name: '门户银行编辑' }).locator('.m-actions').getByRole('button', { name: '取消', exact: true }).click(); await button('取消修改').click(); await button('联系人信息').click(); await button('修改').click(); assert.equal(await button('添加联系人').locator('svg').count(), 1);
+    await goto('mobile/workspace-info'); await button('银行信息').click(); await button('修改').click(); await page.locator('#root .m-bank-card').getByRole('button', { name: '修改', exact: true }).click(); assert.equal(await field('开户所在省').inputValue(), '北京市'); assert.equal(await field('银行账号').inputValue(), '6214589503254174'); await page.locator('#root').getByRole('dialog', { name: '门户银行编辑' }).locator('.m-actions').getByRole('button', { name: '取消', exact: true }).click(); await page.locator('#root .m-info-edit-actions').getByRole('button', { name: '取消', exact: true }).click(); await button('联系人信息').click(); await button('修改').click(); assert.equal(await button('添加联系人').locator('svg').count(), 1);
   });
   await check('批量邀请人按钮在320宽完整可见', async () => {
     await page.setViewportSize({ width: 320, height: 845 }); await goto('mobile/mine-batch'); const target = button('批量变更邀请人'); assert.ok(await target.isVisible()); assert.equal(await target.evaluate(n => n.scrollWidth <= n.clientWidth && getComputedStyle(n).whiteSpace === 'nowrap'), true); await shot('batch-320'); await page.setViewportSize({ width: 390, height: 845 });
@@ -1034,6 +1087,7 @@ try {
         assert.ok(await section.getByText('暂无资质信息').isVisible());
       }
       const checkCard = async () => {
+        await card.evaluate(el => Promise.allSettled(el.getAnimations().map(animation => animation.finished)));
         await page.evaluate(() => scrollTo(0, document.documentElement.scrollHeight));
         const [box, input, footer] = await Promise.all([
           card.boundingBox(), control.boundingBox(), page.locator('#root .m-registration-actions').boundingBox(),
@@ -1050,6 +1104,7 @@ try {
         await button('添加资质').click();
         await field('资质名称').fill('移动端资质检查');
         await button('保存').click();
+        await page.locator('#root .m-record-editor').waitFor({ state: 'hidden' });
         await section.getByRole('heading', { name: '移动端资质检查', exact: true }).waitFor();
         await checkCard();
       }

@@ -56,7 +56,7 @@ export function AddressForm({
     onConfirm(region + ' ' + detail);
   };
   const form = <div className="m-address-form">
-    <div className="m-address-fields">
+    <div className="m-address-fields m-supplier-form-fields">
       <div className="m-field m-field-inline">
         <label htmlFor={regionId}><em>*</em><span className="m-field-name">省市区</span></label>
         <div className="m-field-control">
