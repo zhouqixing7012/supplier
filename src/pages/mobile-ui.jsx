@@ -3,7 +3,6 @@ import React from 'react';
 import { Field as MobileField, Overlay, SearchBox as MobileSearchBox, StatusBadge, Steps } from '../components/mobile/index.js';
 import { informationSteps } from './mobile-edit-rules.js';
 import { readMobileRoute } from './mobile-prototype-runtime.js';
-import { passwordWhitespaceError } from './mobile-registration-password.js';
 
 export function ChangeTag({ value }) {
   if (!value) return null;
@@ -32,20 +31,10 @@ export function Field({ label, type = 'text', inputMode, autoComplete, value, on
     const trimmed = (value || '').trim();
     if (trimmed !== value) onChange(trimmed);
   } : undefined;
-  const checkPasswordPaste = type === 'password' && onChange ? event => {
-    const pasted = event.clipboardData.getData('text');
-    if (!passwordWhitespaceError(pasted)) return;
-    event.preventDefault();
-    const { selectionStart, selectionEnd } = event.target;
-    const text = value || '';
-    onChange(text.slice(0, selectionStart) + pasted + text.slice(selectionEnd));
-  } : undefined;
-  const whitespaceHelp = trimWhitespace ? '填完后自动去除首尾空格。'
-    : type === 'password' ? '密码不能包含空格，请检查输入和粘贴的内容。' : '';
+  const whitespaceHelp = trimWhitespace ? '填完后自动去除首尾空格。' : '';
   return <MobileField {...props} label={label} type={type} value={value} onChange={onChange} onBlur={trimField}
-    onPaste={checkPasswordPaste}
     help={[help, whitespaceHelp].filter(Boolean).join('。').replace('。。', '。')}
-    error={error || (type === 'password' ? passwordWhitespaceError(value, label) : '')}
+    error={error}
     inputMode={inputMode || keyboard} autoComplete={autoComplete || completion} />;
 }
 

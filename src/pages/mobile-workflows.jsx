@@ -1,5 +1,5 @@
 import { bankApplicationFields, bankApplicationRequired } from './bank-application.js';
-import { Actions, AttachmentLink, Header, CardActions, CountTabs, FilterSummary, Confirm, Empty, FilterButton, Overlay, Row, Section, UploadField } from '../components/mobile/index.js';
+import { Actions, AttachmentLink, CardActions, CountTabs, FilterSummary, Confirm, DateRange, Empty, FilterButton, FullscreenPanel, Row, Section, UploadField } from '../components/mobile/index.js';
 import { createSessionId, useBackLayer } from './mobile-interaction.jsx';
 import React, { useEffect, useState } from 'react';
 import { Star } from 'lucide-react';
@@ -119,15 +119,16 @@ export function RatingEditor({ record, supplier, readOnly, onSave, notify }) {
     {readOnly ? <><Row label="评价">{data.comment || '—'}</Row><Row label="评价得分">{data.score || '—'}</Row><Row label="评分时间">{data.rated}</Row></> : <Field label="评价" multiline maxLength={500} value={data.comment} onChange={comment => setData({ ...data, comment })} />}</Section>{!readOnly && <Actions items={[{ label: '提交', onClick: submit }]} />}{nextType && <Confirm text="切换合作类型后需要重新填写评分项，是否继续？" onCancel={() => setNextType('')} onConfirm={() => { setData({ ...data, type: nextType, dimensions: [] }); setErrors({}); setNextType(''); }} />}</>;
 }
 
-export function RatingOperations({ notify, historical }) {
+export function RatingOperations({ historical }) {
   const [filterOpen, setFilterOpen] = useState(false);
   const [data, setData] = useState({ start: '', end: '', names: '' });
   const [applied, setApplied] = useState({ start: '', end: '', names: '' });
+  const [dateError, setDateError] = useState('');
   const rows = cooperation.map((x, i) => ({ ...x, created: '2026-08-14 18:52:32', id: ['20882171982136639490', '2088217198212136961', '2099345533281612000'][i] }));
   const excluded = applied.names.split(/[\n#]/).map(x => x.trim()).filter(Boolean);
   const visible = rows.filter(x => (!applied.start || x.created.slice(0, 10) >= applied.start) && (!applied.end || x.created.slice(0, 10) <= applied.end) && !excluded.includes(x.person));
   useBackLayer(filterOpen, () => setFilterOpen(false));
-  const apply = () => { if (data.start && data.end && data.start > data.end) return notify('开始时间不能晚于结束时间'); setApplied({ ...data }); setFilterOpen(false); };
+  const apply = () => { if (data.start && data.end && data.start > data.end) return setDateError('结束日期不能早于开始日期'); setApplied({ ...data }); setFilterOpen(false); };
   const exportRows = () => {
     const safe = v => '"' + (/^[=+@-]/.test(String(v)) ? "'" : '') + String(v).replaceAll('"', '""') + '"';
     const fields = ['id', 'name', 'type', 'content', 'person', 'department', 'date', 'created'];
@@ -135,7 +136,8 @@ export function RatingOperations({ notify, historical }) {
     const csv = '\uFEFF' + [header, ...visible.map(x => fields.map(k => x[k]))].map(r => r.map(safe).join(',')).join('\r\n');
     const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' })); const a = document.createElement('a'); a.href = url; a.download = '评分查询-演示数据.csv'; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
-  return <><div className="m-filter-summary"><FilterButton label="筛选评分运维" onClick={() => { setData({ ...applied }); setFilterOpen(true); }} />{historical && <button onClick={exportRows}>导出当前记录</button>}</div><p className="m-input-note" role="status">共 {visible.length} 条；创建时间：{applied.start || "不限"} 至 {applied.end || "不限"}；排除评分人：{applied.names.trim() || "无"}</p><div className="m-record-actions"><button disabled>批量发起评分</button></div>{filterOpen && <div className="m-fullscreen-panel" role="dialog" aria-modal="true" aria-label="筛选评分运维"><Header title="筛选评分运维" onBack={() => setFilterOpen(false)} /><div className="m-filter-view m-ops-filter"><FilterField label="创建时间（起）" type="date" allowClearDate value={data.start} onChange={start => setData({ ...data, start })} /><FilterField label="创建时间（止）" type="date" allowClearDate value={data.end} onChange={end => setData({ ...data, end })} /><FilterField label="排除评分人" value={data.names} multiline placeholder={'输入排除评分人，每行一项或用“#”分隔'} onChange={names => setData({ ...data, names: names.replaceAll('#', '\n') })} /><p className="m-input-note">日期按记录创建时间查询，结束日期包含当日；名单按评分人姓名排除。</p><Actions flat items={[{ label: '重置', muted: true, onClick: () => setData({ start: '', end: '', names: '' }) }, { label: '应用筛选', onClick: apply }]} /></div></div>}<div className="m-rating-list">{visible.length ? visible.map(x => <article className="m-bank-card" key={x.id}><h3>{x.name}</h3><div className="m-card-body">{[['主键', x.id], ['合作类型', x.type], ['合作内容', x.content], ['业务线联系人', x.person], ['所属部门', x.department], ['合作时间', x.date], ['创建时间', x.created]].map(([label, value]) => <Row label={label} compact key={label}>{value || '—'}</Row>)}</div></article>) : <Empty search={!!applied.start || !!applied.end || !!applied.names.trim()} text="暂无匹配记录" />}</div></>;
+  return <><div className="m-filter-summary"><FilterButton label="筛选评分运维" onClick={() => { setData({ ...applied }); setDateError(''); setFilterOpen(true); }} />{historical && <button onClick={exportRows}>导出当前记录</button>}</div><p className="m-input-note" role="status">共 {visible.length} 条；创建时间：{applied.start || "不限"} 至 {applied.end || "不限"}；排除评分人：{applied.names.trim() || "无"}</p><div className="m-record-actions"><button disabled>批量发起评分</button></div>{filterOpen && <FullscreenPanel title="筛选评分运维" onBack={() => setFilterOpen(false)}><div className="m-filter-view"><DateRange label="创建时间" value={[data.start, data.end]} endError={dateError}
+    onChange={([start, end]) => { setData({ ...data, start, end }); setDateError(''); }} /><FilterField label="排除评分人" value={data.names} multiline placeholder={'输入排除评分人，每行一项或用“#”分隔'} onChange={names => setData({ ...data, names: names.replaceAll('#', '\n') })} /><p className="m-input-note">日期按记录创建时间查询，结束日期包含当日；名单按评分人姓名排除。</p><Actions flat items={[{ label: '重置', muted: true, onClick: () => { setData({ start: '', end: '', names: '' }); setDateError(''); } }, { label: '应用筛选', onClick: apply }]} /></div></FullscreenPanel>}<div className="m-rating-list">{visible.length ? visible.map(x => <article className="m-bank-card" key={x.id}><h3>{x.name}</h3><div className="m-card-body">{[['主键', x.id], ['合作类型', x.type], ['合作内容', x.content], ['业务线联系人', x.person], ['所属部门', x.department], ['合作时间', x.date], ['创建时间', x.created]].map(([label, value]) => <Row label={label} compact key={label}>{value || '—'}</Row>)}</div></article>) : <Empty search={!!applied.start || !!applied.end || !!applied.names.trim()} text="暂无匹配记录" />}</div></>;
 }
 
 export function BankApplicationForm({ notify, onCancel, savedApplication, onComplete }) {

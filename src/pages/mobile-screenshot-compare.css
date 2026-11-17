@@ -86,7 +86,6 @@
     left: var(--compare-left); width: var(--compare-width); transform: none;
   }
   body.m-screenshot-comparing .mobile-page .m-reference-list .m-actions,
-  body.m-screenshot-comparing .mobile-page .m-ops-filter .m-actions,
   body.m-screenshot-comparing .mobile-page .m-export-panel .m-actions,
   body.m-screenshot-comparing .mobile-page .m-address-form > .m-actions,
   body.m-screenshot-comparing .mobile-page .m-address-editor > .m-actions {

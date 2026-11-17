@@ -433,7 +433,7 @@ function ContactsTab({ supplier }) {
   ]} scroll={{ x: 'max-content' }} />;
 }
 
-function BankInformation({ supplier, entries, onAdd, onEdit, onDelete, onOpen, pendingCount = 0, pendingApproval }) {
+function BankInformation({ supplier, entries, onAdd, onEdit, onDelete, onOpen, pendingCount = 0, pendingApproval, showProof = true }) {
   const original = supplier.banks || [];
   const canEdit = !!onAdd && canChangeSupplier(supplier);
   const counts = bankChangeCounts(original, entries);
@@ -450,7 +450,7 @@ function BankInformation({ supplier, entries, onAdd, onEdit, onDelete, onOpen, p
     { title: '账户名称', dataIndex: 'name', width: 170 },
     { title: '银行账号', dataIndex: 'number', width: 190 },
     { title: '币种', dataIndex: 'currency', width: 90 },
-    { title: '开户证明', dataIndex: 'proof', width: 170, render: (value) => <BankProof value={value} /> },
+    ...(showProof ? [{ title: '开户证明', dataIndex: 'proof', width: 170, render: (value) => <BankProof value={value} /> }] : []),
     { title: '备注', dataIndex: 'note', width: 180 },
     ...(canEdit ? [{
       title: '变更状态', key: 'change', width: 130, align: 'center',
@@ -623,7 +623,7 @@ function SupplierDetailPage({ supplier, ratings, onAddRating, maintenanceTask, o
   const tabs = [
     { key: 'supplier', label: '供应商信息', children: <SupplierInformation supplier={supplier} /> },
     { key: 'contacts', label: '联系人信息', children: <ContactsTab supplier={supplier} /> },
-    { key: 'banks', label: '银行信息', children: <BankInformation supplier={supplier} entries={supplier.banks || []} pendingApproval={maintenanceTask?.type === '银行信息变更' && maintenanceTask.status === '待审批'} onOpen={onOpenBanks} /> },
+    { key: 'banks', label: '银行信息', children: <BankInformation supplier={supplier} entries={supplier.banks || []} showProof={false} pendingApproval={maintenanceTask?.type === '银行信息变更' && maintenanceTask.status === '待审批'} onOpen={onOpenBanks} /> },
     { key: 'permissions', label: '权限信息', children: <PermissionsInformation key={supplier.id} supplier={supplier} onOpen={onOpenPermissions} /> },
     { key: 'finance', label: '财务OU', children: <FinanceOUTab supplier={supplier} /> },
     { key: 'blacklist', label: '黑名单操作记录', children: <BlacklistTab supplier={supplier} /> },

@@ -34,7 +34,7 @@ export function RegistrationDetails({ basic, contacts, banks, onPreview, step, i
       </RecordCard>)}
     </RecordCollection>}
     {show(2) && <RecordCollection title="银行信息" count={banks.length} emptyText="暂无银行信息">
-      {banks.map(bank => <BankCard fileProof key={bank.id} bank={bank} onPreview={() => onPreview(bank.proof)} />)}
+      {banks.map(bank => <BankCard key={bank.id} bank={bank} onPreview={() => onPreview(bank.proof)} />)}
     </RecordCollection>}
   </>;
 }

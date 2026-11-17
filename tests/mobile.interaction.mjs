@@ -685,7 +685,7 @@ try {
     await goto('mobile/workspace-info'); await button('修改').click(); await field('法人代表').fill('保留的基本资料修改'); await button('保存修改').click(); await button('继续修改').click(); assert.equal(await field('法人代表').inputValue(), '保留的基本资料修改'); await button('联系人信息').click(); await button('修改').click(); await button('编辑联系人1').click(); await field('姓名').fill('保留的联系人修改'); await button('保存联系人').click(); await button('保存修改').click(); const text = await page.locator('#root .m-change-comparison').innerText(); assert.ok(text.includes('保留的基本资料修改')); assert.ok(text.includes('保留的联系人修改')); await button('继续修改').click(); await button('银行信息').click(); await button('修改').click(); await page.locator('#root .m-bank-card').getByRole('button', { name: '修改', exact: true }).click(); await field('备注').fill('保留的银行修改'); await button('保存此账户').click(); await button('保存修改').click(); const all = await page.locator('#root .m-change-comparison').innerText(); for (const value of ['保留的基本资料修改', '保留的联系人修改', '保留的银行修改']) assert.ok(all.includes(value));
   });
   await check('门户价税标题返回恢复待处理来源', async () => {
-    await goto('mobile/workspace-tasks'); await button('价税拆分').click(); await headerBack(); await page.locator('#root [data-scene="workspace-tasks"]').waitFor(); assert.equal(await page.locator('#root .m-tabs [aria-current]').innerText(), '价税拆分待处理');
+    await goto('mobile/workspace-tasks'); await button('价税拆分').click(); await headerBack(); await page.locator('#root [data-scene="workspace-tasks"]').waitFor(); assert.equal(await page.locator('#root .mobile-page > .m-header h1').innerText(), '价税拆分'); assert.equal(await page.locator('#root .m-tabs [aria-current]').innerText(), '待处理');
   });
   await check('联系人删除按记录身份对比，不把后续记录误报为修改', async () => {
     await goto('mobile/workspace-info'); await button('联系人信息').click(); await button('修改').click(); await button('添加联系人').click(); await field('姓名').fill('新联系人'); await field('电话').fill('13800000001'); await field('邮箱').fill('new@example.com'); await button('保存联系人').click(); await button('保存修改').click(); await button('继续修改').click(); await button('删除联系人1').click(); await page.locator('#root').getByRole('dialog').getByRole('button', { name: '确认', exact: true }).click(); await button('保存修改').click(); const headings = await page.locator('#root .m-change-comparison h3').allTextContents(); assert.ok(headings.some(t => t.includes('删除') && t.includes('姓名'))); assert.ok(headings.some(t => t.includes('新增') && t.includes('姓名'))); assert.ok(!headings.some(t => t.includes('修改 · 联系人'))); const deletedGroup = page.locator('#root .m-change-comparison .m-change-group[data-change-action="删除"]').first(); assert.equal(await deletedGroup.locator('.m-change-badge').evaluate(n => getComputedStyle(n).color), 'rgb(180, 35, 24)');
@@ -903,7 +903,7 @@ try {
     const editor = page.locator('#root .m-pricing-editor');
     const attachmentField = editor.locator('.m-multi-attachment-field');
     const labelBox = await attachmentField.locator('label').boundingBox(), controlBox = await attachmentField.locator('.m-field-control').boundingBox();
-    assert.ok(controlBox.x > labelBox.x + labelBox.width - 2); assert.ok(Math.abs(controlBox.y - labelBox.y) < 24);
+    assert.ok(controlBox.y >= labelBox.y + labelBox.height); assert.ok(Math.abs(controlBox.x - labelBox.x) <= 13);
     await editor.getByLabel('报价附件', { exact: true }).setInputFiles([
       { name: '报价附件A.pdf', mimeType: 'application/pdf', buffer: Buffer.from('%PDF-1.4 test') },
       { name: '报价附件B.xlsx', mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', buffer: Buffer.from('test workbook') }
@@ -1004,11 +1004,72 @@ try {
     await button('保存').click();
     await page.locator('#root [data-scene="workspace-home"]').waitFor();
   });
+  await check('采购待办和已办标题及日期控件在三种宽度保持一致', async () => {
+    for (const width of [320, 390, 430]) {
+      await page.setViewportSize({ width, height: 845 });
+      for (const tab of [0, 1, 2, 3]) {
+        await goto('mobile/workspace-tasks?map=1&tab=' + tab);
+        const quote = tab < 2;
+        assert.equal(await page.locator('#root .mobile-page > .m-header h1').innerText(), quote ? '采购报价' : '价税拆分');
+        await button(quote ? '筛选报价' : '筛选价税拆分').click();
+        const date = page.locator('#root .m-date-range');
+        const [start, end, separator] = await Promise.all([
+          date.getByRole('button', { name: '创建日期起', exact: true }).boundingBox(),
+          date.getByRole('button', { name: '结束日期止', exact: true }).boundingBox(),
+          date.locator('.m-date-range-separator').boundingBox(),
+        ]);
+        assert.ok(Math.abs(start.width - end.width) <= 1);
+        assert.ok(Math.abs(start.y - end.y) <= 1);
+        assert.ok(Math.abs((separator.y + separator.height / 2) - (end.y + end.height / 2)) <= 2);
+      }
+    }
+    await page.setViewportSize({ width: 390, height: 845 });
+  });
+  await check('各筛选日期逆序标记结束字段并保留已选日期', async () => {
+    for (const [route, openLabel, startLabel, endLabel] of [
+      ['mobile', '筛选供应商', '邀请时间（起）', '邀请时间（止）'],
+      ['mobile/workspace-tasks?map=1&tab=0', '筛选报价', '创建日期起', '结束日期止'],
+      ['mobile/my-ratings', '筛选评分', '评分开始时间', '评分结束时间'],
+      ['mobile/rating-ops', '筛选评分运维', '创建时间（起）', '创建时间（止）'],
+    ]) {
+      await goto(route); await button(openLabel).click();
+      for (const [label, month] of [[startLabel, '11月'], [endLabel, '10月']]) {
+        await button(label).click();
+        const picker = page.getByRole('dialog', { name: label, exact: true });
+        await picker.getByRole('option', { name: month, exact: true }).click();
+        await picker.getByRole('button', { name: '确认', exact: true }).click();
+      }
+      const dates = await Promise.all([button(startLabel).innerText(), button(endLabel).innerText()]);
+      await button('应用筛选').click();
+      const end = button(endLabel);
+      assert.equal(await end.getAttribute('aria-invalid'), 'true');
+      assert.equal(await button(startLabel).getAttribute('aria-invalid'), 'false');
+      assert.deepEqual(await Promise.all([button(startLabel).innerText(), end.innerText()]), dates);
+      await end.click(); await button('清空日期').click();
+      assert.equal(await end.getAttribute('aria-invalid'), 'false');
+      await button('应用筛选').click();
+      assert.equal(await end.count(), 0);
+    }
+  });
+  await check('银行只读详情保留账户字段，编辑仍展示开户证明', async () => {
+    for (const route of ['mobile/detail-bank', 'mobile/workspace-info?map=1&tab=2']) {
+      await goto(route);
+      const card = page.locator('#root .m-bank-card').first();
+      assert.ok(await card.getByText('开户银行', { exact: true }).isVisible());
+      assert.equal(await card.getByText('开户证明', { exact: true }).count(), 0);
+    }
+    await goto('mobile/bank');
+    await button('添加银行账户').click();
+    assert.equal(await page.locator('#root').getByLabel('开户证明', { exact: true }).count(), 1);
+  });
   await check('门户筛选字段、独立页签、取消及重置', async () => {
+    const back = () => page.locator('#root .m-portal-task-filter').getByRole('button', { name: '返回', exact: true }).click();
     await goto('mobile/workspace-home'); await button('报价管理待处理').click(); await button('筛选报价').click(); await field('采购单位').fill('演示采购'); await choose('采购类型', '服务器'); await button('应用筛选').click(); assert.ok(await button('报价').isVisible());
-    await button('筛选报价').click(); await field('采购单位').fill('不存在'); await button('取消').click(); assert.ok(await button('报价').isVisible());
-    await button('报价管理已处理').click(); assert.equal(await page.locator('#root .m-applied-conditions').count(),0); await button('报价管理待处理').click(); assert.ok((await page.locator('#root .m-applied-conditions').innerText()).includes('服务器'));
-    await button('价税拆分待处理').click(); await page.locator('#root').getByRole('searchbox',{name:'搜索订单编号',exact:true}).fill('不存在'); assert.ok(await page.locator('#root').getByText('暂无匹配的订单',{exact:true}).isVisible()); await button('筛选价税拆分').click(); assert.ok(await field('采购公司').isVisible()); await button('重置').click(); await button('应用筛选').click(); assert.ok(await page.locator('#root').getByText('暂无匹配的订单',{exact:true}).isVisible()); await button('清空搜索').click(); assert.ok(await button('价税拆分').isVisible());
+    await button('筛选报价').click(); await field('采购单位').fill('不存在'); await back(); assert.ok(await button('报价').isVisible());
+    await button('已处理').click(); await button('筛选报价').click(); assert.equal(await field('采购单位').inputValue(), ''); await back();
+    await button('待处理').click(); assert.equal(await page.locator('#root .m-applied-conditions').count(), 0);
+    await button('筛选报价').click(); assert.equal(await field('采购单位').inputValue(), '演示采购'); await back();
+    await headerBack(); await button('价税拆分待处理').click(); await page.locator('#root').getByRole('searchbox',{name:'搜索订单编号',exact:true}).fill('不存在'); assert.ok(await page.locator('#root').getByText('暂无匹配的订单',{exact:true}).isVisible()); await button('筛选价税拆分').click(); assert.ok(await field('采购公司').isVisible()); await button('重置').click(); await button('应用筛选').click(); assert.ok(await page.locator('#root').getByText('暂无匹配的订单',{exact:true}).isVisible()); await button('清空搜索').click(); assert.ok(await button('价税拆分').isVisible());
   });
   for (const width of [320, 390, 430, 768]) await check('代表页面宽度 ' + width, async () => {
     await page.setViewportSize({ width, height: width === 768 ? 1024 : 845 });
@@ -1018,7 +1079,7 @@ try {
     }
   });
   await check('电脑与移动入口切换样式隔离', async () => { await goto('login'); await page.locator('body').waitFor(); await goto('mobile'); assert.equal(await page.locator('#root .mobile-page').evaluate(el => getComputedStyle(el).backgroundColor), 'rgb(244, 247, 250)'); });
-  await check('账号邮箱去除首尾空格，密码空格明确阻止登录', async () => {
+  await check('账号邮箱去除首尾空格，密码保留空格进入登录验证', async () => {
     await goto('mobile/portal');
     await field('账号').pressSequentially('Juniper Crest');
     await field('账号').blur();
@@ -1027,10 +1088,6 @@ try {
     assert.equal(await field('账号').inputValue(), 'supplier-demo');
     await page.getByLabel('密码', { exact: true }).fill(' Abc12345');
     await field('验证码').fill('cbvs');
-    await button('下一步').click();
-    assert.ok(await page.getByText('密码不能包含空格', { exact: true }).isVisible());
-    assert.equal(await page.locator('#root').getByRole('heading', { name: '用户登录', exact: true }).count(), 1);
-    await page.getByLabel('密码', { exact: true }).fill('Abc12345');
     await button('下一步').click();
     await field('注册邮箱').fill('　 supplier@example.invalid  '); await field('注册邮箱').blur();
     assert.equal(await field('注册邮箱').inputValue(), 'supplier@example.invalid');
@@ -1047,10 +1104,6 @@ try {
     await page.getByLabel('密码', { exact: true }).fill('Abc12345 ');
     await page.getByLabel('确认密码', { exact: true }).fill('Abc12345 ');
     await field('验证码').fill('cbvs');
-    await button('提交').click();
-    assert.ok(await page.getByText('密码不能包含空格', { exact: true }).isVisible());
-    await page.getByLabel('密码', { exact: true }).fill('Abc12345');
-    await page.getByLabel('确认密码', { exact: true }).fill('Abc12345');
     await button('提交').click();
     await page.locator('#root .m-registration-steps-horizontal').waitFor();
     assert.equal(await page.locator('#root .m-supplier-account-registration').count(), 0);
@@ -1074,15 +1127,14 @@ try {
     await button('应用筛选').click();
     assert.deepEqual(await counts(), ['0', '0', '0']);
   });
-  await check('修改密码拒绝空白，正确邮箱保存后可回看', async () => {
+  await check('修改密码保留空格并校验两次一致，正确邮箱保存后可回看', async () => {
     await goto('mobile/workspace-account-password?map=1');
     await button('获取验证码').click();
     await page.locator('#root').getByLabel('新密码', { exact: true }).fill('Abc12345　');
-    await page.locator('#root').getByLabel('确认新密码', { exact: true }).fill('Abc12345　');
-    await button('保存').click();
-    assert.ok(await page.getByText('密码不能包含空格', { exact: true }).isVisible());
-    await page.locator('#root').getByLabel('新密码', { exact: true }).fill('Abc12345');
     await page.locator('#root').getByLabel('确认新密码', { exact: true }).fill('Abc12345');
+    await button('保存').click();
+    assert.ok(await page.getByText('两次输入的密码不一致', { exact: true }).isVisible());
+    await page.locator('#root').getByLabel('确认新密码', { exact: true }).fill('Abc12345　');
     await button('保存').click();
     await page.locator('#root [data-scene="workspace-home"]').waitFor();
     await goto('mobile/workspace-account-email?map=1');

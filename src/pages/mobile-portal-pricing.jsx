@@ -51,7 +51,7 @@ function LineEditor({ line, index, quote, onCancel, onSave, notify, onPreview })
     <Section title={quote ? draft.material : draft.name} collapsible={false}>
       {(quote ? quoteFields.slice(1, 5) : taxFields.slice(0, 5).filter(([key]) => key !== 'name')).map(([key, label]) => <Row key={key} label={label}>{draft[key] || '—'}</Row>)}
     </Section>
-    <Section title={quote ? '报价信息' : '价税信息'} collapsible={false}>
+    <Section title={quote ? '报价信息' : '价税信息'} className="m-supplier-form-fields" collapsible={false}>
       {(quote ? quoteFields.slice(5) : taxFields.slice(5)).map(([key, label]) => <Field key={key} label={label} required inputMode="decimal" value={draft[key]} onChange={value => change(key, value)} />)}
       {calculationError && <p className="m-field-error" role="alert">{calculationError}</p>}
       {quote && <><MultiAttachmentField label="报价附件" value={draft.attachment} onChange={attachment => setDraft({ ...draft, attachment })} onPreview={onPreview} /><Field label="报价说明" multiline value={draft.note} onChange={note => setDraft({ ...draft, note })} /></>}
@@ -129,7 +129,10 @@ export function PortalPricingDetail({ quote, records, store, go, notify, onPrevi
     </section>}
     {quote ? <Section title="询价资料" className="m-quote-info" collapsible={false}>
       {[['way', '询价类型'], ['buyer', '采购员'], ['unit', '采购单位'], ['type', '采购类型'], ['created', '创建时间'], ['end', '结束时间']].map(([key, label]) => <Row key={key} label={label}>{draft[key] || '—'}</Row>)}
-      {editable ? <Field label="税率（%）" inputMode="decimal" value={draft.rate || ''} onChange={changeRate} /> : <Row label="税率（%）">{draft.rate || '—'}</Row>}
+      {editable ? <div className="m-supplier-form-fields">
+        <Field label="税率（%）" inputMode="decimal" value={draft.rate || ''} onChange={changeRate} />
+        <p className="m-input-note m-quote-rate-note">修改后将同步到全部明细税率。</p>
+      </div> : <Row label="税率（%）">{draft.rate || '—'}</Row>}
       <FileRow label="询价附件" value={draft.attachment} onPreview={onPreview} />
       <Row label="询价说明">{draft.remark || '—'}</Row>
     </Section> : <Section className="m-order-info-card" collapsible={false}>

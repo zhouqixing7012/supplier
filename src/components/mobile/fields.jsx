@@ -1,4 +1,4 @@
-import React, { useEffect, useId, useState } from 'react';
+import React, { useEffect, useId, useRef, useState } from 'react';
 import { CalendarDays, Check, ChevronDown, ChevronRight, HelpCircle, Eye, EyeOff, X } from 'lucide-react';
 import { mobileAsset } from '../../pages/mobile-prototype-runtime.js';
 import { Overlay } from './dialogs.jsx';
@@ -100,14 +100,19 @@ export function Field({
   </>;
 }
 
-export function DateRange({ label, value = ['', ''], onChange }) {
+export function DateRange({ label, value = ['', ''], onChange, startLabel, endLabel, endError }) {
+  const group = useRef(null);
+  const showLabels = Boolean(startLabel && endLabel);
+  useEffect(() => {
+    if (endError) group.current?.querySelector('button[aria-invalid="true"]')?.focus({ preventScroll: true });
+  }, [endError]);
   const indicator = <img src={mobileAsset('mobile-assets/workbench/date-range-expand.svg')} alt="" width="16" height="16" />;
-  return <div className="m-date-range" role="group" aria-label={label}>
-    <Field label={label + '（起）'} hideLabel type="date" placeholder="选择开始日期" dateIndicator={indicator} allowClearDate
+  return <div ref={group} className={'m-date-range' + (showLabels ? ' m-date-range-labeled' : '')} role="group" aria-label={label}>
+    <Field label={startLabel ?? label + '（起）'} hideLabel={!showLabels} layout="stacked" type="date" placeholder="选择开始日期" dateIndicator={indicator} allowClearDate
       value={value[0]} onChange={start => onChange([start, value[1]])} />
     <img className="m-date-range-separator" src={mobileAsset('mobile-assets/workbench/date-range-separator.svg')} alt="" width="16" height="16" />
-    <Field label={label + '（止）'} hideLabel type="date" placeholder="选择结束日期" dateIndicator={indicator} allowClearDate
-      value={value[1]} onChange={end => onChange([value[0], end])} />
+    <Field label={endLabel ?? label + '（止）'} hideLabel={!showLabels} layout="stacked" type="date" placeholder="选择结束日期" dateIndicator={indicator} allowClearDate
+      value={value[1]} error={endError} onChange={end => onChange([value[0], end])} />
   </div>;
 }
 

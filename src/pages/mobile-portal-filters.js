@@ -7,3 +7,7 @@ export function matchesPortalTask(record, query = '', filters = {}) {
     && (!filters.start || !!record.created && record.created.slice(0, 10) >= filters.start)
     && (!filters.end || !!record.end && record.end.slice(0, 10) <= filters.end);
 }
+
+export function portalTaskTabFor(tab, savedTab) {
+  return /^[0-3]$/.test(tab) ? Number(tab) : savedTab ?? 2;
+}

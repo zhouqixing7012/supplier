@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Actions, Row, Section } from '../components/mobile/index.js';
 import { Field } from './mobile-ui.jsx';
 import { useDirtyForm } from './mobile-interaction.jsx';
-import { passwordWhitespaceError, registrationPasswordError } from './mobile-registration-password.js';
+import { registrationPasswordError } from './mobile-registration-password.js';
 
 const validEmail = value => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value || '');
 const codeLifetime = 5 * 60 * 1000;
@@ -42,7 +42,6 @@ export function AccountSecurityForm({ kind, email, onCancel, onComplete, initial
       const passwordError = registrationPasswordError(data.password);
       if (passwordError) next.password = passwordError;
       if (!data.confirmation) next.confirmation = '请再次输入新密码';
-      else if (passwordWhitespaceError(data.confirmation)) next.confirmation = passwordWhitespaceError(data.confirmation, '确认新密码');
       else if (data.confirmation !== data.password) next.confirmation = '两次输入的密码不一致';
     }
     setErrors(next);

@@ -205,7 +205,7 @@ export function PortalWorkspace({ screen, recordNumber, go, account, onLogout })
               ]} tabBarExtraContent={pending
                 ? <Button onClick={() => go('portal/profile-approval')}>查看审批</Button>
                 : <Button type="primary" onClick={() => go('portal/profile-edit')}>修改</Button>} />
-              <SupplierSnapshot profile={profile} section={profileTab} />
+              <SupplierSnapshot profile={profile} section={profileTab} showBankProof={false} />
             </Card>
           </div>}
           {editingProfile && (pending ? <EmptyContent description="资料变更正在审批" /> : <SupplierProfileEditor profile={profile} leaveRef={profileLeave}

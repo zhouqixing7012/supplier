@@ -215,7 +215,6 @@
 .mobile-page:not(.m-shot) .m-actions > button.secondary { flex: 1; }
 .mobile-page:not(.m-shot) .m-actions > button.muted { flex: 1; background: #eef1f5; color: var(--m-text-secondary); border-color: transparent; }
 
-.mobile-page:not(.m-shot) .m-ops-filter .m-actions { position: sticky; bottom: 0; left: 0; transform: none; width: 100%; }
 
 .mobile-page:not(.m-shot) .m-section > .m-section-content > .m-record-heading { padding-inline: 0; border-bottom: 0; }
 
@@ -868,8 +867,7 @@
 .mobile-page:not(.m-shot) .m-option-picker.is-simple .m-sheet-options > button.selected { padding-inline: 12px; border-bottom-color: transparent; border-radius: 12px; background: var(--m-info-surface); color: var(--m-action); font-weight: 600; }
 
 /* 混排只读行与编辑行时，字段名称及值共用同一列。 */
-.mobile-page:not(.m-shot) .m-quote-info .m-field-inline { gap: 8px 0; }
-.mobile-page:not(.m-shot) .m-quote-info .m-field-inline > label { padding-left: 0; }
+.mobile-page .m-quote-info .m-quote-rate-note { margin: -8px 0 12px; }
 .mobile-page:not(.m-shot) .m-order-info-card .m-record-heading { padding: 14px 0 12px; border-bottom: 1px solid var(--m-border-subtle); }
 
 /* 筛选只保留一层轻量白色容器，标签和已选值始终可辨。 */
@@ -1270,18 +1268,21 @@
 }
 
 /* 两个日期使用等宽列，分隔符只以当前行的两个控件为基准。 */
-.mobile-page .m-date-range { display: grid; grid-template-columns: minmax(0, 1fr) 16px minmax(0, 1fr); align-items: center; gap: 8px; margin-bottom: 16px; }
+.mobile-page .m-date-range { display: grid; grid-template-columns: minmax(0, 1fr) 16px minmax(0, 1fr); align-items: start; gap: 8px; margin-bottom: 16px; }
 .mobile-page .m-date-range > .m-field,
-.mobile-page .m-filter-view .m-date-range > .m-field.m-field-placeholder-only { width: 100%; min-width: 0; min-height: 44px; margin: 0; padding: 0 12px; border: 0; border-radius: 12px; background: var(--m-surface); }
+.mobile-page .m-filter-view .m-date-range > .m-field { display: block; width: 100%; min-width: 0; min-height: 44px; margin: 0; padding: 0 12px; border: 0; border-radius: 12px; background: var(--m-surface); }
 .mobile-page .m-date-range > .m-field > label { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); }
 .mobile-page .m-date-range .m-field-control { width: 100%; min-width: 0; }
 .mobile-page .m-date-range .m-select-field { display: flex; justify-content: space-between; gap: 3px; padding-inline: 0 !important; min-width: 0; min-height: 44px; border: 0; background: transparent; }
 .mobile-page .m-date-range .m-select-field > span,
 .mobile-page .m-filter-view .m-date-range .m-field.m-field-placeholder-only .m-select-field > span { min-width: 0; white-space: nowrap; font-size: 14px; }
 .mobile-page .m-date-range .m-select-field > img { flex: 0 0 auto; }
-.mobile-page .m-date-range-separator { display: block; }
+.mobile-page .m-date-range-separator { display: block; margin-top: 14px; }
+.mobile-page .m-date-range > .m-field.has-error .m-select-field { outline: 1px solid var(--m-danger-text); outline-offset: -1px; }
+.mobile-page .m-date-range .m-field-error { margin: 0 0 6px; }
+.mobile-page .m-date-range-labeled .m-date-range-separator { margin-top: 40px; }
 @media (max-width: 359px) {
-  .mobile-page .m-filter-view .m-date-range > .m-field.m-field-placeholder-only { padding-inline: 8px; }
+  .mobile-page .m-filter-view .m-date-range > .m-field { padding-inline: 8px; }
 }
 
 /* 所有办理步骤同时展示，当前步骤和完成状态可直接识别。 */
@@ -1296,6 +1297,10 @@
 .mobile-page .m-registration-steps-horizontal .m-step-name { flex: none; font-size: 12px; line-height: 18px; text-align: center; white-space: nowrap; }
 .mobile-page .m-registration-steps-horizontal .m-step-state { font-size: 12px; line-height: 18px; }
 .mobile-page:not(.m-shot) .m-field.m-field-stacked > label { width: 100%; max-width: none; margin-bottom: 6px; }
+.mobile-page .m-date-range-labeled > .m-field.m-field-stacked > label {
+  position: static; display: block; width: auto; height: auto; line-height: 20px;
+  padding: 6px 0 0; margin: 0; color: var(--m-text-secondary); clip-path: none; white-space: nowrap;
+}
 
 /* 供应商列表的结果数量、卡片和批量操作共用页面内边距。 */
 .mobile-page:not(.m-shot).m-list-page .m-applied-filters { padding: 0 16px; }
@@ -1351,6 +1356,7 @@
 .mobile-page:not(.m-shot) :is(.m-supplier-basic-fields, .m-supplier-form-body) > .m-field { padding-inline: 0; }
 .mobile-page:not(.m-shot) .m-supplier-form-fields .m-field > label { width: 100%; max-width: none; min-height: 20px; margin-bottom: 8px; line-height: 20px; color: var(--m-text); }
 .mobile-page:not(.m-shot) .m-supplier-form-fields .m-field > .m-field-control { width: 100%; }
+.mobile-page:not(.m-shot) .m-supplier-form-fields .m-multi-attachment-field > label { padding-top: 0; }
 .mobile-page:not(.m-shot) .m-supplier-form-fields :is(.m-control-trailing, .m-field-control > :where(input:not([type=file]), textarea, .m-select-field)) { border-radius: 12px; }
 .mobile-page .m-field-control > button.m-certificate-upload { display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 8px; width: 100%; min-height: 102px; padding: 24px 12px; border: 1px solid var(--m-border); border-radius: 12px; background: var(--m-surface); color: var(--m-text-secondary); font-size: 12px; line-height: 16px; }
 

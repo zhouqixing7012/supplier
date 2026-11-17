@@ -49,22 +49,27 @@ const institutionType = supplierTypes[2];
 const institutionLabel = '政府机构或社团';
 const supplierTypeFilterOptions = supplierTypes.map(type => type === institutionType ? institutionLabel : type);
 
-export function FilterView({ rating = false, mine = false, listMine = false, initial = {}, onApply, onCancel }) {
+export function FilterView({ rating = false, mine = false, listMine = false, initial = {}, onApply }) {
   const [data, setData] = useState(() => rating && mine ? Object.fromEntries(Object.entries(initial).filter(([key]) => !['person', 'department'].includes(key))) : initial);
+  const [dateError, setDateError] = useState('');
   const update = (key, value) => setData({ ...data, [key]: value });
-  const fields = rating ? [['cooperationType', '合作类型', ['技术服务', '电子产品']], ...(!mine ? [['person', '业务线联系人'], ['department', '所属部门']] : []), ['start', '评分开始时间', 'date'], ['end', '评分结束时间', 'date']] : [['type', '供应商类型', supplierTypeFilterOptions], ['status', '供应商状态', supplierStates], ['start', '邀请时间（起）', 'date'], ['end', '邀请时间（止）', 'date'], ['recommended', '供应商推荐', supplierIndustries], ['inviter', '邀请人'], ...(!listMine ? [['certificate', '证件号码']] : [])];
+  const apply = () => {
+    if (data.start && data.end && data.start > data.end) return setDateError('结束日期不能早于开始日期');
+    onApply(data);
+  };
+  const fields = rating ? [['cooperationType', '合作类型', ['技术服务', '电子产品']], ...(!mine ? [['person', '业务线联系人'], ['department', '所属部门']] : []), ['start', '评分开始时间', 'date']] : [['type', '供应商类型', supplierTypeFilterOptions], ['status', '供应商状态', supplierStates], ['start', '邀请时间（起）', 'date'], ['recommended', '供应商推荐', supplierIndustries], ['inviter', '邀请人'], ...(!listMine ? [['certificate', '证件号码']] : [])];
   return <div className="m-filter-view">{fields.map(([key, label, kind]) => {
-    if (!rating && key === 'end') return null;
-    if (!rating && key === 'start') return <DateRange key={key} label="邀请时间" value={[data.start || '', data.end || '']}
-      onChange={([start, end]) => setData({ ...data, start, end })} />;
+    if (key === 'start') return <DateRange key={key} label={rating ? '评分时间' : '邀请时间'} value={[data.start || '', data.end || '']}
+      startLabel={rating ? '评分开始时间' : undefined} endLabel={rating ? '评分结束时间' : undefined} endError={dateError}
+      onChange={([start, end]) => { setData({ ...data, start, end }); setDateError(''); }} />;
     const currentValue = data[key] || '';
     const value = key === 'type' && currentValue === institutionType ? institutionLabel : currentValue;
-    return <FilterField key={key} label={label} allowClearDate={kind === 'date'} layout={kind === 'date' ? 'inline' : undefined}
+    return <FilterField key={key} label={label}
       selectionMode="immediate" searchable={['recommended', 'status'].includes(key)} value={value}
-      type={kind === 'date' ? 'date' : 'text'} options={Array.isArray(kind) ? kind : undefined}
+      options={kind}
       onChange={v => update(key, key === 'type' && v === institutionLabel ? institutionType : v)}
       placeholder={rating && ['person', 'department'].includes(key) ? '请输入' + label : undefined} />;
-  })}<Actions flat items={[{ label: '重置', muted: true, onClick: () => setData({}) }, { label: '应用筛选', onClick: () => onApply(data) }]} /></div>;
+  })}<Actions flat items={[{ label: '重置', muted: true, onClick: () => { setData({}); setDateError(''); } }, { label: '应用筛选', onClick: apply }]} /></div>;
 }
 
 function ApprovalTimeline({ nodes = [] }) {
@@ -107,7 +112,7 @@ export function SupplierDetail({ supplier, initialTab = 0, approvalEmpty = false
     {tab === 0 && <Section title="注册信息" collapsible={false}>{registration.map(([label, value]) => <Row key={label} label={label}>{value || '—'}</Row>)}{historicalAccount && <><p className="m-input-note">历史手工导入供应商，如需生成供应商账号请先变更邀请人，由邀请人重新邀请注册。</p>{onHistoricalInvite && <div className="m-record-actions"><button type="button" onClick={onHistoricalInvite}>重新邀请注册账号</button></div>}{onHistoricalInvite && supplier.historicalInvite && <p className="m-input-note"><a href={'#/mobile/historical-account?map=1&historyDemo=1&invitation=' + encodeURIComponent(supplier.historicalInvite.token)}>打开本次演示注册链接</a></p>}</>}</Section>}
     {tab === 1 && <><Section title="基本信息" collapsible={false}>{basicRows.map(([key, label]) => <Row key={key} label={label}>{key === 'creditCode' ? displayCertificateNumber(supplier) || '—' : basic[key] === '' ? '—' : basic[key] ?? '—'}</Row>)}{!personal && <Row label="证照附件">{basic.proof ? <AttachmentLink value={basic.proof} onPreview={onPreview} /> : '—'}</Row>}</Section>{supplier.type === supplierTypes[0] && <QualificationInfo records={basic.qualifications} onPreview={onPreview} />}</>}
     {tab === 2 && <RecordCollection showTitle={false} title="联系人信息" count={supplier.contacts?.length || (supplier.contact ? 1 : 0)} emptyText="暂无联系人信息">{(supplier.contacts?.length ? supplier.contacts : supplier.contact ? [{ id: 'legacy', name: supplier.contact, phone: supplier.phone, email: supplier.email }] : []).map(contact => <RecordCard key={contact.id} title={contact.name || '—'}>{[['phone', '电话'], ['email', '邮箱'], ['department', '部门'], ['job', '职位'], ['wechat', '微信'], ['note', '备注']].map(([key, label]) => <Row key={key} label={label}>{contact[key] || '—'}</Row>)}</RecordCard>)}</RecordCollection>}
-    {tab === 3 && <RecordCollection showTitle={false} title="银行信息" count={supplier.banks.length} emptyText="暂无银行信息">{supplier.banks.map(bank => <BankCard fileProof key={bank.id} bank={bank} onPreview={() => onPreview(bank.proof)} />)}</RecordCollection>}
+    {tab === 3 && <RecordCollection showTitle={false} title="银行信息" count={supplier.banks.length} emptyText="暂无银行信息">{supplier.banks.map(bank => <BankCard key={bank.id} bank={bank} showProof={false} />)}</RecordCollection>}
     {tab === 4 && <RecordCollection showTitle={false} title="分配权限" count={supplier.permissions.length} emptyText="暂无权限记录">{supplier.permissions.map(p => <PermissionCard key={p.id} data={p} />)}</RecordCollection>}
     {tab === 5 && <RecordCollection showTitle={false} title="财务OU" count={supplier.financeOus?.length || 0} emptyText="暂无财务OU">{supplier.financeOus?.map(record => <RecordCard key={record.id} title={record.orgName || '—'}>{[['负债账户', record.liabilityAccount], ['预付款账户', record.prepayAccount], ['地址', record.address]].map(([label, value]) => <Row key={label} label={label}><span className="m-finance-value">{value || '—'}</span></Row>)}</RecordCard>)}</RecordCollection>}
     {tab === 6 && <RecordCollection showTitle={false} title="黑名单操作记录" count={supplier.blacklistRecords?.length || 0} emptyText="暂无黑名单操作记录">{supplier.blacklistRecords?.map((record, index) => <RecordCard key={record.id} title={'黑名单记录 ' + (index + 1)} status={<StatusTag value={record.status} />}>{[['拉黑操作人', record.applyUser], ['拉黑操作时间', record.applyTime], ['拉黑原因', record.applyReason], ['移除操作人', record.removeUser], ['移除操作时间', record.removeTime], ['移除原因', record.removeReason]].map(([label, value]) => <Row key={label} label={label}>{value || '—'}</Row>)}</RecordCard>)}</RecordCollection>}

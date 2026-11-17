@@ -113,7 +113,7 @@ export function RecordCollectionEditor({ bank = false, qualification = false, ty
   </Card>;
 }
 
-export function SupplierSnapshot({ profile, section, approval = false }) {
+export function SupplierSnapshot({ profile, section, approval = false, showBankProof = true }) {
   const basicFields = approval ? [
     ['type', '供应商类型'],
     ...([supplierTypes[0], supplierTypes[3]].includes(profile.type) ? [['proof', profile.type === supplierTypes[0] ? '营业执照' : '证书']] : []),
@@ -126,7 +126,7 @@ export function SupplierSnapshot({ profile, section, approval = false }) {
       <RecordTable fields={qualificationFields} records={qualifications} numbered={approval} />
     </Card>}
     {(!section || section === 'contacts' || section === 'collections') && profile.type !== supplierTypes[1] && <Card size="small" title="联系人信息"><RecordTable fields={approval ? contactFields.filter(([key]) => key !== 'gender') : contactFields} records={profile.contacts || []} numbered={approval} /></Card>}
-    {(!section || section === 'banks' || section === 'collections') && <Card size="small" title="银行信息"><RecordTable fields={bankFields} records={profile.banks || []} numbered={approval} /></Card>}
+    {(!section || section === 'banks' || section === 'collections') && <Card size="small" title="银行信息"><RecordTable fields={showBankProof ? bankFields : bankFields.filter(([key]) => key !== 'proof')} records={profile.banks || []} numbered={approval} /></Card>}
   </div>;
 }
 
