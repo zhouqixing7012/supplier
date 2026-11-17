@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { ChevronDown, ChevronLeft, ChevronUp, Plus, X } from 'lucide-react';
 import { Empty } from './feedback.jsx';
+import { Checkbox } from './fields.jsx';
 
 export function Section({ title, children, className = '', collapsible = true, defaultOpen = true }) {
   const [open, setOpen] = useState(defaultOpen);
@@ -36,6 +37,18 @@ export function RecordCard({ title, children, motionKey, status }) {
 
 export function CardActions({ children, split = false }) {
   return <div className={'m-card-actions' + (split ? ' m-card-actions-split' : '')}>{children}</div>;
+}
+
+export function BatchActions({ selectedCount, selectableCount, onSelectAll, items, className = '' }) {
+  return <footer className={`m-batch-actions ${className}`}>
+    {onSelectAll && <Checkbox label="全选当前结果" disabled={!selectableCount}
+      checked={selectableCount > 0 && selectedCount === selectableCount} onChange={onSelectAll}>全选</Checkbox>}
+    <span aria-live="polite">已选 {selectedCount} 项</span>
+    <div className="m-batch-buttons">
+      {items.map(({ label, onClick, danger }) => <button key={label} type="button" disabled={!selectedCount}
+        className={danger ? 'm-action-danger' : undefined} onClick={onClick}>{label}</button>)}
+    </div>
+  </footer>;
 }
 
 export function Actions({ items, flat = false, className = '' }) {

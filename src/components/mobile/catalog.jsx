@@ -8,6 +8,7 @@ import {
 import { usePageIsolation } from '../../pages/mobile-interaction.jsx';
 import { regionData } from '../../pages/registration-regions.js';
 import { SupplierExamples, WorkflowExamples } from './supplier-examples.jsx';
+import { BatchExamples, ProcurementExamples, RatingExamples } from './transaction-examples.jsx';
 import './styles.js';
 import './catalog.css';
 
@@ -201,9 +202,9 @@ function AttachmentExamples() {
 
   return <Section title="上传与预览">
     <UploadField label="营业执照" variant="certificate" value={certificate} onChange={setCertificate} />
-    <UploadField label="证件照片" value={image} onChange={setImage} />
+    <UploadField label="开户证明" value={image} onChange={setImage} />
     <FileUploadField label="证明文件" value={file} onChange={setFile} />
-    <MultiAttachmentField label="多份附件" value={attachments} onChange={setAttachments} />
+    <MultiAttachmentField label="报价附件" value={attachments} onChange={setAttachments} />
     <p className="m-catalog-note">示例文件仅在本次页面会话中预览。</p>
   </Section>;
 }
@@ -218,6 +219,9 @@ const groups = [
   { label: '地址与目录', Examples: AddressAndDirectoryExamples },
   { label: '供应商资料', Examples: SupplierExamples },
   { label: '审批与预览', Examples: WorkflowExamples },
+  { label: '评分', Examples: RatingExamples },
+  { label: '采购明细', Examples: ProcurementExamples },
+  { label: '批量操作', Examples: BatchExamples },
 ];
 
 export default function MobileComponentCatalog() {
@@ -229,7 +233,7 @@ export default function MobileComponentCatalog() {
     <Header title="移动端组件库" onBack={() => { window.location.hash = '#/mobile/page-map'; }} />
     <nav className="m-catalog-nav" aria-label="组件分类">
       {groups.map(({ label }, index) => <button key={label} type="button" aria-pressed={index === group}
-        onClick={() => setGroup(index)}>{label}</button>)}
+        onClick={() => { if (index !== group) { setGroup(index); window.scrollTo(0, 0); } }}>{label}</button>)}
     </nav>
     <Examples />
   </main>;

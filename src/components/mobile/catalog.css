@@ -1,12 +1,18 @@
 .mobile-page.m-catalog .m-catalog-nav {
   display: flex;
-  flex-wrap: wrap;
-  gap: 4px 8px;
-  padding: 8px 16px;
+  position: sticky;
+  top: 56px;
+  z-index: 36;
+  gap: 8px;
+  padding: 4px 16px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: thin;
   border-bottom: 1px solid var(--m-border);
   background: var(--m-surface);
 }
 .mobile-page.m-catalog .m-catalog-nav > button {
+  flex: 0 0 auto;
   min-height: 44px;
   padding: 0 8px;
   color: var(--m-text-secondary);
@@ -26,3 +32,5 @@
   margin: 12px 0 4px;
   color: var(--m-text-secondary);
 }
+
+.mobile-page.m-catalog > .m-tab-bar { position: relative; top: auto; }

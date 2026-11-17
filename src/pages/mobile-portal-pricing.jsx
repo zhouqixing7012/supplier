@@ -17,7 +17,7 @@ function FileRow({ label, value, onPreview }) {
   return <Row label={label}>{files.length ? <div className="m-pricing-file-list">{files.map((file, index) => <AttachmentLink key={String(file) + '-' + index} value={file} onPreview={onPreview} />)}</div> : '无'}</Row>;
 }
 
-function LineEditor({ line, index, quote, onCancel, onSave, notify, onPreview }) {
+export function PricingLineEditor({ line, index, quote, onCancel, onSave, notify, onPreview, children }) {
   const [draft, setDraft] = useState(() => structuredClone(line));
   const [calculationError, setCalculationError] = useState('');
   const [saving, setSaving] = useState(false);
@@ -55,8 +55,15 @@ function LineEditor({ line, index, quote, onCancel, onSave, notify, onPreview })
       {calculationError && <p className="m-field-error" role="alert">{calculationError}</p>}
       {quote && <><MultiAttachmentField label="报价附件" value={draft.attachment} onChange={attachment => setDraft({ ...draft, attachment })} onPreview={onPreview} /><Field label="报价说明" multiline value={draft.note} onChange={note => setDraft({ ...draft, note })} /></>}
     </Section>
+    {children}
     <Actions items={[{ label: '取消', secondary: true, disabled: saving, onClick: cancel }, { label: '确定', disabled: saving, onClick: save }]} />
   </FullscreenPanel>;
+}
+
+export function QuoteRateField({ value, onChange }) {
+  return <div className="m-quote-rate">
+    <Field label="税率（%）" layout="inline" inputMode="decimal" value={value} onChange={onChange} />
+  </div>;
 }
 
 export function PortalPricingDetail({ quote, records, store, go, notify, onPreview, mapParams = {} }) {
@@ -128,9 +135,7 @@ export function PortalPricingDetail({ quote, records, store, go, notify, onPrevi
     </section>}
     {quote ? <Section title="询价资料" className="m-quote-info" collapsible={false}>
       {[['way', '询价类型'], ['buyer', '采购员'], ['unit', '采购单位'], ['type', '采购类型'], ['created', '创建时间'], ['end', '结束时间']].map(([key, label]) => <Row key={key} label={label}>{draft[key] || '—'}</Row>)}
-      {editable ? <div className="m-quote-rate">
-        <Field label="税率（%）" layout="inline" inputMode="decimal" value={draft.rate || ''} onChange={changeRate} />
-      </div> : <Row label="税率（%）">{draft.rate || '—'}</Row>}
+      {editable ? <QuoteRateField value={draft.rate || ''} onChange={changeRate} /> : <Row label="税率（%）">{draft.rate || '—'}</Row>}
       <FileRow label="询价附件" value={draft.attachment} onPreview={onPreview} />
       <Row label="询价说明">{draft.remark || '—'}</Row>
     </Section> : <Section className="m-order-info-card" collapsible={false}>
@@ -144,6 +149,6 @@ export function PortalPricingDetail({ quote, records, store, go, notify, onPrevi
       {editable && <CardActions><button aria-label={'编辑第' + (index + 1) + '项' + (quote ? '报价' : '价税')} onClick={() => runMotion(() => setEditor(index), 'forward')}>编辑</button></CardActions>}
     </Section>)}
     {editable && <Actions items={[{ label: '提交', disabled: submitting, onClick: submit }]} />}
-    {editor !== null && <LineEditor key={editor} index={editor} quote={quote} line={draft.lines[editor]} notify={notify} onPreview={onPreview} onCancel={() => runMotion(() => setEditor(null), 'back')} onSave={saveLine} />}
+    {editor !== null && <PricingLineEditor key={editor} index={editor} quote={quote} line={draft.lines[editor]} notify={notify} onPreview={onPreview} onCancel={() => runMotion(() => setEditor(null), 'back')} onSave={saveLine} />}
   </div>;
 }

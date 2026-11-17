@@ -1,4 +1,4 @@
-export { Actions, CardActions, FullscreenPanel, Header, RecordCard, RecordCollection, Row, Section } from './layout.jsx';
+export { Actions, BatchActions, CardActions, FullscreenPanel, Header, RecordCard, RecordCollection, Row, Section } from './layout.jsx';
 export { Empty, StatusBadge } from './feedback.jsx';
 export { FilterButton, FilterSummary, SearchBox } from './search.jsx';
 export { ActionSheet, Confirm, Overlay, PickerHeading, SelectionMark } from './dialogs.jsx';

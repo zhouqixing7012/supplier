@@ -4,4 +4,6 @@ export { BankCard, BankFields, BasicFields, ContactFields, PermissionForm } from
 export { QualificationInfo } from '../../pages/mobile-qualifications.jsx';
 export { RegistrationPreview } from '../../pages/mobile-registration-preview.jsx';
 export { SupplierIdentityCard } from '../../pages/mobile-ui.jsx';
-export { Approval, PermissionCard } from '../../pages/mobile-views.jsx';
+export { Approval, FilterView, PermissionCard } from '../../pages/mobile-views.jsx';
+export { RatingEditor, RatingWorkspace } from '../../pages/mobile-workflows.jsx';
+export { PricingLineEditor, QuoteRateField } from '../../pages/mobile-portal-pricing.jsx';

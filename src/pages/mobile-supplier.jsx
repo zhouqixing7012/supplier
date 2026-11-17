@@ -1,7 +1,7 @@
 import { portalTaskTabFor } from './mobile-portal-filters.js';
 import { embeddedPrototype, mobileAsset, readMobileRoute, readMobileSearch, replaceFrameRoute } from './mobile-prototype-runtime.js';
 import { BankChangeCard } from './mobile-bank-change-view.jsx';
-import { ActionSheet, Checkbox, FullscreenPanel, AddressForm, Actions, RecordCollection, AttachmentViewer, Confirm, Empty, FilterButton, FilterSummary, Header, Overlay, Row, Section, Tabs } from '../components/mobile/index.js';
+import { ActionSheet, BatchActions, FullscreenPanel, AddressForm, Actions, RecordCollection, AttachmentViewer, Confirm, Empty, FilterButton, FilterSummary, Header, Overlay, Row, Section, Tabs } from '../components/mobile/index.js';
 import { regionData } from './registration-regions.js';
 import { bankChangeCounts, normalizeBankChanges, readBankDraft, writeBankDraft } from './mobile-bank-changes.js';
 import { createSessionId } from './mobile-interaction.jsx';
@@ -687,16 +687,13 @@ function MobileSurface({ onComparisonChange, scene, shot, ratings, setRatings, a
         </div>
         <button type="button" className="m-fab m-fab-blue" aria-label={expanded ? '收起新增入口' : '新增供应商'} aria-controls={addMenuId} aria-expanded={expanded} onClick={() => setExpanded(open => !open)}><Plus aria-hidden="true" /></button>
       </div>}
-      {batch && canBatchOperate && <footer className={'m-batch-actions' + (mine ? ' m-batch-actions-mine' : '')}>
-        {(mine || shot) && <Checkbox label="全选当前结果" disabled={!selectableList.length}
-          checked={selectableList.length > 0 && checked.length === selectableList.length}
-          onChange={value => setChecked(value ? selectableList.map(x => x.id) : [])}>全选</Checkbox>}
-        <span>已选 {checked.length} 项</span>
-        <div className="m-batch-buttons">
-          <button type="button" disabled={!checked.length} className="m-action-danger" onClick={requestBatchDelete}>删除</button>
-          {mine && <button type="button" disabled={!checked.length} onClick={requestBatchInviter}>批量变更邀请人</button>}
-        </div>
-      </footer>}
+      {batch && canBatchOperate && <BatchActions className={mine ? 'm-batch-actions-mine' : undefined}
+        selectedCount={checked.length} selectableCount={selectableList.length}
+        onSelectAll={mine || shot ? value => setChecked(value ? selectableList.map(x => x.id) : []) : undefined}
+        items={[
+          { label: '删除', danger: true, onClick: requestBatchDelete },
+          ...(mine ? [{ label: '批量变更邀请人', onClick: requestBatchInviter }] : []),
+        ]} />}
     </>}
     {(scene === 'filter' || filtering) && <div className={filtering ? 'm-fullscreen-panel' : ''}>{filtering && <Header title="筛选供应商" onBack={() => runMotion(() => setFiltering(false), 'back')} />}<FilterView listMine={filterMine} initial={filters} onApply={v => { setFilters(v); if (filtering) runMotion(() => setFiltering(false), 'back'); else { views[returnToList()] = { ...views[returnToList()], filters: v }; go(returnToList()); } }} /></div>}
     {scene === 'information-change' && <>{supplier.pendingInformation && supplier.status === '变更中' ? <><ChangeComparison before={supplier} after={supplier.pendingInformation} onPreview={preview} /><Actions items={[{ label: '查看审批', onClick: () => go('approval') }]} /></> : <><Section title="资料变更对比" collapsible={false}><Empty text="暂无待查看的资料变更" /></Section></>}</>}
