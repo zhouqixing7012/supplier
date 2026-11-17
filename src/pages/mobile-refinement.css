@@ -881,8 +881,8 @@
   display: grid; grid-template-columns: var(--quote-label-width) minmax(0, 1fr); gap: 8px;
   min-height: var(--m-card-field-min); align-items: center; padding: var(--m-card-field-padding) 0; border: 0;
 }
-.mobile-page:not(.m-shot) .m-quote-info:has(.m-quote-rate) :is(.m-row > .m-label, .m-field > label, .m-field-control) { width: auto; max-width: none; padding-left: 0; }
-.mobile-page:not(.m-shot) .m-quote-rate .m-field-control { justify-self: end; width: min(144px, 100%); }
+.mobile-page:not(.m-shot) .m-quote-info:has(.m-quote-rate) :is(.m-row > .m-label, .m-field > label) { width: auto; max-width: none; padding-left: 0; }
+.mobile-page:not(.m-shot) .m-quote-rate .m-field-control { width: 100%; min-width: 0; }
 .mobile-page:not(.m-shot) .m-quote-rate .m-field-control > input:not([readonly]) { text-align: right; padding-right: var(--m-control-inset); }
 .mobile-page:not(.m-shot) .m-quote-rate .m-field-control:has(.m-field-clear) > input:not([readonly]) { padding-left: 44px; }
 .mobile-page:not(.m-shot) .m-quote-rate .m-field-clear { left: 0; right: auto; }
