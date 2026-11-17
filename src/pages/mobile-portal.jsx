@@ -4,7 +4,7 @@ import { usePanelState } from './mobile-motion.jsx';
 import { AddressForm, Actions, PickerHeading, RecordCard, RecordCollection, Confirm, Empty, Overlay, Row, Section, Tabs } from '../components/mobile/index.js';
 import { regionData } from './registration-regions.js';
 import React, { useEffect, useRef, useState } from 'react';
-import { Building2, Store, FolderClock, FolderCheck, ReceiptText, Receipt, PlaneTakeoff, Plane, Train, Hotel, Car, Upload, Download, LoaderCircle, Plus, Mail, MailCheck, KeyRound, LockKeyhole, ChevronRight, X, LogOut } from 'lucide-react';
+import { Building2, Store, FolderClock, FolderCheck, ReceiptText, Receipt, Plane, Train, Hotel, Car, Upload, Download, LoaderCircle, Plus, Mail, MailCheck, KeyRound, LockKeyhole, ChevronRight, X, LogOut } from 'lucide-react';
 import { RegistrationSteps, StatusTag, Field, SearchBox } from './mobile-ui.jsx';
 import { QualificationInfo } from './mobile-qualifications.jsx';
 import { BankCard, BankFields, BasicFields, ContactFields, bankError, fieldsFor, filledBasic, blankBank } from './mobile-forms.jsx';
@@ -36,7 +36,6 @@ const homeGroups = [
     { label: '价税拆分待处理', lines: ['价税拆分', '待处理'], icon: ReceiptText, color: 'orange', route: 'workspace-tasks', task: 2 },
     { label: '价税拆分已处理', lines: ['价税拆分', '已处理'], icon: Receipt, color: 'green', route: 'workspace-tasks', task: 3 },
   ] },
-  { title: '差旅服务', entries: [{ label: '差旅账单录入', lines: ['差旅账单', '录入'], icon: PlaneTakeoff, color: 'blue', route: 'workspace-travel' }] },
 ];
 const travelEntryDefinitions = [
   { key: 'train', label: '火车账单', Icon: Train },
@@ -234,6 +233,7 @@ function PortalWorkspaceContent({ scene, go, notify, store, onPreview, accountMe
       {store.portalDraft && !pending && <button className="m-preview-edit" onClick={() => go('workspace-changes')}>继续提交资料修改</button>}
       {pending && <button className="m-preview-edit" onClick={() => go('workspace-approval')}>查看资料变更审批</button>}
       {homeGroups.map(group => <section className="m-portal-home-group" key={group.title} aria-label={group.title}><h2>{group.title}</h2><div className="m-portal-entry-grid">{group.entries.map(({ label, lines, icon: Icon, color, route, task }) => <button key={label} aria-label={label} onClick={() => { if (task !== undefined) store.portalTaskTab = task; if (route.startsWith('workspace-account-')) { store.portalSecurityReturn = 'workspace-home'; } go(route); }}><span className={'m-portal-entry-icon is-' + color}><Icon aria-hidden="true" />{pendingCount(task) > 0 && <span className="m-portal-pending-count" aria-label={pendingCount(task) + '项待处理'}>{pendingCount(task)}</span>}</span><span className="m-portal-entry-label">{lines.map(line => <span key={line}>{line}</span>)}</span></button>)}</div></section>)}
+      <p className="m-portal-travel-note">差旅服务请在电脑端协同门户办理。</p>
     </div>}
 
     {['workspace-account-email', 'workspace-account-password'].includes(scene) && <AccountSecurityForm initialStep={mapParams.step === '1' ? 1 : 0} kind={scene.endsWith('email') ? 'email' : 'password'} email={profile.email} onCancel={() => { go(store.portalSecurityReturn || 'workspace-home'); }} onComplete={value => {

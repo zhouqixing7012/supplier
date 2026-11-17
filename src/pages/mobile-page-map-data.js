@@ -110,9 +110,6 @@ export const pageMap = [
       ]),
       node('采购报价管理', target('workspace-tasks', { tab: 0 }), [pricing(true, false), pricing(true, true)]),
       node('采购价税拆分', target('workspace-tasks', { tab: 2 }), [pricing(false, false), pricing(false, true)]),
-      node('差旅服务', 'workspace-travel', [
-        link('差旅账单录入', 'workspace-travel'),
-      ]),
       node('账户设置', 'workspace-account', [
         accountEmail('信息管理的修改注册邮箱'),
         link('修改密码', 'workspace-account-password', '信息管理的修改密码'),

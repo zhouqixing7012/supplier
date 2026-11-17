@@ -525,6 +525,79 @@ try {
     await goto('mobile/shot/200506');
     assert.equal(await page.locator('#root .m-registration-step-list').evaluate(el => getComputedStyle(el).display), 'none');
   });
+  await check('供应商卡片单项操作直接显示且可进入审批', async () => {
+    await goto('mobile/query');
+    const draft = card('代注册草稿');
+    assert.equal(await draft.getByRole('button', { name: '更多操作', exact: true }).count(), 0);
+    await draft.getByRole('button', { name: '查看审批进度', exact: true }).click();
+    await page.locator('#root [data-scene="detail-approval"]').waitFor();
+    assert.equal(await page.getByRole('dialog', { name: '更多操作', exact: true }).count(), 0);
+  });
+  await check('我的评分操作左右对齐、评分摘要及星号样式', async () => {
+    await goto('mobile/my-ratings');
+    const first = page.locator('#root .m-rating-list article').first();
+    const single = await first.locator('.m-card-actions').boundingBox();
+    const score = await first.getByRole('button', { name: '评分', exact: true }).boundingBox();
+    assert.ok(Math.abs(single.x + single.width - score.x - score.width) <= 1);
+    await button('已评分').click();
+    const rated = page.locator('#root .m-rating-list article').first();
+    const actions = await rated.locator('.m-card-actions').boundingBox();
+    const left = await rated.getByRole('button', { name: '评分详情', exact: true }).boundingBox();
+    const right = await rated.getByRole('button', { name: '修改评分', exact: true }).boundingBox();
+    assert.ok(Math.abs(left.x - actions.x) <= 1);
+    assert.ok(Math.abs(right.x + right.width - actions.x - actions.width) <= 1);
+    await goto('mobile/rating-edit');
+    const meta = page.locator('#root .m-rating-supplier-meta');
+    assert.deepEqual(await meta.locator('.m-row > .m-label').allTextContents(), ['邀请人', '邀请时间']);
+    assert.deepEqual(await meta.locator('.m-value').evaluateAll(values => values.map(el => [getComputedStyle(el).textAlign, getComputedStyle(el.parentElement).borderBottomWidth])), [['right', '0px'], ['right', '0px']]);
+    const requiredStyle = node => [getComputedStyle(node).fontSize, getComputedStyle(node).fontWeight, getComputedStyle(node).color];
+    assert.deepEqual(await page.locator('.m-rating-dimension-title > em').first().evaluate(requiredStyle),
+      await page.locator('[data-field-label="合作类型"] > label > em').evaluate(requiredStyle));
+    const firstStar = page.locator('#root .m-star-slot > svg').first();
+    const neutral = await firstStar.evaluate(el => getComputedStyle(el).fill);
+    await rate('人员/服务质量', 1);
+    await page.waitForFunction(initial => {
+      const star = document.querySelector('#root .m-star-slot > svg.filled');
+      return star && getComputedStyle(star).fill !== initial;
+    }, neutral);
+    await page.setViewportSize({ width: 320, height: 845 });
+    try {
+      const dimension = page.locator('#root .m-rating-dimension').first();
+      const number = await dimension.locator('.m-rating-value').boundingBox();
+      const stars = await dimension.getByRole('slider').boundingBox();
+      assert.ok(number.y + number.height <= stars.y);
+      assert.ok(stars.width >= 5 * 44);
+    } finally {
+      await page.setViewportSize({ width: 390, height: 845 });
+    }
+  });
+  await check('协同门户页签与信息卡弱化分隔，差旅提示指向电脑端', async () => {
+    await goto('mobile/workspace-home');
+    assert.equal(await button('差旅账单录入').count(), 0);
+    assert.ok(await page.getByText('差旅服务请在电脑端协同门户办理。', { exact: true }).isVisible());
+    for (const route of ['workspace-info', 'workspace-tasks']) {
+      await goto('mobile/' + route);
+      const tabs = page.locator('#root .m-workspace > .m-tab-bar');
+      assert.deepEqual(await tabs.evaluate(el => [getComputedStyle(el).borderTopWidth, getComputedStyle(el).borderBottomWidth]), ['0px', '0px']);
+      assert.equal(await page.locator('#root .mobile-page > .m-header').evaluate(el => getComputedStyle(el).borderBottomWidth), '0px');
+      assert.equal(await tabs.locator('[aria-current="page"]').count(), 1);
+    }
+    await goto('mobile/workspace-quote-detail?record=MOCK-INQ-001');
+    const quote = page.locator('#root .m-quote-info');
+    const row = quote.locator('.m-row').first();
+    const editable = quote.locator('[data-field-label="税率（%）"]');
+    const typography = node => [getComputedStyle(node).fontSize, getComputedStyle(node).fontWeight, getComputedStyle(node).color];
+    assert.deepEqual(await row.locator('.m-label').evaluate(typography), await editable.locator('label').evaluate(typography));
+    assert.equal(await row.evaluate(el => getComputedStyle(el).borderBottomWidth), '0px');
+    const input = editable.locator('input');
+    assert.deepEqual(await row.locator('.m-value').evaluate(typography), await input.evaluate(typography));
+    const readValue = await row.locator('.m-value').boundingBox();
+    const inputBox = await input.boundingBox();
+    const inset = await input.evaluate(el => parseFloat(getComputedStyle(el).paddingLeft) + parseFloat(getComputedStyle(el).borderLeftWidth));
+    const valueInset = await row.locator('.m-value').evaluate(el => parseFloat(getComputedStyle(el).paddingLeft));
+    assert.ok(Math.abs(readValue.x + valueInset - inputBox.x - inset) <= 1);
+    assert.equal(await input.evaluate(el => getComputedStyle(el).borderLeftWidth), '1px');
+  });
   await check('供应商蓝条与关键摘要默认可见，常用操作不藏菜单', async () => {
     await goto('mobile'); const records = page.locator('#root .m-supplier-card'); assert.equal(await records.locator('h3 .m-blue-mark').count(), await records.count());
     const sample = card('北京初然'); assert.ok(await sample.locator('.m-supplier-kind').filter({ hasText: '企业供应商' }).isVisible()); assert.ok(await sample.getByText('未评分', { exact: true }).isVisible()); assert.ok(await sample.getByRole('button', { name: '修改银行', exact: true }).isVisible());
@@ -535,13 +608,11 @@ try {
     assert.ok(await more.getByRole('button', { name: '分配权限', exact: true }).isVisible());
     await more.getByRole('button', { name: '取消', exact: true }).click();
     const draft = card('代注册草稿');
-    assert.ok(await draft.getByRole('button', { name: '修改草稿', exact: true }).isVisible());
-    await draft.getByRole('button', { name: '更多操作', exact: true }).click();
-    assert.equal(await more.getByRole('button', { name: /^修改/ }).count(), 0);
-    assert.ok(await more.getByRole('button', { name: '重新邀请', exact: true }).isVisible());
+    assert.ok(await draft.getByRole('button', { name: '查看审批进度', exact: true }).isVisible());
     await goto('mobile/query-more');
     assert.equal(await more.getByRole('button', { name: '修改银行', exact: true }).count(), 0);
     await goto('mobile/mine');
+    assert.ok(await draft.getByRole('button', { name: '修改草稿', exact: true }).isVisible());
     assert.ok(await sample.getByRole('button', { name: '修改全部信息', exact: true }).isVisible());
     await sample.getByRole('button', { name: '更多操作', exact: true }).click();
     assert.equal(await more.getByRole('button', { name: '修改全部信息', exact: true }).count(), 0);

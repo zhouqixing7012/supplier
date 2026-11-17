@@ -129,8 +129,8 @@ export function PortalPricingDetail({ quote, records, store, go, notify, onPrevi
     </section>}
     {quote ? <Section title="询价资料" className="m-quote-info" collapsible={false}>
       {[['way', '询价类型'], ['buyer', '采购员'], ['unit', '采购单位'], ['type', '采购类型'], ['created', '创建时间'], ['end', '结束时间']].map(([key, label]) => <Row key={key} label={label}>{draft[key] || '—'}</Row>)}
-      {editable ? <div className="m-supplier-form-fields">
-        <Field label="税率（%）" inputMode="decimal" value={draft.rate || ''} onChange={changeRate} />
+      {editable ? <div className="m-quote-rate">
+        <Field label="税率（%）" layout="inline" inputMode="decimal" value={draft.rate || ''} onChange={changeRate} />
         <p className="m-input-note m-quote-rate-note">修改后将同步到全部明细税率。</p>
       </div> : <Row label="税率（%）">{draft.rate || '—'}</Row>}
       <FileRow label="询价附件" value={draft.attachment} onPreview={onPreview} />

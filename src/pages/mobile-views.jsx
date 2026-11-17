@@ -21,7 +21,18 @@ function SupplierSummary({ s, mine, batch, checked, setChecked, onDetail, onBank
   const historical = readMobileRoute().startsWith('shot/');
   const allowed = supplierListActions(s, { mine, inviter: currentInviter });
   const canChangeInviter = allowed.inviter;
-  const hasMore = allowed.permissions || allowed.inviter || allowed.score || allowed.reinvite || allowed.delete || allowed.approval || (mine && allowed.bank);
+  const extraActions = [
+    [mine && allowed.bank, '修改银行', onBank],
+    [allowed.permissions, '分配权限', supplier => onMore(supplier, 'permissions')],
+    [allowed.inviter, '变更邀请人', onInviter],
+    [allowed.score, '评分', onScore],
+    [allowed.reinvite, '重新邀请', onReinvite],
+    [allowed.delete, '删除', onDelete, 'm-action-danger'],
+    [allowed.approval, '查看审批进度', supplier => onMore(supplier, true)],
+  ].filter(([visible]) => visible);
+  const showMenu = extraActions.length > 1 || (historical && extraActions.length > 0);
+  const extraActionButton = ([, label, execute, className]) => <button key={label} type="button"
+    className={className} onClick={() => { setMenu(false); execute(s); }}>{label}</button>;
   const selectable = batchKind === 'all' ? true : batchKind === 'delete' ? canDeleteSupplier(s, mine) : canChangeInviter;
   const fields = mine ? [['证件号码', displayCertificateNumber(s)], ['联系人姓名', s.contact], ['联系人邮箱', s.email], ['联系人电话', s.phone], ['邀请时间', s.date], ['更新时间', s.updated]] : [['注册方式', s.mode], ['更新时间', s.updated]];
   return <article data-motion-key={"supplier-" + s.id} className={'m-supplier-card' + (mine ? ' m-supplier-card-mine' : '')}>
@@ -30,15 +41,9 @@ function SupplierSummary({ s, mine, batch, checked, setChecked, onDetail, onBank
     {!historical && <p className="m-supplier-kind">{s.type}<span>·</span>{s.mode}</p>}
     <dl>{(historical ? [['供应商类型', s.type], ['审批状态', s.status], ...(!mine ? [['邀请人', s.inviter], ['邀请时间', s.date]] : []), ...fields, ...(!mine ? [['评分', s.score]] : [])] : [...(!mine ? [['邀请人', s.inviter], ['邀请时间', s.date]] : []), ...fields.filter(([label]) => label !== '注册方式'), ...(!mine ? [['评分', s.score]] : [])]).map(([label, value]) => <div className={/时间|邮箱|证件|评分/.test(label) ? 'm-supplier-wide' : ''} key={label}><dt>{label}{historical ? '：' : ''}</dt><dd>{label === '审批状态' ? <StatusTag value={value} /> : value || '—'}</dd></div>)}</dl>
 
-    {!batch && <CardActions split><button onClick={() => onDetail(s)}>查看详情</button>{allowed.editDraft ? <button onClick={() => onEdit(s)}>修改草稿</button> : allowed.bank ? mine ? <button onClick={() => onEditAll(s)}>修改全部信息</button> : <button onClick={() => onBank(s)}>修改银行</button> : null}{hasMore && <button onClick={() => setMenu(true)}>更多操作</button>}</CardActions>}
-    {menu && <ActionSheet title="更多操作" onClose={() => setMenu(false)}>
-      {mine && allowed.bank && <button onClick={() => { setMenu(false); onBank(s); }}>修改银行</button>}
-      {allowed.permissions && <button onClick={() => { setMenu(false); onMore(s, 'permissions'); }}>分配权限</button>}
-      {allowed.inviter && <button onClick={() => { setMenu(false); onInviter(s); }}>变更邀请人</button>}
-      {allowed.score && <button onClick={() => { setMenu(false); onScore(s); }}>评分</button>}
-      {allowed.reinvite && <button onClick={() => { setMenu(false); onReinvite(s); }}>重新邀请</button>}
-      {allowed.delete && <button className="m-action-danger" onClick={() => { setMenu(false); onDelete(s); }}>删除</button>}
-      {allowed.approval && <button onClick={() => { setMenu(false); onMore(s, true); }}>查看审批进度</button>}
+    {!batch && <CardActions split><button onClick={() => onDetail(s)}>查看详情</button>{allowed.editDraft ? <button onClick={() => onEdit(s)}>修改草稿</button> : allowed.bank ? mine ? <button onClick={() => onEditAll(s)}>修改全部信息</button> : <button onClick={() => onBank(s)}>修改银行</button> : null}{showMenu ? <button onClick={() => setMenu(true)}>更多操作</button> : extraActions.map(extraActionButton)}</CardActions>}
+    {menu && showMenu && <ActionSheet title="更多操作" onClose={() => setMenu(false)}>
+      {extraActions.map(extraActionButton)}
       <button className="cancel" onClick={() => setMenu(false)}>取消</button>
     </ActionSheet>}
   </article>;

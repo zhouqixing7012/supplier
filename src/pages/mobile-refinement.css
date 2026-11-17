@@ -81,8 +81,7 @@
 .mobile-page:not(.m-shot) .m-collapse { order: 2; margin-left: auto; width: 22px; height: 22px; background: none; color: #94a3b8; }
 .mobile-page:not(.m-shot) .m-collapse svg { width: 17px; height: 17px; stroke-width: 1.8; }
 .mobile-page:not(.m-shot) .m-section-heading::before { content: ''; width: 3px; height: 14px; border-radius: 3px; background: #3370ff; }
-.mobile-page:not(.m-shot) .m-row { min-height: 48px; padding: 12px 0; line-height: 1.6; font-size: 14px; border-bottom: 1px solid #f0f3f7; align-items: flex-start; }
-.mobile-page:not(.m-shot) .m-row:last-child { border-bottom: 0; }
+.mobile-page:not(.m-shot) .m-row { min-height: 48px; padding: 12px 0; line-height: 1.6; font-size: 14px; align-items: flex-start; }
 .mobile-page:not(.m-shot) .m-label { width: 100px; padding-right: 12px; color: var(--m-text-secondary); }
 .mobile-page:not(.m-shot) .m-value { color: #334155; }
 .mobile-page:not(.m-shot) .m-row-compact { min-height: 30px; padding: 4px 0; border: 0; font-size: 14px; }
@@ -172,7 +171,10 @@
 .m-rating-value { font-size: 16px; font-variant-numeric: tabular-nums; color: var(--m-text); }
 .mobile-page:not(.m-shot) .m-star-control > span:first-child { gap: 0; }
 .mobile-page:not(.m-shot) .m-star-control > .m-rating-stars:first-child { gap: 4px; }
-.mobile-page:not(.m-shot) .m-star-control svg:not(.filled) { color: #697181; }
+/* 评分星级以浅灰、橙色实心区分，半星使用相同图形和裁切。 */
+.mobile-page:not(.m-shot) .m-star-control svg { stroke-width: 0; fill: currentColor; }
+.mobile-page:not(.m-shot) .m-star-control svg:not(.filled) { color: var(--m-border); }
+.mobile-page:not(.m-shot) .m-star-control svg.filled { color: #c65d00; fill: currentColor; }
 .mobile-page:not(.m-shot) .m-batch-actions label { font-size: 14px; }
 
 .mobile-page .m-upload input[type=file] { width: 1px !important; height: 1px !important; min-height: 0; pointer-events: none; clip-path: inset(50%); }
@@ -401,7 +403,15 @@
 .m-rating-card-state { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 6px; flex-shrink: 0; }
 .m-rating-card-state strong { font-size: 16px; color: var(--m-action); }
 .m-rating-supplier-meta { border-top: 1px solid var(--m-border-subtle); margin-top: 12px; padding-top: 6px; }
-.m-rating-supplier-meta .m-row { padding-inline: 0; }
+.mobile-page:not(.m-shot) .m-rating-supplier-meta .m-row { min-height: 28px; padding: 3px 0; }
+.mobile-page:not(.m-shot) .m-rating-supplier-meta .m-value { text-align: right; }
+.mobile-page:not(.m-shot) .m-rating-dimensions { padding-inline: 0; }
+.mobile-page:not(.m-shot) .m-rating-dimension { border-bottom: 0; padding: 8px 0; }
+@media (max-width: 359px) {
+  .mobile-page:not(.m-shot) .m-rating-dimension { position: relative; }
+  .mobile-page:not(.m-shot) .m-rating-dimension:has(.m-rating-value) > .m-rating-dimension-title { padding-inline-end: 58px; }
+  .mobile-page:not(.m-shot) .m-rating-dimension .m-rating-value { position: absolute; inset: 8px 0 auto auto; font-size: 14px; line-height: 20px; }
+}
 .m-decision-confirm { text-align: left; font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif; padding: 24px; }
 .m-sheet-handle { display: block; width: 36px; height: 4px; border-radius: 4px; background: #d4dce5; margin: 0 auto 24px; }
 .m-decision-confirm h2 { margin: 0 0 10px; font-size: 20px; color: var(--m-text); }
@@ -456,7 +466,11 @@
 
 /* 星号独立占位，必填与选填字段从同一文字起点对齐。 */
 .mobile-page:not(.m-shot) .m-field > label { position: relative; padding-left: 12px; box-sizing: border-box; }
-.mobile-page:not(.m-shot) .m-field > label > em { position: absolute; left: 0; top: 0; width: 10px; margin: 0; text-align: left; }
+.mobile-page:not(.m-shot) .m-rating-dimension-title:has(em) { position: relative; padding-left: 12px; line-height: 20px; color: var(--m-text); }
+.mobile-page:not(.m-shot) :is(.m-field > label, .m-rating-dimension-title) > em {
+  position: absolute; inset-inline-start: 0; top: 0; width: 10px; margin: 0; padding: 0;
+  color: var(--m-danger-text); font: 600 14px/20px Arial, sans-serif; text-align: left;
+}
 .mobile-page:not(.m-shot) .m-field-name { min-width: 0; overflow-wrap: anywhere; }
 .mobile-page:is([data-scene^="inviter"], [data-scene="bank"], [data-scene^="permissions"], [data-scene="bank-application-form"]) .m-row > .m-label { position: relative; padding-left: 12px; box-sizing: border-box; }
 .m-inviter-note > p { margin: 0 0 6px; font-weight: 600; }
@@ -486,6 +500,7 @@
 .m-portal-home-identity { display: flex; align-items: center; gap: 10px; padding: 14px 16px; margin-bottom: 12px; background: var(--m-surface); border: 1px solid var(--m-border); border-radius: 12px; }
 .m-portal-home-identity > svg { width: 22px; height: 22px; flex-shrink: 0; color: var(--m-action); }
 .m-portal-home-identity h2 { flex: 1; min-width: 0; margin: 0; font-size: 16px; line-height: 1.5; overflow-wrap: anywhere; }
+.m-portal-travel-note { margin: 0 0 12px; padding: 4px 0 8px; color: var(--m-text-secondary); font-size: 14px; }
 .m-portal-home-group { margin-bottom: 12px; background: var(--m-surface); border: 1px solid var(--m-border); border-radius: 12px; overflow: hidden; }
 .m-portal-home-group h2 { display: flex; align-items: center; gap: 8px; margin: 0; padding: 12px 16px 8px; font-size: 16px; font-weight: 600; line-height: 1.5; }
 .m-portal-home-group h2::before { content: ''; width: 3px; height: 14px; flex-shrink: 0; border-radius: 2px; background: var(--m-action); }
@@ -867,7 +882,23 @@
 .mobile-page:not(.m-shot) .m-option-picker.is-simple .m-sheet-options > button.selected { padding-inline: 12px; border-bottom-color: transparent; border-radius: 12px; background: var(--m-info-surface); color: var(--m-action); font-weight: 600; }
 
 /* 混排只读行与编辑行时，字段名称及值共用同一列。 */
-.mobile-page .m-quote-info .m-quote-rate-note { margin: -8px 0 12px; }
+/* 同卡混排使用同一标签和值样式，输入边框标识可编辑。 */
+.mobile-page:not(.m-shot) :is(.m-quote-info, .m-inviter-applicants) :is(.m-row > .m-label, .m-field > label) {
+  color: var(--m-text-secondary); font-size: var(--m-font-field); font-weight: 400; line-height: 22px;
+}
+.mobile-page:not(.m-shot) :is(.m-quote-info, .m-inviter-applicants) .m-row > .m-value {
+  font-size: var(--m-font-field); font-weight: 400; line-height: 22px;
+}
+.mobile-page:not(.m-shot) .m-quote-info { --quote-label-width: min(128px, 44%); }
+.mobile-page:not(.m-shot) .m-quote-info .m-row,
+.mobile-page:not(.m-shot) .m-quote-rate > .m-field {
+  display: grid; grid-template-columns: var(--quote-label-width) minmax(0, 1fr); gap: 8px;
+  min-height: 0; align-items: center; padding: 6px 0; border: 0;
+}
+.mobile-page:not(.m-shot) .m-quote-info :is(.m-row > .m-label, .m-field > label, .m-field-control) { width: auto; max-width: none; padding-left: 0; }
+.mobile-page:not(.m-shot) .m-quote-info .m-value { padding-inline-start: calc(var(--m-control-inset) + 1px); }
+.mobile-page:not(.m-shot) .m-quote-info :is(.m-quote-rate-note, .m-field-error) { margin: 0 0 6px calc(var(--quote-label-width) + 8px); }
+.mobile-page:not(.m-shot) .m-quote-info .m-field-error { grid-column: 1 / -1; }
 .mobile-page:not(.m-shot) .m-order-info-card .m-record-heading { padding: 14px 0 12px; border-bottom: 1px solid var(--m-border-subtle); }
 
 /* 筛选只保留一层轻量白色容器，标签和已选值始终可辨。 */
@@ -1369,3 +1400,9 @@
 .mobile-page .m-status-tabs.m-count-tabs span { font-size: 12px; line-height: 16px; }
 .mobile-page:not(.m-shot)[data-scene="my-ratings"] .m-count-tabs { margin-bottom: 0; }
 .mobile-page:not(.m-shot)[data-scene="my-ratings"] .m-rating-list .m-row > .m-value { text-align: right; }
+
+/* 门户页签用选中态和留白区分，普通信息卡片以外框和留白分组。 */
+.mobile-page:not(.m-shot):is([data-scene="workspace-info"], [data-scene="workspace-tasks"]):has(.m-workspace > .m-tab-bar) > .m-header { border-bottom: 0; }
+.mobile-page:not(.m-shot) .m-workspace .m-tab-bar { border-block: 0; }
+.mobile-page:not(.m-shot) .m-workspace .m-section > h2:not(:has(.m-section-heading)) { border-bottom: 0; }
+.mobile-page:not(.m-shot) .m-detail .m-section-content > .m-row { border-bottom: 0; }
