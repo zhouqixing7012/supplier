@@ -217,6 +217,40 @@ try {
   await check('我的邀请字段直接展示且详情返回保持来源', async () => {
     await goto('mobile/mine'); assert.ok(await card('代注册草稿').getByText('联系人邮箱', { exact: true }).isVisible()); await card('代注册草稿').getByRole('button', { name: '查看详情', exact: true }).click(); await headerBack(); await page.locator('#root [data-scene="mine"]').waitFor();
   });
+  await check('个人供应商从两个列表进入均展示注册信息，列表和详情隐藏邀请单号', async () => {
+    for (const route of ['mobile', 'mobile/mine']) {
+      await goto(route);
+      const supplier = card('夏知远');
+      assert.ok(await supplier.isVisible());
+      assert.equal(await supplier.getByText(/邀请单号|MOCK-INV-P142/).count(), 0);
+      await supplier.getByRole('button', { name: '查看详情', exact: true }).click();
+      const detail = page.locator('#root .m-supplier-detail');
+      assert.equal(await detail.locator('[aria-current="page"]').innerText(), '注册信息');
+      assert.equal(await detail.getByRole('button', { name: '联系人信息', exact: true }).count(), 0);
+      assert.deepEqual(await detail.locator('.m-section .m-label').allTextContents(),
+        ['供应商账号', '邀请人', '邀请时间', '曾用名', '注册邮箱']);
+      assert.ok(await detail.getByText('person-passport@example.invalid', { exact: true }).isVisible());
+      assert.equal(await detail.getByText(/邀请单号|MOCK-INV-P142/).count(), 0);
+      await button('基本信息').click();
+      assert.ok(await detail.getByText('护照', { exact: true }).isVisible());
+    }
+  });
+  await check('两个列表用完整机构类型名称筛选并回填', async () => {
+    for (const route of ['mobile', 'mobile/mine']) {
+      await goto(route);
+      const type = page.locator('#root').getByRole('combobox', { name: '供应商类型', exact: true });
+      await button('筛选供应商').click();
+      await choose('供应商类型', '政府机构或社团');
+      assert.equal(await type.innerText(), '政府机构或社团');
+      await button('应用筛选').click();
+      const cards = page.locator('#root .m-supplier-card');
+      assert.equal(await cards.count(), 2);
+      assert.ok(await card('澄川公共文化服务中心').isVisible());
+      assert.ok(await card('松原青年艺术交流协会').isVisible());
+      await button('筛选供应商').click();
+      assert.equal(await type.innerText(), '政府机构或社团');
+    }
+  });
   await check('查询结果只展示数量，重新打开筛选回填并可重置', async () => {
     for (const route of ['mobile', 'mobile/mine']) {
       await goto(route);
@@ -780,7 +814,7 @@ try {
   });
   await check('查询评分末行、批量删除确认与注册基本信息拆分', async () => {
     await goto('mobile/query?map=1&role=admin'); for (const record of await page.locator('#root .m-supplier-card').all()) assert.equal(await record.locator('dl > div:last-child dt').innerText(), '评分'); const before = await page.locator('#root .m-supplier-card').count(); await button('批量操作').click(); const disabled = page.locator('#root .m-supplier-card input[type=checkbox]:disabled'); assert.ok(await disabled.count() > 0); const choices = page.locator('#root .m-supplier-card input[type=checkbox]:enabled'); await choices.first().check(); await choices.nth(1).check(); const count = await page.locator('#root .m-supplier-card input:checked').count(); assert.equal(count, 2); await button('删除').click(); await page.locator('#root').getByRole('dialog').getByRole('button', { name: '取消', exact: true }).click(); assert.equal(await page.locator('#root .m-supplier-card').count(), before); await button('删除').click(); await page.locator('#root').getByRole('dialog').getByRole('button', { name: '确认', exact: true }).click(); assert.equal(await page.locator('#root .m-supplier-card').count(), before - count); await button('取消批量操作').click(); await shot('query-score-last');
-    await goto('mobile/detail'); assert.equal(await page.locator('#root .m-detail .m-tabs button').count(), 9); assert.equal(await page.locator('#root .m-detail .m-section .m-label').allTextContents().then(x => x.join('|')), '供应商账号|邀请单号|邀请人|邀请时间|曾用名|注册邮箱'); await shot('detail-registration'); await button('基本信息').click(); assert.ok(await page.locator('#root').getByText('统一社会信用代码', { exact: true }).isVisible()); assert.ok(await page.locator('#root').getByText('经营优势及业务优势', { exact: true }).isVisible()); assert.equal(await page.locator('#root .m-section .m-label').filter({ hasText: '注册邮箱' }).count(), 0); await shot('detail-basic'); for (const [route, active] of [['mobile/detail-bank','银行信息'], ['mobile/detail-approval-empty','审批记录'], ['mobile/detail-ratings','合作信息及评分']]) { await goto(route); assert.equal(await page.locator('#root .m-detail .m-tabs [aria-current=page]').innerText(), active); }
+    await goto('mobile/detail'); assert.equal(await page.locator('#root .m-detail .m-tabs button').count(), 9); assert.equal(await page.locator('#root .m-detail .m-section .m-label').allTextContents().then(x => x.join('|')), '供应商账号|邀请人|邀请时间|曾用名|注册邮箱'); await shot('detail-registration'); await button('基本信息').click(); assert.ok(await page.locator('#root').getByText('统一社会信用代码', { exact: true }).isVisible()); assert.ok(await page.locator('#root').getByText('经营优势及业务优势', { exact: true }).isVisible()); assert.equal(await page.locator('#root .m-section .m-label').filter({ hasText: '注册邮箱' }).count(), 0); await shot('detail-basic'); for (const [route, active] of [['mobile/detail-bank','银行信息'], ['mobile/detail-approval-empty','审批记录'], ['mobile/detail-ratings','合作信息及评分']]) { await goto(route); assert.equal(await page.locator('#root .m-detail .m-tabs [aria-current=page]').innerText(), active); }
   });
   await check('详情记录卡片宽度与标题分隔线统一', async () => {
     await goto('mobile'); await card('北京初然').getByRole('button', { name: '查看详情', exact: true }).click(); const tabs = page.locator('#root .m-detail .m-tabs');

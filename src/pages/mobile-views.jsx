@@ -23,7 +23,7 @@ function SupplierSummary({ s, mine, batch, checked, setChecked, onDetail, onBank
   const canChangeInviter = allowed.inviter;
   const hasMore = allowed.permissions || allowed.inviter || allowed.score || allowed.reinvite || allowed.delete || allowed.approval || (mine && allowed.bank);
   const selectable = batchKind === 'all' ? true : batchKind === 'delete' ? canDeleteSupplier(s, mine) : canChangeInviter;
-  const fields = mine ? [['证件号码', displayCertificateNumber(s)], ['联系人姓名', s.contact], ['联系人邮箱', s.email], ['联系人电话', s.phone], ...(!historical ? [['邀请单号', s.invitationNo]] : []), ['邀请时间', s.date], ['更新时间', s.updated]] : [['注册方式', s.mode], ['更新时间', s.updated]];
+  const fields = mine ? [['证件号码', displayCertificateNumber(s)], ['联系人姓名', s.contact], ['联系人邮箱', s.email], ['联系人电话', s.phone], ['邀请时间', s.date], ['更新时间', s.updated]] : [['注册方式', s.mode], ['更新时间', s.updated]];
   return <article data-motion-key={"supplier-" + s.id} className={'m-supplier-card' + (mine ? ' m-supplier-card-mine' : '')}>
     <div className="m-supplier-heading"><h3><MotionPresence show={batch} compact className="m-checkbox-presence"><Checkbox label={`选择${s.name}`} disabled={!selectable} checked={checked.includes(s.id)}
       onChange={value => setChecked(value ? [...checked, s.id] : checked.filter(x => x !== s.id))} /></MotionPresence><i className="m-blue-mark" aria-hidden="true" /><span>{s.name}</span></h3>{!historical && <StatusTag value={s.status} />}</div>
@@ -44,17 +44,25 @@ function SupplierSummary({ s, mine, batch, checked, setChecked, onDetail, onBank
   </article>;
 }
 
+// 筛选项使用完整名称，查询仍按已有类型值匹配。
+const institutionType = supplierTypes[2];
+const institutionLabel = '政府机构或社团';
+const supplierTypeFilterOptions = supplierTypes.map(type => type === institutionType ? institutionLabel : type);
+
 export function FilterView({ rating = false, mine = false, listMine = false, initial = {}, onApply, onCancel }) {
   const [data, setData] = useState(() => rating && mine ? Object.fromEntries(Object.entries(initial).filter(([key]) => !['person', 'department'].includes(key))) : initial);
   const update = (key, value) => setData({ ...data, [key]: value });
-  const fields = rating ? [['cooperationType', '合作类型', ['技术服务', '电子产品']], ...(!mine ? [['person', '业务线联系人'], ['department', '所属部门']] : []), ['start', '评分开始时间', 'date'], ['end', '评分结束时间', 'date']] : [['type', '供应商类型', supplierTypes], ['status', '供应商状态', supplierStates], ['start', '邀请时间（起）', 'date'], ['end', '邀请时间（止）', 'date'], ['recommended', '供应商推荐', supplierIndustries], ['inviter', '邀请人'], ...(!listMine ? [['certificate', '证件号码']] : [])];
+  const fields = rating ? [['cooperationType', '合作类型', ['技术服务', '电子产品']], ...(!mine ? [['person', '业务线联系人'], ['department', '所属部门']] : []), ['start', '评分开始时间', 'date'], ['end', '评分结束时间', 'date']] : [['type', '供应商类型', supplierTypeFilterOptions], ['status', '供应商状态', supplierStates], ['start', '邀请时间（起）', 'date'], ['end', '邀请时间（止）', 'date'], ['recommended', '供应商推荐', supplierIndustries], ['inviter', '邀请人'], ...(!listMine ? [['certificate', '证件号码']] : [])];
   return <div className="m-filter-view">{fields.map(([key, label, kind]) => {
     if (!rating && key === 'end') return null;
     if (!rating && key === 'start') return <DateRange key={key} label="邀请时间" value={[data.start || '', data.end || '']}
       onChange={([start, end]) => setData({ ...data, start, end })} />;
+    const currentValue = data[key] || '';
+    const value = key === 'type' && currentValue === institutionType ? institutionLabel : currentValue;
     return <FilterField key={key} label={label} allowClearDate={kind === 'date'} layout={kind === 'date' ? 'inline' : undefined}
-      selectionMode="immediate" searchable={['recommended', 'status'].includes(key)} value={data[key] || ''}
-      type={kind === 'date' ? 'date' : 'text'} options={Array.isArray(kind) ? kind : undefined} onChange={v => update(key, v)}
+      selectionMode="immediate" searchable={['recommended', 'status'].includes(key)} value={value}
+      type={kind === 'date' ? 'date' : 'text'} options={Array.isArray(kind) ? kind : undefined}
+      onChange={v => update(key, key === 'type' && v === institutionLabel ? institutionType : v)}
       placeholder={rating && ['person', 'department'].includes(key) ? '请输入' + label : undefined} />;
   })}<Actions flat items={[{ label: '重置', muted: true, onClick: () => setData({}) }, { label: '应用筛选', onClick: () => onApply(data) }]} /></div>;
 }
@@ -84,15 +92,15 @@ export function Approval({ supplier, populated = true, history = false, showSupp
 export function SupplierDetail({ supplier, initialTab = 0, approvalEmpty = false, onPreview, ratings = [], onScore, onRatingOpen, onHistoricalInvite, historicalDemo = false }) {
   const personal = supplier.type === supplierTypes[1];
   const [requestedTab, setTab] = useState(initialTab);
-  const tab = personal && [0, 2].includes(requestedTab) ? 1 : requestedTab;
-  const registration = [['供应商账号', supplierAccount(supplier)], ['邀请单号', supplier.invitationNo], ['邀请人', supplier.inviter], ['邀请时间', supplier.date], ['曾用名', supplier.supplierFormerName || supplier.formerName], ['注册邮箱', supplier.email]];
+  const tab = personal && requestedTab === 2 ? 1 : requestedTab;
+  const registration = [['供应商账号', supplierAccount(supplier)], ['邀请人', supplier.inviter], ['邀请时间', supplier.date], ['曾用名', supplier.supplierFormerName || supplier.formerName], ['注册邮箱', supplier.email]];
   const basic = { ...supplier.basic, type: supplier.type, supplierName: supplier.name, creditCode: supplier.basic?.creditCode || supplier.code, businessAdvantage: supplier.basic?.businessAdvantage || supplier.businessAdvantage };
   const basicRows = fieldsFor(supplier.type).filter(([key]) => personal
     ? ['certificateType', 'creditCode', 'supplierName', 'gender'].includes(key)
     : key !== 'supplierName');
   const historicalAccount = historicalDemo && supplier.mode === '历史供应商' && !supplierAccount(supplier);
   const tabLabels = ['注册信息', '基本信息', '联系人信息', '银行信息', '分配权限', '财务OU', '黑名单操作记录', '审批记录', '合作信息及评分'];
-  const visibleTabs = tabLabels.map((label, index) => ({ label, index })).filter(item => !personal || ![0, 2].includes(item.index));
+  const visibleTabs = tabLabels.map((label, index) => ({ label, index })).filter(item => !personal || item.index !== 2);
   const visibleTab = visibleTabs.findIndex(item => item.index === tab);
   const changeTab = index => setTab(visibleTabs[index].index);
   return <div className="m-detail m-supplier-detail"><SupplierIdentityCard supplier={supplier} /><Tabs variant="pill" items={visibleTabs.map(item => item.label)} active={visibleTab} onChange={changeTab} /><SwipeArea active={visibleTab} count={visibleTabs.length} onChange={changeTab}>
