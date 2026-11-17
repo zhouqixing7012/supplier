@@ -31,6 +31,8 @@ import { runMotion, useMotionStructure, usePanelState, MotionPresence } from './
 import { routeMotion } from './mobile-motion.js';
 import { registrationPasswordError } from './mobile-registration-password.js';
 
+const reviewEnabled = import.meta.env.VITE_MOBILE_REVIEW === 'true';
+
 const managementMenus = [
   { route: 'query', label: '供应商查询' },
   { route: 'mine', label: '我的邀请' },
@@ -191,8 +193,37 @@ function MobileApp() {
       });
     }
   };
+  const isManagementMenu = managementMenus.some(menu => menu.route === scene);
+  const showPortalLink = !shot && !scene.startsWith('portal') && !scene.startsWith('workspace');
+  const mapAccess = !shot && (mapParams.map || isManagementMenu || scene === 'portal');
   const update = patch => setSuppliers(list => list.map(s => s.id === supplierId ? { ...s, ...patch, updated: patch.status ? now() : s.updated } : s));
-  return <>{scene === 'page-map' ? <MobilePageMap route={route} /> : scene === 'scenes' ? <SceneGallery /> : <>{!embeddedPrototype && <aside className="m-preview-nav" data-map-access={!shot && (mapParams.map || scene === 'query' || scene === 'portal') ? 'true' : undefined} aria-label="原型导航"><a href="#/mobile/scenes">47 张截图</a><a className="m-page-map-link" href="#/mobile/page-map">原型导图</a><span>演示数据</span><a href="#/admin/suppliers">电脑端</a></aside>}<MotionPresence show={!!result} as="aside" className="m-result-banner" role="status">{result && <><strong>操作结果</strong><p>{result.text}</p><button aria-label="关闭操作结果" onClick={() => setResult(null)}>关闭</button></>}</MotionPresence><MobileSurface onComparisonChange={setComparisonState} key={route} scene={scene} shot={shot} ratings={ratings} setRatings={setRatings} activeRating={mapParams.map ? sampleRating : activeRating} setActiveRating={setActiveRating} ratingReturn={mapParams.from || ratingReturn} setRatingReturn={setRatingReturn} views={views.current} listReturn={listReturn} suppliers={suppliers} setSuppliers={setSuppliers} selectedId={supplierId} select={setSelected} update={update} go={go} notify={notify} mapParams={mapParams} />{!embeddedPrototype && <><PrototypeReview route={route} scope={scene} /><ScreenshotCompare state={comparisonState} /></>}</>}<MotionPresence show={!!message} as="div" className="m-toast" role="status">{message}</MotionPresence></>;
+  return <>
+    {scene === 'page-map' ? <MobilePageMap route={route} /> : scene === 'scenes' ? <SceneGallery /> : <>
+      {!embeddedPrototype && <aside className="m-preview-nav" data-map-access={mapAccess ? 'true' : undefined} aria-label="原型导航">
+        <a href="#/mobile/scenes">47 张截图</a>
+        <a className="m-page-map-link" href="#/mobile/page-map">原型导图</a>
+        <a href="#/admin/suppliers">电脑端</a>
+        {showPortalLink && <a className="m-portal-entry-link" href="#/mobile/portal">协同门户移动端</a>}
+      </aside>}
+      <MotionPresence show={!!result} as="aside" className="m-result-banner" role="status">
+        {result && <>
+          <strong>操作结果</strong>
+          <p>{result.text}</p>
+          <button aria-label="关闭操作结果" onClick={() => setResult(null)}>关闭</button>
+        </>}
+      </MotionPresence>
+      <MobileSurface key={route} scene={scene} shot={shot} onComparisonChange={setComparisonState}
+        ratings={ratings} setRatings={setRatings} activeRating={mapParams.map ? sampleRating : activeRating} setActiveRating={setActiveRating}
+        ratingReturn={mapParams.from || ratingReturn} setRatingReturn={setRatingReturn} views={views.current} listReturn={listReturn}
+        suppliers={suppliers} setSuppliers={setSuppliers} selectedId={supplierId} select={setSelected}
+        update={update} go={go} notify={notify} mapParams={mapParams} />
+      {!embeddedPrototype && <>
+        {reviewEnabled && <PrototypeReview route={route} scope={scene} />}
+        <ScreenshotCompare state={comparisonState} />
+      </>}
+    </>}
+    <MotionPresence show={!!message} as="div" className="m-toast" role="status">{message}</MotionPresence>
+  </>;
 }
 
 function MobileSurface({ onComparisonChange, scene, shot, ratings, setRatings, activeRating, setActiveRating, ratingReturn, setRatingReturn, views, listReturn, suppliers, setSuppliers, selectedId, select, update, go, notify, mapParams }) {

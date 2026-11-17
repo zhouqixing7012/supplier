@@ -1,8 +1,8 @@
 const getMode = () => {
   const hash = window.location.hash;
   if (hash === '#/mobile/components') return 'mobileComponents';
-  if (hash.startsWith('#/mobile')) return 'mobile';
-  if (!hash || hash === '#/' || hash.startsWith('#/admin') || hash.startsWith('#/register/')) return 'admin';
+  if (!hash || hash === '#/' || hash.startsWith('#/mobile')) return 'mobile';
+  if (hash.startsWith('#/admin') || hash.startsWith('#/register/')) return 'admin';
   if (hash === '#/portal' || hash.startsWith('#/portal/')) return 'portal';
   return 'auth';
 };

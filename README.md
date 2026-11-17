@@ -6,14 +6,15 @@ React + Vite 的可点击原型，包含 PC 供应商管理平台、PC 供应商
 
 移动端通用控件可在 `/#/mobile/components` 查看和操作，复用方式见 [移动端组件库](docs/mobile-component-library.md)。
 
-移动端提供独立“需求评审”悬浮开关，可查看及编辑定位标注；使用方法与保存范围见[评审模式说明](docs/mobile-review-mode.md)。前端重构估时参考[页面与公共组件清单](docs/mobile-frontend-estimate.md)。
+移动端需求评审与标注的开启方式见[评审模式说明](docs/mobile-review-mode.md)。前端重构估时参考[页面与公共组件清单](docs/mobile-frontend-estimate.md)。
 
 ## 页面导航
 
 PC 管理平台和协同门户工作区使用 ERP 公共主题。右上角账户菜单的「其他功能」提供跨端入口。
 
 - `#/login`：PC 协同门户，登录后进入资料管理、采购报价、采购价税拆分及差旅账单。
-- 站点根地址及移动端「电脑端」入口均进入 PC 供应商管理平台的供应商查询（`#/admin/suppliers`）。
+- 站点根地址默认进入移动端管理平台的「供应商查询」。右上角「协同门户移动端」进入移动端门户登录。
+- 移动端「电脑端」入口进入 PC 供应商管理平台的供应商查询（`#/admin/suppliers`）。
 - `#/admin/register`：代注册，在基本信息中选择供应商类型，可保存草稿并从「我的邀请」继续填写。
 - `#/admin/my-ratings` 和 `#/admin/bank-applications`：我的评分、银行信息申请。
 

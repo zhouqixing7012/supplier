@@ -4,7 +4,7 @@ export const embeddedPrototype = inBrowser && (
   typeof window.__SUPPLIER_FRAME_ROUTE__ === 'string' || new URLSearchParams(location.search).has('prototype-node')
 );
 
-const routeFromLocation = () => decodeURIComponent(location.hash.replace(/^#\/mobile\/?/, '')) || 'query';
+const routeFromLocation = () => decodeURIComponent(location.hash.replace(/^#\/(?:mobile\/?)?/, '')) || 'query';
 let frameRoute = embeddedPrototype ? (window.__SUPPLIER_FRAME_ROUTE__ ?? routeFromLocation()) : '';
 
 export function readMobileRoute() {

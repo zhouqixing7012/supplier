@@ -78,6 +78,39 @@ try {
     await button('银行分行').click(); await page.locator('#root .m-reference-card').filter({ hasText: '北京市分行' }).click(); 
     await field('账户名称').fill('移动交互测试企业'); await field('银行账号').fill('001234567890'); await choose('币种', '人民币'); await page.locator('#root').getByLabel('开户证明', { exact: true }).setInputFiles(upload);
   }
+  await check('站点默认进入移动管理平台，窄屏可进入协同门户', async () => {
+    await page.setViewportSize({ width: 390, height: 845 });
+    await page.goto(base + '/');
+    await page.locator('#root [data-scene="query"]').waitFor();
+    const navigation = page.getByLabel('原型导航');
+    const portalLink = navigation.getByRole('link', { name: '协同门户移动端', exact: true });
+    const review = page.getByRole('switch', { name: '需求评审', exact: true });
+    await portalLink.waitFor();
+    assert.equal(await review.count(), 0);
+    assert.equal(await navigation.getByText('演示数据', { exact: true }).count(), 0);
+    await button('我的邀请').click();
+    await portalLink.click();
+    await page.locator('#root [data-scene="portal"]').waitFor();
+    assert.equal(await review.count(), 0);
+    assert.equal(await portalLink.count(), 0);
+    await button('关闭').click();
+    await page.locator('#root [data-scene="query"]').waitFor();
+  });
+  await check('桌面原型保留电脑端入口与原图对照', async () => {
+    await page.setViewportSize({ width: 1100, height: 900 });
+    try {
+      await page.goto(base + '/#/');
+      await page.locator('#root [data-scene="query"]').waitFor();
+      const navigation = page.getByLabel('原型导航');
+      assert.ok(await navigation.getByRole('link', { name: '协同门户移动端', exact: true }).isVisible());
+      assert.ok(await page.getByRole('switch', { name: /原图对照/ }).isVisible());
+      await navigation.getByRole('link', { name: '电脑端', exact: true }).click();
+      await page.waitForURL('**/#/admin/suppliers');
+      await page.getByRole('link', { name: '搜狐供应商管理平台', exact: true }).waitFor();
+    } finally {
+      await page.setViewportSize({ width: 390, height: 845 });
+    }
+  });
   await check('移动端组件库独立加载公共样式并可预览表单', async () => {
     await goto('mobile/components');
     assert.equal(await page.getByRole('heading', { name: '移动端组件库' }).count(), 1);
@@ -416,7 +449,25 @@ try {
     await goto('mobile/rating-ops'); assert.ok(await button('批量发起评分').isDisabled()); await button('筛选评分运维').click(); await page.locator('#root').getByRole('textbox', { name: '排除评分人' }).fill('甲#乙'); assert.equal(await page.locator('#root').getByRole('textbox', { name: '排除评分人' }).inputValue(), '甲\n乙'); await shot('rating-operations');
   });
   await check('首页入口及登录键盘语义、显示密码和验证码演示', async () => {
-    await goto('login'); const entry = page.locator('#root').getByRole('link', { name: '协同门户移动端', exact: true }); assert.ok(await entry.isVisible()); await entry.click(); await page.locator('#root [data-scene="portal"]').waitFor(); await button('关闭').click(); await page.locator('#root [data-scene="query"]').waitFor(); await goto('login'); await page.locator('#root').getByRole('link', { name: '协同门户移动端', exact: true }).click(); await field('账号').fill('demo'); await page.locator('#root').getByLabel('密码', { exact: true }).fill('prototype'); await button('显示密码').click(); assert.equal(await page.locator('#root').getByLabel('密码', { exact: true }).getAttribute('type'), 'text'); await field('验证码').fill('cbvs'); await button('下一步').click(); assert.equal(await field('邮箱验证码').getAttribute('inputmode'), 'numeric'); await field('注册邮箱').fill('mobile@example.com'); await button('发送验证码').click(); await field('邮箱验证码').fill('123456'); assert.equal(await page.locator('[aria-invalid="true"]').count(), 0); await shot('portal-email'); await button('登录').click(); await page.locator('#root [data-scene="workspace-home"]').waitFor(); assert.equal(await page.locator('#root .m-result-banner,.m-toast,.m-decision-confirm').count(), 0); assert.equal(await page.locator('#root .m-portal-entry-grid button').count(), 6);
+    await goto('mobile');
+    await page.getByLabel('原型导航').getByRole('link', { name: '协同门户移动端', exact: true }).click();
+    await field('账号').fill('demo');
+    const password = page.locator('#root').getByLabel('密码', { exact: true });
+    await password.fill('prototype');
+    await button('显示密码').click();
+    assert.equal(await password.getAttribute('type'), 'text');
+    await field('验证码').fill('cbvs');
+    await button('下一步').click();
+    assert.equal(await field('邮箱验证码').getAttribute('inputmode'), 'numeric');
+    await field('注册邮箱').fill('mobile@example.com');
+    await button('发送验证码').click();
+    await field('邮箱验证码').fill('123456');
+    assert.equal(await page.locator('[aria-invalid="true"]').count(), 0);
+    await shot('portal-email');
+    await button('登录').click();
+    const workspace = page.locator('#root [data-scene="workspace-home"]');
+    await workspace.getByRole('button', { name: '供应商信息管理', exact: true }).waitFor();
+    await page.waitForFunction(() => !document.querySelector('#root .m-result-banner, #root .m-toast, #root .m-decision-confirm'));
   });
   await check('四类供应商表单及个人注册跳过联系人', async () => {
     for (const type of ['企业供应商', '个人供应商', '政府机构', '国外供应商']) {

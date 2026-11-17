@@ -1,7 +1,7 @@
 import { createServer } from 'vite';
 import { chromium } from 'playwright';
 import assert from 'node:assert/strict';
-const server=await createServer({root:new URL('..',import.meta.url).pathname,server:{host:'127.0.0.1',port:0},logLevel:'error'}); await server.listen();
+const server=await createServer({root:new URL('..',import.meta.url).pathname,define:{'import.meta.env.VITE_MOBILE_REVIEW':JSON.stringify('true')},server:{host:'127.0.0.1',port:0},logLevel:'error'}); await server.listen();
 const browser=await chromium.launch({...(process.env.CHROMIUM_PATH ? {executablePath:process.env.CHROMIUM_PATH} : {}),args:['--no-sandbox','--no-zygote','--single-process','--disable-gpu','--disable-software-rasterizer'],headless:true});
 const page=await browser.newPage({viewport:{width:1100,height:1000},reducedMotion:'reduce'});
 page.setDefaultTimeout(8000);page.on('dialog',d=>d.accept());

@@ -2,10 +2,11 @@
   .m-preview-nav[data-map-access="true"] {
     display: flex;
     justify-content: flex-end;
+    gap: 8px;
     padding-block: 0;
   }
-  .m-preview-nav[data-map-access="true"] > :not(.m-page-map-link) { display: none; }
-  .m-preview-nav[data-map-access="true"] .m-page-map-link {
+  .m-preview-nav[data-map-access="true"] > :not(.m-page-map-link, .m-portal-entry-link) { display: none; }
+  .m-preview-nav[data-map-access="true"] > :is(.m-page-map-link, .m-portal-entry-link) {
     display: inline-flex;
     align-items: center;
     min-height: 44px;
