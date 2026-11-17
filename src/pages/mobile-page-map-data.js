@@ -66,7 +66,8 @@ const pricing = (quote, handled) => {
 
 export const pageMap = [
   node('供应商管理平台', 'query', [
-    node('供应商查询', target('query', { role: 'employee' }), supplierActions('query')),
+    node('供应商查询', 'query', supplierActions('query')),
+    link('普通员工 · 供应商查询', target('query', { role: 'employee' })),
     link('管理员 · 批量删除演示', target('query-batch', { role: 'admin' })),
     node('历史补账号演示（范围外）', target('detail', { record: 'mock-historical', historyDemo: 1 }), [
       link('先变更邀请人', target('inviter', { record: 'mock-historical', historyDemo: 1 })),

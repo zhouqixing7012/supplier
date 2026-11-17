@@ -88,7 +88,7 @@ function MobileMapCanvas() {
 
   useLayoutEffect(() => {
     window.scrollTo(0, 0);
-    setCamera(fitCamera(viewport.current, layoutMap(initialExpanded()).nodes, true));
+    setCamera(fitCamera(viewport.current, layoutMap(initialExpanded()).nodes, viewport.current.clientWidth > 560));
   }, []);
 
   const zoomAt = (factor, point) => setCamera(current => {

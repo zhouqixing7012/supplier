@@ -171,6 +171,7 @@
 .m-bank-location-note { padding: 8px 16px; margin: 0; font-size: 14px; color: var(--m-text-secondary); }
 .m-rating-value { font-size: 16px; font-variant-numeric: tabular-nums; color: var(--m-text); }
 .mobile-page:not(.m-shot) .m-star-control > span:first-child { gap: 0; }
+.mobile-page:not(.m-shot) .m-star-control > .m-rating-stars:first-child { gap: 4px; }
 .mobile-page:not(.m-shot) .m-star-control svg:not(.filled) { color: #697181; }
 .mobile-page:not(.m-shot) .m-batch-actions label { font-size: 14px; }
 
@@ -476,7 +477,7 @@
 .mobile-page:not(.m-shot) .m-field textarea,
 .mobile-page:not(.m-shot) .m-field .m-select-field,
 .mobile-page:not(.m-shot) .m-field-control,
-.mobile-page:not(.m-shot) .m-rating-dimension > label { font-size: var(--m-font-field) !important; }
+.mobile-page:not(.m-shot) .m-rating-dimension-title { font-size: var(--m-font-field) !important; }
 .m-batch-supplier-list { padding: 0 16px; }
 .m-batch-supplier + .m-batch-supplier { border-top: 1px solid var(--m-border-subtle); }
 .m-batch-supplier h3 { margin: 0; padding: 12px 0 0; font-size: 16px; line-height: 1.6; overflow-wrap: anywhere; }
@@ -701,10 +702,31 @@
 .mobile-page:not(.m-shot) .m-attachment-file .m-file-icon { display: grid; place-items: center; flex: 0 0 40px; width: 40px; height: 40px; border-radius: 8px; background: #fff; }
 
 
-/* 只读值与选择框内文字共用起点，覆盖单条和批量变更邀请人。 */
-.mobile-page:not(.m-shot) .m-inviter-applicants .m-row { gap: 8px; }
-.mobile-page:not(.m-shot) .m-inviter-applicants .m-row > .m-label { width: 128px; max-width: 44%; }
-.mobile-page:not(.m-shot) .m-inviter-applicants .m-row > .m-value { padding-left: 13px; box-sizing: border-box; }
+/* 原邀请人与新邀请人各占一行，标签和值列共用对齐方式。 */
+.mobile-page:not(.m-shot) .m-inviter-applicants .m-section-content > :is(.m-row, .m-field.m-field-inline) {
+  display: grid;
+  grid-template-columns: min(128px, 44%) minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  min-height: 56px;
+  padding: 5px 0;
+}
+.mobile-page:not(.m-shot) .m-inviter-applicants :is(.m-row > .m-label, .m-field.m-field-inline > label) {
+  width: auto;
+  max-width: none;
+  line-height: 22px;
+}
+.mobile-page:not(.m-shot) .m-inviter-applicants .m-row > .m-value {
+  padding-inline-start: calc(var(--m-control-inset) + 1px);
+}
+.mobile-page:not(.m-shot) .m-inviter-applicants .m-field.m-field-inline > .m-field-control { width: 100%; }
+.mobile-page:not(.m-shot) .m-inviter-applicants .m-field .m-select-field { font-size: var(--m-font-field); }
+.mobile-page:not(.m-shot) .m-inviter-applicants .m-field-error { grid-column: 1 / -1; }
+@media (max-width: 359px) {
+  .mobile-page:not(.m-shot) .m-inviter-applicants .m-section-content > :is(.m-row, .m-field.m-field-inline) {
+    grid-template-columns: min(112px, 44%) minmax(0, 1fr);
+  }
+}
 
 /* 卡片操作栏由CardActions统一承载，父容器不再额外叠加底部留白。 */
 .mobile-page .m-card-actions { display: flex; justify-content: flex-end; align-items: center; flex-wrap: wrap; gap: 8px; margin: 0; padding: 3px 0; border-top: 1px solid var(--m-border-subtle); }

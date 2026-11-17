@@ -4,13 +4,28 @@ import { createSessionId, useBackLayer } from './mobile-interaction.jsx';
 import React, { useEffect, useState } from 'react';
 import { Star } from 'lucide-react';
 import { Field, FilterField, SearchBox, StatusTag, SupplierIdentityCard } from './mobile-ui.jsx';
-import { cooperation } from './mobile-data.js';
+import { cooperation, initialSuppliers } from './mobile-data.js';
 import { useDirtyForm, attachmentName } from './mobile-interaction.jsx';
 
-// 截图中的已评分记录只提供总分，未提供各项分值，不反推或伪造明细。
+// 截图记录仅有总分。另设一条明确标识的演示记录，用于查看分项星级。
+export const ratingDetailDemo = {
+  id: 'demo-rating-dimensions',
+  name: initialSuppliers[0].name,
+  type: '技术服务',
+  content: '评分明细演示',
+  person: '陈才慧',
+  department: '',
+  date: '2026-08-14',
+  rated: '2026-10-15 14:00:00',
+  status: '已评分',
+  score: '84',
+  dimensions: [4.5, 4, 3.5, 5, 4],
+  comment: '',
+};
 export const initialRatings = [
   ...cooperation.map(x => ({ ...x, rated: '', status: '未评分', dimensions: [], comment: '' })),
   { id: 'demo-rated', name: '快速创建557348', type: '技术服务', content: '测试PR授权行', person: '陈才慧', department: '', date: '2026-08-14', rated: '2026-10-15 13:53:41', status: '已评分', score: '66', dimensions: [], comment: '' },
+  ratingDetailDemo,
 ];
 export const ratingTypes = ['技术服务', '电子产品'];
 export const dimensionsFor = type => type === '电子产品' ? ['产品外观、质量', '售后质量（退换货及维护等）', '供货/服务及时性', '服务体验', '诚信/合规'] : ['人员/服务质量', '供货/服务及时性', '产品质量', '服务体验', '诚信/合规'];
@@ -29,6 +44,49 @@ export function RatingWorkspace({ mine = false, records, onOpen, onAdd, go, filt
     label, count: label === '全部' ? matching.length : matching.filter(x => x.status === label).length,
   }));
   return <><SearchBox value={query} onChange={setQuery} placeholder="搜索供应商或合作事项"><FilterButton label="筛选评分" onClick={() => go('rating-filter?' + new URLSearchParams({ ...activeFilters, return: mine ? 'my-ratings' : 'ratings' }).toString())} /></SearchBox>{(!mine || filterEntries.length > 0) && <FilterSummary entries={filterEntries} count={mine ? undefined : entries.length} onEdit={() => go('rating-filter?' + new URLSearchParams({ ...activeFilters, return: mine ? 'my-ratings' : 'ratings' }).toString())} onClear={() => go((mine ? 'my-ratings' : 'ratings') + '?')} showConditions={false} />}{mine && <CountTabs label="评分状态" items={statusItems} active={status} onChange={setStatus} />}<div className="m-rating-list">{entries.length ? entries.map(x => <article className="m-bank-card" key={x.id}><div className="m-record-heading"><h3>{x.name}</h3><div className="m-rating-card-state">{mine && x.status === '已评分' ? <strong aria-label={'评价得分' + (x.score || '未提供')}>{x.score ? x.score + '分' : '—'}</strong> : <StatusTag value={x.status} />}</div></div><div className="m-card-body">{[['合作类型', x.type], ['合作事项', x.content], ...(!mine ? [['业务线联系人', x.person], ['所属部门', x.department]] : []), ['合作时间', x.date], ['评分时间', x.rated], ...(!mine ? [['评价得分', x.score === '未评分' ? '' : x.score]] : [])].map(([label, value]) => <Row compact key={label} label={label}>{value || '—'}</Row>)}<CardActions>{x.status === '未评分' ? <button onClick={() => onOpen(x, false)}>评分</button> : <><button onClick={() => onOpen(x, true)}>评分详情</button>{mine && <button onClick={() => onOpen(x, false)}>修改评分</button>}</>}</CardActions></div></article>) : <Empty search={!!query || Object.entries(activeFilters).some(([key, value]) => key !== 'return' && value)} text={query || Object.entries(activeFilters).some(([key, value]) => key !== 'return' && value) ? '暂无匹配记录' : '暂无评分记录'} />}</div>{!mine && <div className="m-record-actions"><button onClick={onAdd}>新增评分</button></div>}</>;
+}
+
+const starPositions = [1, 2, 3, 4, 5];
+
+function RatingStar({ position, value }) {
+  return <span className="m-star-slot" aria-hidden="true">
+    <Star className={position <= value ? 'filled' : ''} />
+    {value >= position - 0.5 && value < position && <span className="m-half-star"><Star className="filled" /></span>}
+  </span>;
+}
+
+function RatingDimension({ label, index, value, readOnly, error, onChange }) {
+  const id = 'rating-dimension-' + index;
+  if (readOnly) return <div className="m-rating-dimension">
+    <span className="m-rating-dimension-title">{label}</span>
+    {value ? <div className="m-star-control">
+      <span className="m-rating-stars" aria-hidden="true">{starPositions.map(position => <RatingStar key={position} position={position} value={value} />)}</span>
+      <span className="m-rating-value">{value} / 5</span>
+    </div> : <span>—</span>}
+  </div>;
+
+  const onKeyDown = event => {
+    if (!['ArrowLeft', 'ArrowDown', 'ArrowRight', 'ArrowUp', 'Home', 'End'].includes(event.key)) return;
+    event.preventDefault();
+    const step = ['ArrowLeft', 'ArrowDown'].includes(event.key) ? -0.5 : 0.5;
+    const next = event.key === 'Home' ? 0.5 : event.key === 'End' ? 5 : Math.max(0.5, Math.min(5, Number(value || 0) + step));
+    onChange(next);
+  };
+  return <div className="m-rating-dimension">
+    <label className="m-rating-dimension-title" htmlFor={id}><em>*</em>{label}</label>
+    <div className="m-star-control">
+      <span id={id} role="slider" aria-invalid={!!error} aria-label={label} aria-valuemin={0}
+        aria-valuemax={5} aria-valuenow={value || 0} aria-valuetext={value ? value + '分，满分5分' : '未评分'} tabIndex={0} onKeyDown={onKeyDown}>
+        {starPositions.map(position => <button type="button" key={position} tabIndex={-1}
+          aria-pressed={value === position || value === position - 0.5} aria-label={label + ' ' + position + '星'}
+          title={'左半边' + (position - 0.5) + '分，右半边' + position + '分'} onClick={event => {
+            const rect = event.currentTarget.querySelector('.m-star-slot').getBoundingClientRect();
+            onChange(event.detail !== 0 && event.clientX < rect.left + rect.width / 2 ? position - 0.5 : position);
+          }}><RatingStar position={position} value={value} /></button>)}
+      </span>
+      <output className="m-rating-value" aria-live="polite">{value ? value + ' / 5' : '未评分'}</output>
+    </div>
+  </div>;
 }
 
 export function RatingEditor({ record, supplier, readOnly, onSave, notify }) {
@@ -55,7 +113,9 @@ export function RatingEditor({ record, supplier, readOnly, onSave, notify }) {
   return <><SupplierIdentityCard supplier={{ ...supplier, name: data.name }}><div className="m-rating-supplier-meta"><Row label="邀请人">{supplier.inviter || '—'}</Row><Row label="邀请时间">{supplier.date || '—'}</Row></div></SupplierIdentityCard><Section title="评分信息" className={readOnly ? undefined : "m-supplier-form-fields"}>{readOnly ? <><Row label="合作类型">{data.type}</Row><Row label="合作事项">{data.content}</Row></> : <><Field label="合作类型" required value={data.type} options={ratingTypes} error={errors.type} onChange={type => { if (type === data.type) return; if (data.dimensions.some(Boolean)) setNextType(type); else { setData({ ...data, type, dimensions: [] }); setErrors({}); } }} /><Field error={errors.content} label="合作事项" required value={data.content} onChange={content => { setData({ ...data, content }); setErrors(old => ({ ...old, content: undefined })); notify(''); }} /></>}
     {readOnly ? <Row label="合作时间">{data.date || '—'}</Row> :
       <Field label="合作时间" type="date" allowClearDate value={data.date || ''} onChange={date => setData({ ...data, date })} />}
-    <div className="m-rating-dimensions" data-no-swipe>{labels.map((label, i) => <div key={label} className="m-rating-dimension"><label htmlFor={'rating-dimension-' + i}>{!readOnly && <em>*</em>}{label}</label>{readOnly ? <span>{data.dimensions[i] ? data.dimensions[i] + ' / 5' : '—'}</span> : <div className="m-star-control"><span id={'rating-dimension-' + i} role="slider" aria-invalid={!!errors.dimensions} aria-label={label} aria-valuemin={0} aria-valuemax={5} aria-valuenow={data.dimensions[i] || 0} aria-valuetext={data.dimensions[i] ? data.dimensions[i] + '分，满分5分' : '未评分'} tabIndex={0} onKeyDown={e => { if (['ArrowLeft', 'ArrowDown', 'ArrowRight', 'ArrowUp', 'Home', 'End'].includes(e.key)) { e.preventDefault(); const value = e.key === 'Home' ? 0.5 : e.key === 'End' ? 5 : Math.max(0.5, Math.min(5, Number(data.dimensions[i] || 0) + (['ArrowLeft', 'ArrowDown'].includes(e.key) ? -0.5 : 0.5))); changeDimension(i, value); } }}>{[1, 2, 3, 4, 5].map(n => <button type="button" key={n} tabIndex={-1} aria-pressed={data.dimensions[i] === n || data.dimensions[i] === n - 0.5} aria-label={label + ' ' + n + '星'} title={'左半边' + (n - 0.5) + '分，右半边' + n + '分'} onClick={e => { const rect = e.currentTarget.querySelector('.m-star-slot').getBoundingClientRect(); changeDimension(i, e.detail !== 0 && e.clientX < rect.left + rect.width / 2 ? n - 0.5 : n); }}><span className="m-star-slot"><Star className={n <= data.dimensions[i] ? 'filled' : ''} />{data.dimensions[i] >= n - 0.5 && data.dimensions[i] < n && <span className="m-half-star"><Star className="filled" /></span>}</span></button>)}</span><output className="m-rating-value" aria-live="polite">{data.dimensions[i] ? data.dimensions[i] + ' / 5' : '未评分'}</output></div>}</div>)}</div>{errors.dimensions && <p className="m-field-error">{errors.dimensions}</p>}
+    <div className="m-rating-dimensions" data-no-swipe>{labels.map((label, index) => <RatingDimension key={label}
+      label={label} index={index} value={data.dimensions?.[index]} readOnly={readOnly} error={errors.dimensions}
+      onChange={value => changeDimension(index, value)} />)}</div>{errors.dimensions && <p className="m-field-error">{errors.dimensions}</p>}
     {readOnly ? <><Row label="评价">{data.comment || '—'}</Row><Row label="评价得分">{data.score || '—'}</Row><Row label="评分时间">{data.rated}</Row></> : <Field label="评价" multiline maxLength={500} value={data.comment} onChange={comment => setData({ ...data, comment })} />}</Section>{!readOnly && <Actions items={[{ label: '提交', onClick: submit }]} />}{nextType && <Confirm text="切换合作类型后需要重新填写评分项，是否继续？" onCancel={() => setNextType('')} onConfirm={() => { setData({ ...data, type: nextType, dimensions: [] }); setErrors({}); setNextType(''); }} />}</>;
 }
 
