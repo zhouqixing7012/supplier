@@ -5,8 +5,8 @@
     gap: 8px;
     padding-block: 0;
   }
-  .m-preview-nav[data-map-access="true"] > :not(.m-page-map-link, .m-portal-entry-link) { display: none; }
-  .m-preview-nav[data-map-access="true"] > :is(.m-page-map-link, .m-portal-entry-link) {
+  .m-preview-nav[data-map-access="true"] > :not(.m-page-map-link, .m-workspace-switch-link) { display: none; }
+  .m-preview-nav[data-map-access="true"] > :is(.m-page-map-link, .m-workspace-switch-link) {
     display: inline-flex;
     align-items: center;
     min-height: 44px;

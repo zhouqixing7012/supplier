@@ -51,8 +51,7 @@
 .m-supplier-kind { display: flex; gap: 7px; flex-wrap: wrap; margin: 5px 0 12px 10px; color: var(--m-text-secondary); font-size: 14px; }
 .mobile-page:not(.m-shot) .m-supplier-card dl { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 12px; padding: 10px 0; margin: 0; border-top: 1px solid #f0f3f7; font-size: 14px; }
 .mobile-page:not(.m-shot) .m-supplier-wide { grid-column: 1 / -1; }
-.mobile-page:not(.m-shot) .m-supplier-card dl > div { margin-top: 0; min-height: 25px; align-items: baseline; line-height: 1.7; }
-.mobile-page:not(.m-shot) .m-supplier-card dt { width: 68px; flex-basis: 68px; color: var(--m-text-secondary); }
+.mobile-page:not(.m-shot) .m-supplier-card dl > div { margin-top: 0; }
 .mobile-page:not(.m-shot) .m-supplier-card dd { color: #536174; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
 .mobile-page:not(.m-shot) .m-supplier-buttons { gap: 6px; margin: 0 -2px; padding: 3px 0; border-top: 1px solid #f0f3f7; }
 .mobile-page:not(.m-shot) .m-supplier-buttons button { font-size: 14px; color: var(--m-text-secondary); padding-inline: 9px; }
@@ -81,11 +80,16 @@
 .mobile-page:not(.m-shot) .m-collapse { order: 2; margin-left: auto; width: 22px; height: 22px; background: none; color: #94a3b8; }
 .mobile-page:not(.m-shot) .m-collapse svg { width: 17px; height: 17px; stroke-width: 1.8; }
 .mobile-page:not(.m-shot) .m-section-heading::before { content: ''; width: 3px; height: 14px; border-radius: 3px; background: #3370ff; }
-.mobile-page:not(.m-shot) .m-row { min-height: 48px; padding: 12px 0; line-height: 1.6; font-size: 14px; align-items: flex-start; }
-.mobile-page:not(.m-shot) .m-label { width: 100px; padding-right: 12px; color: var(--m-text-secondary); }
+.mobile-page:not(.m-shot) { --m-card-field-min: 36px; --m-card-field-line: 22px; --m-card-field-padding: 7px; }
+.mobile-page:not(.m-shot) :is(.m-row, .m-supplier-card dl > div) {
+  min-height: var(--m-card-field-min); padding: var(--m-card-field-padding) 0;
+  line-height: var(--m-card-field-line); font-size: 14px; align-items: flex-start; box-sizing: border-box;
+}
+.mobile-page:not(.m-shot) :is(.m-label, .m-supplier-card dt) {
+  flex: 0 0 min(112px, 42%); width: min(112px, 42%); padding-right: 12px;
+  color: var(--m-text-secondary); white-space: normal; overflow-wrap: anywhere;
+}
 .mobile-page:not(.m-shot) .m-value { color: #334155; }
-.mobile-page:not(.m-shot) .m-row-compact { min-height: 30px; padding: 4px 0; border: 0; font-size: 14px; }
-.mobile-page:not(.m-shot) .m-row-compact .m-label { width: 112px; }
 .mobile-page:not(.m-shot) .m-bank-card { margin-top: 12px; border-color: #e6edf3; border-radius: 12px; }
 .mobile-page:not(.m-shot) .m-bank-card > h3 { font-size: 14px; font-weight: 600; padding: 12px 16px; background: #fafbfd; border-bottom-color: #edf1f5; }
 .mobile-page:not(.m-shot) .m-card-body { padding: 12px 16px; }
@@ -157,16 +161,14 @@
 .mobile-page:not(.m-shot) .m-reference-content { padding-inline: 16px; }
 .mobile-page:not(.m-shot) .m-reference-list .m-search-row { position: sticky; top: 0; z-index: 2; }
 .m-upload-field:has(.m-upload-empty) { min-height: 64px; }
-.m-upload-empty { display: flex; align-items: stretch; width: 100%; min-width: 0; gap: 6px; }
-.m-upload-empty > button, .m-file-select[data-empty] {
-  display: inline-flex; align-items: center; justify-content: center; gap: 5px; min-height: 44px;
-  padding: 6px 9px; border: 1px solid var(--m-border); border-radius: 8px;
-  background: var(--m-surface); color: var(--m-action); font-size: 13px;
+:is(.m-upload-empty, .m-upload-tools) { display: flex; align-items: stretch; width: 100%; min-width: 0; gap: 6px; }
+.mobile-page .m-attachment-upload-button {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  min-height: 44px; padding: 0 10px; border: 1px solid var(--m-border); border-radius: 8px;
+  background: var(--m-surface); color: var(--m-action); font-size: 14px; line-height: 1.25;
 }
-.m-upload-empty > .m-upload-choose { flex: 1; min-width: 0; background: var(--m-info-surface); }
-.m-upload-empty > .m-upload-camera { flex: 0 0 auto; }
-.m-upload-empty svg { width: 16px; height: 16px; flex: 0 0 16px; }
-.m-upload-empty span { line-height: 1.25; }
+.mobile-page .m-attachment-upload-button[data-primary] { flex: 1; min-width: 0; background: var(--m-info-surface); }
+.m-attachment-upload-button svg { width: 16px; height: 16px; flex: 0 0 16px; }
 .m-bank-location-note { padding: 8px 16px; margin: 0; font-size: 14px; color: var(--m-text-secondary); }
 .m-rating-value { font-size: 16px; font-variant-numeric: tabular-nums; color: var(--m-text); }
 .mobile-page:not(.m-shot) .m-star-control > span:first-child { gap: 0; }
@@ -192,14 +194,10 @@
 .mobile-page:not(.m-shot) .m-tab-bar-pill .m-tab-directory { border: 0 !important; background: #f4f7fa; }
 .mobile-page:not(.m-shot) .m-detail-summary { margin-bottom: 8px; }
 .mobile-page:not(.m-shot) .m-detail > .m-swipe-area > .m-section:first-child { margin-top: 8px; }
-.mobile-page:not(.m-shot) .m-supplier-detail :is(.m-section-content, .m-record-card-body, .m-card-body, .m-history-content) > .m-row {
-  min-height: 36px;
-  padding-block: 6px;
-  border-bottom: 0;
-}
 .mobile-page:not(.m-shot) .m-supplier-detail :is(.m-record-card-body, .m-card-body) { padding-block: 6px; }
 .mobile-page:not(.m-shot) .m-section > h2, .mobile-page:not(.m-shot) .m-section-heading { font-size: 16px; }
-.mobile-page:not(.m-shot) .m-row .m-value { text-align: left; min-width: 0; overflow-wrap: anywhere; }
+.mobile-page:not(.m-shot) :is(.m-row > .m-value, .m-supplier-card dd) { text-align: right; min-width: 0; overflow-wrap: anywhere; }
+.mobile-page:not(.m-shot) .m-approval-node .m-value { text-align: left; }
 .mobile-page:not(.m-shot) .m-reference-card .m-value { text-align: left; }
 .mobile-page:not(.m-shot) .m-record-heading { display: flex; align-items: flex-start; gap: 12px; padding: 14px 16px; border-bottom: 1px solid var(--m-border-subtle); }
 .mobile-page:not(.m-shot) .m-record-heading > h3, .mobile-page:not(.m-shot) .m-record-heading > h2 { flex: 1; min-width: 0; margin: 0; padding: 0; font-size: 16px; line-height: 1.6; overflow-wrap: anywhere; }
@@ -307,8 +305,8 @@
 .mobile-page .m-approval-timeline > li.is-complete::before { background: var(--m-action); border-color: var(--m-action); }
 .mobile-page .m-approval-timeline > li:not(:last-child)::after { content: ''; position: absolute; left: -.5px; top: 18px; bottom: -2px; width: 1px; background: var(--m-border); }
 .m-approval-node { border-radius: 8px; background: #f2f5fa; padding: 12px; }
-.mobile-page .m-approval-node .m-row { padding: 4px 0; min-height: 0; border: 0; font-size: 14px; }
-.mobile-page .m-approval-node .m-label { width: 76px; max-width: 40%; }
+.mobile-page:not(.m-shot) .m-approval-node .m-row, .m-shot .m-approval-node .m-row { padding: 4px 0; min-height: 0; border: 0; font-size: 14px; }
+.mobile-page .m-approval-node .m-label { width: 76px; flex-basis: 76px; max-width: 40%; }
 
 .mobile-page .m-search input:focus-visible, .mobile-page .m-field input:focus-visible, .mobile-page .m-field textarea:focus-visible { outline: none; }
 .m-search > img { display: block; flex: none; }
@@ -320,7 +318,6 @@
 
 /* 邀请列表标签较长，按单列行排布，给标签和值各自留出空间。 */
 .mobile-page:not(.m-shot) .m-supplier-card-mine dl > div { grid-column: 1 / -1; min-width: 0; }
-.mobile-page:not(.m-shot) .m-supplier-card-mine dt { width: 84px; flex-basis: 84px; white-space: normal; overflow-wrap: anywhere; }
 .mobile-page:not(.m-shot) .m-supplier-card-mine dd { min-width: 0; overflow-wrap: anywhere; }
 
 .m-approval-history-card { margin-top: 12px; border: 1px solid var(--m-border); border-radius: 8px; overflow: hidden; }
@@ -403,8 +400,6 @@
 .m-rating-card-state { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 6px; flex-shrink: 0; }
 .m-rating-card-state strong { font-size: 16px; color: var(--m-action); }
 .m-rating-supplier-meta { border-top: 1px solid var(--m-border-subtle); margin-top: 12px; padding-top: 6px; }
-.mobile-page:not(.m-shot) .m-rating-supplier-meta .m-row { min-height: 28px; padding: 3px 0; }
-.mobile-page:not(.m-shot) .m-rating-supplier-meta .m-value { text-align: right; }
 .mobile-page:not(.m-shot) .m-rating-dimensions { padding-inline: 0; }
 .mobile-page:not(.m-shot) .m-rating-dimension { border-bottom: 0; padding: 8px 0; }
 @media (max-width: 359px) {
@@ -536,15 +531,12 @@
 .m-portal-pending-count { min-width: 20px; height: 20px; padding: 0 4px; box-sizing: border-box; border-radius: 999px; color: #fff; background: var(--m-danger-fill); font-size: 12px; line-height: 16px; }
 .m-portal-task-filter .m-filter-view { padding-bottom: 84px; }
 
-/* 报价附件支持多条目；标签与附件列表保持左右布局。 */
+/* 报价附件复用文件条目和上传操作，支持多条目。 */
 .mobile-page:not(.m-shot) .m-multi-attachment-field { align-items: flex-start; }
 .mobile-page:not(.m-shot) .m-multi-attachment-field > label { padding-top: 10px; }
 .mobile-page:not(.m-shot) .m-multi-attachment-field > .m-field-control { align-self: flex-start; display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
 .m-multi-attachment-list { display: flex; flex-direction: column; gap: 6px; width: 100%; margin: 0; padding: 0; list-style: none; }
-.m-multi-attachment-item { display: flex; align-items: center; gap: 4px; width: 100%; min-width: 0; }
-.m-multi-attachment-item > .m-attachment-reference { flex: 1; min-width: 0; }
-.mobile-page .m-multi-attachment-item > button:not(.m-attachment-reference) { flex: 0 0 44px; min-width: 44px; min-height: 44px; padding: 0 4px; color: var(--m-danger-text); font-size: 13px; }
-.m-pricing-file-list { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; min-width: 0; }
+.m-pricing-file-list { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; min-width: 0; }
 .m-pricing-warning { margin: 8px 20px 12px; color: #b42318; font-size: 14px; font-weight: 600; line-height: 1.6; }
 
 /* 差旅账单在当前页面选择附件，供应商服务将文件透传至对应差旅接口。 */
@@ -604,9 +596,6 @@
 .m-portal-object-summary .m-input-note { margin: 0 0 12px; padding: 0; }
 .m-portal-object-summary > .m-field { border-top: 1px solid var(--m-border-subtle); }
 .mobile-page:not(.m-shot) .m-workspace .m-bank-card { margin: 12px 16px; }
-.mobile-page:not(.m-shot) .m-workspace .m-card-body .m-row { min-height: 48px; padding-block: 10px; box-sizing: border-box; }
-.mobile-page:not(.m-shot) .m-workspace .m-row > .m-label { flex: 0 0 128px; width: 128px; }
-.mobile-page:not(.m-shot) .m-workspace .m-row > .m-value { min-width: 0; flex: 1; overflow-wrap: anywhere; }
 .mobile-page .m-bank-proof-file { display: inline-flex; gap: 8px; align-items: center; min-height: 44px; max-width: 100%; text-align: left; font-size: 14px; color: var(--m-action); }
 .m-bank-proof-file svg { width: 18px; height: 18px; flex-shrink: 0; }
 .m-bank-proof-file span { min-width: 0; overflow-wrap: anywhere; }
@@ -696,7 +685,6 @@
 .mobile-page:not(.m-shot) .m-qualification-section > .m-section-content { padding: 0 16px 16px; }
 .m-entity-card { margin: 12px 0; padding: 14px 16px; border: 1px solid var(--m-border); border-radius: 12px; background: var(--m-surface); }
 .m-entity-card > h3 { margin: 0 0 8px; color: var(--m-text); font-size: 16px; line-height: 1.5; overflow-wrap: anywhere; }
-.m-entity-card .m-row { padding: 10px 0; min-height: 44px; }
 .m-entity-card .m-record-actions { padding: 8px 0 0; justify-content: flex-end; }
 .mobile-page:not(.m-shot) .m-record-editor { background: var(--m-background, #f4f7fa); padding-top: 0; }
 .mobile-page:not(.m-shot) .m-record-editor > .m-header { position: sticky; top: 0; }
@@ -731,7 +719,7 @@
   line-height: 22px;
 }
 .mobile-page:not(.m-shot) .m-inviter-applicants .m-row > .m-value {
-  padding-inline-start: calc(var(--m-control-inset) + 1px);
+  text-align: left; padding-inline-start: calc(var(--m-control-inset) + 1px);
 }
 .mobile-page:not(.m-shot) .m-inviter-applicants .m-field.m-field-inline > .m-field-control { width: 100%; }
 .mobile-page:not(.m-shot) .m-inviter-applicants .m-field .m-select-field { font-size: var(--m-font-field); }
@@ -763,9 +751,6 @@
 .mobile-page .m-portal-account-button { display: grid; place-items: center; width: 44px; height: 44px; flex-shrink: 0; margin: 0; color: var(--m-action); }
 .m-portal-account-button > svg { width: 20px; height: 20px; }
 .m-portal-identity-details { margin: 12px 0; font-size: 14px; line-height: 22px; }
-.m-portal-identity-details > div { display: flex; gap: 12px; margin-top: 6px; }
-.m-portal-identity-details dt { flex: 0 0 56px; color: var(--m-text-secondary); }
-.m-portal-identity-details dd { flex: 1; min-width: 0; margin: 0; overflow-wrap: anywhere; }
 .mobile-page .m-portal-account-panel .m-picker-title { display: grid; grid-template-columns: 44px 1fr 44px; align-items: center; padding: 0 12px; min-height: 52px; }
 .m-portal-account-panel .m-picker-title > strong { grid-column: 2; text-align: center; font-size: 16px; }
 .mobile-page .m-portal-account-panel .m-picker-title > button { grid-column: 3; display: grid; place-items: center; width: 44px; height: 44px; }
@@ -889,15 +874,15 @@
 .mobile-page:not(.m-shot) :is(.m-quote-info, .m-inviter-applicants) .m-row > .m-value {
   font-size: var(--m-font-field); font-weight: 400; line-height: 22px;
 }
-.mobile-page:not(.m-shot) .m-quote-info { --quote-label-width: min(128px, 44%); }
-.mobile-page:not(.m-shot) .m-quote-info .m-row,
+.mobile-page:not(.m-shot) .m-quote-info:has(.m-quote-rate) { --quote-label-width: min(128px, 44%); }
+.mobile-page:not(.m-shot) .m-quote-info:has(.m-quote-rate) .m-row,
 .mobile-page:not(.m-shot) .m-quote-rate > .m-field {
   display: grid; grid-template-columns: var(--quote-label-width) minmax(0, 1fr); gap: 8px;
-  min-height: 0; align-items: center; padding: 6px 0; border: 0;
+  min-height: var(--m-card-field-min); align-items: center; padding: var(--m-card-field-padding) 0; border: 0;
 }
-.mobile-page:not(.m-shot) .m-quote-info :is(.m-row > .m-label, .m-field > label, .m-field-control) { width: auto; max-width: none; padding-left: 0; }
-.mobile-page:not(.m-shot) .m-quote-info .m-value { padding-inline-start: calc(var(--m-control-inset) + 1px); }
-.mobile-page:not(.m-shot) .m-quote-info :is(.m-quote-rate-note, .m-field-error) { margin: 0 0 6px calc(var(--quote-label-width) + 8px); }
+.mobile-page:not(.m-shot) .m-quote-info:has(.m-quote-rate) :is(.m-row > .m-label, .m-field > label, .m-field-control) { width: auto; max-width: none; padding-left: 0; }
+.mobile-page:not(.m-shot) .m-quote-info:has(.m-quote-rate) .m-value { text-align: left; padding-inline-start: calc(var(--m-control-inset) + 1px); }
+.mobile-page:not(.m-shot) .m-quote-info .m-field-error { margin: 0 0 6px calc(var(--quote-label-width) + 8px); }
 .mobile-page:not(.m-shot) .m-quote-info .m-field-error { grid-column: 1 / -1; }
 .mobile-page:not(.m-shot) .m-order-info-card .m-record-heading { padding: 14px 0 12px; border-bottom: 1px solid var(--m-border-subtle); }
 
@@ -916,10 +901,10 @@
 .mobile-page .m-field-inline .m-field-control:has(.m-field-clear) > .m-counter { right: 44px; }
 .mobile-page .m-field-block .m-field-control > .m-counter { right: 12px; top: auto; bottom: 8px; transform: none; }
 .mobile-page .m-row > .m-value:has(> .m-attachment-reference) { display: flex; justify-content: flex-end; }
-.m-uploaded-document { display: flex; align-items: center; justify-content: flex-end; gap: 8px; width: 100%; }
-.m-uploaded-document > .m-attachment-reference { flex: 1; min-width: 0; }
-.mobile-page .m-uploaded-document > .m-file-remove { position: static; flex: 0 0 32px; width: 32px; height: 32px; padding: 6px; color: var(--m-text-secondary); }
-.mobile-page .m-uploaded-document > .m-file-remove svg { width: 16px; height: 16px; }
+.m-uploaded-document { display: flex; align-items: center; gap: 6px; width: 100%; min-width: 0; }
+.mobile-page .m-uploaded-document > .m-attachment-reference { flex: 1; min-width: 0; justify-content: flex-start; text-align: left; }
+.mobile-page .m-uploaded-document > .m-file-remove { position: static; }
+.m-multi-attachment-field .m-upload-tools { margin-top: 0; }
 .mobile-page .m-file-upload-entry { background: transparent; padding-inline: 0; }
 .mobile-page .m-file-upload-entry > .m-attachment-reference { flex: 1; min-width: 0; }
 .mobile-page .m-option-radio[data-selected=true], .mobile-page .selected .m-option-radio { background: white; border-color: var(--m-action); }
@@ -1399,7 +1384,6 @@
 .mobile-page .m-status-tabs.m-count-tabs strong { font-size: 16px; line-height: 20px; font-weight: 600; }
 .mobile-page .m-status-tabs.m-count-tabs span { font-size: 12px; line-height: 16px; }
 .mobile-page:not(.m-shot)[data-scene="my-ratings"] .m-count-tabs { margin-bottom: 0; }
-.mobile-page:not(.m-shot)[data-scene="my-ratings"] .m-rating-list .m-row > .m-value { text-align: right; }
 
 /* 门户页签用选中态和留白区分，普通信息卡片以外框和留白分组。 */
 .mobile-page:not(.m-shot):is([data-scene="workspace-info"], [data-scene="workspace-tasks"]):has(.m-workspace > .m-tab-bar) > .m-header { border-bottom: 0; }

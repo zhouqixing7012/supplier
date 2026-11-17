@@ -194,8 +194,8 @@ function MobileApp() {
     }
   };
   const isManagementMenu = managementMenus.some(menu => menu.route === scene);
-  const showPortalLink = !shot && !scene.startsWith('portal') && !scene.startsWith('workspace');
-  const mapAccess = !shot && (mapParams.map || isManagementMenu || scene === 'portal');
+  const isPortalScene = scene.startsWith('portal') || scene.startsWith('workspace');
+  const mapAccess = !shot && (mapParams.map || isManagementMenu || ['portal', 'workspace-home', 'workspace-account'].includes(scene));
   const update = patch => setSuppliers(list => list.map(s => s.id === supplierId ? { ...s, ...patch, updated: patch.status ? now() : s.updated } : s));
   return <>
     {scene === 'page-map' ? <MobilePageMap route={route} /> : scene === 'scenes' ? <SceneGallery /> : <>
@@ -203,7 +203,9 @@ function MobileApp() {
         <a href="#/mobile/scenes">47 张截图</a>
         <a className="m-page-map-link" href="#/mobile/page-map">原型导图</a>
         <a href="#/admin/suppliers">电脑端</a>
-        {showPortalLink && <a className="m-portal-entry-link" href="#/mobile/portal">协同门户移动端</a>}
+        {!shot && <a className="m-workspace-switch-link" href={isPortalScene ? '#/mobile/query' : '#/mobile/portal'}>
+          {isPortalScene ? '移动端管理平台' : '协同门户移动端'}
+        </a>}
       </aside>}
       <MotionPresence show={!!result} as="aside" className="m-result-banner" role="status">
         {result && <>

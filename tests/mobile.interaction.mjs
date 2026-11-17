@@ -93,7 +93,11 @@ try {
     await page.locator('#root [data-scene="portal"]').waitFor();
     assert.equal(await review.count(), 0);
     assert.equal(await portalLink.count(), 0);
-    await button('关闭').click();
+    const management = navigation.getByRole('link', { name: '移动端管理平台', exact: true });
+    await management.click();
+    await page.locator('#root [data-scene="query"]').waitFor();
+    await goto('mobile/workspace-home');
+    await management.click();
     await page.locator('#root [data-scene="query"]').waitFor();
   });
   await check('桌面原型保留电脑端入口与原图对照', async () => {
@@ -1014,6 +1018,53 @@ try {
   });
   await check('我的邀请批量操作提交校验与新邀请人确认', async () => {
     await goto('mobile/mine'); await button('批量操作').click(); assert.equal(await page.locator('#root .m-batch-help').count(), 0); await page.locator('#root').getByRole('checkbox', { name: '选择快速创建557348', exact: true }).check(); assert.equal(await button('删除').count(), 0); await button('批量变更邀请人').click(); await page.locator('#root [data-scene="inviter-batch"]').waitFor(); await button('新邀请人').click(); await page.locator('#root').getByRole('searchbox', { name: '搜索姓名或工号', exact: true }).fill('周辉'); await page.locator('#root .m-reference-card').getByRole('heading', { name: '周辉', exact: true }).click(); assert.ok(await button('确认').isVisible()); await button('确认').click(); await button('提交').click(); await page.locator('#root').getByRole('dialog', { name: '提示', exact: true }).getByRole('button', { name: '确认', exact: true }).click(); await button('供应商查询').click(); assert.ok((await card('快速创建').innerText()).includes('周辉'));
+  });
+  await check('普通卡片字段与开户证明和报价附件复用移动样式', async () => {
+    for (const [route, fieldSelector, valueSelector] of [
+      ['query', '.m-supplier-card dl > div', 'dd'],
+      ['my-ratings', '.m-rating-list .m-row', '.m-value'],
+      ['workspace-home', '.m-portal-identity-details .m-row', '.m-value'],
+      ['workspace-tasks', '.m-portal-task-card .m-row', '.m-value'],
+      ['workspace-info', '.m-workspace .m-section-content .m-row', '.m-value'],
+    ]) {
+      await goto('mobile/' + route);
+      const row = page.locator(fieldSelector).first();
+      assert.equal(await row.evaluate(el => getComputedStyle(el).minHeight), '36px', route);
+      assert.equal(await row.evaluate(el => getComputedStyle(el).lineHeight), '22px', route);
+      assert.equal(await row.locator(valueSelector).evaluate(el => getComputedStyle(el).textAlign), 'right', route);
+    }
+    await goto('mobile/bank');
+    await button('添加银行账户').click();
+    const proof = page.locator('[data-field-label="开户证明"]');
+    const proofSelect = proof.getByRole('button', { name: '选择开户证明', exact: true });
+    const appearance = node => {
+      const style = getComputedStyle(node);
+      return [style.minHeight, style.borderRadius, style.backgroundColor, style.color, style.fontSize];
+    };
+    const proofStyle = await proofSelect.evaluate(appearance);
+    assert.ok(await proof.getByRole('button', { name: '拍照上传开户证明', exact: true }).isVisible());
+    const chooser = page.waitForEvent('filechooser');
+    await proofSelect.click();
+    await (await chooser).setFiles(upload);
+    const removeStyle = await proof.getByRole('button', { name: '移除开户证明', exact: true }).evaluate(appearance);
+    await goto('mobile/workspace-quote-detail?record=MOCK-INQ-001');
+    assert.equal(await page.getByText('修改后将同步到全部明细税率。', { exact: true }).count(), 0);
+    const rate = page.locator('.m-quote-rate').getByRole('textbox', { name: '税率（%）', exact: true });
+    await rate.fill('6');
+    const itemRates = page.locator('.m-portal-pricing > .m-section').filter({ has: page.getByRole('heading', { name: /^[0-9]+\./ }) })
+      .locator('.m-row').filter({ hasText: '税率（%）' }).locator('.m-value');
+    const values = await itemRates.allTextContents();
+    assert.ok(values.length > 0 && values.every(value => value === '6'));
+    await button('编辑第1项报价').click();
+    const quote = page.locator('[data-field-label="报价附件"]');
+    const chooseAttachment = quote.getByRole('button', { name: '选择文件', exact: true });
+    assert.deepEqual(await chooseAttachment.evaluate(appearance), proofStyle);
+    const input = quote.locator('input[type="file"][id]');
+    assert.equal(await input.getAttribute('multiple'), '');
+    const quoteChooser = page.waitForEvent('filechooser');
+    await chooseAttachment.click();
+    await (await quoteChooser).setFiles(upload);
+    assert.deepEqual(await quote.getByRole('button', { name: '删除报价附件1', exact: true }).evaluate(appearance), removeStyle);
   });
   await check('门户报价详情询价资料前置及报价附件多文件编辑', async () => {
     await goto('mobile/workspace-home'); await button('报价管理待处理').click(); await button('报价').click();
