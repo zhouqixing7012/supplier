@@ -361,7 +361,7 @@ function MobileSurface({ onComparisonChange, scene, shot, ratings, setRatings, a
     if (['query-add', 'query-more'].includes(scene)) list.sort((a, b) => a.id === '557348' ? -1 : b.id === '557348' ? 1 : 0);
     return list.filter(x => !['draft', 'old', 'person'].includes(x.id));
   }, [suppliers, shot, scene, mine]);
-  const matching = fixtureList.filter(s => (!search || (mine ? [s.name] : [s.name, s.inviter]).some(x => x.includes(search))) && (!filters.type || s.type === filters.type) && (!filters.status || s.status === filters.status) && (!filters.recommended || (s.basic?.industry || s.industry) === filters.recommended) && (!filters.inviter || s.inviter.includes(filters.inviter))
+  const matching = fixtureList.filter(s => (!search || s.name.includes(search)) && (!filters.type || s.type === filters.type) && (!filters.status || s.status === filters.status) && (!filters.recommended || (s.basic?.industry || s.industry) === filters.recommended) && (!filters.inviter || s.inviter.includes(filters.inviter))
     && (mine || !filters.certificate?.trim() || String(certificateNumber(s)).toUpperCase().includes(filters.certificate.trim().toUpperCase())));
   const list = matching.filter(s => (!filters.start || s.date.slice(0, 10) >= filters.start) && (!filters.end || s.date.slice(0, 10) <= filters.end));
   const canChangeInviter = canChangeSupplier;
@@ -618,7 +618,7 @@ function MobileSurface({ onComparisonChange, scene, shot, ratings, setRatings, a
     {tab >= 0 && <Tabs active={tab} items={menus.map(menu => menu.label)} onChange={selectMenu} showDirectory={false} stretch />}
     <SwipeArea active={Math.max(0, tab)} count={tab >= 0 ? menus.length : 1} onChange={selectMenu}>
     {listScene && <>
-      <SearchBox value={search} onChange={setSearch} placeholder={mine ? "搜索供应商名称" : "搜索供应商名称或邀请人"}>
+      <SearchBox value={search} onChange={setSearch}>
         {shot && <button className="m-icon-button" aria-label={exportBusy ? '导出中' : '导出供应商'} disabled={exportBusy} onClick={startExport}><Download /></button>}
         <FilterButton label="筛选供应商" onClick={() => runMotion(() => setFiltering(true), 'forward')} />
       </SearchBox>

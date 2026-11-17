@@ -40,7 +40,7 @@ export function PortalTaskList({ tab, inquiries, orders, store, go, initialFilte
     {open && <FullscreenPanel className="m-portal-task-filter" title={quote ? '筛选报价' : '筛选价税拆分'} onBack={() => runMotion(() => setOpen(false), 'back')}><div className="m-filter-view">
       <FilterField label={companyLabel} value={draft.company || ''} onChange={value => change('company', value)} />
       <FilterField label="采购类型" options={purchaseTypes} value={draft.type || ''} onChange={value => change('type', value)} />
-      <DateRange label="单据日期" startLabel="创建日期起" endLabel="结束日期止" value={[draft.start || '', draft.end || '']} endError={dateError}
+      <DateRange label="单据日期" value={[draft.start || '', draft.end || '']} endError={dateError}
         onChange={([start, end]) => { setDraft(old => ({ ...old, start, end })); setDateError(''); }} />
       <Actions flat items={[{ label: '重置', muted: true, onClick: () => { setDraft({}); setDateError(''); } }, { label: '应用筛选', onClick: apply }]} />
     </div></FullscreenPanel>}

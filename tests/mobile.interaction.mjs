@@ -219,7 +219,7 @@ try {
     await swipe(page.locator('#root .m-detail .m-swipe-area').first(), 130, 0, 100); assert.equal(await page.locator('#root .m-detail [aria-current="page"]').innerText(), '注册信息'); await shot('detail');
   });
   await check('查询详情返回保留关键词及滚动位置', async () => {
-    await goto('mobile'); await page.locator('#root').getByRole('searchbox', { name: '搜索供应商名称或邀请人' }).fill('陈才慧'); await page.evaluate(() => scrollTo(0, 300)); const y = await page.evaluate(() => scrollY); await card('北京初然').getByRole('button', { name: '查看详情', exact: true }).click(); await headerBack(); await page.locator('#root [data-scene="query"]').waitFor(); assert.equal(await page.locator('#root').getByRole('searchbox', { name: '搜索供应商名称或邀请人' }).inputValue(), '陈才慧'); assert.ok(Math.abs(await page.evaluate(() => scrollY) - y) < 90);
+    await goto('mobile'); await page.locator('#root').getByRole('searchbox', { name: '搜索供应商名称' }).fill('北京'); await page.evaluate(() => scrollTo(0, 300)); const y = await page.evaluate(() => scrollY); await card('北京初然').getByRole('button', { name: '查看详情', exact: true }).click(); await headerBack(); await page.locator('#root [data-scene="query"]').waitFor(); assert.equal(await page.locator('#root').getByRole('searchbox', { name: '搜索供应商名称' }).inputValue(), '北京'); assert.ok(Math.abs(await page.evaluate(() => scrollY) - y) < 90);
   });
   await check('我的邀请字段直接展示且详情返回保持来源', async () => {
     await goto('mobile/mine'); assert.ok(await card('代注册草稿').getByText('联系人邮箱', { exact: true }).isVisible()); await card('代注册草稿').getByRole('button', { name: '查看详情', exact: true }).click(); await headerBack(); await page.locator('#root [data-scene="mine"]').waitFor();
@@ -736,7 +736,7 @@ try {
     assert.equal(await page.locator('#root .m-supplier-card').count(), 3);
   });
   await check('规范吸收：空列表与无匹配结果明确区分', async () => {
-    await goto('mobile/shot/200005'); await page.locator('#root').getByText('暂无供应商记录', { exact: true }).waitFor(); await goto('mobile'); await field('搜索供应商名称或邀请人').fill('没有这家供应商'); await page.locator('#root').getByText('暂无匹配结果，请调整搜索或筛选条件', { exact: true }).waitFor(); await button('清空搜索').click(); assert.ok(await page.locator('#root .m-supplier-card').count() > 0);
+    await goto('mobile/shot/200005'); await page.locator('#root').getByText('暂无供应商记录', { exact: true }).waitFor(); await goto('mobile'); await field('搜索供应商名称').fill('没有这家供应商'); await page.locator('#root').getByText('暂无匹配结果，请调整搜索或筛选条件', { exact: true }).waitFor(); await button('清空搜索').click(); assert.ok(await page.locator('#root .m-supplier-card').count() > 0);
   });
   await check('规范吸收：长文件名可读，长选项层标题和动作可达', async () => {
     await page.setViewportSize({ width: 320, height: 640 }); await goto('mobile/register'); const name = '供应商注册营业执照与补充证明长文件名称'.repeat(5) + '.png'; await page.locator('#root').getByLabel('营业执照', { exact: true }).setInputFiles({ ...upload, name }); const line = page.locator('#root .m-attachment-name'); assert.ok((await line.innerText()).includes(name)); assert.ok(await line.evaluate(n => n.scrollWidth <= n.clientWidth)); await page.locator('#root').getByRole('combobox', { name: '所属行业', exact: true }).click(); const sheet = page.locator('#root').getByRole('dialog'); await sheet.evaluate(n => { n.scrollTop = n.scrollHeight; }); for (const label of ['取消', '清空选择']) { const box = await sheet.getByRole('button', { name: label, exact: true }).boundingBox(); assert.ok(box.y >= 0 && box.y + box.height <= 640); } await page.screenshot({ path: path.join(output, 'adopt-long-picker.png') }); await page.setViewportSize({ width: 390, height: 845 });
@@ -806,7 +806,7 @@ try {
     await goto('mobile/bank-form-selected'); assert.equal(await field('开户所在省').evaluate(n => getComputedStyle(n).backgroundColor), 'rgba(0, 0, 0, 0)'); await goto('mobile/register'); await page.locator('#root').getByLabel('营业执照', { exact: true }).setInputFiles(upload); const remove = page.locator('#root').getByRole('button', { name: '移除营业执照', exact: true }); const rect = await remove.boundingBox(); assert.ok(rect.width <= 28 && rect.height <= 28); await remove.click(); assert.ok(await page.locator('#root').getByRole('dialog').isVisible()); await page.locator('#root').getByRole('dialog').getByRole('button', { name: '取消', exact: true }).click(); await page.screenshot({ path: path.join(output, 'feedback-register.png') }); await page.setViewportSize({ width: 390, height: 845 });
   });
   await check('工作台组件：搜索有记录、无记录及清空恢复，原始资产显示', async () => {
-    await goto('mobile'); const search = page.locator('#root').getByRole('searchbox', { name: '搜索供应商名称或邀请人', exact: true }); await search.fill('北京'); assert.ok(await page.locator('#root .m-supplier-card').count()); await shot('workbench-search-found'); await search.fill('完全不存在的供应商ABC'); assert.equal(await page.locator('#root .m-supplier-card').count(), 0); const empty = page.locator('#root .m-empty-search'); assert.ok(await empty.isVisible()); assert.equal(await empty.locator('img').count(), 5); for (const img of await empty.locator('img').all()) assert.ok(await img.evaluate(n => n.complete && n.naturalWidth > 0)); await shot('workbench-search-empty'); await button('清空搜索').click(); assert.ok(await page.locator('#root .m-supplier-card').count());
+    await goto('mobile'); const search = page.locator('#root').getByRole('searchbox', { name: '搜索供应商名称', exact: true }); await search.fill('陈才慧'); assert.equal(await page.locator('#root .m-supplier-card').count(), 0); await search.fill('北京'); assert.ok(await page.locator('#root .m-supplier-card').count()); await shot('workbench-search-found'); await search.fill('完全不存在的供应商ABC'); assert.equal(await page.locator('#root .m-supplier-card').count(), 0); const empty = page.locator('#root .m-empty-search'); assert.ok(await empty.isVisible()); assert.equal(await empty.locator('img').count(), 5); for (const img of await empty.locator('img').all()) assert.ok(await img.evaluate(n => n.complete && n.naturalWidth > 0)); await shot('workbench-search-empty'); await button('清空搜索').click(); assert.ok(await page.locator('#root .m-supplier-card').count());
   });
   await check('工作台组件：普通选择和搜索选择、日期底部确认、输入焦点', async () => {
     await goto('mobile'); await button('筛选供应商').click();
@@ -1013,9 +1013,10 @@ try {
         assert.equal(await page.locator('#root .mobile-page > .m-header h1').innerText(), quote ? '采购报价' : '价税拆分');
         await button(quote ? '筛选报价' : '筛选价税拆分').click();
         const date = page.locator('#root .m-date-range');
+        assert.deepEqual(await date.locator('.m-select-field').allInnerTexts(), ['选择开始日期', '选择结束日期']);
         const [start, end, separator] = await Promise.all([
-          date.getByRole('button', { name: '创建日期起', exact: true }).boundingBox(),
-          date.getByRole('button', { name: '结束日期止', exact: true }).boundingBox(),
+          date.getByRole('button', { name: '单据日期（起）', exact: true }).boundingBox(),
+          date.getByRole('button', { name: '单据日期（止）', exact: true }).boundingBox(),
           date.locator('.m-date-range-separator').boundingBox(),
         ]);
         assert.ok(Math.abs(start.width - end.width) <= 1);
@@ -1028,7 +1029,7 @@ try {
   await check('各筛选日期逆序标记结束字段并保留已选日期', async () => {
     for (const [route, openLabel, startLabel, endLabel] of [
       ['mobile', '筛选供应商', '邀请时间（起）', '邀请时间（止）'],
-      ['mobile/workspace-tasks?map=1&tab=0', '筛选报价', '创建日期起', '结束日期止'],
+      ['mobile/workspace-tasks?map=1&tab=0', '筛选报价', '单据日期（起）', '单据日期（止）'],
       ['mobile/my-ratings', '筛选评分', '评分开始时间', '评分结束时间'],
       ['mobile/rating-ops', '筛选评分运维', '创建时间（起）', '创建时间（止）'],
     ]) {

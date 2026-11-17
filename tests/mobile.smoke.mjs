@@ -79,7 +79,7 @@ try {
   }
   await page.setViewportSize({ width: 390, height: 845 });
   await check('截图目录包含47个唯一入口', async () => { await goto('mobile/scenes'); assert.equal(await page.locator('ol a').count(), 47); });
-  await check('名称搜索和空状态', async () => { await goto('mobile'); await page.getByRole('textbox', { name: '搜索供应商名称或邀请人' }).fill('不存在的供应商'); assert.equal(await page.locator('.m-supplier-card').count(), 0); assert.ok(await page.getByText('没有查询到相关数据').isVisible()); });
+  await check('名称搜索和空状态', async () => { await goto('mobile'); await page.getByRole('searchbox', { name: '搜索供应商名称' }).fill('不存在的供应商'); assert.equal(await page.locator('.m-supplier-card').count(), 0); assert.ok(await page.getByText('没有查询到相关数据').isVisible()); });
   await check('筛选应用和重置', async () => {
     await goto('mobile'); await page.getByRole('button', { name: '筛选供应商' }).click(); await choose('供应商状态', '已审批'); await page.getByRole('button', { name: '确定', exact: true }).click();
     assert.equal(await page.locator('.m-supplier-card').count(), 3);

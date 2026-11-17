@@ -45,8 +45,8 @@ export function FilterField(props) {
   return <Field {...props} hideLabel placeholder={placeholder} />;
 }
 
-export function SearchBox({ placeholder = '搜索供应商名称或邀请人', ...props }) {
-  return <MobileSearchBox {...props} placeholder={placeholder} label={placeholder || '搜索供应商名称或邀请人'} />;
+export function SearchBox({ placeholder = '搜索供应商名称', ...props }) {
+  return <MobileSearchBox {...props} placeholder={placeholder} label={placeholder || '搜索供应商名称'} />;
 }
 
 export function SupplierIdentityCard({ supplier, children, showMeta = true }) {

@@ -232,7 +232,7 @@ function SupplierQueryPage({ pagination, onPagination, canEditRecord, filters, a
   return (
     <div className="pc-page-stack">
       <QueryBar onQuery={onSearch} onReset={onReset}>
-        <QueryItem label="供应商名称"><Input allowClear value={filters.name} placeholder="搜索供应商名称或邀请人" onChange={(event) => setFilters('name', event.target.value)} onPressEnter={onSearch} /></QueryItem>
+        <QueryItem label="供应商名称"><Input allowClear value={filters.name} placeholder="搜索供应商名称" onChange={(event) => setFilters('name', event.target.value)} onPressEnter={onSearch} /></QueryItem>
         <QueryItem label="供应商类型"><Select allowClear value={filters.type || undefined} placeholder="请选择供应商类型" options={supplierTypes.map((value) => ({ value, label: value }))} onChange={(value) => setFilters('type', value || '')} /></QueryItem>
         <QueryItem label="供应商状态"><Select allowClear value={filters.status || undefined} placeholder="请选择供应商状态" options={supplierStates.map((value) => ({ value, label: value }))} onChange={(value) => setFilters('status', value || '')} /></QueryItem>
         <QueryItem label="邀请时间">
@@ -826,7 +826,7 @@ function SupplierAdmin() {
 
   const supplierScope = useMemo(() => suppliers.filter((record) => {
     const filters = appliedSupplierFilters;
-    return (!filters.name || [record.name, record.inviter].some((value) => String(value || '').toLowerCase().includes(filters.name.trim().toLowerCase())))
+    return (!filters.name || String(record.name || '').toLowerCase().includes(filters.name.trim().toLowerCase()))
       && (!filters.type || record.type === filters.type)
       && (!filters.status || record.status === filters.status)
       && (!filters.recommended || (record.industry || record.basic?.industry) === filters.recommended)
