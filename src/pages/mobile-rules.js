@@ -7,6 +7,9 @@ export const canReinviteSupplier = supplier => ['草稿', '邀请中'].includes(
 export const deleteStatuses = mine => mine ? ['邀请中', '注册中', '草稿', '注册驳回'] : ['草稿', '注册驳回'];
 export const canDeleteSupplier = (supplier, mine = false) => !supplier.hasCooperation && deleteStatuses(mine).includes(supplier.status);
 
+export const canSelectSupplierForBatch = (supplier, mine, inviter) =>
+  mine ? supplier.inviter === inviter && (canDeleteSupplier(supplier, true) || canChangeSupplier(supplier)) : canDeleteSupplier(supplier);
+
 export const supplierAccount = supplier => supplier.supplierAccount || supplier.userCode || supplier.account || '';
 export const certificateNumber = supplier => supplier.basic?.creditCode || supplier.certificateNumber || supplier.code || '';
 

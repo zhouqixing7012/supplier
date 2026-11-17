@@ -171,12 +171,13 @@
 .m-attachment-upload-button svg { width: 16px; height: 16px; flex: 0 0 16px; }
 .m-bank-location-note { padding: 8px 16px; margin: 0; font-size: 14px; color: var(--m-text-secondary); }
 .m-rating-value { font-size: 16px; font-variant-numeric: tabular-nums; color: var(--m-text); }
-.mobile-page:not(.m-shot) .m-star-control > span:first-child { gap: 0; }
-.mobile-page:not(.m-shot) .m-star-control > .m-rating-stars:first-child { gap: 4px; }
+.mobile-page:not(.m-shot) .m-star-control > span:first-child { display: grid; grid-template-columns: repeat(5, 44px); gap: 0; }
+.mobile-page:not(.m-shot) .m-rating-stars > .m-star-slot { justify-self: center; }
 /* 评分星级以浅灰、橙色实心区分，半星使用相同图形和裁切。 */
-.mobile-page:not(.m-shot) .m-star-control svg { stroke-width: 0; fill: currentColor; }
-.mobile-page:not(.m-shot) .m-star-control svg:not(.filled) { color: var(--m-border); }
-.mobile-page:not(.m-shot) .m-star-control svg.filled { color: #c65d00; fill: currentColor; }
+.mobile-page:not(.m-shot) .m-star-control svg { width: 24px; height: 24px; stroke-width: 1.6; fill: currentColor; }
+.mobile-page:not(.m-shot) .m-star-slot { width: 24px; height: 24px; }
+.mobile-page:not(.m-shot) .m-star-control svg:not(.filled) { color: #e2e6f0; }
+.mobile-page:not(.m-shot) .m-star-control svg.filled { color: #f27d0c; fill: currentColor; }
 .mobile-page:not(.m-shot) .m-batch-actions label { font-size: 14px; }
 
 .mobile-page .m-upload input[type=file] { width: 1px !important; height: 1px !important; min-height: 0; pointer-events: none; clip-path: inset(50%); }
@@ -881,7 +882,10 @@
   min-height: var(--m-card-field-min); align-items: center; padding: var(--m-card-field-padding) 0; border: 0;
 }
 .mobile-page:not(.m-shot) .m-quote-info:has(.m-quote-rate) :is(.m-row > .m-label, .m-field > label, .m-field-control) { width: auto; max-width: none; padding-left: 0; }
-.mobile-page:not(.m-shot) .m-quote-info:has(.m-quote-rate) .m-value { text-align: left; padding-inline-start: calc(var(--m-control-inset) + 1px); }
+.mobile-page:not(.m-shot) .m-quote-rate .m-field-control { justify-self: end; width: min(144px, 100%); }
+.mobile-page:not(.m-shot) .m-quote-rate .m-field-control > input:not([readonly]) { text-align: right; padding-right: var(--m-control-inset); }
+.mobile-page:not(.m-shot) .m-quote-rate .m-field-control:has(.m-field-clear) > input:not([readonly]) { padding-left: 44px; }
+.mobile-page:not(.m-shot) .m-quote-rate .m-field-clear { left: 0; right: auto; }
 .mobile-page:not(.m-shot) .m-quote-info .m-field-error { margin: 0 0 6px calc(var(--quote-label-width) + 8px); }
 .mobile-page:not(.m-shot) .m-quote-info .m-field-error { grid-column: 1 / -1; }
 .mobile-page:not(.m-shot) .m-order-info-card .m-record-heading { padding: 14px 0 12px; border-bottom: 1px solid var(--m-border-subtle); }

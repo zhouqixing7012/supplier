@@ -15,7 +15,7 @@ import { mobileSupplierSamples, registerMobileSupplierSampleFiles } from './mobi
 import { BankApplicationForm, RatingEditor, RatingOperations, RatingWorkspace, initialRatings, ratingDetailDemo } from './mobile-workflows.jsx';
 import { InteractionProvider, SwipeArea, useInteraction, useDirtyForm, useBackLayer, usePageIsolation, attachmentName } from './mobile-interaction.jsx';
 import { SupplierExport, exportSupplierRows } from './mobile-export.jsx';
-import { supplierListActions, canChangeSupplier, canRateSupplier, canReinviteSupplier, canDeleteSupplier, deleteStatuses, canInviteHistoricalSupplier, certificateNumber, supplierAccount } from './mobile-rules.js';
+import { supplierListActions, canChangeSupplier, canRateSupplier, canReinviteSupplier, canDeleteSupplier, canSelectSupplierForBatch, deleteStatuses, canInviteHistoricalSupplier, certificateNumber, supplierAccount } from './mobile-rules.js';
 import { procurementNoticeRoute } from './mobile-portal-procurement.js';
 import { PortalWorkspace } from './mobile-portal.jsx';
 import { RegistrationPreview } from './mobile-registration-preview.jsx';
@@ -250,10 +250,9 @@ function MobileSurface({ onComparisonChange, scene, shot, ratings, setRatings, a
   const [expanded, setExpanded] = useState(['query-add', 'query-export'].includes(scene));
   const [batch, setBatch] = useState(views[scene]?.batch ?? ['query-batch', 'mine-batch'].includes(scene));
   const [checked, setChecked] = useState(views[scene]?.checked || []);
-  const batchKind = scene.startsWith('mine') ? 'inviter' : 'delete';
   const [batchError, setBatchError] = useState(null);
   const firstBatchQuery = useRef(true);
-  useEffect(() => { if (firstBatchQuery.current) { firstBatchQuery.current = false; return; } setChecked([]); }, [search, filters, batchKind]);
+  useEffect(() => { if (firstBatchQuery.current) { firstBatchQuery.current = false; return; } setChecked([]); }, [search, filters]);
   const [sheet, setSheet] = useState(scene === 'query-more' ? 'more' : null);
   const [confirm, setConfirm] = useState(null);
   const [reinvitePrompt, setReinvitePrompt] = useState(null);
@@ -398,10 +397,27 @@ function MobileSurface({ onComparisonChange, scene, shot, ratings, setRatings, a
     && (mine || !filters.certificate?.trim() || String(certificateNumber(s)).toUpperCase().includes(filters.certificate.trim().toUpperCase())));
   const list = matching.filter(s => (!filters.start || s.date.slice(0, 10) >= filters.start) && (!filters.end || s.date.slice(0, 10) <= filters.end));
   const canChangeInviter = canChangeSupplier;
-  const selectableList = list.filter(x => mine ? x.inviter === currentInviter && canChangeSupplier(x) : adminScene && canDeleteSupplier(x));
+  const selectableList = list.filter(x => canBatchOperate && canSelectSupplierForBatch(x, mine, currentInviter));
   const selectedRecords = list.filter(x => checked.includes(x.id));
-  const canBatchDelete = !mine && adminScene && selectedRecords.length > 0 && selectedRecords.every(x => canDeleteSupplier(x));
-  const canBatchInviter = selectedRecords.length > 0 && selectedRecords.every(x => x.inviter === currentInviter && canChangeInviter(x));
+  const canBatchDelete = canBatchOperate && selectedRecords.length === checked.length && selectedRecords.length > 0 && selectedRecords.every(x => canDeleteSupplier(x, mine) && (!mine || x.inviter === currentInviter));
+  const canBatchInviter = selectedRecords.length === checked.length && selectedRecords.length > 0 && selectedRecords.every(x => x.inviter === currentInviter && canChangeInviter(x));
+  const requestBatchDelete = () => {
+    if (selectedRecords.some(record => record.hasCooperation)) {
+      return setBatchError({ title: '无法删除', text: '发生过合作的供应商不能删除，请重新选择。' });
+    }
+    if (!canBatchDelete) {
+      return setBatchError({ title: '无法删除', text: '所选记录包含不可删除的状态，仅' + deleteStatuses(mine).join('、') + '可删除，请重新选择。' });
+    }
+    setConfirm({ type: 'delete', ids: [...checked], text: '确认删除所选供应商？' });
+  };
+  const requestBatchInviter = () => {
+    if (!canBatchInviter) {
+      return setBatchError({ title: '无法变更邀请人', text: '所选记录包含未审批或已拉黑的供应商，请重新选择已审批且未拉黑的供应商。' });
+    }
+    views.batchInviterIds = [...checked];
+    listReturn.current = 'mine';
+    go('inviter-batch');
+  };
   const closeExport = () => { setExportOpen(false); if (scene === 'export') go('mine'); };
   const performExport = async dates => {
     if (exportBusy) return;
@@ -463,7 +479,7 @@ function MobileSurface({ onComparisonChange, scene, shot, ratings, setRatings, a
       inviterGuard.accept(); views.mine = { ...views.mine, batch: false, checked: [] }; views.batchInviterIds = []; notify('已更新' + targets.length + '家供应商的邀请人'); go('mine');
     }
     if (action.type === 'delete') {
-      if (mine ? action.ids.length !== 1 : !adminScene) return notify('当前人员或操作方式不支持删除');
+      if (!mine && !adminScene) return notify('当前人员不支持删除');
       const targets = suppliers.filter(s => action.ids.includes(s.id));
       if (mine && targets.some(s => s.inviter !== currentInviter)) return notify('当前供应商已交接，请返回列表核对');
       if (targets.some(s => s.hasCooperation)) return setBatchError({ title: '无法删除', text: '发生过合作的供应商不能删除，请重新选择。' });
@@ -663,7 +679,7 @@ function MobileSurface({ onComparisonChange, scene, shot, ratings, setRatings, a
           {batch ? '取消批量操作' : '批量操作'}
         </button>
       } />
-      <SupplierList filtered={!!search || Object.values(filters).some(Boolean)} suppliers={list} mine={mine} batch={batch && canBatchOperate} checked={checked} setChecked={setChecked} admin={adminScene} currentInviter={currentInviter} batchKind={batchKind} onDetail={s => pick(s, 'detail')} onBank={s => pick(s, 'bank')} onMore={(s, approval) => { listReturn.current = mine ? 'mine' : 'query'; select(s.id); approval === 'permissions' ? go('permissions') : approval ? go('detail-approval') : setSheet('more'); }} onInviter={s => pick(s, 'inviter')} onScore={startScore} onReinvite={s => { if (canReinviteSupplier(s)) pick(s, 'invite-again'); }} onEdit={s => { if (supplierListActions(s, { mine, inviter: currentInviter }).editDraft) pick(s, 'register-edit'); }} onEditAll={s => { if (supplierListActions(s, { mine, inviter: currentInviter }).editAll) pick(s, 'register-edit-all'); }} onDelete={s => { if (supplierListActions(s, { mine, inviter: currentInviter }).delete) setConfirm({ type: 'delete', ids: [s.id], text: '确认删除供应商「' + s.name + '」？删除后原有信息全部作废。' }); }} />
+      <SupplierList filtered={!!search || Object.values(filters).some(Boolean)} suppliers={list} mine={mine} batch={batch && canBatchOperate} checked={checked} setChecked={setChecked} admin={adminScene} currentInviter={currentInviter} onDetail={s => pick(s, 'detail')} onBank={s => pick(s, 'bank')} onMore={(s, approval) => { listReturn.current = mine ? 'mine' : 'query'; select(s.id); approval === 'permissions' ? go('permissions') : approval ? go('detail-approval') : setSheet('more'); }} onInviter={s => pick(s, 'inviter')} onScore={startScore} onReinvite={s => { if (canReinviteSupplier(s)) pick(s, 'invite-again'); }} onEdit={s => { if (supplierListActions(s, { mine, inviter: currentInviter }).editDraft) pick(s, 'register-edit'); }} onEditAll={s => { if (supplierListActions(s, { mine, inviter: currentInviter }).editAll) pick(s, 'register-edit-all'); }} onDelete={s => { if (supplierListActions(s, { mine, inviter: currentInviter }).delete) setConfirm({ type: 'delete', ids: [s.id], text: '确认删除供应商「' + s.name + '」？删除后原有信息全部作废。' }); }} />
       {(!batch || !canBatchOperate) && <div className="m-fab-group">
         <div id={addMenuId} className="m-fab-menu" data-open={expanded} inert={!expanded} aria-hidden={!expanded || undefined}>
           <button type="button" onClick={() => go('invite')}><span className="m-invite-entry-icon"><Send aria-hidden="true" /></span>邀请注册</button>
@@ -671,9 +687,16 @@ function MobileSurface({ onComparisonChange, scene, shot, ratings, setRatings, a
         </div>
         <button type="button" className="m-fab m-fab-blue" aria-label={expanded ? '收起新增入口' : '新增供应商'} aria-controls={addMenuId} aria-expanded={expanded} onClick={() => setExpanded(open => !open)}><Plus aria-hidden="true" /></button>
       </div>}
-      {batch && canBatchOperate && <footer className={'m-batch-actions' + (mine ? ' m-batch-actions-mine' : '')}>{(mine || shot) && <Checkbox label="全选当前结果" disabled={!selectableList.length}
-        checked={selectableList.length > 0 && checked.length === selectableList.length}
-        onChange={value => setChecked(value ? selectableList.map(x => x.id) : [])}>全选</Checkbox>}<span>已选 {checked.length} 项</span><div className="m-batch-buttons">{!mine && <button disabled={!checked.length} className="m-action-danger" onClick={() => { if (selectedRecords.some(record => record.hasCooperation)) return setBatchError({ title: '无法删除', text: '发生过合作的供应商不能删除，请重新选择。' }); if (!canBatchDelete) return setBatchError({ title: '无法删除', text: '所选记录包含不可删除的状态，仅' + deleteStatuses(mine).join('、') + '可删除，请重新选择。' }); setConfirm({ type: 'delete', ids: [...checked], text: '确认删除所选供应商？' }); }}>删除</button>}{mine && <button disabled={!checked.length} onClick={() => { if (!canBatchInviter) return setBatchError({ title: '无法变更邀请人', text: '所选记录包含未审批或已拉黑的供应商，请重新选择已审批且未拉黑的供应商。' }); views.batchInviterIds = [...checked]; listReturn.current = 'mine'; go('inviter-batch'); }}>批量变更邀请人</button>}</div></footer>}
+      {batch && canBatchOperate && <footer className={'m-batch-actions' + (mine ? ' m-batch-actions-mine' : '')}>
+        {(mine || shot) && <Checkbox label="全选当前结果" disabled={!selectableList.length}
+          checked={selectableList.length > 0 && checked.length === selectableList.length}
+          onChange={value => setChecked(value ? selectableList.map(x => x.id) : [])}>全选</Checkbox>}
+        <span>已选 {checked.length} 项</span>
+        <div className="m-batch-buttons">
+          <button type="button" disabled={!checked.length} className="m-action-danger" onClick={requestBatchDelete}>删除</button>
+          {mine && <button type="button" disabled={!checked.length} onClick={requestBatchInviter}>批量变更邀请人</button>}
+        </div>
+      </footer>}
     </>}
     {(scene === 'filter' || filtering) && <div className={filtering ? 'm-fullscreen-panel' : ''}>{filtering && <Header title="筛选供应商" onBack={() => runMotion(() => setFiltering(false), 'back')} />}<FilterView listMine={filterMine} initial={filters} onApply={v => { setFilters(v); if (filtering) runMotion(() => setFiltering(false), 'back'); else { views[returnToList()] = { ...views[returnToList()], filters: v }; go(returnToList()); } }} /></div>}
     {scene === 'information-change' && <>{supplier.pendingInformation && supplier.status === '变更中' ? <><ChangeComparison before={supplier} after={supplier.pendingInformation} onPreview={preview} /><Actions items={[{ label: '查看审批', onClick: () => go('approval') }]} /></> : <><Section title="资料变更对比" collapsible={false}><Empty text="暂无待查看的资料变更" /></Section></>}</>}
@@ -742,7 +765,7 @@ function MobileSurface({ onComparisonChange, scene, shot, ratings, setRatings, a
     {['address', 'region'].includes(scene) && <AddressForm regions={regionData} initial={shot ? '云南省/保山市/龙陵县 个哈哈哈哈' : basic.address} startRegion={scene === 'region'} onConfirm={v => { setBasic({ ...basic, address: v }); go('register'); }} onCancel={() => go('register')} />}
     {registerBankPicker && <div className="m-fullscreen-panel"><Header title={portalRegistration ? (editingBank < 0 ? '添加银行账户' : '修改银行账户') : '供应商管理平台'} onBack={() => window.dispatchEvent(new CustomEvent('mobile-close-register-bank'))} /><BankFields layout="stacked" onCancel={() => setRegisterBankPicker(false)} bank={registerBankForm} setBank={setRegisterBankForm} company={basic.type === supplierTypes[0]} /><Actions items={[{ label: '取消', onClick: () => window.dispatchEvent(new CustomEvent('mobile-close-register-bank')) }, { label: '添加', onClick: saveRegisterBank }]} /></div>}
     {['ratings', 'my-ratings'].includes(scene) && <RatingWorkspace savedView={views[scene]} onViewChange={value => { views[scene] = { ...views[scene], ...value }; }} mine={scene === 'my-ratings'} records={ratings} filters={filters} go={go} onOpen={(record, readOnly) => { setActiveRating(record); setRatingReturn(scene); go(readOnly ? 'rating-detail' : 'rating-edit'); }} onAdd={() => { setActiveRating(null); setRatingReturn(scene); go('rating-edit'); }} />}
-    {['rating-edit', 'rating-detail'].includes(scene) && (scene === 'rating-detail' && !activeRating ? <><Empty text="未选择评分记录，请返回列表重新选择" /></> : <RatingEditor record={activeRating} supplier={activeRating ? suppliers.find(x => x.name === activeRating.name) || { name: activeRating.name, type: '', status: '', inviter: '', date: '', mode: '' } : supplier} readOnly={scene === 'rating-detail'} notify={notify} onSave={record => { setRatings(list => list.some(x => x.id === record.id) ? list.map(x => x.id === record.id ? record : x) : [record, ...list]); notify('演示评分已保存'); go(ratingReturn); }} />)}
+    {['rating-edit', 'rating-detail'].includes(scene) && (scene === 'rating-detail' && !activeRating ? <><Empty text="未选择评分记录，请返回列表重新选择" /></> : <RatingEditor record={activeRating} supplier={activeRating ? suppliers.find(x => x.name === activeRating.name) || { name: activeRating.name, type: '', status: '', inviter: '', date: '', mode: '' } : supplier} readOnly={scene === 'rating-detail'} notify={notify} onCancel={back} onSave={record => { setRatings(list => list.some(x => x.id === record.id) ? list.map(x => x.id === record.id ? record : x) : [record, ...list]); notify('演示评分已保存'); go(ratingReturn); }} />)}
     {['rating-filter', 'department'].includes(scene) && <FilterView rating mine={filters.return === 'my-ratings'} initial={filters} onApply={returnFromRatingFilter} />}
     {scene === 'rating-ops' && <RatingOperations historical={!!shot} />}
     {scene === 'bank-application' && <div className="m-bank-notice-stage"><BankApplication onApply={() => { views.applicationResult = null; go('bank-application-form'); }} />{views.applicationResult && <button className="m-preview-edit" onClick={() => go('bank-application-form')}>查看本次申请</button>}</div>}

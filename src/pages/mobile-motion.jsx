@@ -12,16 +12,27 @@ function play(node, frames, duration, cleanup = () => {}, onFinish = () => {}) {
   running.add(stop); animation.onfinish = () => { stop(); onFinish(); };
   return stop;
 }
+// 旧页面和新页面的正文快照都避开当前可见的固定栏。
+function contentBounds(node) {
+  const bars = [...(node?.querySelectorAll('.m-header,.m-tab-bar,.m-actions,.m-bottom-nav,.m-batch-actions') || [])]
+    .filter(bar => !bar.closest('[inert]') && bar.getClientRects().length > 0);
+  let top = 0, bottom = 0;
+  for (const bar of bars) {
+    const rect = bar.getBoundingClientRect();
+    if (bar.matches('.m-header,.m-tab-bar')) top = Math.max(top, rect.bottom);
+    else bottom = Math.max(bottom, innerHeight - rect.top);
+  }
+  return [top, bottom];
+}
 function ghost(node) {
   if (!node) return null;
   const bounds = node.getBoundingClientRect();
   const frame = document.createElement('div');
   frame.className = 'mobile-page m-motion-ghost'; frame.inert = true; frame.setAttribute('aria-hidden', 'true');
   Object.assign(frame.style, { position: 'fixed', left: bounds.left + 'px', top: '0px', width: bounds.width + 'px', height: '100dvh', minHeight: '0', margin: '0', padding: '0', background: 'transparent', pointerEvents: 'none', zIndex: '55', overflow: 'hidden' });
-  const header = node.querySelector('.m-header');
-  const footer = [...node.querySelectorAll('.m-actions,.m-bottom-nav,.m-batch-actions')].at(-1);
-  const top = header ? Math.max(0, header.getBoundingClientRect().bottom) : 0;
-  const bottom = footer ? Math.max(0, innerHeight - footer.getBoundingClientRect().top) : 0;
+  const [top, bottom] = contentBounds(node);
+  frame.dataset.motionTop = String(top);
+  frame.dataset.motionBottom = String(bottom);
   frame.style.clipPath = `inset(${top}px 0 ${bottom}px 0)`;
   const copy = node.cloneNode(true);
   frame.dataset.motionHeight = String(bounds.height);
@@ -166,6 +177,11 @@ export function runMotion(update, kind = 'fade', after) {
   }
   const localReturn = kind === 'back' && oldScope?.matches('.m-fullscreen-panel');
   const nextScope = scope(), next = localReturn ? null : ghost(nextScope);
+  const oldContent = current.page || old;
+  if (oldContent && (current.page || (originalKind !== 'sheet-close' && originalKind !== 'record'))) {
+    const [top, bottom] = contentBounds(nextScope);
+    oldContent.style.clipPath = `inset(${Math.max(top, Number(oldContent.dataset.motionTop))}px 0 ${Math.max(bottom, Number(oldContent.dataset.motionBottom))}px 0)`;
+  }
   if (trackRecords) moveRecords(before);
   const width = Math.min(430, innerWidth);
   const backwards = kind === 'back' || kind === 'tab-prev' || kind === 'swipe-prev';

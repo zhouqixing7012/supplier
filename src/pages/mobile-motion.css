@@ -5,7 +5,6 @@
 .mobile-page:not(.m-shot) .m-overlay { animation: m-shade-in 180ms ease-out both; }
 .mobile-page:not(.m-shot) .m-overlay > .m-sheet { animation: m-sheet-in 220ms var(--m-motion-ease) both; }
 .mobile-page:not(.m-shot) .m-overlay > .m-dialog { animation: m-dialog-in 180ms var(--m-motion-ease) both; }
-.mobile-page:not(.m-shot) .m-fullscreen-panel { animation: m-panel-in 240ms var(--m-motion-ease) both; }
 .mobile-page:not(.m-shot) .m-batch-actions { animation: m-bar-in 180ms var(--m-motion-ease) both; }
 .mobile-page:not(.m-shot) .m-checkbox { animation: m-fade-in 150ms ease-out both; }
 .m-toast, .m-result-banner { animation: m-fade-in 150ms ease-out both; }
@@ -19,7 +18,7 @@
 .m-gesture-tabs .m-tab-indicator { transition: none; transform: translateX(calc(var(--m-gesture-x,0px) + (var(--m-gesture-width,24px) - 24px)/2)); }
 .m-tab-bar-pill .m-gesture-tabs .m-tab-indicator { width: var(--m-gesture-width,24px); transform: translateX(var(--m-gesture-x,0px)); }
 .m-swipe-dragging { visibility: hidden; }
-.m-swipe-dragging .m-actions, .m-swipe-dragging .m-bottom-nav, .m-swipe-dragging .m-fab-group, .m-swipe-dragging .m-tab-bar { visibility: visible; }
+.m-swipe-dragging .m-actions, .m-swipe-dragging .m-batch-actions, .m-swipe-dragging .m-bottom-nav, .m-swipe-dragging .m-fab-group, .m-swipe-dragging .m-tab-bar { visibility: visible; }
 .m-swipe-visual { background: var(--m-bg,#f4f7fa); pointer-events: none; will-change: transform; }
 .m-section-reveal { display: grid; grid-template-rows: 1fr; opacity: 1; transition: grid-template-rows 180ms var(--m-motion-ease), opacity 150ms ease-out; }
 .m-section-reveal[data-open='false'] { grid-template-rows: 0fr; opacity: 0; visibility: hidden; transition: grid-template-rows 180ms var(--m-motion-ease), opacity 150ms ease-out, visibility 0s 180ms; }
@@ -35,7 +34,6 @@
 @keyframes m-shade-in { from { background-color: transparent; } }
 @keyframes m-sheet-in { from { translate: 0 100%; } to { translate: 0 0; } }
 @keyframes m-dialog-in { from { opacity: 0; scale: .97; } to { opacity: 1; scale: 1; } }
-@keyframes m-panel-in { from { translate: 32px 0; opacity: .6; } to { translate: 0 0; opacity: 1; } }
 @keyframes m-bar-in { from { translate: 0 100%; opacity: 0; } to { translate: 0 0; opacity: 1; } }
 @keyframes m-forward-in { from { transform: translateX(min(430px,100vw)); } }
 @keyframes m-forward-out { to { transform: translateX(max(-77px,-18vw)); opacity: .75; } }

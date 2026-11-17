@@ -9,18 +9,17 @@ import { BankCard, fieldsFor } from './mobile-forms.jsx';
 import { cooperation, supplierStates, supplierTypes, supplierIndustries } from './mobile-data.js';
 import { SwipeArea, attachmentName } from './mobile-interaction.jsx';
 import { ChangeComparison } from './mobile-changes.jsx';
-import { supplierListActions, canChangeSupplier, canRateSupplier, canReinviteSupplier, canDeleteSupplier, displayCertificateNumber, supplierAccount } from './mobile-rules.js';
+import { supplierListActions, canChangeSupplier, canRateSupplier, canReinviteSupplier, canSelectSupplierForBatch, displayCertificateNumber, supplierAccount } from './mobile-rules.js';
 
 import { MotionDetails, MotionPresence, runMotion } from './mobile-motion.jsx';
 
-export function SupplierList({ suppliers, mine = false, batch = false, checked, setChecked, onDetail, onBank, onMore, onInviter, onReinvite, onEdit, onEditAll, onDelete, onScore, admin = false, currentInviter = '', filtered = false, batchKind = 'delete' }) {
-  return <div className="m-supplier-list">{suppliers.length ? suppliers.map(s => <SupplierSummary key={s.id} {...{ s, mine, batch, checked, setChecked, onDetail, onBank, onMore, onInviter, onReinvite, onEdit, onEditAll, onDelete, onScore, admin, currentInviter, batchKind }} />) : <Empty search={filtered} text={filtered ? '暂无匹配结果，请调整搜索或筛选条件' : '暂无供应商记录'} />}</div>;
+export function SupplierList({ suppliers, mine = false, batch = false, checked, setChecked, onDetail, onBank, onMore, onInviter, onReinvite, onEdit, onEditAll, onDelete, onScore, admin = false, currentInviter = '', filtered = false }) {
+  return <div className="m-supplier-list">{suppliers.length ? suppliers.map(s => <SupplierSummary key={s.id} {...{ s, mine, batch, checked, setChecked, onDetail, onBank, onMore, onInviter, onReinvite, onEdit, onEditAll, onDelete, onScore, admin, currentInviter }} />) : <Empty search={filtered} text={filtered ? '暂无匹配结果，请调整搜索或筛选条件' : '暂无供应商记录'} />}</div>;
 }
-function SupplierSummary({ s, mine, batch, checked, setChecked, onDetail, onBank, onMore, onInviter, onReinvite, onEdit, onEditAll, onDelete, onScore, admin, currentInviter, batchKind }) {
+function SupplierSummary({ s, mine, batch, checked, setChecked, onDetail, onBank, onMore, onInviter, onReinvite, onEdit, onEditAll, onDelete, onScore, admin, currentInviter }) {
   const [menu, setMenu] = useState(false);
   const historical = readMobileRoute().startsWith('shot/');
   const allowed = supplierListActions(s, { mine, inviter: currentInviter });
-  const canChangeInviter = allowed.inviter;
   const extraActions = [
     [mine && allowed.bank, '修改银行', onBank],
     [allowed.permissions, '分配权限', supplier => onMore(supplier, 'permissions')],
@@ -33,7 +32,7 @@ function SupplierSummary({ s, mine, batch, checked, setChecked, onDetail, onBank
   const showMenu = extraActions.length > 1 || (historical && extraActions.length > 0);
   const extraActionButton = ([, label, execute, className]) => <button key={label} type="button"
     className={className} onClick={() => { setMenu(false); execute(s); }}>{label}</button>;
-  const selectable = batchKind === 'all' ? true : batchKind === 'delete' ? canDeleteSupplier(s, mine) : canChangeInviter;
+  const selectable = canSelectSupplierForBatch(s, mine, currentInviter);
   const fields = mine ? [['证件号码', displayCertificateNumber(s)], ['联系人姓名', s.contact], ['联系人邮箱', s.email], ['联系人电话', s.phone], ['邀请时间', s.date], ['更新时间', s.updated]] : [['注册方式', s.mode], ['更新时间', s.updated]];
   return <article data-motion-key={"supplier-" + s.id} className={'m-supplier-card' + (mine ? ' m-supplier-card-mine' : '')}>
     <div className="m-supplier-heading"><h3><MotionPresence show={batch} compact className="m-checkbox-presence"><Checkbox label={`选择${s.name}`} disabled={!selectable} checked={checked.includes(s.id)}

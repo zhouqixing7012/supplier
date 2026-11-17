@@ -89,7 +89,7 @@ function RatingDimension({ label, index, value, readOnly, error, onChange }) {
   </div>;
 }
 
-export function RatingEditor({ record, supplier, readOnly, onSave, notify }) {
+export function RatingEditor({ record, supplier, readOnly, onCancel, onSave, notify }) {
   const [data, setData] = useState(record || { name: supplier.name, supplierId: supplier.id, type: '', content: '', person: '陈才慧', department: '', date: '', dimensions: [], comment: '', status: '未评分' });
   const [errors, setErrors] = useState({});
   const guard = useDirtyForm(data, !readOnly);
@@ -116,7 +116,7 @@ export function RatingEditor({ record, supplier, readOnly, onSave, notify }) {
     <div className="m-rating-dimensions" data-no-swipe>{labels.map((label, index) => <RatingDimension key={label}
       label={label} index={index} value={data.dimensions?.[index]} readOnly={readOnly} error={errors.dimensions}
       onChange={value => changeDimension(index, value)} />)}</div>{errors.dimensions && <p className="m-field-error">{errors.dimensions}</p>}
-    {readOnly ? <><Row label="评价">{data.comment || '—'}</Row><Row label="评价得分">{data.score || '—'}</Row><Row label="评分时间">{data.rated}</Row></> : <Field label="评价" multiline maxLength={500} value={data.comment} onChange={comment => setData({ ...data, comment })} />}</Section>{!readOnly && <Actions items={[{ label: '提交', onClick: submit }]} />}{nextType && <Confirm text="切换合作类型后需要重新填写评分项，是否继续？" onCancel={() => setNextType('')} onConfirm={() => { setData({ ...data, type: nextType, dimensions: [] }); setErrors({}); setNextType(''); }} />}</>;
+    {readOnly ? <><Row label="评价">{data.comment || '—'}</Row><Row label="评价得分">{data.score || '—'}</Row><Row label="评分时间">{data.rated}</Row></> : <Field label="评价" multiline maxLength={500} value={data.comment} onChange={comment => setData({ ...data, comment })} />}</Section>{!readOnly && <Actions items={[{ label: '取消', secondary: true, onClick: onCancel }, { label: '提交', onClick: submit }]} />}{nextType && <Confirm text="切换合作类型后需要重新填写评分项，是否继续？" onCancel={() => setNextType('')} onConfirm={() => { setData({ ...data, type: nextType, dimensions: [] }); setErrors({}); setNextType(''); }} />}</>;
 }
 
 export function RatingOperations({ historical }) {

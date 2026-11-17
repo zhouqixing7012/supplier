@@ -45,8 +45,8 @@ export function SwipeArea({ active, count, onChange, children, className = '' })
   config.current = { active, count, onChange };
   useEffect(() => {
     const node = ref.current;
-    let start = null, visual = null, dragNode = null, nav = null, bounce = null;
-    const restore = () => { if (bounce) { bounce.onfinish = null; bounce.cancel(); bounce = null; } visual?.remove(); visual = null; dragNode?.classList.remove('m-swipe-dragging'); dragNode = null; if (nav) { nav.style.removeProperty('--m-gesture-x'); nav.style.removeProperty('--m-gesture-width'); nav.classList.remove('m-gesture-tabs'); nav = null; } };
+    let start = null, visual = null, visualFrame = null, dragNode = null, nav = null, bounce = null;
+    const restore = () => { if (bounce) { bounce.onfinish = null; bounce.cancel(); bounce = null; } visualFrame?.remove(); visualFrame = null; visual = null; dragNode?.classList.remove('m-swipe-dragging'); dragNode = null; if (nav) { nav.style.removeProperty('--m-gesture-x'); nav.style.removeProperty('--m-gesture-width'); nav.classList.remove('m-gesture-tabs'); nav = null; } };
     const begin = event => {
       restore(); start = null;
       const point = event.touches[0], box = node.closest('.mobile-page').getBoundingClientRect();
@@ -70,8 +70,13 @@ export function SwipeArea({ active, count, onChange, children, className = '' })
         visual.querySelectorAll('[data-motion-named]').forEach(n => { n.style.viewTransitionName = 'none'; n.removeAttribute('data-motion-named'); });
         visual.querySelectorAll('.m-actions,.m-batch-actions,.m-bottom-nav,.m-fab-group,.m-overlay,.m-fullscreen-panel').forEach(n => n.remove());
         visual.querySelectorAll('.m-tab-bar').forEach(n => { n.style.visibility = 'hidden'; });
-        Object.assign(visual.style, { position: 'fixed', left: box.left + 'px', top: box.top + 'px', width: box.width + 'px', margin: '0', pointerEvents: 'none', zIndex: '40' });
-        node.closest('.mobile-page').appendChild(visual); restoreScrollPositions(scrollPositions); dragNode = node; node.classList.add('m-swipe-dragging');
+        visualFrame = document.createElement('div');
+        visualFrame.inert = true; visualFrame.setAttribute('aria-hidden', 'true');
+        Object.assign(visualFrame.style, { position: 'fixed', left: box.left + 'px', top: '0', width: box.width + 'px',
+          height: '100dvh', overflow: 'hidden', pointerEvents: 'none', zIndex: '19' });
+        Object.assign(visual.style, { position: 'absolute', top: box.top + 'px', width: '100%', margin: '0', pointerEvents: 'none' });
+        visualFrame.appendChild(visual);
+        node.closest('.mobile-page').appendChild(visualFrame); restoreScrollPositions(scrollPositions); dragNode = node; node.classList.add('m-swipe-dragging');
         nav = [...node.closest('.mobile-page').querySelectorAll('.m-tabs')].at(-1);
       }
       const { active, count } = config.current;

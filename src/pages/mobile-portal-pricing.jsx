@@ -1,7 +1,6 @@
 import { readMobileSearch } from './mobile-prototype-runtime.js';
 import React, { useEffect, useState } from 'react';
 import { MultiAttachmentField, Actions, AttachmentLink, CardActions, Empty, FullscreenPanel, Row, Section } from '../components/mobile/index.js';
-import { Pencil } from 'lucide-react';
 import { Field, StatusTag } from './mobile-ui.jsx';
 import { useBackLayer, useDirtyForm } from './mobile-interaction.jsx';
 import { runMotion } from './mobile-motion.jsx';
@@ -142,7 +141,7 @@ export function PortalPricingDetail({ quote, records, store, go, notify, onPrevi
     {draft.lines.map((line, index) => <Section key={index} title={`${index + 1}. ${quote ? line.material : line.name}`} collapsible={false}>
       {(quote ? quoteFields.slice(1) : taxFields.filter(([key]) => key !== 'name')).map(([key, label]) => <Row key={key} label={label}>{line[key] || '—'}</Row>)}
       {quote && <><FileRow label="报价附件" value={line.attachment} onPreview={onPreview} /><Row label="报价说明">{line.note || '—'}</Row></>}
-      {editable && <CardActions><button aria-label={'编辑第' + (index + 1) + '项' + (quote ? '报价' : '价税')} onClick={() => runMotion(() => setEditor(index), 'forward')}><Pencil aria-hidden="true" /></button></CardActions>}
+      {editable && <CardActions><button aria-label={'编辑第' + (index + 1) + '项' + (quote ? '报价' : '价税')} onClick={() => runMotion(() => setEditor(index), 'forward')}>编辑</button></CardActions>}
     </Section>)}
     {editable && <Actions items={[{ label: '提交', disabled: submitting, onClick: submit }]} />}
     {editor !== null && <LineEditor key={editor} index={editor} quote={quote} line={draft.lines[editor]} notify={notify} onPreview={onPreview} onCancel={() => runMotion(() => setEditor(null), 'back')} onSave={saveLine} />}
