@@ -376,6 +376,7 @@ function MobileSurface({ onComparisonChange, scene, shot, ratings, setRatings, a
   if (mapParams.map && ['admin', 'employee'].includes(mapParams.role)) views.managementRole = mapParams.role;
   const adminScene = shot ? shot.index >= 25 : views.managementRole !== 'employee';
   const canBatchOperate = mine || adminScene;
+  const showRegistrationActions = listScene && !(batch && canBatchOperate);
   const historicalDemo = mapParams.historyDemo === '1';
   const ownSupplier = supplier.inviter === currentInviter;
   const menus = shot ? screenshotMenus : managementMenus;
@@ -443,6 +444,7 @@ function MobileSurface({ onComparisonChange, scene, shot, ratings, setRatings, a
     setActiveRating(null); setRatingReturn(mine ? 'mine' : 'query'); pick(s, 'rating-edit');
   };
   const pick = (s, next) => { listReturn.current = mine ? 'mine' : 'query'; select(s.id); go(next); };
+  const openRegistration = destination => { listReturn.current = mine ? 'mine' : 'query'; go(destination); };
   const returnToList = () => mapParams.from || listReturn.current;
   const returnFromRatingFilter = (conditions = filters) => {
     const { return: source = filters.return || 'ratings', ...query } = conditions;
@@ -680,7 +682,7 @@ function MobileSurface({ onComparisonChange, scene, shot, ratings, setRatings, a
         </button>
       } />
       <SupplierList filtered={!!search || Object.values(filters).some(Boolean)} suppliers={list} mine={mine} batch={batch && canBatchOperate} checked={checked} setChecked={setChecked} admin={adminScene} currentInviter={currentInviter} onDetail={s => pick(s, 'detail')} onBank={s => pick(s, 'bank')} onMore={(s, approval) => { listReturn.current = mine ? 'mine' : 'query'; select(s.id); approval === 'permissions' ? go('permissions') : approval ? go('detail-approval') : setSheet('more'); }} onInviter={s => pick(s, 'inviter')} onScore={startScore} onReinvite={s => { if (canReinviteSupplier(s)) pick(s, 'invite-again'); }} onEdit={s => { if (supplierListActions(s, { mine, inviter: currentInviter }).editDraft) pick(s, 'register-edit'); }} onEditAll={s => { if (supplierListActions(s, { mine, inviter: currentInviter }).editAll) pick(s, 'register-edit-all'); }} onDelete={s => { if (supplierListActions(s, { mine, inviter: currentInviter }).delete) setConfirm({ type: 'delete', ids: [s.id], text: '确认删除供应商「' + s.name + '」？删除后原有信息全部作废。' }); }} />
-      {(!batch || !canBatchOperate) && <div className="m-fab-group">
+      {shot && showRegistrationActions && <div className="m-fab-group">
         <div id={addMenuId} className="m-fab-menu" data-open={expanded} inert={!expanded} aria-hidden={!expanded || undefined}>
           <button type="button" onClick={() => go('invite')}><span className="m-invite-entry-icon"><Send aria-hidden="true" /></span>邀请注册</button>
           <button type="button" onClick={() => go('register')}><span className="m-register-entry-icon"><ClipboardPenLine aria-hidden="true" /></span>代注册</button>
@@ -726,7 +728,7 @@ function MobileSurface({ onComparisonChange, scene, shot, ratings, setRatings, a
     {scene === 'historical-account' && (historicalTarget ? <SupplierAccountRegistration invitation={historicalTarget}
       accounts={[...suppliers.map(supplierAccount).filter(Boolean), ...(views.portalRegisteredAccounts || [])]} onComplete={registerHistoricalAccount} />
       : <Empty text="该地址已失效，请联系邀请人重新邀请！" />)}
-    {['invite', 'invite-again'].includes(scene) && <InviteForm historical={!!shot} initial={scene === 'invite-again' ? { type: supplier.type, name: supplier.name, contact: supplier.contact, email: supplier.email, phone: supplier.phone } : undefined} notify={notify} onCancel={() => go(scene === 'invite-again' ? listReturn.current : 'query')} onSave={data => {
+    {['invite', 'invite-again'].includes(scene) && <InviteForm historical={!!shot} initial={scene === 'invite-again' ? { type: supplier.type, name: supplier.name, contact: supplier.contact, email: supplier.email, phone: supplier.phone } : undefined} notify={notify} onCancel={() => go(returnToList())} onSave={data => {
       if (scene === 'invite-again') return submitInvitation(data, supplier);
       const candidate = data.type === supplierTypes[1] ? undefined : reinviteCandidate(suppliers, data.name, currentInviter);
       if (candidate) {
@@ -776,6 +778,10 @@ function MobileSurface({ onComparisonChange, scene, shot, ratings, setRatings, a
     </div></section></div>}
     {scene.startsWith('workspace') && <PortalWorkspace mapParams={mapParams} accountMenu={portalAccountMenu} setAccountMenu={setPortalAccountMenu} scene={scene} go={go} notify={notify} store={views} onPreview={preview} />}
     </SwipeArea>
+    {!shot && showRegistrationActions && <Actions className="m-list-registration-actions" items={[
+      { label: '邀请注册', secondary: true, onClick: () => openRegistration('invite') },
+      { label: '代注册', secondary: true, onClick: () => openRegistration('register') },
+    ]} />}
     {reinvitePrompt && <Confirm title="重新邀请" className="m-reinvite-prompt" text="您名下存在同名且为邀请中或草稿的供应商，是否重新进行邀请。" cancelLabel="取消" confirmLabel="重新邀请" onCancel={() => setReinvitePrompt(null)} onConfirm={() => {
       const target = reinviteCandidate(suppliers, reinvitePrompt.data.name, currentInviter);
       if (!target || target.id !== reinvitePrompt.recordId) { setReinvitePrompt(null); return notify('该供应商状态或归属已变化，请重新提交邀请信息'); }

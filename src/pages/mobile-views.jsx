@@ -61,10 +61,10 @@ export function FilterView({ rating = false, mine = false, listMine = false, ini
     if (data.start && data.end && data.start > data.end) return setDateError('结束日期不能早于开始日期');
     onApply(data);
   };
-  const fields = rating ? [['cooperationType', '合作类型', ['技术服务', '电子产品']], ...(!mine ? [['person', '业务线联系人'], ['department', '所属部门']] : []), ['start', '评分开始时间', 'date']] : [['type', '供应商类型', supplierTypeFilterOptions], ['status', '供应商状态', supplierStates], ['start', '邀请时间（起）', 'date'], ['recommended', '供应商推荐', supplierIndustries], ['inviter', '邀请人'], ...(!listMine ? [['certificate', '证件号码']] : [])];
+  const fields = rating ? [['cooperationType', '合作类型', ['技术服务', '电子产品']], ...(!mine ? [['person', '业务线联系人'], ['department', '所属部门']] : []), ['start', '评分时间', 'date']] : [['type', '供应商类型', supplierTypeFilterOptions], ['status', '供应商状态', supplierStates], ['start', '邀请时间（起）', 'date'], ['recommended', '供应商推荐', supplierIndustries], ['inviter', '邀请人'], ...(!listMine ? [['certificate', '证件号码']] : [])];
   return <div className="m-filter-view">{fields.map(([key, label, kind]) => {
     if (key === 'start') return <DateRange key={key} label={rating ? '评分时间' : '邀请时间'} value={[data.start || '', data.end || '']}
-      startLabel={rating ? '评分开始时间' : undefined} endLabel={rating ? '评分结束时间' : undefined} endError={dateError}
+      startLabel={rating && !mine ? '评分开始时间' : undefined} endLabel={rating && !mine ? '评分结束时间' : undefined} endError={dateError}
       onChange={([start, end]) => { setData({ ...data, start, end }); setDateError(''); }} />;
     const currentValue = data[key] || '';
     const value = key === 'type' && currentValue === institutionType ? institutionLabel : currentValue;

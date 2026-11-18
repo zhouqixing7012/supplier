@@ -57,19 +57,6 @@
 .mobile-page:not(.m-shot) .m-supplier-buttons button { font-size: 14px; color: var(--m-text-secondary); padding-inline: 9px; }
 .mobile-page:not(.m-shot) .m-supplier-buttons button:first-child { margin-right: auto; color: var(--m-action); font-weight: 600; }
 .mobile-page:not(.m-shot) .m-supplier-buttons button:hover { color: var(--m-action); }
-.mobile-page:not(.m-shot) .m-fab { width: 48px; height: 48px; box-shadow: 0 5px 16px rgba(20, 92, 255, .22); }
-.mobile-page:not(.m-shot) .m-fab svg { width: 24px; height: 24px; }
-.mobile-page:not(.m-shot) .m-fab-menu { padding-block: 10px; border: 1px solid #e6edf3; border-radius: 14px; box-shadow: 0 6px 22px rgba(24, 42, 68, .12); }
-.mobile-page:not(.m-shot) .m-fab-menu button { min-width: 56px; min-height: 44px; font-size: 14px; }
-.mobile-page:not(.m-shot) .m-fab-menu button > span {
-  width: 36px;
-  height: 36px;
-  margin-bottom: 4px;
-  border-radius: 12px;
-}
-.mobile-page:not(.m-shot) .m-fab-menu .m-invite-entry-icon { color: var(--m-action); background: var(--m-info-surface); }
-.mobile-page:not(.m-shot) .m-fab-menu .m-register-entry-icon { color: var(--m-success-text); background: var(--m-success-surface); }
-.mobile-page:not(.m-shot) .m-fab-menu svg { width: 21px; height: 21px; stroke-width: 1.8; }
 .mobile-page:not(.m-shot) .m-detail-summary { margin: 16px; padding: 16px; border: 1px solid #e6edf3; border-radius: 12px; background: #fff; }
 .mobile-page:not(.m-shot) .m-detail-summary h2 { font-size: 17px; font-weight: 600; line-height: 1.6; color: #1f2e42; }
 .mobile-page:not(.m-shot) .m-detail-summary p { font-size: 14px; margin-top: 8px; }
@@ -1324,6 +1311,21 @@
 
 /* 供应商列表的结果数量、卡片和批量操作共用页面内边距。 */
 .mobile-page:not(.m-shot).m-list-page .m-applied-filters { padding: 0 16px; }
+.mobile-page:has(> .m-list-registration-actions) { padding-bottom: max(72px, 69px + env(safe-area-inset-bottom, 0px)); }
+.mobile-page:not(.m-shot) .m-actions.m-list-registration-actions {
+  gap: 8px;
+  padding: 14px 16px calc(14px + env(safe-area-inset-bottom, 0px));
+  border-top-color: #e2e6f0;
+}
+.mobile-page:not(.m-shot) .m-list-registration-actions > button.secondary {
+  position: relative;
+  min-height: 40px;
+  border-color: var(--m-action);
+  color: var(--m-action);
+  font-weight: 400;
+  line-height: 22px;
+}
+.m-list-registration-actions > button::before { content: ''; position: absolute; inset: -2px 0; }
 .mobile-page.m-list-page .m-filter-summary:has(> .m-batch-toggle) { flex-wrap: nowrap; min-height: 44px; }
 .mobile-page:not(.m-shot).m-list-page .m-result-count { color: var(--m-text); white-space: nowrap; }
 .mobile-page.m-list-page .m-result-count-value { color: var(--m-action); font-weight: 600; }

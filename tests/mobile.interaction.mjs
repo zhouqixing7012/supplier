@@ -418,7 +418,6 @@ try {
   });
   await check('邀请注册校验后可提交并重新邀请', async () => {
     await goto('mobile');
-    await button('新增供应商').click();
     await button('邀请注册').click();
     await choose('供应商类型', '企业供应商');
     const supplierName = '移动邀请表单测试';
@@ -442,10 +441,45 @@ try {
     assert.equal(await card('代注册草稿').count(), 1);
   });
   await check('系统返回先关闭选择层而非跳离填写页', async () => {
-    await goto('mobile'); await button('新增供应商').click(); await button('邀请注册').click(); await page.locator('#root').getByRole('combobox', { name: '供应商类型', exact: true }).click(); await page.goBack(); await page.waitForURL(/#\/mobile\/invite$/); assert.equal(await page.locator('#root').getByRole('dialog').count(), 0); await page.goBack(); await page.locator('#root [data-scene="query"]').waitFor();
+    await goto('mobile'); await button('邀请注册').click(); await page.locator('#root').getByRole('combobox', { name: '供应商类型', exact: true }).click(); await page.goBack(); await page.waitForURL(/#\/mobile\/invite$/); assert.equal(await page.locator('#root').getByRole('dialog').count(), 0); await page.goBack(); await page.locator('#root [data-scene="query"]').waitFor();
   });
   await check('系统返回未保存时继续编辑保留内容，再返回可放弃', async () => {
-    await goto('mobile'); await button('新增供应商').click(); await button('邀请注册').click(); await field('供应商名称').fill('系统返回检查'); await page.goBack(); await button('继续编辑').click(); assert.equal(await field('供应商名称').inputValue(), '系统返回检查'); await headerBack(); await button('放弃修改').click(); await page.locator('#root [data-scene="query"]').waitFor();
+    await goto('mobile'); await button('邀请注册').click(); await field('供应商名称').fill('系统返回检查'); await page.goBack(); await button('继续编辑').click(); assert.equal(await field('供应商名称').inputValue(), '系统返回检查'); await headerBack(); await button('放弃修改').click(); await page.locator('#root [data-scene="query"]').waitFor();
+  });
+  await check('供应商查询和我的邀请使用吸底的两个注册入口', async () => {
+    const bar = page.locator('#root .m-list-registration-actions');
+    for (const width of [320, 390, 768]) {
+      await page.setViewportSize({ width, height: 845 });
+      for (const scene of ['query', 'mine']) {
+        await goto('mobile/' + scene);
+        await bar.waitFor();
+        assert.deepEqual(await bar.getByRole('button').allInnerTexts(), ['邀请注册', '代注册']);
+        assert.equal(await button('新增供应商').count(), 0);
+        await page.evaluate(() => scrollTo(0, document.documentElement.scrollHeight));
+        const [footer, first, last, finalCard] = await Promise.all([
+          bar.boundingBox(), bar.getByRole('button').first().boundingBox(), bar.getByRole('button').last().boundingBox(),
+          page.locator('#root .m-supplier-list .m-supplier-card').last().boundingBox(),
+        ]);
+        assert.equal(Math.round(footer.y + footer.height), 845);
+        assert.equal(Math.round(first.height), 40);
+        assert.ok(Math.abs(first.width - last.width) < 1);
+        assert.equal(Math.round(last.x - first.x - first.width), 8);
+        assert.ok(finalCard.y + finalCard.height <= footer.y);
+        await button('批量操作').click();
+        await bar.waitFor({ state: 'hidden' });
+        await button('取消批量操作').click();
+        await bar.waitFor();
+      }
+    }
+    await page.setViewportSize({ width: 390, height: 845 });
+    await goto('mobile/mine');
+    await bar.getByRole('button', { name: '邀请注册' }).click();
+    await page.locator('#root [data-scene="invite"]').waitFor();
+    await button('取消').click();
+    await bar.getByRole('button', { name: '代注册' }).click();
+    await page.locator('#root [data-scene="register"]').waitFor();
+    await headerBack();
+    await page.locator('#root [data-scene="mine"]').waitFor();
   });
   await check('注册缺项定位首个字段且持续显示错误', async () => {
     await goto('mobile/register'); assert.ok(await button('下一步（1/4）').isVisible()); await page.locator('#root').getByRole('button', { name: /下一步/ }).click(); await page.locator('[aria-invalid="true"]').first().waitFor(); assert.equal(await page.locator('[aria-invalid="true"]').first().getAttribute('aria-label'), '供应商名称'); await page.waitForFunction(() => document.activeElement?.getAttribute('aria-label') === '供应商名称');
@@ -481,6 +515,9 @@ try {
     await button('筛选评分').click();
     assert.equal(await field('业务线联系人').count(), 0);
     assert.equal(await field('所属部门').count(), 0);
+    const dates = page.getByRole('group', { name: '评分时间', exact: true });
+    assert.deepEqual(await dates.getByRole('button').allInnerTexts(), ['选择开始日期', '选择结束日期']);
+    assert.deepEqual(await dates.locator('label').evaluateAll(labels => labels.map(label => getComputedStyle(label).clipPath)), ['inset(50%)', 'inset(50%)']);
     await choose('合作类型', '技术服务');
     await button('应用筛选').click();
     await page.locator('#root [data-scene="my-ratings"]').waitFor();
@@ -1331,7 +1368,7 @@ try {
     for (const [route, openLabel, startLabel, endLabel] of [
       ['mobile', '筛选供应商', '邀请时间（起）', '邀请时间（止）'],
       ['mobile/workspace-tasks?map=1&tab=0', '筛选报价', '单据日期（起）', '单据日期（止）'],
-      ['mobile/my-ratings', '筛选评分', '评分开始时间', '评分结束时间'],
+      ['mobile/my-ratings', '筛选评分', '评分时间（起）', '评分时间（止）'],
       ['mobile/rating-ops', '筛选评分运维', '创建时间（起）', '创建时间（止）'],
     ]) {
       await goto(route); await button(openLabel).click();
