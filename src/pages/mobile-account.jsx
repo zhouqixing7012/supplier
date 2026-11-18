@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Actions, Row, Section } from '../components/mobile/index.js';
+import { focusFormError } from '../components/mobile/validation.js';
 import { Field } from './mobile-ui.jsx';
 import { useDirtyForm } from './mobile-interaction.jsx';
 import { registrationPasswordError } from './mobile-registration-password.js';
@@ -27,7 +28,7 @@ export function AccountSecurityForm({ kind, email, onCancel, onComplete, initial
   const emailError = () => !validEmail(target) ? '请输入正确的新邮箱' : changingEmail && step === 1 && target === (email || '').trim() ? '新邮箱不能与原邮箱相同' : '';
   const sendCode = () => {
     const error = emailError();
-    if (error) return setErrors({ newEmail: error });
+    if (error) { setErrors({ newEmail: error }); return focusFormError(); }
     issued.current = { target, expires: Date.now() + codeLifetime };
     setData(old => ({ ...old, code: '1234' })); setErrors({}); setCountdown(60);
   };
@@ -45,11 +46,11 @@ export function AccountSecurityForm({ kind, email, onCancel, onComplete, initial
       else if (data.confirmation !== data.password) next.confirmation = '两次输入的密码不一致';
     }
     setErrors(next);
-    if (Object.keys(next).length) return;
+    if (Object.keys(next).length) return focusFormError();
     if (changingEmail && step === 0) {
       oldVerified.current = true; issued.current = null; setCountdown(0); setData(old => ({ ...old, code: '' })); setStep(1); return;
     }
-    if (changingEmail && !oldVerified.current) return setErrors({ code: '请先验证原邮箱' });
+    if (changingEmail && !oldVerified.current) { setErrors({ code: '请先验证原邮箱' }); return focusFormError(); }
     guard.accept();
     onComplete(changingEmail ? target : undefined);
   };

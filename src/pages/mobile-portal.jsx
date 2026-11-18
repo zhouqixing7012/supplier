@@ -2,17 +2,18 @@ import { portalTaskTabFor } from './mobile-portal-filters.js';
 import { readMobileSearch } from './mobile-prototype-runtime.js';
 import { usePanelState } from './mobile-motion.jsx';
 import { AddressForm, Actions, PickerHeading, RecordCard, RecordCollection, Confirm, Empty, Overlay, Row, Section, Tabs } from '../components/mobile/index.js';
+import { focusFormError } from '../components/mobile/validation.js';
 import { regionData } from './registration-regions.js';
 import React, { useEffect, useRef, useState } from 'react';
 import { Building2, Store, FolderClock, FolderCheck, ReceiptText, Receipt, Plane, Train, Hotel, Car, Upload, Download, LoaderCircle, Plus, Mail, MailCheck, KeyRound, LockKeyhole, ChevronRight, X, LogOut } from 'lucide-react';
 import { RegistrationSteps, StatusTag, Field, SearchBox } from './mobile-ui.jsx';
 import { QualificationInfo } from './mobile-qualifications.jsx';
-import { BankCard, BankFields, BasicFields, ContactFields, bankError, fieldsFor, filledBasic, blankBank } from './mobile-forms.jsx';
+import { BankCard, BankFields, BasicFields, ContactFields, bankFieldError, fieldsFor, filledBasic, blankBank, registrationBasicError, registrationBankError, registrationContactError } from './mobile-forms.jsx';
 import { exampleBank as sampleBank, supplierTypes } from './mobile-data.js';
 import { Approval } from './mobile-views.jsx';
 import { CertificateAttachmentRows } from './mobile-registration-preview.jsx';
 import { createSessionId, SwipeArea, useBackLayer, useDirtyForm } from './mobile-interaction.jsx';
-import { informationSteps, registrationEmailError, bankAccountsError, isEffectiveBasicBankAccount, effectiveBasicBankDeleteError, personalCertificatePhotoError } from './mobile-edit-rules.js';
+import { informationSteps, isEffectiveBasicBankAccount, effectiveBasicBankDeleteError } from './mobile-edit-rules.js';
 import { RegistrationPreview } from './mobile-registration-preview.jsx';
 import { ChangeComparison } from './mobile-changes.jsx';
 import { AccountSecurityForm } from './mobile-account.jsx';
@@ -155,6 +156,7 @@ function PortalWorkspaceContent({ scene, go, notify, store, onPreview, accountMe
   const [address, setAddress] = usePanelState(editing && mapParams.panel === 'address');
   const [bankIndex, setBankIndex] = usePanelState(mapParams.panel === 'bank' ? -1 : null);
   const [bank, setBank] = useState(() => mapParams.panel === 'bank' ? blankBank(profile.name) : null);
+  const [invalidContact, setInvalidContact] = useState(null);
   const [removeBank, setRemoveBank] = useState(null);
   const isOriginalBasicBank = bank => isEffectiveBasicBankAccount(bank, profile.banks, profile.type === supplierTypes[0]);
   const [logout, setLogout] = useState(mapParams.panel === 'logout');
@@ -171,29 +173,24 @@ function PortalWorkspaceContent({ scene, go, notify, store, onPreview, accountMe
     store.portalDraft = null; setDraft(clone(profile)); setEditing(false); setInfoTab(0);
   });
   const validateStep = index => {
-    if (index === 0) {
-      for (const [key, label, required] of fieldsFor(draft.basic.type)) if (required && !draft.basic[key]?.trim()) return '请填写' + label;
-      if (registrationEmailError(draft.basic.registerEmail)) return registrationEmailError(draft.basic.registerEmail);
-      if (draft.basic.companyPhone && !/^(1\d{10}|\d{3,4}-?\d{8})$/.test(draft.basic.companyPhone)) return '公司电话须为11位手机号或区号加8位号码';
-      if (draft.basic.capital && !/^\d+$/.test(draft.basic.capital)) return '注册资金只支持整数';
-      if ([supplierTypes[0], supplierTypes[3]].includes(draft.basic.type) && !draft.basic.proof) return '请上传证照附件';
-      if (draft.basic.type === supplierTypes[1]) {
-        const error = personalCertificatePhotoError(draft.basic);
-        if (error) return error;
-      }
+    if (index === 0) return registrationBasicError(draft.basic);
+    if (index === 1) return registrationContactError(draft.contacts, false);
+    if (index === 2) return registrationBankError(draft.banks, draft.basic.type === supplierTypes[0], profile.banks);
+  };
+  const showValidation = (index, error) => {
+    notify(error.message, false);
+    setInfoTab(index);
+    if (index === 1 && error.index !== undefined) {
+      setInvalidContact(error);
+      return;
     }
-    if (index === 1 && draft.contacts.some(contact => !contact.name?.trim() || !contact.phone?.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contact.email || ''))) return '请填写联系人的姓名、电话和正确邮箱';
-    if (index === 2) {
-      if (!draft.banks.length) return '请添加银行信息';
-      for (const entry of draft.banks) { const error = bankError(entry, draft.basic.type === supplierTypes[0]); if (error) return error; }
-      return bankAccountsError(draft.banks, draft.basic.type === supplierTypes[0], profile.banks);
-    }
-    return '';
+    if (index === 2 && error.index !== undefined) beginBank(draft.banks[error.index], error.index);
+    focusFormError(error);
   };
   const showPreview = () => {
     for (const index of editSteps.slice(0, -1)) {
       const error = validateStep(index);
-      if (error) { setInfoTab(index); notify(error); return; }
+      if (error) return showValidation(index, error);
     }
     setInfoTab(3);
   };
@@ -202,12 +199,12 @@ function PortalWorkspaceContent({ scene, go, notify, store, onPreview, accountMe
     setStepsExpanded(index === 0); setInfoTab(index);
   };
   const next = () => {
-    const error = validateStep(tab); if (error) return notify(error);
+    const error = validateStep(tab); if (error) return showValidation(tab, error);
     changeInformationStep(editSteps[editSteps.indexOf(tab) + 1]);
   };
   const submit = () => {
     for (const index of editSteps.slice(0, -1)) {
-      const error = validateStep(index); if (error) { setInfoTab(index); return notify(error); }
+      const error = validateStep(index); if (error) return showValidation(index, error);
     }
     const next = { ...draft, name: draft.basic.supplierName, type: draft.basic.type, email: draft.basic.registerEmail.trim(), basic: { ...draft.basic, registerEmail: draft.basic.registerEmail.trim() } };
     if (JSON.stringify(next) === JSON.stringify(profile)) return notify('请先修改信息');
@@ -249,7 +246,7 @@ function PortalWorkspaceContent({ scene, go, notify, store, onPreview, accountMe
       {editing ? <RegistrationSteps personal={draft.basic.type === supplierTypes[1]} step={tab} expanded={stepsExpanded} onExpandedChange={setStepsExpanded} /> : <Tabs showDirectory={false} stretch variant="pill" items={['基本信息', '联系人信息', '银行信息']} active={tab} onChange={setInfoTab} />}
       <SwipeArea active={editing ? 0 : tab} count={editing ? 1 : 3} onChange={i => editing ? changeInformationStep(editSteps[i]) : setInfoTab(i)}>
       {!editing && <>{tab === 0 && <><Section title="基本信息" collapsible={false}>{fieldsFor(profile.type).map(([key, label]) => <Row key={key} label={label}>{profile.basic[key] || '—'}</Row>)}<Row label="注册邮箱">{profile.email}</Row><CertificateAttachmentRows basic={profile.basic} type={profile.type} onPreview={onPreview} /></Section>{profile.type === supplierTypes[0] && <QualificationInfo records={profile.basic.qualifications} onPreview={onPreview} />}</>}{tab === 1 && <RecordCollection title="联系人信息" count={profile.contacts.length} emptyText="暂无联系人信息">{profile.contacts.map(c => <RecordCard key={c.id} title={c.name}>{[['phone', '电话'], ['email', '邮箱'], ['department', '部门'], ['job', '职位'], ['wechat', '微信'], ['note', '备注']].map(([key, label]) => <Row key={key} label={label}>{c[key] || '—'}</Row>)}</RecordCard>)}</RecordCollection>}{tab === 2 && <RecordCollection title="银行信息" count={profile.banks.length} emptyText="暂无银行信息">{profile.banks.map(b => <BankCard showProof={false} key={b.id} bank={b} />)}</RecordCollection>}<Actions items={[pending ? { label: '查看审批', onClick: () => go('workspace-approval') } : { label: '修改', onClick: () => { setDraft(clone(store.portalDraft || profile)); setInfoTab(editSteps.includes(tab) ? tab : 0); setStepsExpanded(!editSteps.includes(tab) || tab === 0); setPreviewTab(0); setEditing(true); } }]} /></>}
-      {editing && <div className="m-edit-mode">{tab === 0 && <BasicFields initialPanel={mapParams.panel} hideSupplierType data={draft.basic} setData={basic => setDraft({ ...draft, basic })} onAddress={() => setAddress(true)} />}{tab === 1 && <ContactFields initialPanel={mapParams.panel} contacts={draft.contacts} setContacts={contacts => setDraft({ ...draft, contacts })} />}{tab === 2 && <RecordCollection title="银行信息" count={draft.banks.length} emptyText="暂无银行信息" addLabel="添加银行账户" onAdd={() => beginBank(blankBank(profile.name), -1)}>{draft.banks.map((b, i) => <BankCard key={b.id} bank={b} deleteDisabledReason={isOriginalBasicBank(b) ? effectiveBasicBankDeleteError : ''} onPreview={() => onPreview(b.proof)} onEdit={() => beginBank(b, i)} onDelete={isOriginalBasicBank(b) ? undefined : () => setRemoveBank(i)} />)}</RecordCollection>}{tab === 3 && <RegistrationPreview supplierFacing basic={draft.basic} contacts={draft.contacts} banks={draft.banks} active={previewTab} onTabChange={setPreviewTab} onPreview={onPreview}><ChangeComparison before={profile} after={{ ...draft, name: draft.basic.supplierName, type: draft.basic.type, email: draft.basic.registerEmail }} /></RegistrationPreview>}<Actions className="m-registration-actions m-info-edit-actions" items={[{ label: '取消', secondary: true, onClick: cancel }, { label: tab === 3 ? '提交' : '下一步（' + (editSteps.indexOf(tab) + 1) + '/' + editSteps.length + '）', onClick: tab === 3 ? submit : next }]} /></div>}
+      {editing && <div className="m-edit-mode">{tab === 0 && <BasicFields initialPanel={mapParams.panel} hideSupplierType data={draft.basic} setData={basic => setDraft({ ...draft, basic })} onAddress={() => setAddress(true)} />}{tab === 1 && <ContactFields initialPanel={mapParams.panel} contacts={draft.contacts} setContacts={contacts => setDraft({ ...draft, contacts })} validation={invalidContact} onValidationHandled={() => setInvalidContact(null)} />}{tab === 2 && <RecordCollection title="银行信息" count={draft.banks.length} emptyText="暂无银行信息" addLabel="添加银行账户" onAdd={() => beginBank(blankBank(profile.name), -1)}>{draft.banks.map((b, i) => <BankCard key={b.id} bank={b} deleteDisabledReason={isOriginalBasicBank(b) ? effectiveBasicBankDeleteError : ''} onPreview={() => onPreview(b.proof)} onEdit={() => beginBank(b, i)} onDelete={isOriginalBasicBank(b) ? undefined : () => setRemoveBank(i)} />)}</RecordCollection>}{tab === 3 && <RegistrationPreview supplierFacing basic={draft.basic} contacts={draft.contacts} banks={draft.banks} active={previewTab} onTabChange={setPreviewTab} onPreview={onPreview}><ChangeComparison before={profile} after={{ ...draft, name: draft.basic.supplierName, type: draft.basic.type, email: draft.basic.registerEmail }} /></RegistrationPreview>}<Actions className="m-registration-actions m-info-edit-actions" items={[{ label: '取消', secondary: true, onClick: cancel }, { label: tab === 3 ? '提交' : '下一步（' + (editSteps.indexOf(tab) + 1) + '/' + editSteps.length + '）', onClick: tab === 3 ? submit : next }]} /></div>}
       </SwipeArea>
     </>}
     {scene === 'workspace-changes' && <>{store.portalDraft ? <><ChangeComparison before={profile} after={store.portalDraft} /><Actions items={[{ label: '继续修改', secondary: true, onClick: () => go('workspace-info?edit=1') }, { label: '取消本次修改', secondary: true, onClick: () => { store.portalDraft = null; go('workspace-info'); } }, { label: '提交变更', onClick: () => { store.portalPending = clone(store.portalDraft); store.portalDraft = null; notify('原型演示：资料变更已提交，等待审批'); go('workspace-approval'); } }]} /></> : <><Section title="资料变更" collapsible={false}><Empty text="没有待提交的修改" /></Section></>}</>}
@@ -260,7 +257,7 @@ function PortalWorkspaceContent({ scene, go, notify, store, onPreview, accountMe
     {scene === 'workspace-travel' && <div className="m-travel-page"><TravelTemplateDownload notify={notify} /><div className="m-travel-entry-list">{travelEntryDefinitions.map(entry => <TravelBillUploadEntry key={entry.key} entry={entry} notify={notify} />)}</div></div>}
     {['workspace-tax-detail', 'workspace-tax-split'].includes(scene) && <PortalPricingDetail mapParams={mapParams} records={orders} store={store} go={go} notify={notify} onPreview={onPreview} />}
     {address && <AddressForm sheet regions={regionData} initial={draft.basic.address} onCancel={() => setAddress(false)} onConfirm={value => { setDraft({ ...draft, basic: { ...draft.basic, address: value } }); setAddress(false); }} />}
-    {bankIndex !== null && <div className="m-fullscreen-panel" role="dialog" aria-modal="true" aria-label="门户银行编辑"><PickerHeading title={bankIndex < 0 ? '新增银行' : '修改银行'} /><BankFields layout="stacked" bank={bank} setBank={setBank} company={profile.type === supplierTypes[0]} /><Actions items={[{ label: '取消', secondary: true, onClick: closeBank }, { label: '保存此账户', onClick: () => { const error = bankError(bank, profile.type === supplierTypes[0]); if (error) return notify(error); if (draft.banks.some((b, i) => i !== bankIndex && b.accountType === '基本账户' && bank.accountType === '基本账户')) return notify('基本账户只能有一个'); const entry = { ...bank, id: bankIndex < 0 ? createSessionId() : draft.banks[bankIndex].id }; setDraft({ ...draft, banks: bankIndex < 0 ? [...draft.banks, entry] : draft.banks.map((b, i) => i === bankIndex ? entry : b) }); bankGuard.accept(); setBankIndex(null); } }]} /></div>}
+    {bankIndex !== null && <div className="m-fullscreen-panel" role="dialog" aria-modal="true" aria-label="门户银行编辑"><PickerHeading title={bankIndex < 0 ? '新增银行' : '修改银行'} /><BankFields layout="stacked" bank={bank} setBank={setBank} company={profile.type === supplierTypes[0]} /><Actions items={[{ label: '取消', secondary: true, onClick: closeBank }, { label: '保存此账户', onClick: () => { const hasOtherBasicAccount = draft.banks.some((b, i) => i !== bankIndex && b.accountType === '基本账户'); const error = bankFieldError(bank, profile.type === supplierTypes[0], hasOtherBasicAccount); if (error) return focusFormError(error); const entry = { ...bank, id: bankIndex < 0 ? createSessionId() : draft.banks[bankIndex].id }; setDraft({ ...draft, banks: bankIndex < 0 ? [...draft.banks, entry] : draft.banks.map((b, i) => i === bankIndex ? entry : b) }); bankGuard.accept(); setBankIndex(null); } }]} /></div>}
     {removeBank !== null && <Confirm danger text="确认删除此银行账户？" onCancel={() => setRemoveBank(null)} onConfirm={() => { if (isOriginalBasicBank(draft.banks[removeBank])) { setRemoveBank(null); return notify(effectiveBasicBankDeleteError); } setDraft({ ...draft, banks: draft.banks.filter((_, i) => i !== removeBank) }); setRemoveBank(null); }} />}
     {logout && <Confirm title="退出登录？" confirmLabel="退出登录" text={store.portalDraft ? '还有尚未提交的资料修改，退出将放弃这些修改。确认退出？' : '确认退出协同门户？'} onCancel={() => setLogout(false)} onConfirm={() => { store.portalDraft = null; store.portalAccount = null; notify('已退出登录'); go('portal'); }} />}
     {accountMenu && <Overlay sheet label="账户设置" onClose={() => setAccountMenu(false)}><div className="m-portal-account-panel"><div className="m-picker-title"><strong>账户设置</strong><button type="button" aria-label="关闭账户设置" onClick={() => setAccountMenu(false)}><X /></button></div><div className="m-account-panel-menu">{[[KeyRound, '修改密码', 'workspace-account-password'], [Mail, '修改注册邮箱', 'workspace-account-email']].map(([Icon, label, route]) => <button type="button" key={route} onClick={() => { store.portalSecurityReturn = 'workspace-home'; setAccountMenu(false); go(route); }}><Icon aria-hidden="true" /><span>{label}</span><ChevronRight aria-hidden="true" /></button>)}</div><div className="m-account-panel-logout"><button type="button" onClick={() => { setAccountMenu(false); setLogout(true); }}><LogOut aria-hidden="true" />退出登录</button></div></div></Overlay>}

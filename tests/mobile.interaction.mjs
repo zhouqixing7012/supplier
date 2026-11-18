@@ -425,6 +425,7 @@ try {
       await field(label).fill(value);
     }
     await button('提交').click();
+    await page.waitForFunction(() => document.activeElement.getAttribute('aria-label') === '手机号');
     assert.equal(await field('手机号').getAttribute('aria-invalid'), 'true');
     await field('手机号').fill('13800000022');
     await button('提交').click();
@@ -482,7 +483,11 @@ try {
     await page.locator('#root [data-scene="mine"]').waitFor();
   });
   await check('注册缺项定位首个字段且持续显示错误', async () => {
-    await goto('mobile/register'); assert.ok(await button('下一步（1/4）').isVisible()); await page.locator('#root').getByRole('button', { name: /下一步/ }).click(); await page.locator('[aria-invalid="true"]').first().waitFor(); assert.equal(await page.locator('[aria-invalid="true"]').first().getAttribute('aria-label'), '供应商名称'); await page.waitForFunction(() => document.activeElement?.getAttribute('aria-label') === '供应商名称');
+    await goto('mobile/register');
+    await button('下一步（1/4）').click();
+    await page.waitForFunction(() => document.activeElement?.getAttribute('aria-label') === '上传营业执照');
+    assert.equal(await button('上传营业执照').getAttribute('aria-invalid'), 'true');
+    assert.equal(await page.locator('#root [data-field-label="营业执照"] .m-field-error').innerText(), '请上传营业执照');
   });
   await check('评分半分输入、类型切换取消保护及提交修改', async () => {
     await goto('mobile/my-ratings'); await button('未评分').click(); await page.locator('#root .m-bank-card').first().getByRole('button', { name: '评分', exact: true }).click();
@@ -1435,6 +1440,71 @@ try {
     await button('登录').click();
     await page.locator('#root [data-scene="workspace-home"]').waitFor();
     assert.ok((await page.locator('#root .m-portal-identity-details').innerText()).includes('supplier-demo'));
+  });
+  await check('移动注册定位首个错误字段并在提交失败时返回对应步骤', async () => {
+    const waitForFocus = label => page.waitForFunction(name => {
+      const active = document.activeElement;
+      const box = active.getBoundingClientRect();
+      return active.getAttribute('aria-label') === name && box.top >= 56 && box.bottom <= innerHeight - 68;
+    }, label);
+    await goto('mobile/register');
+    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+    await button('下一步（1/4）').click();
+    await waitForFocus('上传营业执照');
+    assert.equal(await field('供应商名称').getAttribute('aria-invalid'), 'false');
+
+    await goto('mobile/register?map=1&step=3');
+    await button('提交').click();
+    await waitForFocus('注册地址');
+    assert.match(await page.locator('#root .m-registration-steps [aria-current="step"]').innerText(), /基本信息/);
+    assert.equal(await field('供应商名称').inputValue(), '北京初然文化传媒有限公司483920');
+
+    await goto('mobile/register?map=1&step=1');
+    await button('下一步（2/4）').click();
+    await waitForFocus('添加联系人');
+    await button('添加联系人').click();
+    await button('保存').click();
+    await waitForFocus('姓名');
+
+    await goto('mobile/register?map=1&step=2&panel=bank');
+    const section = button('开户银行信息');
+    await section.click();
+    assert.equal(await section.getAttribute('aria-expanded'), 'false');
+    await button('添加').click();
+    await waitForFocus('账户类型');
+    assert.equal(await section.getAttribute('aria-expanded'), 'true');
+  });
+
+  await check('注册邮箱与后续必填项同时错误时优先定位邮箱', async () => {
+    for (const route of ['workspace-info?map=1&edit=1&step=0', 'register', 'register-supplier?map=1&step=0']) {
+      await goto('mobile/' + route);
+      if (route.startsWith('register')) {
+        await page.locator('#root').getByLabel('营业执照', { exact: true }).setInputFiles(upload);
+        if (route === 'register') await field('供应商名称').fill('注册邮箱优先定位测试');
+      }
+      const email = field('注册邮箱');
+      const creditCode = field('统一社会信用代码');
+      await creditCode.clear();
+      for (const [value, message] of [['', '请填写注册邮箱'], ['格式错误', '请输入正确的注册邮箱']]) {
+        await email.fill(value);
+        await button('下一步（1/4）').click();
+        await page.locator('#root [data-field-label="注册邮箱"] .m-field-error').getByText(message, { exact: true }).waitFor();
+        await page.waitForFunction(() => document.activeElement.getAttribute('aria-label') === '注册邮箱');
+        assert.equal(await creditCode.getAttribute('aria-invalid'), 'false');
+      }
+      await email.fill('order@example.com');
+      await button('下一步（1/4）').click();
+      await page.waitForFunction(() => document.activeElement.getAttribute('aria-label') === '统一社会信用代码');
+    }
+  });
+  await check('受邀注册按页面顺序定位多个错误中的第一个字段', async () => {
+    await goto('mobile/register-supplier?map=1');
+    await button('提交').click();
+    await page.waitForFunction(() => document.activeElement.getAttribute('aria-label') === '账号');
+    await field('账号').fill('注册校验定位测试');
+    await button('提交').click();
+    await page.waitForFunction(() => document.activeElement.getAttribute('aria-label') === '密码');
+    assert.equal(await field('账号').inputValue(), '注册校验定位测试');
   });
   await check('受邀注册处理账号首尾空格并校验密码', async () => {
     await goto('mobile/register-supplier?map=1');

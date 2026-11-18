@@ -6,7 +6,11 @@ import { Checkbox } from './fields.jsx';
 export function Section({ title, children, className = '', collapsible = true, defaultOpen = true }) {
   const [open, setOpen] = useState(defaultOpen);
   const ref = useRef(null);
-  useEffect(() => { const reveal = e => { if ([...ref.current.querySelectorAll('[data-field-label]')].some(n => e.detail.includes(n.dataset.fieldLabel))) setOpen(true); }; window.addEventListener('mobile-validation', reveal); return () => window.removeEventListener('mobile-validation', reveal); }, []);
+  useEffect(() => {
+    const reveal = ({ detail }) => { if (ref.current?.contains(detail.target)) setOpen(true); };
+    window.addEventListener('mobile-validation', reveal);
+    return () => window.removeEventListener('mobile-validation', reveal);
+  }, []);
   return <section ref={ref} className={`m-section ${className}`}>
     {title && <h2>{collapsible ? <button type="button" className="m-section-heading" onClick={() => setOpen(!open)} aria-expanded={open}><span className="m-collapse">{open ? <ChevronUp /> : <ChevronDown />}</span>{title}</button> : title}</h2>}
     {collapsible ? <div className="m-section-reveal" data-open={open} inert={!open ? true : undefined}><div className="m-section-content">{children}</div></div> : <div className="m-section-content">{children}</div>}
@@ -25,7 +29,7 @@ export function RecordCollection({ title, count = 0, emptyText, addLabel, onAdd,
   return <section className={'m-record-collection ' + className} aria-label={showTitle ? undefined : title}>
     {(showTitle || onAdd) && <div className="m-record-collection-header">
       {showTitle && <h2 className="m-record-collection-title">{title}</h2>}
-      {onAdd && <button type="button" className="m-record-add" aria-label={addLabel || '添加' + title} onClick={onAdd}><Plus aria-hidden="true" /><span>添加</span></button>}
+      {onAdd && <button type="button" className="m-record-add" data-field-label={addLabel || '添加' + title} aria-label={addLabel || '添加' + title} onClick={onAdd}><Plus aria-hidden="true" /><span>添加</span></button>}
     </div>}
     {count ? children : <div className="m-record-empty-card"><Empty text={emptyText || '暂无' + title} /></div>}
   </section>;

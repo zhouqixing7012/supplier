@@ -6,18 +6,38 @@ import { QualificationInfo } from './mobile-qualifications.jsx';
 import { ChangeTag, Field } from './mobile-ui.jsx';
 import { bankNames, bankDirectory, branches, people, permissionGroups, supplierTypes, supplierIndustries } from './mobile-data.js';
 import { createSessionId, useDirtyForm, useBackLayer, attachmentFiles, attachmentName } from './mobile-interaction.jsx';
+import { fieldIssue, focusFormError } from '../components/mobile/validation.js';
 
 import { recognizeCompanyLicense } from './mobile-document-recognition.js';
-import { withAccountBank, restoreBankDirectoryFields, personalCertificateTypes, personalCertificatePhotoFields } from './mobile-edit-rules.js';
+import { withAccountBank, restoreBankDirectoryFields, personalCertificateTypes, personalCertificatePhotoFields, validEmail, registrationEmailError, bankAccountsError } from './mobile-edit-rules.js';
 
 export const blankBank = name => ({ accountType: '', bank: '', branch: '', country: '', province: '', city: '', name: name || '', number: '', currency: '', proof: '', note: '' });
-export function bankError(bank, company = true) {
-  for (const [key, label] of [['bank', '开户银行'], ['branch', '银行分行'], ['name', '账户名称'], ['number', '银行账号'], ['currency', '币种']]) if (!bank[key]?.trim()) return `请填写${label}`;
-  if (!bank.country?.trim()) return '请选择开户银行以带出开户行所在国家/地区';
-  if (!bank.province?.trim() || !bank.city?.trim()) return '请选择银行分行以带出开户所在省和市；缺少目录资料时请联系业务对接人';
-  if (company && !bank.accountType) return '请选择账户类型';
-  if (company && !bank.proof) return '请上传开户证明';
-  return '';
+export function bankFieldError(bank, company = true, hasOtherBasicAccount = false) {
+  if (company && !bank.accountType) return fieldIssue('账户类型', '请选择账户类型');
+  if (bank.accountType === '基本账户' && hasOtherBasicAccount) return fieldIssue('账户类型', '基本账户只能有一个');
+  if (!bank.bank?.trim()) return fieldIssue('开户银行', '请填写开户银行');
+  if (!bank.branch?.trim()) return fieldIssue('银行分行', '请填写银行分行');
+  if (!bank.country?.trim()) return fieldIssue('开户银行', '请选择开户银行以带出开户行所在国家/地区');
+  if (!bank.province?.trim() || !bank.city?.trim()) return fieldIssue('银行分行', '请选择银行分行以带出开户所在省和市，缺少目录资料时请联系业务对接人');
+  for (const [key, label] of [['name', '账户名称'], ['number', '银行账号'], ['currency', '币种']]) {
+    if (!bank[key]?.trim()) return fieldIssue(label, '请填写' + label);
+  }
+  if (company && !bank.proof) return fieldIssue('开户证明', '请上传开户证明');
+}
+
+export const bankError = (bank, company) => bankFieldError(bank, company)?.message || '';
+
+export function registrationBankError(banks, company, baseline) {
+  if (!banks.length) return fieldIssue('添加银行账户', '请添加银行信息');
+  const message = bankAccountsError(banks, company, baseline);
+  const basic = banks.map((bank, index) => bank.accountType === '基本账户' ? index : -1).filter(index => index >= 0);
+  const invalidType = message === '企业供应商必须有且只有一个基本账户' ? basic[1] ?? 0 : -1;
+  for (const [index, bank] of banks.entries()) {
+    const error = bankFieldError(bank, company);
+    if (index === invalidType && error?.field !== '账户类型') return { ...fieldIssue('账户类型', message), index };
+    if (error) return { ...error, index };
+  }
+  if (message) return fieldIssue('添加银行账户', message);
 }
 
 export function BankFields({ bank, setBank, company = true, proofRequired = company, onCancel, layout }) {
@@ -37,7 +57,7 @@ export function BankFields({ bank, setBank, company = true, proofRequired = comp
   return <div className="m-bank-fields m-supplier-form-fields"><Section title="开户银行信息">
     {company && <Field layout={layout} label="账户类型" required options={['基本账户', '一般账户']} value={bank.accountType} onChange={v => change('accountType', v)} />}
     <Field layout={layout} label="开户银行" required value={bank.bank} help="开户银行来自银行基础数据，未查询到时请联系业务对接人。" onPick={() => setPicker('bank')} />
-    <Field layout={layout} label="银行分行" required value={bank.branch} help="选择开户银行后选择对应分行。" onPick={() => bank.bank ? setPicker('branch') : window.dispatchEvent(new CustomEvent('mobile-validation', { detail: '请先选择开户银行' }))} />
+    <Field layout={layout} label="银行分行" required value={bank.branch} help="选择开户银行后选择对应分行。" onPick={() => bank.bank ? setPicker('branch') : focusFormError(fieldIssue('开户银行', '请先选择开户银行'))} />
     <Field layout={layout} label="开户行所在国家/地区" required value={bank.country} readOnly />
     <Field layout={layout} label="开户所在省" required value={bank.province} readOnly /><Field layout={layout} label="开户所在市" required value={bank.city} readOnly />
     </Section><Section title="账户信息"><Field layout={layout} label="账户名称" required value={bank.name} onChange={v => change('name', v)} maxLength={100} />
@@ -84,7 +104,7 @@ export function PermissionForm({ initial = {}, onSave, onCancel, notify }) {
   const [data, setData] = useState({ group: '', category: '', note: '', ...initial });
   const guard = useDirtyForm(data);
   useEffect(() => { const close = () => guard.leave(onCancel); window.addEventListener('mobile-close-permission', close); return () => window.removeEventListener('mobile-close-permission', close); });
-  return <><div className="m-supplier-form-fields m-supplier-form-body"><Field label="所属权限" searchable required options={Object.keys(permissionGroups)} value={data.group} onChange={group => setData({ ...data, group, category: '' })} /><Field label="权限分类" searchable={data.group === '媒体权限'} required options={permissionGroups[data.group] || []} value={data.category} onChange={category => setData({ ...data, category })} /><Field label="备注" multiline value={data.note} maxLength={100} onChange={note => setData({ ...data, note })} /></div><Actions items={[{ label: '取消', onClick: () => guard.leave(onCancel) }, { label: '保存此权限', onClick: () => data.group && data.category ? onSave(data) : notify('请选择所属权限和权限分类') }]} /></>;
+  return <><div className="m-supplier-form-fields m-supplier-form-body"><Field label="所属权限" searchable required options={Object.keys(permissionGroups)} value={data.group} onChange={group => setData({ ...data, group, category: '' })} /><Field label="权限分类" searchable={data.group === '媒体权限'} required options={permissionGroups[data.group] || []} value={data.category} onChange={category => setData({ ...data, category })} /><Field label="备注" multiline value={data.note} maxLength={100} onChange={note => setData({ ...data, note })} /></div><Actions items={[{ label: '取消', onClick: () => guard.leave(onCancel) }, { label: '保存此权限', onClick: () => data.group && data.category ? onSave(data) : notify(data.group ? '请选择权限分类' : '请选择所属权限') }]} /></>;
 }
 
 const basicCompany = [
@@ -106,6 +126,50 @@ const personalFields = [
 const governmentFields = [['supplierName', '供应商名称', true], ['country', '国家', true, ['国内', '国外']], ['address', '注册地址', true, 'address'], ['cooperation', '与搜狐合作事项', true, 'textarea'], ['remark', '备注', false, 'textarea']];
 const foreignFields = [['supplierName', '供应商名称', true], ['creditCode', '证件号码', true], ['establishedAt', '成立日期', true, 'date'], ['licenseUntil', '证件有效期至', true, 'date'], ['legalRepresentative', '法人代表', true], ['companyPhone', '公司电话'], ['capital', '注册资金', true], ['currency', '注册币种', true, ['人民币', '美元', '港币']], ['country', '国家', true, ['国内', '国外']], ['address', '注册地址', true], ['cooperation', '与搜狐合作事项', true, 'textarea'], ['businessAdvantage', '经营优势及业务优势', true, 'textarea'], ['remark', '备注', false, 'textarea']];
 export const fieldsFor = type => type === supplierTypes[1] ? personalFields : type === supplierTypes[2] ? governmentFields : type === supplierTypes[3] ? foreignFields : basicCompany;
+
+const registrationEmailField = ['registerEmail', '注册邮箱', true, 'email'];
+
+// 渲染和校验共用基本信息字段顺序。
+function registrationBasicFields(type, { shot, identityReadOnly }) {
+  const fields = fieldsFor(type);
+  return shot || !showRegistrationEmail(type, identityReadOnly) ? fields
+    : fields.flatMap(field => field[0] === 'supplierName' ? [field, registrationEmailField] : [field]);
+}
+
+export function registrationBasicError(basic, { shot, identityReadOnly, duplicates, checkPersonalEmail = false } = {}) {
+  const proofLabel = { [supplierTypes[0]]: '营业执照', [supplierTypes[3]]: '证书' }[basic.type];
+  if (proofLabel && !basic.proof) return fieldIssue(proofLabel, '请上传' + proofLabel);
+
+  for (const [key, label, required] of registrationBasicFields(basic.type, { shot, identityReadOnly })) {
+    const error = key === 'registerEmail' ? registrationEmailError(basic[key])
+      : required && !basic[key]?.trim() ? '请填写' + label : '';
+    if (error) return fieldIssue(label, error);
+    if (duplicates?.[key]) return fieldIssue(label, label + '已存在');
+    if (key === 'certificateType' && basic.type === supplierTypes[1]) {
+      const missing = personalCertificatePhotoFields(basic.certificateType).find(([photo]) => !basic[photo]);
+      if (missing) return fieldIssue(missing[1], '请上传' + missing[1]);
+    }
+    if (key === 'email' && checkPersonalEmail && basic.email && !validEmail(basic.email)) return fieldIssue(label, '请输入正确的邮箱格式');
+    if (key === 'capital' && basic.capital && !/^\d+$/.test(basic.capital)) return fieldIssue(label, '注册资金只支持整数');
+    if (key === 'companyPhone' && basic.companyPhone && !/^(1\d{10}|\d{3,4}-?\d{8})$/.test(basic.companyPhone)) {
+      return fieldIssue(label, '公司电话须为11位手机号或区号加8位号码');
+    }
+  }
+}
+
+function contactFieldError(contact) {
+  if (!contact.name?.trim()) return fieldIssue('姓名', '请填写姓名');
+  if (!contact.phone?.trim()) return fieldIssue('电话', '请填写电话');
+  if (!validEmail(contact.email)) return fieldIssue('邮箱', '请输入正确的邮箱格式');
+}
+
+export function registrationContactError(contacts, required = true) {
+  if (required && !contacts.length) return fieldIssue('添加联系人', '请至少添加一名联系人');
+  for (const [index, contact] of contacts.entries()) {
+    const error = contactFieldError(contact);
+    if (error) return { ...error, index };
+  }
+}
 
 export const filledBasic = { registerEmail: 'supplier@example.com', type: supplierTypes[0], proof: '营业执照.jpg', supplierName: '北京初然文化传媒有限公司483920', creditCode: '73652184MACA1H2A43', establishedAt: '2023-03-07', licenseUntil: '2053-03-06', legalRepresentative: '王嵩涵', companyPhone: '010-52867111', companyType: '有限责任公司', industry: '文化、体育、娱乐业', capital: '100', currency: '人民币', country: '国内', address: '', invoiceAddress: '', website: '', taxpayer: '', businessScope: '', cooperation: '', businessAdvantage: '', remark: '' };
 
@@ -148,8 +212,8 @@ export function BasicFields({ data, setData, shot = false, onAddress, initialDat
         if (value !== data.certificateType) setData({ ...data, certificateType: value, proof: '', personalSupplierBackPicture: '' });
       } else change(key, value);
     };
-    const field = <Field key={key} layout={layout} label={label} required={required && !readOnly} readOnly={readOnly} value={data[key] || ''} onChange={readOnly ? undefined : onChange} options={options} searchable={key === 'industry'} type={kind === 'date' ? 'date' : kind === 'email' ? 'email' : 'text'} multiline={kind === 'textarea'} maxLength={kind === 'textarea' ? 500 : undefined} onPick={kind === 'date' ? () => setPicker({ key, title: label }) : kind === 'address' ? onAddress : undefined} />;
-    if (key === 'supplierName' && !shot && showRegistrationEmail(data.type, identityReadOnly)) return [field, <Field key="registerEmail" layout="stacked" label="注册邮箱" required type="email" value={data.registerEmail || ''} help="用于供应商登录协同门户及修改密码时接收验证码" onChange={v => change('registerEmail', v)} />];
+    const help = key === 'registerEmail' ? '用于供应商登录协同门户及修改密码时接收验证码' : undefined;
+    const field = <Field key={key} layout={layout} label={label} required={required && !readOnly} readOnly={readOnly} value={data[key] || ''} onChange={readOnly ? undefined : onChange} options={options} searchable={key === 'industry'} type={kind === 'date' ? 'date' : kind === 'email' ? 'email' : 'text'} help={help} multiline={kind === 'textarea'} maxLength={kind === 'textarea' ? 500 : undefined} onPick={kind === 'date' ? () => setPicker({ key, title: label }) : kind === 'address' ? onAddress : undefined} />;
     if (isCertificateType) return [field, ...personalCertificatePhotoFields(data.certificateType).map(([photo, name]) =>
       <UploadField key={data.certificateType + photo} label={name} required imageOnly value={data[photo]} onChange={value => change(photo, value)} />)];
     return [field];
@@ -157,7 +221,7 @@ export function BasicFields({ data, setData, shot = false, onAddress, initialDat
   const proof = <>{[supplierTypes[0], supplierTypes[3]].includes(data.type) && <UploadField variant={!shot && data.type === supplierTypes[0] ? 'certificate' : undefined} label={data.type === supplierTypes[0] ? '营业执照' : '证书'} required value={data.proof} onChange={changeLicense} help={data.type === supplierTypes[0] ? '支持 PDF、PNG、JPG、GIF、JPC、BMP，最多 1 份，不超过 50 MB。上传后自动识别企业资料。' : '上传证照附件。'} />}{data.type === supplierTypes[0] && recognition && <p className="m-input-note" role="status">{recognition}</p>}</>;
   const content = <>
     {!hideSupplierType && <Field layout={layout} label="供应商类型" required={!identityReadOnly} readOnly={identityReadOnly} options={identityReadOnly ? undefined : supplierTypes} value={data.type} onChange={type => { if (type === data.type) return; if (Object.entries(data).some(([key, value]) => !['type', 'supplierName', 'registerEmail'].includes(key) && value)) setNextType(type); else setData({ type, country: defaultSupplierCountry(type), supplierName: data.supplierName || '', registerEmail: data.registerEmail || '' }); }} />}
-    {proof}{fieldsFor(data.type).flatMap(renderField)}
+    {proof}{registrationBasicFields(data.type, { shot, identityReadOnly }).flatMap(renderField)}
     {data.type === supplierTypes[0] && <QualificationInfo initialEditing={initialPanel === 'qualification'} records={data.qualifications} onChange={qualifications => change('qualifications', qualifications)} />}
     {nextType && <Confirm text="切换供应商类型会清除不适用的基本信息，是否继续？" onCancel={() => setNextType('')} onConfirm={() => { setData({ type: nextType, country: defaultSupplierCountry(nextType), supplierName: data.supplierName || '', registerEmail: data.registerEmail || '' }); setNextType(''); }} />}
     {picker && <DateSheet title={picker.title} value={data[picker.key]} onChange={v => change(picker.key, v)} onClose={() => setPicker(null)} allowLong={picker.key === 'licenseUntil'} />}
@@ -165,13 +229,23 @@ export function BasicFields({ data, setData, shot = false, onAddress, initialDat
   return shot ? content : <div className="m-supplier-form-fields m-supplier-basic-fields">{content}</div>;
 }
 
-export function ContactFields({ contacts, setContacts, initialPanel }) {
+export function ContactFields({ contacts, setContacts, initialPanel, validation, onValidationHandled }) {
   const [editing, setEditing] = usePanelState(initialPanel === 'contact' ? -1 : null);
   const [removing, setRemoving] = useState(null);
   const [draft, setDraft] = useState(() => initialPanel === 'contact' ? { id: createSessionId() } : null);
   const guard = useDirtyForm(draft, editing !== null);
   const close = () => guard.leave(() => setEditing(null));
   useBackLayer(editing !== null, close);
+  useEffect(() => {
+    if (!validation) return;
+    const frame = requestAnimationFrame(() => {
+      setDraft({ ...contacts[validation.index] });
+      setEditing(validation.index);
+      onValidationHandled?.();
+      focusFormError(validation);
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [validation]);
   return <><RecordCollection title="联系人信息" count={contacts.length} emptyText="暂无联系人信息" addLabel="添加联系人" onAdd={() => { setDraft({ id: createSessionId(), name: '', phone: '', email: '', department: '', job: '', wechat: '', note: '' }); setEditing(-1); }}>
     {contacts.map((c, i) => <RecordCard motionKey={'contact-' + c.id} key={c.id} title={c.name || '联系人 ' + (i + 1)}><Row label="电话">{c.phone || '—'}</Row><Row label="邮箱">{c.email || '—'}</Row><CardActions><button type="button" onClick={() => { setDraft({ ...c }); setEditing(i); }}>编辑</button><button type="button" className="m-action-danger" onClick={() => setRemoving(i)}>删除</button></CardActions></RecordCard>)}
   </RecordCollection>
@@ -179,8 +253,8 @@ export function ContactFields({ contacts, setContacts, initialPanel }) {
       <Section title="联系人信息" collapsible={false}>{[['name', '姓名', true], ['phone', '电话', true], ['email', '邮箱', true], ['department', '部门'], ['job', '职位'], ['wechat', '微信'], ['note', '备注']].map(([key, label, required]) => <Field layout="stacked" key={key} label={label} required={required} value={draft[key] || ''} type={key === 'email' ? 'email' : 'text'} multiline={key === 'note'} maxLength={['department', 'job'].includes(key) ? 50 : key === 'note' ? 400 : undefined} onChange={value => setDraft({ ...draft, [key]: value })} />)}</Section>
       <Actions items={[{ label: '取消', secondary: true, onClick: close }, { label: '保存', onClick: () => {
         const email = (draft.email || '').trim();
-        const error = !(draft.name || '').trim() ? '请填写姓名' : !(draft.phone || '').trim() ? '请填写电话' : !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? '请输入正确的邮箱格式' : '';
-        if (error) return window.dispatchEvent(new CustomEvent('mobile-validation', { detail: error }));
+        const error = contactFieldError(draft);
+        if (error) return focusFormError(error);
         const contact = { ...draft, email };
         guard.accept(); setContacts(editing < 0 ? [...contacts, contact] : contacts.map((c, i) => i === editing ? contact : c)); setEditing(null);
       } }]} />
@@ -193,7 +267,17 @@ export function InviteForm({ initial, onSave, onCancel, notify, lockIdentity = f
   const [data, setData] = useState({ type: '', name: '', contact: '', email: '', phone: '', ...initial });
   const guard = useDirtyForm(data);
   const change = (key, value) => setData({ ...data, [key]: value });
-  return <><Section title={historical ? "企业名称" : undefined} collapsible={historical} className="m-supplier-form-fields m-invite-edit"><Field label="供应商类型" required readOnly={lockIdentity} options={lockIdentity ? undefined : supplierTypes} value={data.type} onChange={v => change('type', v)} /><p className="m-orange-copy">请选择正确的供应商类型，以免影响供应商准入、合同及付款业务</p><Field label="供应商名称" required readOnly={lockIdentity} value={data.name} onChange={v => change('name', v)} /><Field label="联系人姓名" required value={data.contact} onChange={v => change('contact', v)} /><Field label="邮箱" required type="email" value={data.email} onChange={v => change('email', v)} /><Field label="手机号" required value={data.phone} onChange={v => change('phone', v)} /><div className="m-orange-copy"><p>邀请须知：</p><p>1、邀请提交后，邀请注册地址将通过邮件发送至填写的联系人邮箱内</p><p>2、请通知供应商通过邮件内的邀请注册地址，登陆供应商协同门户注册账号</p><p>3、系统将引导供应商填写基本信息、证照、联系人、银行信息</p></div></Section><Actions items={[{ label: '取消', onClick: () => guard.leave(onCancel) }, { label: '提交', onClick: () => { for (const [key, label] of [['type', '供应商类型'], ['name', '供应商名称'], ['contact', '联系人姓名'], ['email', '邮箱'], ['phone', '手机号']]) if (!data[key].trim()) return notify('请填写' + label); const email = data.email.trim(); if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return notify('请输入正确的邮箱格式'); if (!/^1\d{10}$/.test(data.phone)) return notify('请输入11位手机号'); onSave({ ...data, email }, guard.accept); } }]} /></>;
+  const submit = () => {
+    const email = data.email.trim();
+    for (const [key, label] of [['type', '供应商类型'], ['name', '供应商名称'], ['contact', '联系人姓名'], ['email', '邮箱'], ['phone', '手机号']]) {
+      const message = !data[key].trim() ? '请填写' + label
+        : key === 'email' && !validEmail(email) ? '请输入正确的邮箱格式'
+        : key === 'phone' && !/^1\d{10}$/.test(data.phone) ? '请输入11位手机号' : '';
+      if (message) { notify(message, false); focusFormError(fieldIssue(label, message)); return; }
+    }
+    onSave({ ...data, email }, guard.accept);
+  };
+  return <><Section title={historical ? "企业名称" : undefined} collapsible={historical} className="m-supplier-form-fields m-invite-edit"><Field label="供应商类型" required readOnly={lockIdentity} options={lockIdentity ? undefined : supplierTypes} value={data.type} onChange={v => change('type', v)} /><p className="m-orange-copy">请选择正确的供应商类型，以免影响供应商准入、合同及付款业务</p><Field label="供应商名称" required readOnly={lockIdentity} value={data.name} onChange={v => change('name', v)} /><Field label="联系人姓名" required value={data.contact} onChange={v => change('contact', v)} /><Field label="邮箱" required type="email" value={data.email} onChange={v => change('email', v)} /><Field label="手机号" required value={data.phone} onChange={v => change('phone', v)} /><div className="m-orange-copy"><p>邀请须知：</p><p>1、邀请提交后，邀请注册地址将通过邮件发送至填写的联系人邮箱内</p><p>2、请通知供应商通过邮件内的邀请注册地址，登陆供应商协同门户注册账号</p><p>3、系统将引导供应商填写基本信息、证照、联系人、银行信息</p></div></Section><Actions items={[{ label: '取消', onClick: () => guard.leave(onCancel) }, { label: '提交', onClick: submit }]} /></>;
 }
 
 

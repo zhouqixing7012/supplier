@@ -8,7 +8,8 @@ import { createSessionId } from './mobile-interaction.jsx';
 import React, { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Check, Send, ClipboardPenLine, Landmark, Download, Filter, Plus, Search, Signal, Wifi, Battery, X, CircleUserRound } from 'lucide-react';
 import { Field, RegistrationSteps, ScreenshotTip, SearchBox } from './mobile-ui.jsx';
-import { BankCard, BankFields, BasicFields, ContactFields, InviteForm, PermissionForm, ReferenceList, bankError, blankBank, fieldsFor, filledBasic } from './mobile-forms.jsx';
+import { BankCard, BankFields, BasicFields, ContactFields, InviteForm, PermissionForm, ReferenceList, bankFieldError, blankBank, filledBasic, registrationBasicError, registrationBankError, registrationContactError } from './mobile-forms.jsx';
+import { focusFormError } from '../components/mobile/validation.js';
 import { Approval, BankApplication, FilterView, PermissionCard, RatingList, SupplierDetail, SupplierList } from './mobile-views.jsx';
 import { bankNames, cooperation, exampleBank, initialSuppliers, screenshotScenes, supplierTypes } from './mobile-data.js';
 import { mobileSupplierSamples, registerMobileSupplierSampleFiles } from './mobile-supplier-samples.js';
@@ -22,7 +23,7 @@ import { RegistrationPreview } from './mobile-registration-preview.jsx';
 import { RegistrationApprovalDemo } from './mobile-registration-approval.jsx';
 import { SupplierAccountRegistration } from './mobile-account-registration.jsx';
 import { ChangeComparison } from './mobile-changes.jsx';
-import { showRegistrationEmail, defaultSupplierCountry, informationSteps, reinviteCandidate, validEmail, registrationEmailError, bankAccountsError, isEffectiveBasicBankAccount, effectiveBasicBankDeleteError, personalCertificatePhotoError } from './mobile-edit-rules.js';
+import { defaultSupplierCountry, informationSteps, reinviteCandidate, validEmail, bankAccountsError, isEffectiveBasicBankAccount, effectiveBasicBankDeleteError } from './mobile-edit-rules.js';
 import { PrototypeReview } from './mobile-review.jsx';
 import { MobilePageMap, readPageMapParams } from './mobile-page-map.jsx';
 import { ScreenshotCompare } from './mobile-screenshot-compare.jsx';
@@ -176,21 +177,13 @@ function MobileApp() {
       setRoute(next);
     }, routeMotion(previous, next));
   });
-  const notify = text => {
+  const notify = (text, locateField = true) => {
     setMessage(text);
     if (text && /草稿/.test(text)) setResult(null);
-    if (text && /^请|错误|不能|只能|必须|已存在|须为/.test(text)) window.dispatchEvent(new CustomEvent('mobile-validation', { detail: text }));
+    if (locateField && text && /^请|错误|不能|只能|必须|已存在|须为/.test(text)) focusFormError({ message: text });
     if (text && /已提交|已保存|已暂存|已导出|修改完成|验证通过|已重新邀请|变更已提交/.test(text)) {
       interaction.clean();
       if (!/已导出|验证码|草稿|待提交审批/.test(text)) setResult({ text, supplier: suppliers.find(x => x.id === selected)?.name });
-    }
-    if (text && /请填写|请选择|请输入|只能|不能|必须|已存在/.test(text)) {
-      requestAnimationFrame(() => {
-        const controls = [...document.querySelectorAll('.mobile-page [aria-label]')];
-        const target = controls.filter(x => x.offsetParent !== null && ['INPUT','TEXTAREA','BUTTON'].includes(x.tagName)).find(x => text.includes(x.getAttribute('aria-label')));
-        const error = document.querySelector('.mobile-page [aria-invalid="true"]') || target;
-        if (error) { error.closest('details')?.setAttribute('open', ''); error.scrollIntoView({ block: 'center' }); error.focus({ preventScroll: true }); }
-      });
     }
   };
   const isManagementMenu = managementMenus.some(menu => menu.route === scene);
@@ -305,6 +298,7 @@ function MobileSurface({ onComparisonChange, scene, shot, ratings, setRatings, a
   const legacyContacts = [supplier.contact, supplier.phone, supplier.email].some(value => String(value || '').trim()) ? [{ id: 'legacy-contact', name: supplier.contact || '', phone: supplier.phone || '', email: supplier.email || '' }] : [];
   const existingContacts = supplier.contacts?.length ? supplier.contacts : legacyContacts;
   const [contacts, setContacts] = useState(() => registrationDraft ? clone(registrationDraft.contacts) : editingRegistration ? clone(existingContacts) : []);
+  const [invalidContact, setInvalidContact] = useState(null);
   const [registerBanks, setRegisterBanks] = useState(() => registrationDraft ? clone(registrationDraft.banks) : scene === 'register-banks' ? [{ ...clone(exampleBank), accountType: '一般账户', name: '1', number: '1', country: '', province: '', city: '', proof: '开户证明.png' }] : editingRegistration ? clone(supplier.banks) : []);
   const [addressOpen, setAddressOpen] = usePanelState(isRegistration && mapParams.panel === 'address');
   const [registerBankPicker, setRegisterBankPicker] = usePanelState(isRegistration && mapParams.panel === 'bank');
@@ -312,7 +306,7 @@ function MobileSurface({ onComparisonChange, scene, shot, ratings, setRatings, a
   const [saving, setSaving] = useState(false);
   const [portalErrors, setPortalErrors] = useState({});
   const changePortal = (key, value) => { setPortal(old => ({ ...old, [key]: value })); setPortalErrors(old => ({ ...old, [key]: undefined })); };
-  const portalError = (key, text) => { setPortalErrors({ [key]: text }); notify(''); };
+  const portalError = (key, text) => { setPortalErrors({ [key]: text }); notify(''); focusFormError(); };
   const [portalEmail, setPortalEmail] = useState(scene === 'portal-email');
   const [portal, setPortal] = useState({ account: '', password: scene === 'portal-email' ? 'prototype123' : '', captcha: scene === 'portal-email' ? '39qq' : '', email: scene === 'portal-email' ? '675756300@qq.com' : '', code: '' });
   const [countdown, setCountdown] = useState(scene === 'portal-email' ? 55 : 0);
@@ -508,55 +502,73 @@ function MobileSurface({ onComparisonChange, scene, shot, ratings, setRatings, a
   function submitBankChanges() {
     if (!bankCounts.total) return notify('请先修改银行信息');
     if (!canChangeSupplier(supplier)) return notify('当前供应商状态不能发起银行变更');
-    for (const bank of banks.filter(record => record.change !== '删除')) { const error = bankError(bank, supplier.type === supplierTypes[0]); if (error) return notify(error); }
+    for (const [index, bank] of banks.entries()) {
+      if (bank.change === '删除') continue;
+      const error = bankFieldError(bank, supplier.type === supplierTypes[0]);
+      if (!error) continue;
+      setEditingBank(index); setBankForm(clone(bank)); setShowBankForm(true);
+      return notifyField(error);
+    }
     const accountError = bankAccountsError(banks, supplier.type === supplierTypes[0], supplier.banks);
     if (accountError) return notify(accountError);
     try { writeBankDraft(supplier.id, null); } catch { return notify('提交失败，请重试'); }
     update({ pendingBanks: clone(banks), status: '变更中' });
     bankGuard.accept(); notify('原型演示：银行变更已提交，等待审批'); go(returnToList());
   }
+  function notifyField(error) {
+    notify(error.message, false);
+    focusFormError(error);
+  }
   function saveBank() {
-    const error = bankError(bankForm, supplier.type === supplierTypes[0]); if (error) return notify(error);
-    if (banks.some((b, i) => i !== editingBank && b.change !== '删除' && b.accountType === '基本账户' && bankForm.accountType === '基本账户')) return notify('基本账户只能有一个');
+    const hasOtherBasicAccount = banks.some((b, i) => i !== editingBank && b.change !== '删除' && b.accountType === '基本账户');
+    const error = bankFieldError(bankForm, supplier.type === supplierTypes[0], hasOtherBasicAccount);
+    if (error) return notifyField(error);
     const entry = { ...bankForm, id: editingBank < 0 ? createSessionId() : banks[editingBank].id, change: editingBank < 0 || banks[editingBank].change === '新增' ? '新增' : '修改' };
     if (!persistBanks(editingBank < 0 ? [entry, ...banks] : banks.map((b, i) => i === editingBank ? entry : b))) return;
     savedBankCard.current = 'mobile-bank-' + entry.id;
     bankFormGuard.accept(); setShowBankForm(false); setEditingBank(-1);
   }
   function registrationStepError(target) {
-    if (editingRegistration && (!ownSupplier || (editingAll ? !canChangeSupplier(supplier) : supplier.status !== '草稿'))) return '当前记录不支持修改，请返回我的邀请核对';
+    if (editingRegistration && (!ownSupplier || (editingAll ? !canChangeSupplier(supplier) : supplier.status !== '草稿'))) return { message: '当前记录不支持修改，请返回我的邀请核对' };
     if (target === 0) {
-      for (const [key, label, required] of fieldsFor(basic.type)) if (required && !basic[key]?.trim()) return '请填写' + label;
-      if ([supplierTypes[0], supplierTypes[3]].includes(basic.type) && !basic.proof) return '请上传证照附件';
-      if (basic.type === supplierTypes[1]) {
-        const error = personalCertificatePhotoError(basic);
-        if (error) return error;
-      }
-      if (!shot && showRegistrationEmail(basic.type, portalRegistration) && registrationEmailError(basic.registerEmail)) return registrationEmailError(basic.registerEmail);
-      if (basic.email && !validEmail(basic.email)) return '请输入正确的邮箱格式';
-      if (basic.capital && !/^\d+$/.test(basic.capital)) return '注册资金只支持整数';
-      if (basic.companyPhone && !/^(1\d{10}|\d{3,4}-?\d{8})$/.test(basic.companyPhone)) return '公司电话须为11位手机号或区号加8位号码';
       const normalizedName = value => String(value || '').trim().replaceAll('（', '(').replaceAll('）', ')');
-      if (suppliers.some(x => x.id !== (registrationDraftId.current || selectedId) && ['审批中', '变更中', '已审批'].includes(x.status) && ((basic.type !== supplierTypes[1] && normalizedName(x.name) === normalizedName(basic.supplierName)) || (basic.creditCode && x.code === basic.creditCode)))) return '供应商名称或证件号码已存在';
+      const existing = suppliers.filter(x => x.id !== (registrationDraftId.current || selectedId) && ['审批中', '变更中', '已审批'].includes(x.status));
+      return registrationBasicError(basic, {
+        shot, identityReadOnly: portalRegistration,
+        checkPersonalEmail: true,
+        duplicates: {
+          supplierName: basic.type !== supplierTypes[1] && existing.some(x => normalizedName(x.name) === normalizedName(basic.supplierName)),
+          creditCode: basic.creditCode && existing.some(x => x.code === basic.creditCode),
+        },
+      });
     }
-    if (target === 1 && !contacts.length) return '请至少添加一名联系人';
-    if (target === 1 && contacts.some(c => !c.name || !c.phone || !validEmail(c.email))) return '请填写联系人的姓名、电话和正确邮箱';
-    if (target === 2) {
-      if (!registerBanks.length) return '请添加银行信息';
-      return bankAccountsError(registerBanks, basic.type === supplierTypes[0], editingAll ? supplier.banks : []);
-      for (const b of registerBanks) { const error = bankError(b, basic.type === supplierTypes[0]); if (error) return error; }
+    if (target === 1) return registrationContactError(contacts);
+    if (target === 2) return registrationBankError(registerBanks, basic.type === supplierTypes[0], editingAll ? supplier.banks : []);
+  }
+  function showRegistrationError(target, error) {
+    notify(error.message, false);
+    if (!error.field) return;
+    if (step !== target) changeStep(target);
+    if (target === 1 && error.index !== undefined) {
+      setInvalidContact(error);
+      return;
     }
-    return '';
+    if (target === 2 && error.index !== undefined) {
+      setEditingBank(error.index);
+      setRegisterBankForm(clone(registerBanks[error.index]));
+      setRegisterBankPicker(true);
+    }
+    focusFormError(error);
   }
   function openInformationPreview() {
     for (const index of editSteps.slice(0, -1)) {
       const error = registrationStepError(index);
-      if (error) { changeStep(index); notify(error); return; }
+      if (error) return showRegistrationError(index, error);
     }
     changeStep(3);
   }
   function nextStep() {
-    const error = registrationStepError(step); if (error) return notify(error);
+    const error = registrationStepError(step); if (error) return showRegistrationError(step, error);
     if (!editingAll) saveDraft();
     const next = step === 0 && basic.type === supplierTypes[1] ? 2 : step + 1;
     if (editingAll && next === 3) { openInformationPreview(); return; }
@@ -564,10 +576,9 @@ function MobileSurface({ onComparisonChange, scene, shot, ratings, setRatings, a
   }
   function submitRegister() {
     if (editingAll && (!ownSupplier || !canChangeSupplier(supplier))) return notify('当前状态不能修改全部信息，请返回列表核对');
-    if (editingAll) for (const index of editSteps.slice(0, -1)) { const error = registrationStepError(index); if (error) { changeStep(index); notify(error); return; } }
-    if (!editingAll && basic.type === supplierTypes[1]) {
-      const error = registrationStepError(0);
-      if (error) { changeStep(0); notify(error); return; }
+    for (const index of editSteps.slice(0, -1)) {
+      const error = registrationStepError(index);
+      if (error) return showRegistrationError(index, error);
     }
     if (saving) return; setSaving(true);
     const patch = { name: basic.supplierName, type: basic.type, code: basic.creditCode || '', email: (basic.registerEmail || '').trim(), contact: contacts[0]?.name || '', phone: contacts[0]?.phone || '', banks: clone(registerBanks), basic: { ...clone(basic), registerEmail: (basic.registerEmail || '').trim() }, contacts: clone(contacts) };
@@ -657,8 +668,9 @@ function MobileSurface({ onComparisonChange, scene, shot, ratings, setRatings, a
   }
 
   function saveRegisterBank() {
-    const error = bankError(registerBankForm, basic.type === supplierTypes[0]); if (error) return notify(error);
-    if (registerBanks.some((b, i) => i !== editingBank && b.accountType === '基本账户' && registerBankForm.accountType === '基本账户')) return notify('基本账户只能有一个');
+    const hasOtherBasicAccount = registerBanks.some((b, i) => i !== editingBank && b.accountType === '基本账户');
+    const error = bankFieldError(registerBankForm, basic.type === supplierTypes[0], hasOtherBasicAccount);
+    if (error) return notifyField(error);
     setRegisterBanks(editingBank < 0 ? [...registerBanks, { ...registerBankForm, id: createSessionId() }] : registerBanks.map((b, i) => i === editingBank ? { ...registerBankForm, id: b.id } : b)); setRegisterBankPicker(false);
   }
 
@@ -709,7 +721,7 @@ function MobileSurface({ onComparisonChange, scene, shot, ratings, setRatings, a
       {bankLeaving && <Confirm title="银行变更待提交" text="银行信息尚未提交审批，已保存内容将保留，可稍后继续处理。" cancelLabel="继续处理" confirmLabel="确认离开" onCancel={() => setBankLeaving(false)} onConfirm={() => { setBankLeaving(false); bankGuard.accept(); go(returnToList()); }} />}
 
     </>}
-    {(scene.startsWith('bank-form') || showBankForm) && <div className={showBankForm ? 'm-fullscreen-panel' : ''}>{showBankForm && <Header title={editingBank < 0 ? "新增银行账户" : "编辑银行账户"} onBack={() => bankFormGuard.leave(() => setShowBankForm(false))} />}<BankFields bank={bankForm} setBank={setBankForm} company={supplier.type === supplierTypes[0]} /><Actions items={[{ label: '取消', onClick: () => showBankForm ? bankFormGuard.leave(() => setShowBankForm(false)) : go('bank') }, { label: '保存此账户', onClick: () => { if (showBankForm) saveBank(); else { const error = bankError(bankForm, supplier.type === supplierTypes[0]); if (error) return notify(error); if (!persistBanks([{ ...bankForm, id: createSessionId(), change: '新增' }, ...banks])) return; bankFormGuard.accept(); go('bank'); } } }]} /></div>}
+    {(scene.startsWith('bank-form') || showBankForm) && <div className={showBankForm ? 'm-fullscreen-panel' : ''}>{showBankForm && <Header title={editingBank < 0 ? "新增银行账户" : "编辑银行账户"} onBack={() => bankFormGuard.leave(() => setShowBankForm(false))} />}<BankFields bank={bankForm} setBank={setBankForm} company={supplier.type === supplierTypes[0]} /><Actions items={[{ label: '取消', onClick: () => showBankForm ? bankFormGuard.leave(() => setShowBankForm(false)) : go('bank') }, { label: '保存此账户', onClick: () => { if (showBankForm) saveBank(); else { const error = bankFieldError(bankForm, supplier.type === supplierTypes[0]); if (error) return notifyField(error); if (!persistBanks([{ ...bankForm, id: createSessionId(), change: '新增' }, ...banks])) return; bankFormGuard.accept(); go('bank'); } } }]} /></div>}
     {['bank-select', 'branch-select', 'people', 'people-empty'].includes(scene) && <ReferenceList mode={scene.startsWith('people') ? 'confirm' : 'immediate'} kind={scene.startsWith('people') ? 'people' : scene === 'bank-select' ? 'bank' : 'branch'} selected={scene === 'branch-select' ? exampleBank.branch : ''} initialSearch={scene === 'people' ? '周' : ''} onCancel={() => go(scene.startsWith('people') ? 'inviter' : 'bank')} onConfirm={v => { notify('已选择' + v); go(scene.startsWith('people') ? 'inviter-selected' : 'bank-form-selected'); }} />}
     {scene.startsWith('permissions') && <><Section title="供应商信息"><Row label="供应商名称">{supplier.name}</Row><Row label="供应商类型">{supplier.type}</Row></Section><RecordCollection title="分配权限" count={permissions.length} emptyText="暂无权限记录" addLabel="新增权限" onAdd={() => setPermissionForm({ index: -1 })}>{permissions.map((p, i) => <PermissionCard key={p.id} data={p} onEdit={p.change === '删除' ? undefined : () => setPermissionForm({ data: p, index: i })} onDelete={p.change === '删除' ? undefined : () => setConfirm({ type: 'delete-permission', index: i, text: '是否删除该权限？提交后生效。' })} />)}</RecordCollection>{!permissionForm && <Actions items={[{ label: '取消', onClick: () => go(returnToList()) }, { label: '提交变更', onClick: () => { if (!canChangeSupplier(supplier) || (returnToList() === 'mine' && !ownSupplier)) return notify('当前人员或状态不支持分配权限'); if (!permissions.some(p => p.change)) return notify('请先新增、修改或删除权限'); update({ pendingPermissions: clone(permissions), status: '变更中' }); notify('原型演示：权限分配已提交，等待审批'); go(returnToList()); } }]} />}</>}
     {(scene === 'permission-form' || permissionForm) && <div className={permissionForm ? 'm-fullscreen-panel' : ''}>{permissionForm && <Header title="编辑供应商权限" onBack={() => window.dispatchEvent(new CustomEvent('mobile-close-permission'))} />}<PermissionForm initial={permissionForm?.data} notify={notify} onCancel={() => permissionForm ? setPermissionForm(false) : go('permissions')} onSave={p => { if (permissions.some((x, i) => i !== permissionForm?.index && x.change !== '删除' && x.group === p.group && x.category === p.category)) return notify('该权限已存在'); const next = { ...p, id: permissionForm?.data?.id || createSessionId(), change: permissionForm?.index >= 0 && permissionForm?.data?.change !== '新增' ? '修改' : '新增' }; setPermissions(permissionForm?.index >= 0 ? permissions.map((x, i) => i === permissionForm.index ? next : x) : [next, ...permissions]); permissionForm ? setPermissionForm(false) : go('permissions-added'); }} /></div>}
@@ -748,7 +760,7 @@ function MobileSurface({ onComparisonChange, scene, shot, ratings, setRatings, a
       {editingRegistration && !editingAll && <div className="m-form-heading">修改草稿</div>}
       <RegistrationSteps personal={basic.type === supplierTypes[1]} step={step} expanded={stepsExpanded} onExpandedChange={setStepsExpanded} />
       {step === 0 && <BasicFields initialPanel={mapParams.panel} data={basic} setData={setBasic} identityReadOnly={portalRegistration} hideSupplierType={portalRegistration} shot={!!shot} onAddress={() => setAddressOpen(true)} initialDate={scene === 'expiry'} />}
-      {step === 1 && <ContactFields initialPanel={mapParams.panel} contacts={contacts} setContacts={setContacts} />}
+      {step === 1 && <ContactFields initialPanel={mapParams.panel} contacts={contacts} setContacts={setContacts} validation={invalidContact} onValidationHandled={() => setInvalidContact(null)} />}
       {step === 2 && <RecordCollection title="银行信息" count={registerBanks.length} emptyText="暂无银行信息" addLabel="添加银行账户" onAdd={() => { setEditingBank(-1); setRegisterBankForm(blankBank(basic.supplierName)); setRegisterBankPicker(true); }}>{registerBanks.map((b, i) => <BankCard key={b.id} bank={b} onPreview={preview} onEdit={() => { setEditingBank(i); setRegisterBankForm(clone(b)); setRegisterBankPicker(true); }} deleteDisabledReason={editingAll && isOriginalBasicBank(b) ? effectiveBasicBankDeleteError : ''} onDelete={editingAll && isOriginalBasicBank(b) ? undefined : () => setConfirm({ type: 'delete-register-bank', index: i, text: '确认删除银行信息' + (i + 1) + '？' })} />)}</RecordCollection>}
       {step === 3 && <RegistrationPreview supplierFacing={portalRegistration} invited={portalRegistration} basic={basic} contacts={contacts} banks={registerBanks} mode={portalRegistration ? '邀请注册' : editingRegistration ? supplier.mode : '代注册'} active={previewTab} onTabChange={setPreviewTab} onEdit={next => { setReturnPreview(true); changeStep(next); }} onPreview={preview}>{editingAll && <ChangeComparison before={supplier} after={{ basic, name: basic.supplierName, email: basic.registerEmail, type: basic.type, contacts, banks: registerBanks }} onPreview={preview} />}</RegistrationPreview>}
       <Actions className="m-registration-actions" items={editingAll ? [
@@ -771,10 +783,10 @@ function MobileSurface({ onComparisonChange, scene, shot, ratings, setRatings, a
     {['bank-application-form', 'application-empty'].includes(scene) && <BankApplicationForm savedApplication={applicationResult} onComplete={data => { views.applicationResult = data; }} notify={notify} onCancel={() => go('bank-application')} />}
     {scene === 'supplier-registration-result' && <section className="m-registration-result" aria-label="注册结果">{registrationResult ? <><div className="m-registration-success"><Check aria-hidden="true" /><h2>注册已提交</h2><p>供应商资料已提交，等待审批</p></div><Section title="注册信息"><Row label="供应商名称">{registrationResult.name}</Row><Row label="供应商账号">{registrationResult.account}</Row><Row label="注册邮箱">{registrationResult.email}</Row><Row label="状态">{registrationResult.status}</Row><Row label="提交时间">{registrationResult.submittedAt}</Row></Section></> : <Empty text="暂无注册提交记录" />}</section>}
     {scene.startsWith('portal') && <div className="m-portal-login"><div className="m-portal-brand"><img className="m-portal-brand-mark" src={mobileAsset('sohu-logo.png')} alt="搜狐" /><span>供应商协同门户</span></div><section className="m-portal-login-card" aria-labelledby="portal-login-heading"><h2 id="portal-login-heading">{passwordScreen ? '修改密码' : portalEmail ? '验证注册邮箱' : '用户登录'}</h2><p className="m-portal-intro">{passwordScreen ? '验证注册邮箱后，设置新的登录密码' : portalEmail ? '请使用注册邮箱完成身份验证' : '使用供应商账号登录协同门户'}</p><div className="m-portal-form">
-      {!passwordScreen && !portalEmail && <><Field label="账号" required value={portal.account} error={portalErrors.account} onChange={account => changePortal('account', account)} placeholder="请输入登录账号" /><Field label="密码" required type="password" value={portal.password} error={portalErrors.password} onChange={password => changePortal('password', password)} placeholder="请输入登录密码" /><div className="m-captcha-field"><Field label="验证码" required value={portal.captcha} onChange={v => setPortal({ ...portal, captcha: v })} placeholder="请输入验证码" /><span className="m-captcha">{captcha}</span><button onClick={() => { setCaptcha(captcha === 'cbvs' ? '39qq' : 'cbvs'); setPortal({ ...portal, captcha: '' }); }}>换一张</button></div></>}
+      {!passwordScreen && !portalEmail && <><Field label="账号" required value={portal.account} error={portalErrors.account} onChange={account => changePortal('account', account)} placeholder="请输入登录账号" /><Field label="密码" required type="password" value={portal.password} error={portalErrors.password} onChange={password => changePortal('password', password)} placeholder="请输入登录密码" /><div className="m-captcha-field"><Field label="验证码" required value={portal.captcha} error={portalErrors.captcha} onChange={v => changePortal('captcha', v)} placeholder="请输入验证码" /><span className="m-captcha">{captcha}</span><button onClick={() => { setCaptcha(captcha === 'cbvs' ? '39qq' : 'cbvs'); setPortal({ ...portal, captcha: '' }); }}>换一张</button></div></>}
       {(portalEmail || passwordScreen) && <><Field label="注册邮箱" required type="email" error={portalErrors.email} value={portal.email} onChange={email => changePortal('email', email)} /><div className="m-login-email-code"><Field label="邮箱验证码" required error={portalErrors.code} value={portal.code} onChange={code => changePortal('code', code)} /><button className="m-send-code" disabled={countdown > 0} onClick={() => { if (!validEmail(portal.email)) return portalError('email', portal.email ? '请输入正确的注册邮箱' : '请填写注册邮箱'); setPortalErrors({}); setCountdown(60); notify('演示验证码：123456；未发送真实邮件'); }}>{countdown ? countdown + ' s 后可重发' : '发送验证码'}</button></div></>}
       {passwordScreen && <Field label="新密码" required type="password" value={newPassword} onChange={setNewPassword} />}
-      {!portalEmail && !passwordScreen && <button className="m-forgot-link" onClick={() => setPasswordScreen(true)}>修改密码</button>}<button className="m-login-button" onClick={() => { if (passwordScreen) { if (!validEmail(portal.email)) return portalError('email', portal.email ? '请输入正确的注册邮箱' : '请填写注册邮箱'); if (portal.code !== '123456') return portalError('code', portal.code ? '邮箱验证码错误' : '请填写邮箱验证码'); const error = registrationPasswordError(newPassword); if (error) return notify(error); notify('原型演示：密码修改完成，未更新真实账号'); setPasswordScreen(false); } else if (!portalEmail) { const account = portal.account.trim(); if (!account || !portal.password) return notify('请输入账号和密码'); setPortal(current => ({ ...current, account })); if (portal.captcha.toLowerCase() !== captcha) return notify('图形验证码错误'); setPortalEmail(true); } else { if (!validEmail(portal.email)) return portalError('email', portal.email ? '请输入正确的注册邮箱' : '请填写注册邮箱'); if (portal.code !== '123456') return portalError('code', portal.code ? '邮箱验证码错误' : '请填写邮箱验证码'); views.portalAccount = { account: portal.account.trim() || '演示供应商账号', email: portal.email.trim() }; portalGuard.accept(); notify(''); go(procurementNoticeRoute(readMobileSearch()) || 'workspace-home'); } }}>{passwordScreen ? '提交' : portalEmail ? '登录' : '下一步'}</button>
+      {!portalEmail && !passwordScreen && <button className="m-forgot-link" onClick={() => setPasswordScreen(true)}>修改密码</button>}<button className="m-login-button" onClick={() => { if (passwordScreen) { if (!validEmail(portal.email)) return portalError('email', portal.email ? '请输入正确的注册邮箱' : '请填写注册邮箱'); if (portal.code !== '123456') return portalError('code', portal.code ? '邮箱验证码错误' : '请填写邮箱验证码'); const error = registrationPasswordError(newPassword); if (error) return notify(error); notify('原型演示：密码修改完成，未更新真实账号'); setPasswordScreen(false); } else if (!portalEmail) { const account = portal.account.trim(); if (!account) return portalError('account', '请输入账号'); if (!portal.password) return portalError('password', '请输入密码'); setPortal(current => ({ ...current, account })); if (portal.captcha.toLowerCase() !== captcha) return portalError('captcha', '图形验证码错误'); setPortalErrors({}); setPortalEmail(true); } else { if (!validEmail(portal.email)) return portalError('email', portal.email ? '请输入正确的注册邮箱' : '请填写注册邮箱'); if (portal.code !== '123456') return portalError('code', portal.code ? '邮箱验证码错误' : '请填写邮箱验证码'); views.portalAccount = { account: portal.account.trim() || '演示供应商账号', email: portal.email.trim() }; portalGuard.accept(); notify(''); go(procurementNoticeRoute(readMobileSearch()) || 'workspace-home'); } }}>{passwordScreen ? '提交' : portalEmail ? '登录' : '下一步'}</button>
     </div></section></div>}
     {scene.startsWith('workspace') && <PortalWorkspace mapParams={mapParams} accountMenu={portalAccountMenu} setAccountMenu={setPortalAccountMenu} scene={scene} go={go} notify={notify} store={views} onPreview={preview} />}
     </SwipeArea>
