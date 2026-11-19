@@ -14,7 +14,7 @@ import { Approval, BankApplication, FilterView, PermissionCard, RatingList, Supp
 import { bankNames, cooperation, exampleBank, initialSuppliers, screenshotScenes, supplierTypes } from './mobile-data.js';
 import { mobileSupplierSamples, registerMobileSupplierSampleFiles } from './mobile-supplier-samples.js';
 import { BankApplicationForm, RatingEditor, RatingOperations, RatingWorkspace, initialRatings, ratingDetailDemo } from './mobile-workflows.jsx';
-import { InteractionProvider, SwipeArea, useInteraction, useDirtyForm, useBackLayer, usePageIsolation, attachmentName } from './mobile-interaction.jsx';
+import { InteractionProvider, SwipeArea, useInteraction, useDirtyForm, useBackLayer, usePageIsolation, useScrollAway, attachmentName } from './mobile-interaction.jsx';
 import { SupplierExport, exportSupplierRows } from './mobile-export.jsx';
 import { supplierListActions, canChangeSupplier, canRateSupplier, canReinviteSupplier, canDeleteSupplier, canSelectSupplierForBatch, deleteStatuses, canInviteHistoricalSupplier, certificateNumber, supplierAccount } from './mobile-rules.js';
 import { procurementNoticeRoute } from './mobile-portal-procurement.js';
@@ -39,6 +39,12 @@ const managementMenus = [
   { route: 'mine', label: '我的邀请' },
   { route: 'my-ratings', label: '我的评分' },
 ];
+const managementScene = route => route.split('?')[0];
+const isManagementList = scene => managementMenus.some(menu => menu.route === scene);
+function rememberManagementScroll(views, route) {
+  const scene = managementScene(route);
+  if (isManagementList(scene)) views[scene] = { ...views[scene], scroll: window.scrollY };
+}
 const screenshotMenus = [
   ...managementMenus,
   { route: 'ratings', label: '供应商评分' },
@@ -121,6 +127,8 @@ function MobileApp() {
   const [message, setMessage] = useState('');
   useEffect(() => {
     if (embeddedPrototype) return;
+    const scrollRestoration = history.scrollRestoration;
+    history.scrollRestoration = 'manual';
     history.replaceState({ ...history.state, mobileIndex: 0 }, '', location.href);
     const change = () => {
       if (restoring.current) { const action = restoring.current; restoring.current = null; action(); return; }
@@ -139,10 +147,14 @@ function MobileApp() {
       historyIndex.current = nextIndex;
       history.replaceState({ ...history.state, mobileIndex: nextIndex }, '', location.href);
       const previous = currentRoute.current;
+      rememberManagementScroll(views.current, previous);
       runMotion(() => { currentRoute.current = next; setRoute(next); }, routeMotion(previous, next, delta < 0));
     };
     window.addEventListener('popstate', change);
-    return () => window.removeEventListener('popstate', change);
+    return () => {
+      window.removeEventListener('popstate', change);
+      history.scrollRestoration = scrollRestoration;
+    };
   }, []);
   useEffect(() => { if (!message) return; const timer = setTimeout(() => setMessage(''), 4500); return () => clearTimeout(timer); }, [message]);
   const shot = route.startsWith('shot/') ? screenshotScenes.find(s => s.time === route.split('/')[1]) : null;
@@ -166,6 +178,7 @@ function MobileApp() {
     const next = embeddedPrototype && ['page-map', 'scenes'].includes(destination)
       ? startRoute.current : destination;
     if (next === previous) return;
+    rememberManagementScroll(views.current, previous);
     runMotion(() => {
       if (embeddedPrototype) {
         replaceFrameRoute(next);
@@ -186,7 +199,7 @@ function MobileApp() {
       if (!/已导出|验证码|草稿|待提交审批/.test(text)) setResult({ text, supplier: suppliers.find(x => x.id === selected)?.name });
     }
   };
-  const isManagementMenu = managementMenus.some(menu => menu.route === scene);
+  const isManagementMenu = isManagementList(scene);
   const isPortalScene = scene.startsWith('portal') || scene.startsWith('workspace');
   const mapAccess = !shot && (mapParams.map || isManagementMenu || ['portal', 'workspace-home', 'workspace-account'].includes(scene));
   const update = patch => setSuppliers(list => list.map(s => s.id === supplierId ? { ...s, ...patch, updated: patch.status ? now() : s.updated } : s));
@@ -333,10 +346,11 @@ function MobileSurface({ onComparisonChange, scene, shot, ratings, setRatings, a
   useBackLayer(filtering, () => runMotion(() => setFiltering(false), 'back'));
   views[scene] = { ...views[scene], search, filters, batch, checked };
   useEffect(() => {
+    if (!shot && isManagementList(scene)) return;
     const remember = () => { views[scene] = { ...views[scene], scroll: window.scrollY }; };
     window.addEventListener('scroll', remember, { passive: true });
     return () => window.removeEventListener('scroll', remember);
-  }, [scene, views]);
+  }, [scene, shot, views]);
 
 
   useEffect(() => { if (!countdown) return; const timer = setTimeout(() => setCountdown(countdown - 1), 1000); return () => clearTimeout(timer); }, [countdown]);
@@ -371,6 +385,7 @@ function MobileSurface({ onComparisonChange, scene, shot, ratings, setRatings, a
   const adminScene = shot ? shot.index >= 25 : views.managementRole !== 'employee';
   const canBatchOperate = mine || adminScene;
   const showRegistrationActions = listScene && !(batch && canBatchOperate);
+  const registrationBarHidden = useScrollAway(!shot && showRegistrationActions);
   const historicalDemo = mapParams.historyDemo === '1';
   const ownSupplier = supplier.inviter === currentInviter;
   const menus = shot ? screenshotMenus : managementMenus;
@@ -679,7 +694,8 @@ function MobileSurface({ onComparisonChange, scene, shot, ratings, setRatings, a
     {shot && <div className="m-status-bar"><span>{shot.time.slice(0, 2)}:{shot.time.slice(2, 4)}</span><div><Signal /><Wifi /><Battery /><small>67</small></div></div>}
     <Header right={['workspace-home', 'workspace-account'].includes(scene) ? <button type="button" className="m-portal-account-button" aria-label="账户设置" onClick={() => setPortalAccountMenu(true)}><CircleUserRound aria-hidden="true" /></button> : undefined} hideBack={(portalRegistration && !accountRegistered) || ['workspace-home', 'workspace-account'].includes(scene)} onBack={back} title={shot ? (scene.startsWith('portal') ? '协同门户-登录' : '供应商管理平台') : scene === 'workspace-tasks' ? portalTaskTabFor(mapParams.tab, views.portalTaskTab) < 2 ? '采购报价' : '价税拆分' : mobileTitle(scene)} close={scene.startsWith('portal') ? () => go('query') : undefined} />
     {tab >= 0 && <Tabs active={tab} items={menus.map(menu => menu.label)} onChange={selectMenu} showDirectory={false} stretch />}
-    <SwipeArea active={Math.max(0, tab)} count={tab >= 0 ? menus.length : 1} onChange={selectMenu}>
+    <SwipeArea active={Math.max(0, tab)} count={tab >= 0 ? menus.length : 1} onChange={selectMenu}
+      className={!shot && isManagementList(scene) ? 'm-management-swipe' : undefined}>
     {listScene && <>
       <SearchBox value={search} onChange={setSearch}>
         {shot && <button className="m-icon-button" aria-label={exportBusy ? '导出中' : '导出供应商'} disabled={exportBusy} onClick={startExport}><Download /></button>}
@@ -693,7 +709,7 @@ function MobileSurface({ onComparisonChange, scene, shot, ratings, setRatings, a
           {batch ? '取消批量操作' : '批量操作'}
         </button>
       } />
-      <SupplierList filtered={!!search || Object.values(filters).some(Boolean)} suppliers={list} mine={mine} batch={batch && canBatchOperate} checked={checked} setChecked={setChecked} admin={adminScene} currentInviter={currentInviter} onDetail={s => pick(s, 'detail')} onBank={s => pick(s, 'bank')} onMore={(s, approval) => { listReturn.current = mine ? 'mine' : 'query'; select(s.id); approval === 'permissions' ? go('permissions') : approval ? go('detail-approval') : setSheet('more'); }} onInviter={s => pick(s, 'inviter')} onScore={startScore} onReinvite={s => { if (canReinviteSupplier(s)) pick(s, 'invite-again'); }} onEdit={s => { if (supplierListActions(s, { mine, inviter: currentInviter }).editDraft) pick(s, 'register-edit'); }} onEditAll={s => { if (supplierListActions(s, { mine, inviter: currentInviter }).editAll) pick(s, 'register-edit-all'); }} onDelete={s => { if (supplierListActions(s, { mine, inviter: currentInviter }).delete) setConfirm({ type: 'delete', ids: [s.id], text: '确认删除供应商「' + s.name + '」？删除后原有信息全部作废。' }); }} />
+      <SupplierList filtered={!!search || Object.values(filters).some(Boolean)} suppliers={list} mine={mine} batch={batch && canBatchOperate} checked={checked} setChecked={setChecked} admin={adminScene} currentInviter={currentInviter} copyFeedback={shot ? undefined : notify} onDetail={s => pick(s, 'detail')} onBank={s => pick(s, 'bank')} onMore={(s, approval) => { listReturn.current = mine ? 'mine' : 'query'; select(s.id); approval === 'permissions' ? go('permissions') : approval ? go('detail-approval') : setSheet('more'); }} onInviter={s => pick(s, 'inviter')} onScore={startScore} onReinvite={s => { if (canReinviteSupplier(s)) pick(s, 'invite-again'); }} onEdit={s => { if (supplierListActions(s, { mine, inviter: currentInviter }).editDraft) pick(s, 'register-edit'); }} onEditAll={s => { if (supplierListActions(s, { mine, inviter: currentInviter }).editAll) pick(s, 'register-edit-all'); }} onDelete={s => { if (supplierListActions(s, { mine, inviter: currentInviter }).delete) setConfirm({ type: 'delete', ids: [s.id], text: '确认删除供应商「' + s.name + '」？删除后原有信息全部作废。' }); }} />
       {shot && showRegistrationActions && <div className="m-fab-group">
         <div id={addMenuId} className="m-fab-menu" data-open={expanded} inert={!expanded} aria-hidden={!expanded || undefined}>
           <button type="button" onClick={() => go('invite')}><span className="m-invite-entry-icon"><Send aria-hidden="true" /></span>邀请注册</button>
@@ -790,7 +806,9 @@ function MobileSurface({ onComparisonChange, scene, shot, ratings, setRatings, a
     </div></section></div>}
     {scene.startsWith('workspace') && <PortalWorkspace mapParams={mapParams} accountMenu={portalAccountMenu} setAccountMenu={setPortalAccountMenu} scene={scene} go={go} notify={notify} store={views} onPreview={preview} />}
     </SwipeArea>
-    {!shot && showRegistrationActions && <Actions className="m-list-registration-actions" items={[
+    {!shot && showRegistrationActions && <Actions
+      className={'m-list-registration-actions' + (registrationBarHidden ? ' m-registration-bar-away' : '')}
+      itemsInert={registrationBarHidden} items={[
       { label: '代注册', icon: <ClipboardPenLine aria-hidden="true" />, secondary: true, onClick: () => openRegistration('register') },
       { label: '邀请注册', icon: <Send aria-hidden="true" />, primary: true, onClick: () => openRegistration('invite') },
     ]} />}

@@ -62,6 +62,17 @@ try {
       el.dispatchEvent(new TouchEvent('touchend', { bubbles: true, touches: [], changedTouches: [end] }));
     }, { dx, dy, x });
   }
+  async function touchGesture(client, { x, y, dx = 0, dy = 0, hold = 0 }) {
+    await client.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x, y }] });
+    if (dx || dy) {
+      for (const fraction of [.25, .5, .75, 1]) {
+        await client.send('Input.dispatchTouchEvent', { type: 'touchMove',
+          touchPoints: [{ x: x + dx * fraction, y: y + dy * fraction }] });
+      }
+    }
+    if (hold) await new Promise(resolve => setTimeout(resolve, hold));
+    await client.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+  }
   const upload = { name: '测试证明.png', mimeType: 'image/png', buffer: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/l9sAAAAASUVORK5CYII=', 'base64') };
   async function fillBasic(name = '移动交互测试企业') {
     await page.locator('#root').getByLabel('营业执照', { exact: true }).setInputFiles(upload);
@@ -321,6 +332,31 @@ try {
   await check('主模块内容左滑切到我的邀请，右滑返回', async () => {
     await goto('mobile'); await swipe(page.locator('#root .m-supplier-card h3').first(), -130); await page.locator('#root [data-scene="mine"]').waitFor(); await swipe(page.locator('#root .m-supplier-card h3').first(), 130, 0, 100); await page.locator('#root [data-scene="query"]').waitFor();
   });
+  await check('触摸列表空白处左右滑动切换三个主菜单', async () => {
+    const client = await context.newCDPSession(page);
+    try {
+      await goto('mobile');
+      const control = await page.locator('#root .m-supplier-card').first().locator('.m-card-actions button').last().boundingBox();
+      await touchGesture(client, { x: control.x + control.width / 2, y: control.y + control.height / 2, dx: -100 });
+      assert.ok(page.url().endsWith('#/mobile'));
+      for (const [next, dx] of [['mine', -140], ['my-ratings', -140], ['mine', 140], ['query', 140]]) {
+        const area = page.locator('#root .m-management-swipe');
+        const point = await area.evaluate(el => {
+          const card = el.querySelector('.m-supplier-card, .m-rating-list > article');
+          const rect = (card || el).getBoundingClientRect();
+          const y = card ? rect.bottom + 5 : rect.top + 100;
+          const x = rect.left + rect.width / 2;
+          const target = document.elementFromPoint(x, y);
+          return { x, y, blank: el.contains(target) && !target?.closest('button,input,a,article') };
+        });
+        assert.ok(point.blank);
+        await touchGesture(client, { ...point, dx });
+        await page.locator(`#root [data-scene="${next}"]`).waitFor();
+      }
+    } finally {
+      await client.detach();
+    }
+  });
   await check('纵向手势和边缘手势不误切模块', async () => {
     await goto('mobile'); await swipe(page.locator('#root .m-supplier-card h3').first(), -90, 140); assert.ok(page.url().endsWith('#/mobile')); await swipe(page.locator('#root .m-supplier-card h3').first(), 130, 0, 5); assert.ok(page.url().endsWith('#/mobile'));
   });
@@ -331,6 +367,50 @@ try {
   });
   await check('查询详情返回保留关键词及滚动位置', async () => {
     await goto('mobile'); await page.locator('#root').getByRole('searchbox', { name: '搜索供应商名称' }).fill('北京'); await page.evaluate(() => scrollTo(0, 300)); const y = await page.evaluate(() => scrollY); await card('北京初然').getByRole('button', { name: '查看详情', exact: true }).click(); await headerBack(); await page.locator('#root [data-scene="query"]').waitFor(); assert.equal(await page.locator('#root').getByRole('searchbox', { name: '搜索供应商名称' }).inputValue(), '北京'); assert.ok(Math.abs(await page.evaluate(() => scrollY) - y) < 90);
+  });
+  await check('从第十五家供应商详情通过页内和系统返回恢复原位置', async () => {
+    for (const [scene, returnToList] of [['query', headerBack], ['mine', () => page.goBack()]]) {
+      await goto('mobile/' + scene);
+      const item = page.locator('#root .m-supplier-list .m-supplier-card').nth(14);
+      const name = await item.locator('h3').innerText();
+      await item.evaluate(el => window.scrollTo(0, window.scrollY + el.getBoundingClientRect().top - 220));
+      const detailButton = item.getByRole('button', { name: '查看详情', exact: true });
+      const y = await page.evaluate(() => window.scrollY);
+      assert.ok(y > 1000);
+      await detailButton.click();
+      await page.locator('#root [data-scene="detail"]').waitFor();
+      await returnToList();
+      await page.locator(`#root [data-scene="${scene}"]`).waitFor();
+      assert.equal(await item.locator('h3').innerText(), name);
+      assert.ok(Math.abs(await page.evaluate(() => window.scrollY) - y) < 2);
+    }
+  });
+  await check('长按供应商名称写入剪贴板，轻触和滑动不复制', async () => {
+    const client = await context.newCDPSession(page);
+    await context.grantPermissions(['clipboard-read', 'clipboard-write'], { origin: base });
+    try {
+      for (const scene of ['query', 'mine']) {
+        await goto('mobile/' + scene);
+        const name = page.locator('#root .m-copy-supplier-name').first();
+        const value = await name.innerText();
+        const box = await name.boundingBox();
+        const point = { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+        const previous = '原有剪贴板内容';
+        await page.evaluate(text => navigator.clipboard.writeText(text), previous);
+        await touchGesture(client, point);
+        assert.equal(await page.evaluate(() => navigator.clipboard.readText()), previous);
+        await touchGesture(client, { ...point, dy: -55, hold: 560 });
+        assert.equal(await page.evaluate(() => navigator.clipboard.readText()), previous);
+        await page.evaluate(() => scrollTo(0, 0));
+        await name.waitFor();
+        await touchGesture(client, { ...point, hold: 560 });
+        await page.locator('#root .m-toast').getByText('已复制', { exact: true }).waitFor();
+        assert.equal(await page.evaluate(() => navigator.clipboard.readText()), value);
+      }
+    } finally {
+      await context.clearPermissions();
+      await client.detach();
+    }
   });
   await check('我的邀请字段直接展示且详情返回保持来源', async () => {
     await goto('mobile/mine'); assert.ok(await card('代注册草稿').getByText('联系人邮箱', { exact: true }).isVisible()); await card('代注册草稿').getByRole('button', { name: '查看详情', exact: true }).click(); await headerBack(); await page.locator('#root [data-scene="mine"]').waitFor();
@@ -478,6 +558,8 @@ try {
         ]);
         const initialPosition = await bar.boundingBox();
         await page.evaluate(() => scrollTo(0, document.documentElement.scrollHeight));
+        await page.waitForFunction(y => Math.abs(document.querySelector('#root .m-list-registration-actions')
+          .getBoundingClientRect().top - y) < .5, initialPosition.y);
         const [footer, first, last, finalCard, prototype] = await Promise.all([
           bar.boundingBox(), bar.getByRole('button').first().boundingBox(), bar.getByRole('button').last().boundingBox(),
           page.locator('#root .m-supplier-list .m-supplier-card').last().boundingBox(),
@@ -511,6 +593,36 @@ try {
     await page.locator('#root [data-scene="register"]').waitFor();
     await headerBack();
     await page.locator('#root [data-scene="mine"]').waitFor();
+  });
+  await check('注册胶囊向下避让、停止或向上后恢复，批量操作栏保持固定', async () => {
+    const bar = page.locator('#root .m-list-registration-actions');
+    const visibleBar = page.locator('#root .m-list-registration-actions:not(.m-registration-bar-away)');
+    try {
+      await page.emulateMedia({ reducedMotion: 'reduce' });
+      for (const scene of ['query', 'mine']) {
+        await goto('mobile/' + scene);
+        const restingY = (await bar.boundingBox()).y;
+        await page.evaluate(() => scrollTo(0, 450));
+        await bar.locator('button[inert]').first().waitFor();
+        assert.ok((await bar.boundingBox()).y >= 845);
+        await visibleBar.waitFor();
+        assert.equal((await bar.boundingBox()).y, restingY);
+        await page.evaluate(() => scrollTo(0, 900));
+        await bar.locator('button[inert]').first().waitFor();
+        await page.evaluate(() => scrollTo(0, 700));
+        await visibleBar.waitFor();
+        assert.equal((await bar.boundingBox()).y, restingY);
+        await button('批量操作').click();
+        const batchBar = page.locator('#root .m-batch-actions');
+        await batchBar.waitFor();
+        const batchY = (await batchBar.boundingBox()).y;
+        await page.evaluate(() => scrollTo(0, 1100));
+        assert.equal((await batchBar.boundingBox()).y, batchY);
+        assert.equal(await bar.count(), 0);
+      }
+    } finally {
+      await page.emulateMedia({ reducedMotion: null });
+    }
   });
   await check('注册缺项定位首个字段且持续显示错误', async () => {
     await goto('mobile/register');
