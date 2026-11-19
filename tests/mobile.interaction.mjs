@@ -456,6 +456,9 @@ try {
     await goto('mobile'); await button('邀请注册').click(); await field('供应商名称').fill('系统返回检查'); await page.goBack(); await button('继续编辑').click(); assert.equal(await field('供应商名称').inputValue(), '系统返回检查'); await headerBack(); await button('放弃修改').click(); await page.locator('#root [data-scene="query"]').waitFor();
   });
   await check('供应商查询和我的邀请使用悬浮胶囊注册入口', async () => {
+    await goto('mobile/my-ratings');
+    const ratingTabColor = await page.locator('#root .m-count-tabs > button.active')
+      .evaluate(el => getComputedStyle(el).backgroundColor);
     const bar = page.locator('#root .m-list-registration-actions');
     for (const width of [320, 390, 768]) {
       await page.setViewportSize({ width, height: 845 });
@@ -471,7 +474,7 @@ try {
         }));
         assert.deepEqual(buttonStyles, [
           ['rgb(237, 244, 255)', 'rgb(20, 92, 255)', '22px', '4px'],
-          ['rgb(24, 74, 199)', 'rgb(255, 255, 255)', '22px', '4px'],
+          [ratingTabColor, 'rgb(255, 255, 255)', '22px', '4px'],
         ]);
         const initialPosition = await bar.boundingBox();
         await page.evaluate(() => scrollTo(0, document.documentElement.scrollHeight));

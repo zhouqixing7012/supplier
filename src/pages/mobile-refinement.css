@@ -1346,8 +1346,6 @@ body:has(.mobile-page > .m-list-registration-actions) {
   background: var(--m-info-surface);
   color: var(--m-action);
 }
-.mobile-page:not(.m-shot) .m-list-registration-actions > button.primary { background: #184ac7; }
-.mobile-page:not(.m-shot) .m-list-registration-actions > button.primary:active:not(:disabled) { background: #123ba3; }
 .m-list-registration-actions > button svg { width: 16px; height: 16px; }
 .mobile-page:not(.m-shot) .m-list-registration-actions > button.secondary:active { color: var(--m-action-pressed); }
 .mobile-page.m-list-page .m-filter-summary:has(> .m-batch-toggle) { flex-wrap: nowrap; min-height: 44px; }
