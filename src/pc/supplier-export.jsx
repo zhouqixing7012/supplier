@@ -10,6 +10,7 @@ const filterLabels = {
   status: '供应商状态',
   recommended: '供应商推荐',
   inviter: '邀请人',
+  certificate: '证件号码',
   registrationNumber: '注册编号',
 };
 

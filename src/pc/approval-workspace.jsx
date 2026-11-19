@@ -14,9 +14,9 @@ const nodes = ['开始', '业务审批', '领导审批', '财务审批'];
 const department = people.find((person) => person.name === '陈才慧')?.department || '集团总部.ERP部.平台技术部';
 const columns = (fields) => fields.map(([dataIndex, title, width]) => ({ dataIndex, title, width }));
 
-export function createApprovalTask({ number, type, submittedAt, applicant, profile, before, permissions = [], affiliation }) {
+export function createApprovalTask({ number, type, submittedAt, applicant, profile, before, permissions = [], affiliation, supplierId }) {
   return {
-    number, type, submittedAt, applicant, profile, before, permissions,
+    number, type, submittedAt, applicant, profile, before, permissions, supplierId,
     department: affiliation || department,
     status: '待审批',
   };
@@ -147,7 +147,7 @@ export function ApprovalTaskDetail({ task, approver, onBack, onComplete }) {
       </DetailGrid>
     </Card>
     <SupplierSnapshot profile={task.profile} approval />
-    {pending && task.before && <Changes before={task.before} after={task.profile} />}
+    {task.before && <Changes before={task.before} after={task.profile} />}
     <Form name="supplier-approval" form={form} initialValues={{ opinion: task.opinion, company: task.company }}
       layout="vertical" className="pc-page-stack">
       {registration && <div id="approval-permissions">

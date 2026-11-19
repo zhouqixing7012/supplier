@@ -3,6 +3,7 @@ import { Alert, App, Button, Card, Form, Input, Select, Space } from 'antd-pc';
 import { DetailGrid, DetailItem } from '../erp/DetailGrid.jsx';
 import { EmptyContent, PcModal, PcTable } from '../erp/components.jsx';
 import { people, supplierTypes } from '../pages/mobile-data.js';
+import { validEmail } from '../pages/mobile-edit-rules.js';
 
 const personColumns = [['name', '姓名', 100], ['userCode', '工号', 110], ['phone', '座机', 130],
   ['email', '邮箱', 210], ['job', '职位', 150], ['department', '部门', 230]]
@@ -16,8 +17,9 @@ function PersonPicker({ initial, onClose, onConfirm }) {
   const keyword = query.trim().toLowerCase();
   const rows = keyword ? people.filter((person) => [person.name, person.userCode, person.phone]
     .some((value) => value?.toLowerCase().includes(keyword))) : [];
+  const selectedPerson = people.find((person) => person.userCode === selected);
   return <PcModal open title="选择人员" width={900} okText="确认" cancelText="取消" onCancel={onClose}
-    okButtonProps={{ disabled: !selected }} onOk={() => onConfirm(people.find((person) => person.userCode === selected))}>
+    okButtonProps={{ disabled: !selectedPerson }} onOk={() => selectedPerson && onConfirm(selectedPerson)}>
     <Input aria-label="搜索人员" placeholder="搜索姓名、工号或座机" allowClear value={query} onChange={(event) => setQuery(event.target.value)} />
     <div className="pc-person-results">
       <PcTable rowKey="userCode" columns={personColumns} dataSource={rows} pagination={false} scroll={{ x: 'max-content' }}
@@ -35,11 +37,12 @@ export function InviterChangePage({ targets, batch, onBack, check, onSubmit, lea
   const { modal } = App.useApp();
   const selected = targets.filter((row) => !removed.includes(row.id));
   const leave = (action) => {
-    if (!person) return action();
+    if (!person && !removed.length) return action();
     modal.confirm({ centered: true, className: 'pc-confirm', title: '放弃本次邀请人变更？', okText: '确认离开', cancelText: '继续处理', onOk: action });
   };
   useImperativeHandle(leaveRef, () => ({ leave }));
   if (!targets.length) return <Card size="small"><EmptyContent description="请先从列表选择要变更的供应商" /><Button onClick={onBack}>返回</Button></Card>;
+  const firstTarget = targets[0];
 
   const submit = () => {
     if (!person) { setResults(['请选择新邀请人']); return; }
@@ -50,9 +53,15 @@ export function InviterChangePage({ targets, batch, onBack, check, onSubmit, lea
     if (errors.length) return;
     modal.confirm({
       centered: true, className: 'pc-confirm', width: 610, title: '确认变更邀请人？',
-      content: <><p>新邀请人：{person.name}（{person.userCode}）</p><PcTable rowKey="id" dataSource={selected} pagination={false}
-        scroll={{ x: 'max-content', y: 230 }} columns={supplierColumns} /></>,
-      okText: '确认变更', cancelText: '取消', onCancel: onBack,
+      content: <>
+        <DetailGrid columns={1} labelWidth={96}>
+          {!batch && <DetailItem label="原邀请人">{firstTarget.inviter || '—'}</DetailItem>}
+          <DetailItem label="新邀请人">{person.name}（{person.userCode}）</DetailItem>
+        </DetailGrid>
+        {batch && <PcTable rowKey="id" dataSource={selected} pagination={false}
+          scroll={{ x: 'max-content', y: 230 }} columns={supplierColumns} />}
+      </>,
+      okText: '确认变更', cancelText: '取消',
       onOk: () => setResults(onSubmit(ids, person)),
     });
   };
@@ -60,14 +69,17 @@ export function InviterChangePage({ targets, batch, onBack, check, onSubmit, lea
     <Card size="small" title={batch ? '供应商信息（已选 ' + selected.length + ' 家）' : '供应商信息'}>
       {batch ? <PcTable rowKey="id" dataSource={targets} columns={supplierColumns} pagination={false} scroll={{ x: 'max-content' }}
         rowSelection={{ selectedRowKeys: selected.map((row) => row.id),
-          onChange: (ids) => setRemoved(targets.filter((row) => !ids.includes(row.id)).map((row) => row.id)) }} />
+          onChange: (ids) => { setRemoved(targets.filter((row) => !ids.includes(row.id)).map((row) => row.id)); setResults([]); } }} />
         : <DetailGrid columns={1} labelWidth={120}>
-          <DetailItem label="供应商名称">{targets[0].name}</DetailItem>
-          <DetailItem label="供应商类型">{targets[0].type}</DetailItem>
+          <DetailItem label="供应商名称">{firstTarget.name}</DetailItem>
+          <DetailItem label="供应商类型">{firstTarget.type}</DetailItem>
         </DetailGrid>}
       <div className="pc-inviter-selection">
         <DetailGrid columns={1} labelWidth={120}>
-          {!batch && <DetailItem label="原邀请人">{targets[0].inviter || '—'}</DetailItem>}
+          {!batch && <>
+            <DetailItem label="原邀请人">{firstTarget.inviter || '—'}</DetailItem>
+            <DetailItem label="原邀请人部门">{firstTarget.inviterDept || firstTarget.inviterFullDept || '—'}</DetailItem>
+          </>}
           <DetailItem label="新邀请人">
             <Space wrap>
               {person && <span>{[person.name, person.userCode, person.department].filter(Boolean).join(' · ')}</span>}
@@ -89,30 +101,48 @@ export function InviterChangePage({ targets, batch, onBack, check, onSubmit, lea
 export function InvitationEditor({ record, onBack, onSubmit, leaveRef }) {
   const [form] = Form.useForm();
   const { modal } = App.useApp();
+  const [initialValues] = useState(() => ({
+    supplierType: record?.type, supplierName: record?.name || '', contactName: record?.contact || '',
+    contactEmail: record?.email || '', contactPhone: record?.phone || '',
+  }));
+  const supplierType = Form.useWatch('supplierType', form) ?? initialValues.supplierType;
+  const foreign = supplierType === supplierTypes[3];
+  const nameLabel = supplierType === supplierTypes[1] ? '供应商姓名' : '供应商名称';
+  const phoneLabel = foreign ? '联系人电话' : '联系人手机';
   const leave = (action) => {
-    if (!form.isFieldsTouched()) return action();
-    modal.confirm({ centered: true, className: 'pc-confirm', title: '放弃本次邀请填写？', okText: '确认离开', cancelText: '继续填写', onOk: action });
+    const changed = Object.entries(initialValues).some(([field, value]) => form.getFieldValue(field) !== value);
+    if (!changed) return action();
+    modal.confirm({ centered: true, className: 'pc-confirm', title: '放弃本次邀请填写？', okText: '放弃修改', cancelText: '继续编辑', onOk: action });
   };
   useImperativeHandle(leaveRef, () => ({ leave }));
   const required = (label) => ({ required: true, whitespace: true, message: '请填写' + label });
   return <div className="pc-page-stack pc-register">
     <Card size="small" title="邀请资料">
       <Form id="pc-invitation-form" form={form} layout="horizontal" className="pc-register-form"
-        initialValues={record && { supplierType: record.type, supplierName: record.name, contactName: record.contact, contactEmail: record.email, contactPhone: record.phone }}
-        onFinish={onSubmit}>
+        initialValues={initialValues} onFinish={onSubmit}>
         <div className="pc-register-grid">
           <Form.Item name="supplierType" label="供应商类型" rules={[{ required: true, message: '请选择供应商类型' }]}>
-            <Select options={supplierTypes.map((value) => ({ value }))} disabled={!!record} />
+            <Select placeholder="请选择供应商类型" disabled={!!record}
+              options={supplierTypes.map((value) => ({ value, label: value === supplierTypes[2] ? '政府机构或社团' : value }))} />
           </Form.Item>
-          <Form.Item name="supplierName" label="供应商名称/姓名" rules={[required('供应商名称/姓名')]}><Input maxLength={120} /></Form.Item>
+          <Form.Item name="supplierName" label={nameLabel} rules={[required(nameLabel)]}><Input maxLength={120} /></Form.Item>
           <Form.Item name="contactName" label="联系人姓名" rules={[required('联系人姓名')]}><Input maxLength={60} /></Form.Item>
-          <Form.Item name="contactEmail" label="联系人邮箱" normalize={(value) => value.trim()} rules={[required('联系人邮箱'), { type: 'email', message: '请输入正确的联系人邮箱' }]}><Input maxLength={120} /></Form.Item>
-          <Form.Item name="contactPhone" label="联系人手机" normalize={(value) => value.trim()} rules={[required('联系人手机'), { pattern: /^1\d{10}$/, message: '请输入11位手机号' }]}><Input maxLength={20} /></Form.Item>
+          <Form.Item name="contactEmail" label="联系人邮箱" validateFirst rules={[required('联系人邮箱'), {
+            validator: (_, value) => validEmail(value) ? Promise.resolve() : Promise.reject(new Error('请输入正确的联系人邮箱')),
+          }]}>
+            <Input maxLength={120} onBlur={({ target: { value } }) => {
+              if (value.trim() !== value) form.setFieldValue('contactEmail', value.trim());
+            }} />
+          </Form.Item>
+          <Form.Item name="contactPhone" label={phoneLabel} dependencies={['supplierType']} validateFirst rules={[required(phoneLabel), {
+            pattern: foreign ? /^\S+$/ : /^1\d{10}$/,
+            message: foreign ? '联系人电话不能包含空白' : '请输入11位手机号',
+          }]}><Input maxLength={20} /></Form.Item>
         </div>
       </Form>
     </Card>
     <Card size="small" title="邀请须知">
-      <p>邀请提交后，系统通过邮件向联系人发送邀请注册链接，请通知供应商登录协同门户并填写基本信息、证照、联系人及银行信息。</p>
+      <p>正式办理时，邀请链接自生成起 7 天内有效，系统通过邮件发送给联系人。请通知供应商登录协同门户并填写基本信息、证照、联系人及银行信息。</p>
     </Card>
     <div className="pc-register-actions"><Button onClick={() => leave(onBack)}>取消</Button>
       <Button htmlType="submit" form="pc-invitation-form" type="primary">{record ? '重新邀请' : '提交邀请'}</Button></div>
