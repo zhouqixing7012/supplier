@@ -45,14 +45,31 @@ export function useScrollAway(enabled) {
     setHidden(false);
     if (!enabled) return;
     let previous = Math.max(0, window.scrollY);
+    let turningPoint = previous;
+    let away = false;
     let timer;
+    const show = () => {
+      away = false;
+      turningPoint = previous;
+      setHidden(false);
+    };
     const onScroll = () => {
       const current = Math.max(0, window.scrollY);
       if (current === previous) return;
-      setHidden(current > previous);
       previous = current;
       clearTimeout(timer);
-      timer = setTimeout(() => setHidden(false), 200);
+      if (away) {
+        turningPoint = Math.max(turningPoint, current);
+        if (current === 0 || turningPoint - current >= 8) show();
+      } else {
+        turningPoint = Math.min(turningPoint, current);
+        if (current - turningPoint >= 12) {
+          away = true;
+          turningPoint = current;
+          setHidden(true);
+        }
+      }
+      if (away) timer = setTimeout(show, 240);
     };
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => {

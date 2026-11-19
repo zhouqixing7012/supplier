@@ -30,11 +30,12 @@ export function PortalTaskList({ tab, inquiries, orders, store, go, initialFilte
   const filterCount = Object.values(filters).filter(value => value?.trim()).length;
   const filtered = !!query.trim() || filterCount > 0;
   return <>
-    <QueryList records={records} queryKey={JSON.stringify([query, filters])} view={listView}>
+    <QueryList records={records} queryKey={JSON.stringify([query, filters])} view={listView} header={
+      <SearchBox placeholder={quote ? '搜索询价单号' : '搜索订单编号'} value={query} onChange={setQuery}>
+        <FilterButton label={quote ? '筛选报价' : '筛选价税拆分'} active={filterCount > 0} onClick={begin} />
+      </SearchBox>
+    }>
       {visible => <>
-        <SearchBox placeholder={quote ? '搜索询价单号' : '搜索订单编号'} value={query} onChange={setQuery}>
-          <FilterButton label={quote ? '筛选报价' : '筛选价税拆分'} active={filterCount > 0} onClick={begin} />
-        </SearchBox>
         <AppliedFilters count={filterCount} onClear={() => setFilters({})} />
         <FilterSummary count={records.length} />
         {visible.length ? visible.map(item => <Section key={item.number} collapsible={false} className="m-portal-task-card">

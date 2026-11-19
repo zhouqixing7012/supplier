@@ -523,6 +523,40 @@ try {
     assert.deepEqual(await cards.locator('h3').allInnerTexts(), firstPage);
     await cdp.detach();
   });
+  await check('下拉刷新从搜索框下方触发，搜索和筛选位置稳定', async () => {
+    const root = page.locator('#root');
+    const client = await context.newCDPSession(page);
+    const routes = ['mobile/query', 'mobile/mine', 'mobile/ratings', 'mobile/my-ratings',
+      'mobile/rating-ops', 'mobile/workspace-tasks?map=1&tab=0', 'mobile/workspace-tasks?map=1&tab=2'];
+    try {
+      for (const route of routes) {
+        await goto(route);
+        const queryBar = root.locator(route === 'mobile/rating-ops'
+          ? '.m-filter-summary:has([aria-label="筛选评分运维"])' : '.m-search-row');
+        const idle = await queryBar.boundingBox();
+        const refresh = root.locator('.m-list-refresh');
+        await touchGesture(client, { x: page.viewportSize().width / 2, y: idle.y + 4, dy: 100 });
+        assert.equal(await refresh.count(), 0, route);
+
+        const content = await root.locator('.m-query-list h3, .m-query-list .m-empty').first().boundingBox();
+        const x = content.x + Math.min(content.width / 2, 60);
+        const y = content.y + content.height / 2;
+        await client.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x, y }] });
+        await client.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x, y: y + 34 }] });
+        await root.getByText('下拉刷新', { exact: true }).waitFor();
+        assert.deepEqual(await queryBar.boundingBox(), idle, route);
+        assert.ok((await refresh.boundingBox()).y >= idle.y + idle.height, route);
+        await client.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x, y: y + 90 }] });
+        await root.getByText('松开刷新', { exact: true }).waitFor();
+        assert.deepEqual(await queryBar.boundingBox(), idle, route);
+        await client.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+        await refresh.waitFor({ state: 'hidden' });
+        assert.deepEqual(await queryBar.boundingBox(), idle, route);
+      }
+    } finally {
+      await client.detach();
+    }
+  });
   await check('审批仅展示纵向节点，审批意见直接可见', async () => {
     await goto('mobile/approval'); assert.equal(await page.locator('#root .m-approval > .m-section:first-of-type .m-approval-timeline li').count(), 4); assert.equal(await page.locator('#root .m-approval table').count(), 0); assert.equal(await page.locator('#root .m-approval > .m-section:first-of-type .m-approval-timeline summary').count(), 0); assert.equal(await page.locator('#root .m-approval > .m-section:first-of-type .m-approval-timeline .m-row').filter({ hasText: '审批意见' }).count(), 4); await shot('approval');
   });
@@ -668,9 +702,16 @@ try {
       for (const scene of ['query', 'mine']) {
         await goto('mobile/' + scene);
         const restingY = (await bar.boundingBox()).y;
+        await page.evaluate(async () => {
+          scrollTo(0, 5);
+          await new Promise(requestAnimationFrame);
+          await new Promise(requestAnimationFrame);
+        });
+        assert.equal(await visibleBar.count(), 1);
         await page.evaluate(() => scrollTo(0, 450));
         await bar.locator('button[inert]').first().waitFor();
-        assert.ok((await bar.boundingBox()).y >= 845);
+        assert.equal(await bar.evaluate(el => getComputedStyle(el).opacity), '0');
+        assert.equal((await bar.boundingBox()).y, restingY);
         await visibleBar.waitFor();
         assert.equal((await bar.boundingBox()).y, restingY);
         await page.evaluate(() => scrollTo(0, 900));
@@ -689,6 +730,36 @@ try {
     } finally {
       await page.emulateMedia({ reducedMotion: null });
     }
+  });
+  await check('注册胶囊居中短距离收起、淡出并可中途回弹', async () => {
+    await goto('mobile/query');
+    const bar = page.locator('#root .m-list-registration-actions');
+    const resting = await bar.boundingBox();
+    await page.evaluate(() => scrollTo(0, 450));
+    await bar.locator('button[inert]').first().waitFor();
+    const sample = await bar.evaluate(el => {
+      const transitions = el.getAnimations();
+      for (const transition of transitions) {
+        transition.pause();
+        transition.currentTime = 65;
+      }
+      const { x, y, width } = el.getBoundingClientRect();
+      const { opacity } = getComputedStyle(el);
+      for (const transition of transitions) transition.play();
+      return { x, y, width, opacity: Number(opacity) };
+    });
+    assert.ok(sample.y > resting.y && sample.y < resting.y + 30);
+    assert.ok(sample.width < resting.width && sample.width > resting.width * .95);
+    assert.ok(Math.abs(sample.x + sample.width / 2 - resting.x - resting.width / 2) < .5);
+    assert.ok(sample.opacity > 0 && sample.opacity < 1);
+    await page.evaluate(() => scrollTo(0, 410));
+    await bar.getByRole('button', { name: '邀请注册', exact: true }).waitFor();
+    await page.waitForFunction(({ x, y, width }) => {
+      const footer = document.querySelector('#root .m-list-registration-actions');
+      const box = footer.getBoundingClientRect();
+      return getComputedStyle(footer).opacity === '1'
+        && Math.abs(box.x - x) < .5 && Math.abs(box.y - y) < .5 && Math.abs(box.width - width) < .5;
+    }, resting);
   });
   await check('注册缺项定位首个字段且持续显示错误', async () => {
     await goto('mobile/register');

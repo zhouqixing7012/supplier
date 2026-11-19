@@ -704,13 +704,14 @@ function MobileSurface({ onComparisonChange, scene, shot, ratings, setRatings, a
     {tab >= 0 && <Tabs active={tab} items={menus.map(menu => menu.label)} onChange={selectMenu} showDirectory={false} stretch />}
     <SwipeArea active={Math.max(0, tab)} count={tab >= 0 ? menus.length : 1} onChange={selectMenu}
       className={!shot && isManagementList(scene) ? 'm-management-swipe' : undefined}>
-    {listScene && <QueryList records={list} queryKey={supplierQueryKey} enabled={!shot} view={views[scene].list ??= {}}>
-      {visibleSuppliers => <>
+    {listScene && <QueryList records={list} queryKey={supplierQueryKey} enabled={!shot} view={views[scene].list ??= {}} header={
         <SearchBox value={search} onChange={setSearch}>
           {shot && <button className="m-icon-button" aria-label={exportBusy ? '导出中' : '导出供应商'} disabled={exportBusy} onClick={startExport}><Download /></button>}
           <FilterButton label="筛选供应商" active={!shot && supplierFilterCount > 0}
             onClick={() => runMotion(() => setFiltering(true), 'forward')} />
         </SearchBox>
+      }>
+      {visibleSuppliers => <>
         {!shot && <AppliedFilters count={supplierFilterCount} onClear={() => setFilters({})} />}
         <FilterSummary count={list.length} unit="家供应商" label="查询结果" action={canBatchOperate &&
           <button type="button" className="m-batch-toggle" aria-pressed={batch}

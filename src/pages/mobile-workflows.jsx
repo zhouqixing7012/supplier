@@ -48,11 +48,12 @@ export function RatingWorkspace({ mine = false, historical = false, records, onO
   const scene = mine ? 'my-ratings' : 'ratings';
   const openFilters = () => go('rating-filter?' + new URLSearchParams({ ...activeFilters, return: scene }));
   return <>
-    <QueryList records={entries} queryKey={JSON.stringify([query, status, activeFilters])} view={listView} enabled={!historical}>
+    <QueryList records={entries} queryKey={JSON.stringify([query, status, activeFilters])} view={listView} enabled={!historical} header={
+      <SearchBox value={query} onChange={setQuery} placeholder="搜索供应商或合作事项">
+        <FilterButton label="筛选评分" active={filterCount > 0} onClick={openFilters} />
+      </SearchBox>
+    }>
       {visible => <>
-        <SearchBox value={query} onChange={setQuery} placeholder="搜索供应商或合作事项">
-          <FilterButton label="筛选评分" active={filterCount > 0} onClick={openFilters} />
-        </SearchBox>
         <AppliedFilters count={filterCount} onClear={() => go(scene + '?')} />
         {!mine && <FilterSummary count={entries.length} />}
         {mine && <CountTabs label="评分状态" items={statusItems} active={status} onChange={setStatus} />}
@@ -159,13 +160,14 @@ export function RatingOperations({ historical }) {
     const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' })); const a = document.createElement('a'); a.href = url; a.download = '评分查询-演示数据.csv'; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
   return <>
-    <QueryList records={visible} queryKey={JSON.stringify(applied)} enabled={!historical}>
+    <QueryList records={visible} queryKey={JSON.stringify(applied)} enabled={!historical} header={
+      <div className="m-filter-summary">
+        <FilterButton label="筛选评分运维" active={filterCount > 0}
+          onClick={() => { setData({ ...applied }); setDateError(''); setFilterOpen(true); }} />
+        {historical && <button onClick={exportRows}>导出当前记录</button>}
+      </div>
+    }>
       {records => <>
-        <div className="m-filter-summary">
-          <FilterButton label="筛选评分运维" active={filterCount > 0}
-            onClick={() => { setData({ ...applied }); setDateError(''); setFilterOpen(true); }} />
-          {historical && <button onClick={exportRows}>导出当前记录</button>}
-        </div>
         <AppliedFilters count={filterCount} onClear={() => setApplied(emptyRatingFilters)} />
         <p className="m-input-note" role="status">共 {visible.length} 条；创建时间：{applied.start || '不限'} 至 {applied.end || '不限'}；排除评分人：{applied.names.trim() || '无'}</p>
         <div className="m-record-actions"><button disabled>批量发起评分</button></div>

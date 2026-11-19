@@ -4,7 +4,7 @@ const pageSize = 20;
 const pullThreshold = 64;
 const interactive = 'input, textarea, select, button, a, label, [role="dialog"], [data-no-swipe]';
 
-export function QueryList({ records, queryKey, view, enabled = true, children }) {
+export function QueryList({ records, queryKey, header, view, enabled = true, children }) {
   const [limit, setLimit] = useState(() => view?.queryKey === queryKey ? view?.limit ?? pageSize : pageSize);
   const [phase, setPhase] = useState('');
   const [pull, setPull] = useState(0);
@@ -64,8 +64,10 @@ export function QueryList({ records, queryKey, view, enabled = true, children })
     const cancel = () => { start = null; distance = 0; setPull(0); };
     const begin = event => {
       if (event.touches.length !== 1) return cancel();
-      if (frame.current || !atTop() || event.target.closest(interactive)) return;
+      if (frame.current || !atTop()) return;
       const point = event.touches[0];
+      const target = event.isTrusted ? document.elementFromPoint(point.clientX, point.clientY) || event.target : event.target;
+      if (!node.contains(target) || target.closest(interactive)) return;
       const bounds = node.getBoundingClientRect();
       if (point.clientX < bounds.left + 24 || point.clientX > bounds.right - 24) return;
       start = { x: point.clientX, y: point.clientY };
@@ -101,16 +103,19 @@ export function QueryList({ records, queryKey, view, enabled = true, children })
     };
   }, [enabled, update]);
 
-  if (!enabled) return children(records);
+  if (!enabled) return <>{header}{children(records)}</>;
   const refreshing = phase === 'refresh';
   const refreshLabel = refreshing ? '正在刷新…' : pull >= pullThreshold / 1.6 ? '松开刷新' : '下拉刷新';
-  return <div className="m-query-list" ref={list}>
-    {(pull > 0 || refreshing) && <div className="m-list-refresh" role="status"
-      style={{ height: refreshing ? 44 : pull }}>{refreshLabel}</div>}
-    {children(records.slice(0, currentLimit))}
-    {hasMore && <div className="m-list-more" ref={tail}>
-      <button type="button" disabled={!!phase} onClick={() => update('more')}>{phase === 'more' ? '加载中…' : '加载更多'}</button>
-    </div>}
-    {!hasMore && currentLimit > pageSize && records.length > 0 && <p className="m-list-end" role="status">已加载全部</p>}
-  </div>;
+  return <>
+    {header}
+    <div className="m-query-list" ref={list}>
+      {(pull > 0 || refreshing) && <div className="m-list-refresh" role="status"
+        style={{ height: refreshing ? 44 : pull }}>{refreshLabel}</div>}
+      {children(records.slice(0, currentLimit))}
+      {hasMore && <div className="m-list-more" ref={tail}>
+        <button type="button" disabled={!!phase} onClick={() => update('more')}>{phase === 'more' ? '加载中…' : '加载更多'}</button>
+      </div>}
+      {!hasMore && currentLimit > pageSize && records.length > 0 && <p className="m-list-end" role="status">已加载全部</p>}
+    </div>
+  </>;
 }

@@ -88,7 +88,7 @@
   body.m-screenshot-comparing .mobile-page .m-actions.m-list-registration-actions {
     left: calc(var(--compare-left) + var(--compare-width) / 2);
     width: min(var(--m-registration-bar-max-width), calc(var(--compare-width) - 2 * var(--m-registration-bar-inset)));
-    transform: translateX(-50%);
+    transform: translate(-50%, var(--m-registration-offset, 0px)) scale(var(--m-registration-scale, 1));
   }
   body.m-screenshot-comparing .mobile-page .m-reference-list .m-actions,
   body.m-screenshot-comparing .mobile-page .m-export-panel .m-actions,
