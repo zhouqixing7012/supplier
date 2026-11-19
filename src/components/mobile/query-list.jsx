@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { LoaderCircle } from 'lucide-react';
 
 const pageSize = 20;
 const pullThreshold = 64;
@@ -10,40 +11,47 @@ export function QueryList({ records, queryKey, header, view, enabled = true, chi
   const [pull, setPull] = useState(0);
   const list = useRef(null);
   const tail = useRef(null);
-  const frame = useRef(0);
+  const cancelUpdate = useRef(null);
   const lastQuery = useRef(queryKey);
   const currentLimit = lastQuery.current === queryKey ? limit : pageSize;
   const hasMore = enabled && currentLimit < records.length;
 
   useLayoutEffect(() => {
-    if (lastQuery.current === queryKey) return;
-    lastQuery.current = queryKey;
-    setLimit(pageSize);
     setPhase('');
     setPull(0);
-    if (enabled) window.scrollTo(0, 0);
+    if (lastQuery.current !== queryKey) {
+      lastQuery.current = queryKey;
+      setLimit(pageSize);
+      if (enabled) window.scrollTo(0, 0);
+    }
+    return () => {
+      cancelUpdate.current?.();
+      cancelUpdate.current = null;
+    };
   }, [queryKey, enabled]);
 
   useEffect(() => {
     if (enabled && view) Object.assign(view, { queryKey, limit: currentLimit });
   }, [view, queryKey, currentLimit, enabled]);
 
-  useLayoutEffect(() => () => {
-    cancelAnimationFrame(frame.current);
-    frame.current = 0;
-  }, [queryKey, enabled]);
-
   const update = useCallback(mode => {
-    if (frame.current || (mode === 'more' && !hasMore) || list.current?.closest('[inert]')) return;
+    if (cancelUpdate.current || (mode === 'more' && !hasMore) || list.current?.closest('[inert]')) return;
     setPhase(mode);
-    // 原型从当前查询的数据源读取下一页，先让查询状态绘制一帧。
-    frame.current = requestAnimationFrame(() => {
-      frame.current = requestAnimationFrame(() => {
-        frame.current = 0;
-        setLimit(old => mode === 'refresh' ? pageSize : old + pageSize);
-        setPhase('');
-      });
+    const finish = () => {
+      cancelUpdate.current = null;
+      setLimit(old => mode === 'refresh' ? pageSize : old + pageSize);
+      setPhase('');
+    };
+    if (mode === 'refresh') {
+      // 本地演示数据没有网络等待，短暂显示刷新反馈。
+      const timer = setTimeout(finish, 320);
+      cancelUpdate.current = () => clearTimeout(timer);
+      return;
+    }
+    let frame = requestAnimationFrame(() => {
+      frame = requestAnimationFrame(finish);
     });
+    cancelUpdate.current = () => cancelAnimationFrame(frame);
   }, [hasMore]);
 
   useEffect(() => {
@@ -64,7 +72,7 @@ export function QueryList({ records, queryKey, header, view, enabled = true, chi
     const cancel = () => { start = null; distance = 0; setPull(0); };
     const begin = event => {
       if (event.touches.length !== 1) return cancel();
-      if (frame.current || !atTop()) return;
+      if (cancelUpdate.current || !atTop()) return;
       const point = event.touches[0];
       const target = event.isTrusted ? document.elementFromPoint(point.clientX, point.clientY) || event.target : event.target;
       if (!node.contains(target) || target.closest(interactive)) return;
@@ -110,7 +118,10 @@ export function QueryList({ records, queryKey, header, view, enabled = true, chi
     {header}
     <div className="m-query-list" ref={list}>
       {(pull > 0 || refreshing) && <div className="m-list-refresh" role="status"
-        style={{ height: refreshing ? 44 : pull }}>{refreshLabel}</div>}
+        style={{ height: refreshing ? 44 : pull }}>
+        {refreshing && <LoaderCircle className="m-list-refresh-spinner" size={16} aria-hidden="true" />}
+        <span>{refreshLabel}</span>
+      </div>}
       {children(records.slice(0, currentLimit))}
       {hasMore && <div className="m-list-more" ref={tail}>
         <button type="button" disabled={!!phase} onClick={() => update('more')}>{phase === 'more' ? '加载中…' : '加载更多'}</button>

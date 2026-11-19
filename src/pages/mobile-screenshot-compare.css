@@ -71,6 +71,7 @@
     right: calc(var(--compare-left) + 12px); z-index: 90;
   }
   body.m-screenshot-comparing .mobile-page .m-header { top: 132px; }
+  body.m-screenshot-comparing .mobile-page:not(.m-shot).m-list-page { --m-list-top: 132px; }
   body.m-screenshot-comparing .mobile-page .m-fullscreen-panel .m-header { top: 0; }
   body.m-screenshot-comparing .mobile-page .m-fullscreen-panel {
     top: 132px; bottom: 0; left: var(--compare-left); right: auto;

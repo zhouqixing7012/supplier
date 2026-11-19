@@ -481,6 +481,33 @@ try {
       assert.match(await filterIcon.getAttribute('src'), /\/filter\.svg$/);
     }
   });
+  await check('滚动供应商列表时结果栏吸顶且批量操作可用', async () => {
+    const root = page.locator('#root');
+    try {
+      for (const [scene, width] of [['query', 320], ['mine', 390], ['query', 1100]]) {
+        await page.setViewportSize({ width, height: 845 });
+        await goto('mobile/' + scene);
+        if (width === 1100) await page.getByRole('switch', { name: /原图对照/ }).click();
+        const toolbar = root.getByRole('region', { name: '查询结果' });
+        const tabs = root.locator('.mobile-page > .m-tab-bar');
+        const count = await toolbar.locator('.m-result-count').innerText();
+        const initial = await toolbar.boundingBox();
+        for (const scroll of [420, 810]) {
+          await page.evaluate(y => scrollTo(0, y), scroll);
+          const [barBox, tabBox] = await Promise.all([toolbar.boundingBox(), tabs.boundingBox()]);
+          assert.ok(barBox.y < initial.y);
+          assert.ok(Math.abs(barBox.y - tabBox.y - tabBox.height) < 1);
+          assert.equal(await toolbar.locator('.m-result-count').innerText(), count);
+        }
+        await toolbar.getByRole('button', { name: '批量操作', exact: true }).click();
+        await root.locator('.m-batch-actions').waitFor();
+        await toolbar.getByRole('button', { name: '取消批量操作', exact: true }).click();
+        await root.locator('.m-batch-actions').waitFor({ state: 'hidden' });
+      }
+    } finally {
+      await page.setViewportSize({ width: 390, height: 845 });
+    }
+  });
   await check('查询列表滚动追加、顶部刷新和短拉取消', async () => {
     await page.setViewportSize({ width: 390, height: 845 });
     await goto('mobile/query');
@@ -509,9 +536,11 @@ try {
     const cdp = await context.newCDPSession(page);
     const touch = (type, y) => cdp.send('Input.dispatchTouchEvent', { type,
       touchPoints: y === undefined ? [] : [{ x: 190, y }] });
+    const spinner = root.locator('.m-list-refresh-spinner');
     await touch('touchStart', 320);
     await touch('touchMove', 350);
     await root.getByText('下拉刷新', { exact: true }).waitFor();
+    assert.equal(await spinner.count(), 0);
     await touch('touchEnd');
     assert.equal(await cards.count(), total);
     await touch('touchStart', 320);
@@ -519,6 +548,9 @@ try {
     await touch('touchMove', 418);
     await root.getByText('松开刷新', { exact: true }).waitFor();
     await touch('touchEnd');
+    await spinner.waitFor();
+    assert.equal(await spinner.evaluate(el => getComputedStyle(el).animationName), 'm-spinner-turn');
+    assert.equal(await root.locator('.m-list-refresh').innerText(), '正在刷新…');
     await root.locator('.m-list-refresh').waitFor({ state: 'hidden' });
     assert.deepEqual(await cards.locator('h3').allInnerTexts(), firstPage);
     await cdp.detach();

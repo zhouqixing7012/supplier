@@ -9,16 +9,18 @@
   --m-control-border: #cbd5e1;
   --m-info-surface: #edf4ff;
   --m-radius-control: 8px;
+  --m-header-height: 56px;
+  --m-tabs-height: 44px;
   background: #f4f7fa;
   font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', 'Supplier Noto SC', Arial, sans-serif;
   font-size: 14px;
   line-height: 1.6;
 }
-.mobile-page:not(.m-shot) .m-header { height: 56px; border-bottom-color: #e8edf2; }
+.mobile-page:not(.m-shot) .m-header { height: var(--m-header-height); border-bottom-color: #e8edf2; }
 .mobile-page:not(.m-shot) .m-header h1 { font-size: 16px; font-weight: 600; color: #172334; }
 .mobile-page:not(.m-shot) .m-header svg { width: 22px; height: 22px; stroke-width: 1.8; }
-.mobile-page:not(.m-shot) .m-tab-bar { top: 56px; border-bottom-color: #edf1f5; }
-.mobile-page:not(.m-shot) .m-tabs { height: 44px; border-bottom: 0; }
+.mobile-page:not(.m-shot) .m-tab-bar { top: calc(var(--m-list-top, 0px) + var(--m-header-height)); border-bottom-color: #edf1f5; }
+.mobile-page:not(.m-shot) .m-tabs { height: var(--m-tabs-height); border-bottom: 0; }
 .mobile-page:not(.m-shot) .m-tabs button { font-size: 14px; padding-inline: 12px; color: var(--m-text-secondary); }
 .mobile-page:not(.m-shot) .m-tabs button.active { color: var(--m-action); font-weight: 600; }
 .mobile-page:not(.m-shot) .m-tabs button.active::after { width: 24px; left: calc(50% - 12px); bottom: 0; height: 3px; }
@@ -44,7 +46,8 @@
   display: grid; place-items: center; margin: 0;
   color: var(--m-text-secondary); font-size: 14px;
 }
-.m-list-refresh { overflow: hidden; }
+.m-list-refresh { display: flex; align-items: center; justify-content: center; gap: 6px; overflow: hidden; }
+.m-list-refresh-spinner { flex: none; color: var(--m-action); animation: m-spinner-turn 800ms linear infinite; }
 .m-list-more, .m-list-end { min-height: 44px; }
 .mobile-page .m-list-more button { min-height: 44px; padding-inline: 16px; color: var(--m-action); }
 html:has(.m-query-list) { overscroll-behavior-y: none; }
@@ -558,8 +561,8 @@ html:has(.m-query-list) { overscroll-behavior-y: none; }
 .mobile-page .m-travel-upload-button:disabled { opacity: .58; cursor: wait; }
 .mobile-page .m-travel-upload-button:focus-visible { outline: 2px solid var(--m-action); outline-offset: 2px; }
 .mobile-page .m-travel-upload-button:active:not(:disabled) { background: #edf3ff; }
-.m-travel-upload-spinner { animation: m-travel-upload-spin 1s linear infinite; }
-@keyframes m-travel-upload-spin { to { transform: rotate(360deg); } }
+.m-travel-upload-spinner { animation: m-spinner-turn 1s linear infinite; }
+@keyframes m-spinner-turn { to { transform: rotate(360deg); } }
 .m-travel-upload-message, .m-travel-upload-files { grid-column: 1 / -1; margin: 0 14px 0 66px; font-size: 12px; line-height: 1.5; overflow-wrap: anywhere; }
 .m-travel-upload-message[data-status="uploading"] { color: var(--m-text-secondary); }
 .m-travel-upload-message[data-status="success"] { color: #15803d; }
@@ -1323,7 +1326,12 @@ html:has(.m-query-list) { overscroll-behavior-y: none; }
 }
 
 /* 供应商列表的结果数量、卡片和批量操作共用页面内边距。 */
-.mobile-page:not(.m-shot).m-list-page .m-applied-filters { padding: 0 16px; }
+.mobile-page:not(.m-shot).m-list-page .m-query-list > .m-applied-filters {
+  position: sticky;
+  top: calc(var(--m-list-top, 0px) + var(--m-header-height) + var(--m-tabs-height));
+  z-index: 18;
+  padding: 0 16px;
+}
 .m-management-swipe { touch-action: pan-y pinch-zoom; }
 body:has(.mobile-page > .m-list-registration-actions) {
   --m-registration-bar-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
