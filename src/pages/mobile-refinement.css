@@ -1311,21 +1311,36 @@
 
 /* 供应商列表的结果数量、卡片和批量操作共用页面内边距。 */
 .mobile-page:not(.m-shot).m-list-page .m-applied-filters { padding: 0 16px; }
-.mobile-page:has(> .m-list-registration-actions) { padding-bottom: max(72px, 69px + env(safe-area-inset-bottom, 0px)); }
+.mobile-page:has(> .m-list-registration-actions) {
+  --m-registration-bar-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+  --m-registration-bar-height: 56px;
+  --m-registration-bar-max-width: 304px;
+  padding-bottom: calc(var(--m-registration-bar-height) + var(--m-registration-bar-bottom) + 12px);
+}
 .mobile-page:not(.m-shot) .m-actions.m-list-registration-actions {
-  gap: 8px;
-  padding: 14px 16px calc(14px + env(safe-area-inset-bottom, 0px));
-  border-top-color: #e2e6f0;
+  bottom: var(--m-registration-bar-bottom);
+  width: min(var(--m-registration-bar-max-width), calc(100% - 32px));
+  gap: 6px;
+  padding: 5px;
+  border: 1px solid var(--m-border-subtle);
+  border-radius: 999px;
+  box-shadow: 0 5px 18px #23406a1f;
 }
 .mobile-page:not(.m-shot) .m-list-registration-actions > button.secondary {
-  position: relative;
-  min-height: 40px;
-  border-color: var(--m-action);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 44px;
+  border: 0;
+  border-radius: inherit;
+  background: var(--m-info-surface);
   color: var(--m-action);
-  font-weight: 400;
+  font-size: 14px;
   line-height: 22px;
 }
-.m-list-registration-actions > button::before { content: ''; position: absolute; inset: -2px 0; }
+.m-list-registration-actions > button svg { width: 16px; height: 16px; }
+.mobile-page:not(.m-shot) .m-list-registration-actions > button.secondary:active { color: var(--m-action-pressed); }
 .mobile-page.m-list-page .m-filter-summary:has(> .m-batch-toggle) { flex-wrap: nowrap; min-height: 44px; }
 .mobile-page:not(.m-shot).m-list-page .m-result-count { color: var(--m-text); white-space: nowrap; }
 .mobile-page.m-list-page .m-result-count-value { color: var(--m-action); font-weight: 600; }

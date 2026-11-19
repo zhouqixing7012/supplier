@@ -791,8 +791,8 @@ function MobileSurface({ onComparisonChange, scene, shot, ratings, setRatings, a
     {scene.startsWith('workspace') && <PortalWorkspace mapParams={mapParams} accountMenu={portalAccountMenu} setAccountMenu={setPortalAccountMenu} scene={scene} go={go} notify={notify} store={views} onPreview={preview} />}
     </SwipeArea>
     {!shot && showRegistrationActions && <Actions className="m-list-registration-actions" items={[
-      { label: '邀请注册', secondary: true, onClick: () => openRegistration('invite') },
-      { label: '代注册', secondary: true, onClick: () => openRegistration('register') },
+      { label: '邀请注册', icon: <Send aria-hidden="true" />, secondary: true, onClick: () => openRegistration('invite') },
+      { label: '代注册', icon: <ClipboardPenLine aria-hidden="true" />, secondary: true, onClick: () => openRegistration('register') },
     ]} />}
     {reinvitePrompt && <Confirm title="重新邀请" className="m-reinvite-prompt" text="您名下存在同名且为邀请中或草稿的供应商，是否重新进行邀请。" cancelLabel="取消" confirmLabel="重新邀请" onCancel={() => setReinvitePrompt(null)} onConfirm={() => {
       const target = reinviteCandidate(suppliers, reinvitePrompt.data.name, currentInviter);

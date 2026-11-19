@@ -107,7 +107,15 @@ try {
       await page.locator('#root [data-scene="query"]').waitFor();
       const navigation = page.getByLabel('原型导航');
       assert.ok(await navigation.getByRole('link', { name: '协同门户移动端', exact: true }).isVisible());
-      assert.ok(await page.getByRole('switch', { name: /原图对照/ }).isVisible());
+      const comparison = page.getByRole('switch', { name: /原图对照/ });
+      await comparison.click();
+      const [prototype, capsule] = await Promise.all([
+        page.locator('#root .mobile-page').boundingBox(),
+        page.locator('#root .m-list-registration-actions').boundingBox(),
+      ]);
+      assert.equal(Math.round(capsule.width), 304);
+      assert.ok(Math.abs(capsule.x + capsule.width / 2 - prototype.x - prototype.width / 2) < 1);
+      await comparison.click();
       await navigation.getByRole('link', { name: '电脑端', exact: true }).click();
       await page.waitForURL('**/#/admin/suppliers');
       await page.getByRole('link', { name: '搜狐供应商管理平台', exact: true }).waitFor();
@@ -447,7 +455,7 @@ try {
   await check('系统返回未保存时继续编辑保留内容，再返回可放弃', async () => {
     await goto('mobile'); await button('邀请注册').click(); await field('供应商名称').fill('系统返回检查'); await page.goBack(); await button('继续编辑').click(); assert.equal(await field('供应商名称').inputValue(), '系统返回检查'); await headerBack(); await button('放弃修改').click(); await page.locator('#root [data-scene="query"]').waitFor();
   });
-  await check('供应商查询和我的邀请使用吸底的两个注册入口', async () => {
+  await check('供应商查询和我的邀请使用悬浮胶囊注册入口', async () => {
     const bar = page.locator('#root .m-list-registration-actions');
     for (const width of [320, 390, 768]) {
       await page.setViewportSize({ width, height: 845 });
@@ -456,15 +464,24 @@ try {
         await bar.waitFor();
         assert.deepEqual(await bar.getByRole('button').allInnerTexts(), ['邀请注册', '代注册']);
         assert.equal(await button('新增供应商').count(), 0);
+        assert.equal(await bar.evaluate(el => getComputedStyle(el).borderRadius), '999px');
+        const initialPosition = await bar.boundingBox();
         await page.evaluate(() => scrollTo(0, document.documentElement.scrollHeight));
-        const [footer, first, last, finalCard] = await Promise.all([
+        const [footer, first, last, finalCard, prototype] = await Promise.all([
           bar.boundingBox(), bar.getByRole('button').first().boundingBox(), bar.getByRole('button').last().boundingBox(),
           page.locator('#root .m-supplier-list .m-supplier-card').last().boundingBox(),
+          page.locator('#root .mobile-page').boundingBox(),
         ]);
-        assert.equal(Math.round(footer.y + footer.height), 845);
-        assert.equal(Math.round(first.height), 40);
+        assert.equal(footer.y, initialPosition.y);
+        assert.equal(Math.round(footer.y + footer.height), 833);
+        assert.equal(Math.round(footer.height), 56);
+        assert.equal(Math.round(footer.width), Math.min(304, prototype.width - 32));
+        assert.ok(Math.abs(footer.x + footer.width / 2 - prototype.x - prototype.width / 2) < 1);
+        assert.equal(Math.round(first.height), 44);
+        assert.equal(Math.round(last.height), 44);
         assert.ok(Math.abs(first.width - last.width) < 1);
-        assert.equal(Math.round(last.x - first.x - first.width), 8);
+        assert.equal(Math.round(last.x - first.x - first.width), 6);
+        assert.equal(await bar.locator('button > svg[aria-hidden="true"]').count(), 2);
         assert.ok(finalCard.y + finalCard.height <= footer.y);
         await button('批量操作').click();
         await bar.waitFor({ state: 'hidden' });
