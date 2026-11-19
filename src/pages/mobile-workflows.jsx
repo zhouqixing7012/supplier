@@ -1,6 +1,6 @@
 import { focusFormError } from '../components/mobile/validation.js';
 import { bankApplicationFields, bankApplicationRequired } from './bank-application.js';
-import { Actions, AttachmentLink, CardActions, CountTabs, FilterSummary, Confirm, DateRange, Empty, FilterButton, FullscreenPanel, Row, Section, UploadField } from '../components/mobile/index.js';
+import { Actions, AppliedFilters, AttachmentLink, CardActions, CountTabs, FilterSummary, Confirm, DateRange, Empty, FilterButton, FullscreenPanel, QueryList, Row, Section, UploadField } from '../components/mobile/index.js';
 import { createSessionId, useBackLayer } from './mobile-interaction.jsx';
 import React, { useEffect, useState } from 'react';
 import { Star } from 'lucide-react';
@@ -32,19 +32,35 @@ export const ratingTypes = ['技术服务', '电子产品'];
 export const dimensionsFor = type => type === '电子产品' ? ['产品外观、质量', '售后质量（退换货及维护等）', '供货/服务及时性', '服务体验', '诚信/合规'] : ['人员/服务质量', '供货/服务及时性', '产品质量', '服务体验', '诚信/合规'];
 const time = () => new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Shanghai' });
 
-export function RatingWorkspace({ mine = false, records, onOpen, onAdd, go, filters = {}, savedView = {}, onViewChange }) {
+export function RatingWorkspace({ mine = false, historical = false, records, onOpen, onAdd, go, filters = {}, savedView = {}, listView, onViewChange }) {
   const [query, setQuery] = useState(savedView.ratingQuery || '');
   const [status, setStatus] = useState(savedView.ratingStatus || '全部');
   useEffect(() => onViewChange?.({ ratingQuery: query, ratingStatus: status }), [query, status]);
   // 我的评分不接受联系人和部门条件，兼容旧链接中残留的筛选参数。
-  const activeFilters = mine ? Object.fromEntries(Object.entries(filters).filter(([key]) => !['person', 'department'].includes(key))) : filters;
+  const filterKeys = ['cooperationType', 'start', 'end', ...(mine ? [] : ['person', 'department'])];
+  const activeFilters = Object.fromEntries(filterKeys.filter(key => filters[key]?.trim()).map(key => [key, filters[key]]));
   const matching = records.filter(x => (!mine || x.person === '陈才慧') && (!query || (mine ? [x.name, x.content] : [x.name, x.content, x.person]).some(v => v?.includes(query))) && (!activeFilters.cooperationType || activeFilters.cooperationType === x.type) && (!activeFilters.person || x.person.includes(activeFilters.person)) && (!activeFilters.department || x.department.includes(activeFilters.department)) && (!activeFilters.start || x.rated.slice(0, 10) >= activeFilters.start) && (!activeFilters.end || x.rated.slice(0, 10) <= activeFilters.end));
   const entries = matching.filter(x => status === '全部' || x.status === status);
-  const filterEntries = Object.entries(activeFilters).filter(([key, value]) => key !== 'return' && value);
+  const filterCount = historical ? 0 : Object.keys(activeFilters).length;
   const statusItems = ['全部', '未评分', '已评分'].map(label => ({
     label, count: label === '全部' ? matching.length : matching.filter(x => x.status === label).length,
   }));
-  return <><SearchBox value={query} onChange={setQuery} placeholder="搜索供应商或合作事项"><FilterButton label="筛选评分" onClick={() => go('rating-filter?' + new URLSearchParams({ ...activeFilters, return: mine ? 'my-ratings' : 'ratings' }).toString())} /></SearchBox>{(!mine || filterEntries.length > 0) && <FilterSummary entries={filterEntries} count={mine ? undefined : entries.length} onEdit={() => go('rating-filter?' + new URLSearchParams({ ...activeFilters, return: mine ? 'my-ratings' : 'ratings' }).toString())} onClear={() => go((mine ? 'my-ratings' : 'ratings') + '?')} showConditions={false} />}{mine && <CountTabs label="评分状态" items={statusItems} active={status} onChange={setStatus} />}<div className="m-rating-list">{entries.length ? entries.map(x => <article className="m-bank-card" key={x.id}><div className="m-record-heading"><h3>{x.name}</h3><div className="m-rating-card-state">{mine && x.status === '已评分' ? <strong aria-label={'评价得分' + (x.score || '未提供')}>{x.score ? x.score + '分' : '—'}</strong> : <StatusTag value={x.status} />}</div></div><div className="m-card-body">{[['合作类型', x.type], ['合作事项', x.content], ...(!mine ? [['业务线联系人', x.person], ['所属部门', x.department]] : []), ['合作时间', x.date], ['评分时间', x.rated], ...(!mine ? [['评价得分', x.score === '未评分' ? '' : x.score]] : [])].map(([label, value]) => <Row compact key={label} label={label}>{value || '—'}</Row>)}<CardActions split={mine && x.status !== '未评分'}>{x.status === '未评分' ? <button onClick={() => onOpen(x, false)}>评分</button> : <><button onClick={() => onOpen(x, true)}>评分详情</button>{mine && <button onClick={() => onOpen(x, false)}>修改评分</button>}</>}</CardActions></div></article>) : <Empty search={!!query || Object.entries(activeFilters).some(([key, value]) => key !== 'return' && value)} text={query || Object.entries(activeFilters).some(([key, value]) => key !== 'return' && value) ? '暂无匹配记录' : '暂无评分记录'} />}</div>{!mine && <div className="m-record-actions"><button onClick={onAdd}>新增评分</button></div>}</>;
+  const scene = mine ? 'my-ratings' : 'ratings';
+  const openFilters = () => go('rating-filter?' + new URLSearchParams({ ...activeFilters, return: scene }));
+  return <>
+    <QueryList records={entries} queryKey={JSON.stringify([query, status, activeFilters])} view={listView} enabled={!historical}>
+      {visible => <>
+        <SearchBox value={query} onChange={setQuery} placeholder="搜索供应商或合作事项">
+          <FilterButton label="筛选评分" active={filterCount > 0} onClick={openFilters} />
+        </SearchBox>
+        <AppliedFilters count={filterCount} onClear={() => go(scene + '?')} />
+        {!mine && <FilterSummary count={entries.length} />}
+        {mine && <CountTabs label="评分状态" items={statusItems} active={status} onChange={setStatus} />}
+        <div className="m-rating-list">{visible.length ? visible.map(x => <article className="m-bank-card" key={x.id}><div className="m-record-heading"><h3>{x.name}</h3><div className="m-rating-card-state">{mine && x.status === '已评分' ? <strong aria-label={'评价得分' + (x.score || '未提供')}>{x.score ? x.score + '分' : '—'}</strong> : <StatusTag value={x.status} />}</div></div><div className="m-card-body">{[['合作类型', x.type], ['合作事项', x.content], ...(!mine ? [['业务线联系人', x.person], ['所属部门', x.department]] : []), ['合作时间', x.date], ['评分时间', x.rated], ...(!mine ? [['评价得分', x.score === '未评分' ? '' : x.score]] : [])].map(([label, value]) => <Row compact key={label} label={label}>{value || '—'}</Row>)}<CardActions split={mine && x.status !== '未评分'}>{x.status === '未评分' ? <button onClick={() => onOpen(x, false)}>评分</button> : <><button onClick={() => onOpen(x, true)}>评分详情</button>{mine && <button onClick={() => onOpen(x, false)}>修改评分</button>}</>}</CardActions></div></article>) : <Empty search={!!query || Object.keys(activeFilters).length > 0} text={query || Object.entries(activeFilters).some(([key, value]) => key !== 'return' && value) ? '暂无匹配记录' : '暂无评分记录'} />}</div>
+      </>}
+    </QueryList>
+    {!mine && <div className="m-record-actions"><button onClick={onAdd}>新增评分</button></div>}
+  </>;
 }
 
 const starPositions = [1, 2, 3, 4, 5];
@@ -122,14 +138,17 @@ export function RatingEditor({ record, supplier, readOnly, onCancel, onSave, not
     {readOnly ? <><Row label="评价">{data.comment || '—'}</Row><Row label="评价得分">{data.score || '—'}</Row><Row label="评分时间">{data.rated}</Row></> : <Field label="评价" multiline maxLength={500} value={data.comment} onChange={comment => setData({ ...data, comment })} />}</Section>{!readOnly && <Actions items={[{ label: '取消', secondary: true, onClick: onCancel }, { label: '提交', onClick: submit }]} />}{nextType && <Confirm text="切换合作类型后需要重新填写评分项，是否继续？" onCancel={() => setNextType('')} onConfirm={() => { setData({ ...data, type: nextType, dimensions: [] }); setErrors({}); setNextType(''); }} />}</>;
 }
 
+const emptyRatingFilters = { start: '', end: '', names: '' };
+
 export function RatingOperations({ historical }) {
   const [filterOpen, setFilterOpen] = useState(false);
-  const [data, setData] = useState({ start: '', end: '', names: '' });
-  const [applied, setApplied] = useState({ start: '', end: '', names: '' });
+  const [data, setData] = useState(emptyRatingFilters);
+  const [applied, setApplied] = useState(emptyRatingFilters);
   const [dateError, setDateError] = useState('');
   const rows = cooperation.map((x, i) => ({ ...x, created: '2026-08-14 18:52:32', id: ['20882171982136639490', '2088217198212136961', '2099345533281612000'][i] }));
   const excluded = applied.names.split(/[\n#]/).map(x => x.trim()).filter(Boolean);
   const visible = rows.filter(x => (!applied.start || x.created.slice(0, 10) >= applied.start) && (!applied.end || x.created.slice(0, 10) <= applied.end) && !excluded.includes(x.person));
+  const filterCount = historical ? 0 : Object.values(applied).filter(value => value.trim()).length;
   useBackLayer(filterOpen, () => setFilterOpen(false));
   const apply = () => { if (data.start && data.end && data.start > data.end) return setDateError('结束日期不能早于开始日期'); setApplied({ ...data }); setFilterOpen(false); };
   const exportRows = () => {
@@ -139,8 +158,23 @@ export function RatingOperations({ historical }) {
     const csv = '\uFEFF' + [header, ...visible.map(x => fields.map(k => x[k]))].map(r => r.map(safe).join(',')).join('\r\n');
     const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' })); const a = document.createElement('a'); a.href = url; a.download = '评分查询-演示数据.csv'; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
-  return <><div className="m-filter-summary"><FilterButton label="筛选评分运维" onClick={() => { setData({ ...applied }); setDateError(''); setFilterOpen(true); }} />{historical && <button onClick={exportRows}>导出当前记录</button>}</div><p className="m-input-note" role="status">共 {visible.length} 条；创建时间：{applied.start || "不限"} 至 {applied.end || "不限"}；排除评分人：{applied.names.trim() || "无"}</p><div className="m-record-actions"><button disabled>批量发起评分</button></div>{filterOpen && <FullscreenPanel title="筛选评分运维" onBack={() => setFilterOpen(false)}><div className="m-filter-view"><DateRange label="创建时间" value={[data.start, data.end]} endError={dateError}
-    onChange={([start, end]) => { setData({ ...data, start, end }); setDateError(''); }} /><FilterField label="排除评分人" value={data.names} multiline placeholder={'输入排除评分人，每行一项或用“#”分隔'} onChange={names => setData({ ...data, names: names.replaceAll('#', '\n') })} /><p className="m-input-note">日期按记录创建时间查询，结束日期包含当日；名单按评分人姓名排除。</p><Actions flat items={[{ label: '重置', muted: true, onClick: () => { setData({ start: '', end: '', names: '' }); setDateError(''); } }, { label: '应用筛选', onClick: apply }]} /></div></FullscreenPanel>}<div className="m-rating-list">{visible.length ? visible.map(x => <article className="m-bank-card" key={x.id}><h3>{x.name}</h3><div className="m-card-body">{[['主键', x.id], ['合作类型', x.type], ['合作内容', x.content], ['业务线联系人', x.person], ['所属部门', x.department], ['合作时间', x.date], ['创建时间', x.created]].map(([label, value]) => <Row label={label} compact key={label}>{value || '—'}</Row>)}</div></article>) : <Empty search={!!applied.start || !!applied.end || !!applied.names.trim()} text="暂无匹配记录" />}</div></>;
+  return <>
+    <QueryList records={visible} queryKey={JSON.stringify(applied)} enabled={!historical}>
+      {records => <>
+        <div className="m-filter-summary">
+          <FilterButton label="筛选评分运维" active={filterCount > 0}
+            onClick={() => { setData({ ...applied }); setDateError(''); setFilterOpen(true); }} />
+          {historical && <button onClick={exportRows}>导出当前记录</button>}
+        </div>
+        <AppliedFilters count={filterCount} onClear={() => setApplied(emptyRatingFilters)} />
+        <p className="m-input-note" role="status">共 {visible.length} 条；创建时间：{applied.start || '不限'} 至 {applied.end || '不限'}；排除评分人：{applied.names.trim() || '无'}</p>
+        <div className="m-record-actions"><button disabled>批量发起评分</button></div>
+        <div className="m-rating-list">{records.length ? records.map(x => <article className="m-bank-card" key={x.id}><h3>{x.name}</h3><div className="m-card-body">{[['主键', x.id], ['合作类型', x.type], ['合作内容', x.content], ['业务线联系人', x.person], ['所属部门', x.department], ['合作时间', x.date], ['创建时间', x.created]].map(([label, value]) => <Row label={label} compact key={label}>{value || '—'}</Row>)}</div></article>) : <Empty search={!!applied.start || !!applied.end || !!applied.names.trim()} text="暂无匹配记录" />}</div>
+      </>}
+    </QueryList>
+    {filterOpen && <FullscreenPanel title="筛选评分运维" onBack={() => setFilterOpen(false)}><div className="m-filter-view"><DateRange label="创建时间" value={[data.start, data.end]} endError={dateError}
+    onChange={([start, end]) => { setData({ ...data, start, end }); setDateError(''); }} /><FilterField label="排除评分人" value={data.names} multiline placeholder={'输入排除评分人，每行一项或用“#”分隔'} onChange={names => setData({ ...data, names: names.replaceAll('#', '\n') })} /><p className="m-input-note">日期按记录创建时间查询，结束日期包含当日；名单按评分人姓名排除。</p><Actions flat items={[{ label: '重置', muted: true, onClick: () => { setData(emptyRatingFilters); setDateError(''); } }, { label: '应用筛选', onClick: apply }]} /></div></FullscreenPanel>}
+  </>;
 }
 
 export function BankApplicationForm({ notify, onCancel, savedApplication, onComplete }) {

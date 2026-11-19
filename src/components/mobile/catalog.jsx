@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import {
-  ActionSheet, Actions, AddressForm, CardActions, Checkbox, Confirm, CountTabs, DateRange, DateSheet, Empty, Field, FileUploadField, FilterButton, FilterSummary,
+  ActionSheet, Actions, AddressForm, AppliedFilters, CardActions, Checkbox, Confirm, CountTabs, DateRange, DateSheet, Empty, Field, FileUploadField, FilterButton, FilterSummary,
   FullscreenPanel, Header, MultiAttachmentField, OptionSheet, Overlay, PickerHeading,
   RecordCard, RecordCollection, ReferencePicker, Row, SearchBox,
   Section, StatusBadge, Steps, Tabs, UploadField,
@@ -84,10 +84,10 @@ function SearchExamples() {
 
   return <>
     <SearchBox value={query} onChange={setQuery} placeholder="搜索示例供应商">
-      <FilterButton onClick={() => setOpen(true)} />
+      <FilterButton active={!!type} onClick={() => setOpen(true)} />
     </SearchBox>
-    <FilterSummary count={matches.length} entries={type ? [['供应商类型', type]] : []}
-      onEdit={() => setOpen(true)} onClear={() => setType('')} />
+    <AppliedFilters count={type ? 1 : 0} onClear={() => setType('')} />
+    <FilterSummary count={matches.length} />
     {matches.length > 0
       ? <RecordCollection title="搜索结果" count={matches.length} showTitle={false}>
         {matches.map(row => <RecordCard key={row.name} title={row.name}

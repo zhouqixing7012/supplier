@@ -1,6 +1,7 @@
 export { Actions, BatchActions, CardActions, FullscreenPanel, Header, RecordCard, RecordCollection, Row, Section } from './layout.jsx';
 export { Empty, StatusBadge } from './feedback.jsx';
-export { FilterButton, FilterSummary, SearchBox } from './search.jsx';
+export { AppliedFilters, FilterButton, FilterSummary, SearchBox } from './search.jsx';
+export { QueryList } from './query-list.jsx';
 export { ActionSheet, Confirm, Overlay, PickerHeading, SelectionMark } from './dialogs.jsx';
 export { Checkbox, DateRange, Field } from './fields.jsx';
 export { DateSheet, OptionSheet } from './pickers.jsx';

@@ -1,7 +1,7 @@
 import { portalTaskTabFor } from './mobile-portal-filters.js';
 import { embeddedPrototype, mobileAsset, readMobileRoute, readMobileSearch, replaceFrameRoute } from './mobile-prototype-runtime.js';
 import { BankChangeCard } from './mobile-bank-change-view.jsx';
-import { ActionSheet, BatchActions, FullscreenPanel, AddressForm, Actions, RecordCollection, AttachmentViewer, Confirm, Empty, FilterButton, FilterSummary, Header, Overlay, Row, Section, Tabs } from '../components/mobile/index.js';
+import { ActionSheet, AppliedFilters, BatchActions, FullscreenPanel, AddressForm, Actions, RecordCollection, AttachmentViewer, Confirm, Empty, FilterButton, FilterSummary, Header, Overlay, QueryList, Row, Section, Tabs } from '../components/mobile/index.js';
 import { regionData } from './registration-regions.js';
 import { bankChangeCounts, normalizeBankChanges, readBankDraft, writeBankDraft } from './mobile-bank-changes.js';
 import { createSessionId } from './mobile-interaction.jsx';
@@ -403,9 +403,17 @@ function MobileSurface({ onComparisonChange, scene, shot, ratings, setRatings, a
     if (['query-add', 'query-more'].includes(scene)) list.sort((a, b) => a.id === '557348' ? -1 : b.id === '557348' ? 1 : 0);
     return list.filter(x => !['draft', 'old', 'person'].includes(x.id));
   }, [suppliers, shot, scene, mine]);
-  const matching = fixtureList.filter(s => (!search || s.name.includes(search)) && (!filters.type || s.type === filters.type) && (!filters.status || s.status === filters.status) && (!filters.recommended || (s.basic?.industry || s.industry) === filters.recommended) && (!filters.inviter || s.inviter.includes(filters.inviter))
-    && (mine || !filters.certificate?.trim() || String(certificateNumber(s)).toUpperCase().includes(filters.certificate.trim().toUpperCase())));
-  const list = matching.filter(s => (!filters.start || s.date.slice(0, 10) >= filters.start) && (!filters.end || s.date.slice(0, 10) <= filters.end));
+  const supplierFilterKeys = ['type', 'status', 'start', 'end', 'recommended', 'inviter', ...(mine ? [] : ['certificate'])];
+  const appliedSupplierFilters = Object.fromEntries(supplierFilterKeys
+    .map(key => [key, filters[key]?.trim()]).filter(([, value]) => value));
+  const { type, status, recommended, inviter, certificate, start, end } = appliedSupplierFilters;
+  const matching = fixtureList.filter(s => (!search || s.name.includes(search)) && (!type || s.type === type)
+    && (!status || s.status === status) && (!recommended || (s.basic?.industry || s.industry) === recommended)
+    && (!inviter || s.inviter.includes(inviter))
+    && (!certificate || String(certificateNumber(s)).toUpperCase().includes(certificate.toUpperCase())));
+  const list = matching.filter(s => (!start || s.date.slice(0, 10) >= start) && (!end || s.date.slice(0, 10) <= end));
+  const supplierFilterCount = Object.keys(appliedSupplierFilters).length;
+  const supplierQueryKey = JSON.stringify([search, appliedSupplierFilters]);
   const canChangeInviter = canChangeSupplier;
   const selectableList = list.filter(x => canBatchOperate && canSelectSupplierForBatch(x, mine, currentInviter));
   const selectedRecords = list.filter(x => checked.includes(x.id));
@@ -696,35 +704,39 @@ function MobileSurface({ onComparisonChange, scene, shot, ratings, setRatings, a
     {tab >= 0 && <Tabs active={tab} items={menus.map(menu => menu.label)} onChange={selectMenu} showDirectory={false} stretch />}
     <SwipeArea active={Math.max(0, tab)} count={tab >= 0 ? menus.length : 1} onChange={selectMenu}
       className={!shot && isManagementList(scene) ? 'm-management-swipe' : undefined}>
-    {listScene && <>
-      <SearchBox value={search} onChange={setSearch}>
-        {shot && <button className="m-icon-button" aria-label={exportBusy ? '导出中' : '导出供应商'} disabled={exportBusy} onClick={startExport}><Download /></button>}
-        <FilterButton label="筛选供应商" onClick={() => runMotion(() => setFiltering(true), 'forward')} />
-      </SearchBox>
-      <FilterSummary count={list.length} unit="家供应商" label="查询结果" action={canBatchOperate &&
-        <button type="button" className="m-batch-toggle" aria-pressed={batch}
-          onClick={() => runMotion(() => { setBatch(!batch); setChecked([]); }, 'record')}>
-          <img src={mobileAsset('mobile-assets/workbench/supplier-batch-' + (batch ? 'cancel' : 'select') + '.svg')}
-            alt="" width="16" height="16" />
-          {batch ? '取消批量操作' : '批量操作'}
-        </button>
-      } />
-      <SupplierList filtered={!!search || Object.values(filters).some(Boolean)} suppliers={list} mine={mine} batch={batch && canBatchOperate} checked={checked} setChecked={setChecked} admin={adminScene} currentInviter={currentInviter} copyFeedback={shot ? undefined : notify} onDetail={s => pick(s, 'detail')} onBank={s => pick(s, 'bank')} onMore={(s, approval) => { listReturn.current = mine ? 'mine' : 'query'; select(s.id); approval === 'permissions' ? go('permissions') : approval ? go('detail-approval') : setSheet('more'); }} onInviter={s => pick(s, 'inviter')} onScore={startScore} onReinvite={s => { if (canReinviteSupplier(s)) pick(s, 'invite-again'); }} onEdit={s => { if (supplierListActions(s, { mine, inviter: currentInviter }).editDraft) pick(s, 'register-edit'); }} onEditAll={s => { if (supplierListActions(s, { mine, inviter: currentInviter }).editAll) pick(s, 'register-edit-all'); }} onDelete={s => { if (supplierListActions(s, { mine, inviter: currentInviter }).delete) setConfirm({ type: 'delete', ids: [s.id], text: '确认删除供应商「' + s.name + '」？删除后原有信息全部作废。' }); }} />
-      {shot && showRegistrationActions && <div className="m-fab-group">
-        <div id={addMenuId} className="m-fab-menu" data-open={expanded} inert={!expanded} aria-hidden={!expanded || undefined}>
-          <button type="button" onClick={() => go('invite')}><span className="m-invite-entry-icon"><Send aria-hidden="true" /></span>邀请注册</button>
-          <button type="button" onClick={() => go('register')}><span className="m-register-entry-icon"><ClipboardPenLine aria-hidden="true" /></span>代注册</button>
-        </div>
-        <button type="button" className="m-fab m-fab-blue" aria-label={expanded ? '收起新增入口' : '新增供应商'} aria-controls={addMenuId} aria-expanded={expanded} onClick={() => setExpanded(open => !open)}><Plus aria-hidden="true" /></button>
-      </div>}
-      {batch && canBatchOperate && <BatchActions className={mine ? 'm-batch-actions-mine' : undefined}
-        selectedCount={checked.length} selectableCount={selectableList.length}
-        onSelectAll={mine || shot ? value => setChecked(value ? selectableList.map(x => x.id) : []) : undefined}
-        items={[
-          { label: '删除', danger: true, onClick: requestBatchDelete },
-          ...(mine ? [{ label: '批量变更邀请人', onClick: requestBatchInviter }] : []),
-        ]} />}
-    </>}
+    {listScene && <QueryList records={list} queryKey={supplierQueryKey} enabled={!shot} view={views[scene].list ??= {}}>
+      {visibleSuppliers => <>
+        <SearchBox value={search} onChange={setSearch}>
+          {shot && <button className="m-icon-button" aria-label={exportBusy ? '导出中' : '导出供应商'} disabled={exportBusy} onClick={startExport}><Download /></button>}
+          <FilterButton label="筛选供应商" active={!shot && supplierFilterCount > 0}
+            onClick={() => runMotion(() => setFiltering(true), 'forward')} />
+        </SearchBox>
+        {!shot && <AppliedFilters count={supplierFilterCount} onClear={() => setFilters({})} />}
+        <FilterSummary count={list.length} unit="家供应商" label="查询结果" action={canBatchOperate &&
+          <button type="button" className="m-batch-toggle" aria-pressed={batch}
+            onClick={() => runMotion(() => { setBatch(!batch); setChecked([]); }, 'record')}>
+            <img src={mobileAsset('mobile-assets/workbench/supplier-batch-' + (batch ? 'cancel' : 'select') + '.svg')}
+              alt="" width="16" height="16" />
+            {batch ? '取消批量操作' : '批量操作'}
+          </button>
+        } />
+        <SupplierList filtered={!!search || supplierFilterCount > 0} suppliers={visibleSuppliers} mine={mine} batch={batch && canBatchOperate} checked={checked} setChecked={setChecked} admin={adminScene} currentInviter={currentInviter} copyFeedback={shot ? undefined : notify} onDetail={s => pick(s, 'detail')} onBank={s => pick(s, 'bank')} onMore={(s, approval) => { listReturn.current = mine ? 'mine' : 'query'; select(s.id); approval === 'permissions' ? go('permissions') : approval ? go('detail-approval') : setSheet('more'); }} onInviter={s => pick(s, 'inviter')} onScore={startScore} onReinvite={s => { if (canReinviteSupplier(s)) pick(s, 'invite-again'); }} onEdit={s => { if (supplierListActions(s, { mine, inviter: currentInviter }).editDraft) pick(s, 'register-edit'); }} onEditAll={s => { if (supplierListActions(s, { mine, inviter: currentInviter }).editAll) pick(s, 'register-edit-all'); }} onDelete={s => { if (supplierListActions(s, { mine, inviter: currentInviter }).delete) setConfirm({ type: 'delete', ids: [s.id], text: '确认删除供应商「' + s.name + '」？删除后原有信息全部作废。' }); }} />
+        {shot && showRegistrationActions && <div className="m-fab-group">
+          <div id={addMenuId} className="m-fab-menu" data-open={expanded} inert={!expanded} aria-hidden={!expanded || undefined}>
+            <button type="button" onClick={() => go('invite')}><span className="m-invite-entry-icon"><Send aria-hidden="true" /></span>邀请注册</button>
+            <button type="button" onClick={() => go('register')}><span className="m-register-entry-icon"><ClipboardPenLine aria-hidden="true" /></span>代注册</button>
+          </div>
+          <button type="button" className="m-fab m-fab-blue" aria-label={expanded ? '收起新增入口' : '新增供应商'} aria-controls={addMenuId} aria-expanded={expanded} onClick={() => setExpanded(open => !open)}><Plus aria-hidden="true" /></button>
+        </div>}
+        {batch && canBatchOperate && <BatchActions className={mine ? 'm-batch-actions-mine' : undefined}
+          selectedCount={checked.length} selectableCount={selectableList.length}
+          onSelectAll={mine || shot ? value => setChecked(value ? selectableList.map(x => x.id) : []) : undefined}
+          items={[
+            { label: '删除', danger: true, onClick: requestBatchDelete },
+            ...(mine ? [{ label: '批量变更邀请人', onClick: requestBatchInviter }] : []),
+          ]} />}
+      </>}
+    </QueryList>}
     {(scene === 'filter' || filtering) && <div className={filtering ? 'm-fullscreen-panel' : ''}>{filtering && <Header title="筛选供应商" onBack={() => runMotion(() => setFiltering(false), 'back')} />}<FilterView listMine={filterMine} initial={filters} onApply={v => { setFilters(v); if (filtering) runMotion(() => setFiltering(false), 'back'); else { views[returnToList()] = { ...views[returnToList()], filters: v }; go(returnToList()); } }} /></div>}
     {scene === 'information-change' && <>{supplier.pendingInformation && supplier.status === '变更中' ? <><ChangeComparison before={supplier} after={supplier.pendingInformation} onPreview={preview} /><Actions items={[{ label: '查看审批', onClick: () => go('approval') }]} /></> : <><Section title="资料变更对比" collapsible={false}><Empty text="暂无待查看的资料变更" /></Section></>}</>}
     {scene.startsWith('detail') && <SupplierDetail supplier={supplier} historicalDemo={historicalDemo} onHistoricalInvite={historicalDemo && canInviteHistoricalSupplier(supplier, currentInviter) ? () => go('invite-historical') : undefined} initialTab={/^[0-8]$/.test(mapParams.tab) ? Number(mapParams.tab) : scene === 'detail-bank' ? 3 : ['detail-approval', 'detail-approval-empty'].includes(scene) ? 7 : scene === 'detail-ratings' ? 8 : 0} approvalEmpty={scene === 'detail-approval-empty'} onPreview={preview} ratings={ratings} onScore={() => { setActiveRating(null); setRatingReturn('detail-ratings'); go('rating-edit'); }} onRatingOpen={(record, readOnly) => { setActiveRating(record); setRatingReturn('detail-ratings'); go(readOnly ? 'rating-detail' : 'rating-edit'); }} />}
@@ -791,7 +803,7 @@ function MobileSurface({ onComparisonChange, scene, shot, ratings, setRatings, a
     {addressOpen && <AddressForm sheet regions={regionData} initial={basic.address} onConfirm={v => { setBasic({ ...basic, address: v }); setAddressOpen(false); }} onCancel={() => setAddressOpen(false)} />}
     {['address', 'region'].includes(scene) && <AddressForm regions={regionData} initial={shot ? '云南省/保山市/龙陵县 个哈哈哈哈' : basic.address} startRegion={scene === 'region'} onConfirm={v => { setBasic({ ...basic, address: v }); go('register'); }} onCancel={() => go('register')} />}
     {registerBankPicker && <div className="m-fullscreen-panel"><Header title={portalRegistration ? (editingBank < 0 ? '添加银行账户' : '修改银行账户') : '供应商管理平台'} onBack={() => window.dispatchEvent(new CustomEvent('mobile-close-register-bank'))} /><BankFields layout="stacked" onCancel={() => setRegisterBankPicker(false)} bank={registerBankForm} setBank={setRegisterBankForm} company={basic.type === supplierTypes[0]} /><Actions items={[{ label: '取消', onClick: () => window.dispatchEvent(new CustomEvent('mobile-close-register-bank')) }, { label: '添加', onClick: saveRegisterBank }]} /></div>}
-    {['ratings', 'my-ratings'].includes(scene) && <RatingWorkspace savedView={views[scene]} onViewChange={value => { views[scene] = { ...views[scene], ...value }; }} mine={scene === 'my-ratings'} records={ratings} filters={filters} go={go} onOpen={(record, readOnly) => { setActiveRating(record); setRatingReturn(scene); go(readOnly ? 'rating-detail' : 'rating-edit'); }} onAdd={() => { setActiveRating(null); setRatingReturn(scene); go('rating-edit'); }} />}
+    {['ratings', 'my-ratings'].includes(scene) && <RatingWorkspace savedView={views[scene]} listView={views[scene].list ??= {}} onViewChange={value => { views[scene] = { ...views[scene], ...value }; }} historical={!!shot} mine={scene === 'my-ratings'} records={ratings} filters={filters} go={go} onOpen={(record, readOnly) => { setActiveRating(record); setRatingReturn(scene); go(readOnly ? 'rating-detail' : 'rating-edit'); }} onAdd={() => { setActiveRating(null); setRatingReturn(scene); go('rating-edit'); }} />}
     {['rating-edit', 'rating-detail'].includes(scene) && (scene === 'rating-detail' && !activeRating ? <><Empty text="未选择评分记录，请返回列表重新选择" /></> : <RatingEditor record={activeRating} supplier={activeRating ? suppliers.find(x => x.name === activeRating.name) || { name: activeRating.name, type: '', status: '', inviter: '', date: '', mode: '' } : supplier} readOnly={scene === 'rating-detail'} notify={notify} onCancel={back} onSave={record => { setRatings(list => list.some(x => x.id === record.id) ? list.map(x => x.id === record.id ? record : x) : [record, ...list]); notify('演示评分已保存'); go(ratingReturn); }} />)}
     {['rating-filter', 'department'].includes(scene) && <FilterView rating mine={filters.return === 'my-ratings'} initial={filters} onApply={returnFromRatingFilter} />}
     {scene === 'rating-ops' && <RatingOperations historical={!!shot} />}

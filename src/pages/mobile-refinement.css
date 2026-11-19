@@ -33,8 +33,21 @@
 .mobile-page:not(.m-shot) .m-applied-filters { padding: 11px 18px 0; border: 0; background: #f4f7fa; }
 .mobile-page:not(.m-shot) .m-result-count { font-size: 14px; color: var(--m-text-secondary); }
 .mobile-page:not(.m-shot) .m-filter-summary button { font-size: 14px; }
-.mobile-page:not(.m-shot) .m-applied-conditions { font-size: 14px; margin-top: 5px; }
-.mobile-page:not(.m-shot) .m-applied-conditions:empty { margin: 0; }
+.m-filter-notice {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  min-height: 36px; padding-inline: 16px;
+  background: #e5f1ff; color: #1d2126; font-size: 14px; line-height: 20px;
+}
+.mobile-page .m-filter-notice button { min-height: 36px; color: var(--m-action); white-space: nowrap; }
+.mobile-page .m-icon-button:has(> img[src$="filter-active.svg"]) > img { width: 24px; height: 24px; }
+.m-list-refresh, .m-list-more, .m-list-end {
+  display: grid; place-items: center; margin: 0;
+  color: var(--m-text-secondary); font-size: 14px;
+}
+.m-list-refresh { overflow: hidden; }
+.m-list-more, .m-list-end { min-height: 44px; }
+.mobile-page .m-list-more button { min-height: 44px; padding-inline: 16px; color: var(--m-action); }
+html:has(.m-query-list) { overscroll-behavior-y: contain; }
 .mobile-page:not(.m-shot) .m-supplier-list { padding: 10px 16px 20px; }
 .mobile-page:not(.m-shot) .m-supplier-card { padding: 16px 16px 0; margin-bottom: 12px; border: 1px solid #e6edf3; border-radius: 12px; box-shadow: 0 3px 12px rgba(24, 42, 68, .025); }
 .m-supplier-heading { display: flex; align-items: flex-start; gap: 8px; }

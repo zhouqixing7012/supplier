@@ -587,10 +587,6 @@ body { font-family: "Microsoft YaHei", "Supplier Noto SC", "PingFang SC", Arial,
 .m-applied-filters { padding: 0 16px 8px; border-bottom: 1px solid var(--m-border-subtle); }
 .m-applied-filters .m-filter-summary { padding: 0; border: 0; gap: 8px; flex-wrap: wrap; }
 .m-result-count { color: var(--m-text-secondary); font-size: 14px; font-variant-numeric: tabular-nums; }
-.m-applied-conditions { display: grid; gap: 4px; margin: 0; font-size: 14px; line-height: 1.7; }
-.m-applied-conditions > div { display: grid; grid-template-columns: 112px minmax(0, 1fr); gap: 8px; }
-.m-applied-conditions dt { color: var(--m-text-secondary); }
-.m-applied-conditions dd { min-width: 0; margin: 0; color: var(--m-text); overflow-wrap: anywhere; }
 .m-dialog { border-radius: var(--m-radius-dialog); overflow-wrap: anywhere; }
 .m-dialog > h2 { position: sticky; top: 0; z-index: 1; margin: 0; padding: 18px 16px 8px; background: var(--m-surface); font-size: 18px; }
 .m-dialog > .m-dialog-actions { position: sticky; bottom: 0; background: var(--m-surface); z-index: 1; }

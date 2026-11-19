@@ -443,29 +443,85 @@ try {
       await button('应用筛选').click();
       const cards = page.locator('#root .m-supplier-card');
       assert.equal(await cards.count(), 2);
-      assert.ok(await card('澄川公共文化服务中心').isVisible());
-      assert.ok(await card('松原青年艺术交流协会').isVisible());
+      await card('澄川公共文化服务中心').waitFor();
+      await card('松原青年艺术交流协会').waitFor();
       await button('筛选供应商').click();
       assert.equal(await type.innerText(), '政府机构或社团');
     }
   });
-  await check('查询结果只展示数量，重新打开筛选回填并可重置', async () => {
+  await check('供应商筛选提示、高亮、回填并清除条件', async () => {
     for (const route of ['mobile', 'mobile/mine']) {
       await goto(route);
       const cards = page.locator('#root .m-supplier-card');
       const total = await cards.count();
+      const filterIcon = button('筛选供应商').locator('img');
+      const notice = page.locator('#root .m-filter-notice');
       await button('筛选供应商').click();
       await choose('供应商状态', '草稿');
       await button('应用筛选').click();
       assert.equal(await cards.count(), 3);
       assert.equal(await page.locator('#root').getByRole('region', { name: '查询结果' }).locator('.m-result-count').innerText(), '共 3 家供应商');
-      assert.equal(await button('清除筛选').count(), 0);
+      assert.equal(await notice.getByRole('status').innerText(), '已应用1项条件');
+      assert.match(await filterIcon.getAttribute('src'), /filter-active\.svg$/);
+      assert.deepEqual(await filterIcon.evaluate(img => [img.naturalWidth, img.naturalHeight]), [24, 24]);
+      assert.equal(await notice.evaluate(el => getComputedStyle(el).backgroundColor), 'rgb(229, 241, 255)');
       await button('筛选供应商').click();
       assert.match(await page.locator('#root').getByRole('combobox', { name: '供应商状态', exact: true }).innerText(), /草稿/);
       await button('重置').click();
       await button('应用筛选').click();
       assert.equal(await cards.count(), total);
+      assert.equal(await notice.count(), 0);
+      await field('搜索供应商名称').fill('草稿');
+      await button('筛选供应商').click();
+      await choose('供应商状态', '草稿');
+      await button('应用筛选').click();
+      await button('清除条件').click();
+      assert.equal(await field('搜索供应商名称').inputValue(), '草稿');
+      assert.equal(await notice.count(), 0);
+      assert.match(await filterIcon.getAttribute('src'), /\/filter\.svg$/);
     }
+  });
+  await check('查询列表滚动追加、顶部刷新和短拉取消', async () => {
+    await page.setViewportSize({ width: 390, height: 845 });
+    await goto('mobile/query');
+    const root = page.locator('#root');
+    const cards = root.locator('.m-supplier-card');
+    const firstPage = await cards.locator('h3').allInnerTexts();
+    const total = Number(await root.locator('.m-result-count-value').innerText());
+    assert.ok(firstPage.length > 0 && firstPage.length < total);
+    await page.evaluate(() => scrollTo(0, document.documentElement.scrollHeight));
+    await root.getByText('已加载全部', { exact: true }).waitFor();
+    const all = await cards.locator('h3').allInnerTexts();
+    assert.equal(all.length, total);
+    assert.equal(new Set(all).size, total);
+    assert.deepEqual(all.slice(0, firstPage.length), firstPage);
+    assert.equal(await button('加载更多').count(), 0);
+    const appended = cards.nth(firstPage.length);
+    await appended.evaluate(el => scrollTo(0, scrollY + el.getBoundingClientRect().top - 220));
+    const scroll = await page.evaluate(() => scrollY);
+    await appended.getByRole('button', { name: '查看详情', exact: true }).click();
+    await root.locator('[data-scene="detail"]').waitFor();
+    await headerBack();
+    await root.locator('[data-scene="query"]').waitFor();
+    assert.equal(await cards.count(), total);
+    assert.ok(Math.abs(await page.evaluate(() => scrollY) - scroll) < 2);
+    await page.evaluate(() => scrollTo(0, 0));
+    const cdp = await context.newCDPSession(page);
+    const touch = (type, y) => cdp.send('Input.dispatchTouchEvent', { type,
+      touchPoints: y === undefined ? [] : [{ x: 190, y }] });
+    await touch('touchStart', 320);
+    await touch('touchMove', 350);
+    await root.getByText('下拉刷新', { exact: true }).waitFor();
+    await touch('touchEnd');
+    assert.equal(await cards.count(), total);
+    await touch('touchStart', 320);
+    await touch('touchMove', 355);
+    await touch('touchMove', 418);
+    await root.getByText('松开刷新', { exact: true }).waitFor();
+    await touch('touchEnd');
+    await root.locator('.m-list-refresh').waitFor({ state: 'hidden' });
+    assert.deepEqual(await cards.locator('h3').allInnerTexts(), firstPage);
+    await cdp.detach();
   });
   await check('审批仅展示纵向节点，审批意见直接可见', async () => {
     await goto('mobile/approval'); assert.equal(await page.locator('#root .m-approval > .m-section:first-of-type .m-approval-timeline li').count(), 4); assert.equal(await page.locator('#root .m-approval table').count(), 0); assert.equal(await page.locator('#root .m-approval > .m-section:first-of-type .m-approval-timeline summary').count(), 0); assert.equal(await page.locator('#root .m-approval > .m-section:first-of-type .m-approval-timeline .m-row').filter({ hasText: '审批意见' }).count(), 4); await shot('approval');
@@ -557,15 +613,25 @@ try {
           [ratingTabColor, 'rgb(255, 255, 255)', '22px', '4px'],
         ]);
         const initialPosition = await bar.boundingBox();
-        await page.evaluate(() => scrollTo(0, document.documentElement.scrollHeight));
-        await page.waitForFunction(y => Math.abs(document.querySelector('#root .m-list-registration-actions')
-          .getBoundingClientRect().top - y) < .5, initialPosition.y);
+        if (await button('加载更多').count()) {
+          await page.evaluate(() => scrollTo(0, document.documentElement.scrollHeight));
+          await page.locator('#root').getByText('已加载全部', { exact: true }).waitFor();
+        }
+        await page.evaluate(async () => {
+          scrollTo(0, document.documentElement.scrollHeight);
+          await new Promise(requestAnimationFrame);
+          await new Promise(requestAnimationFrame);
+        });
+        await page.waitForFunction(y => {
+          const footer = document.querySelector('#root .m-list-registration-actions');
+          return !footer.classList.contains('m-registration-bar-away') && Math.abs(footer.getBoundingClientRect().top - y) < .5;
+        }, initialPosition.y);
         const [footer, first, last, finalCard, prototype] = await Promise.all([
           bar.boundingBox(), bar.getByRole('button').first().boundingBox(), bar.getByRole('button').last().boundingBox(),
           page.locator('#root .m-supplier-list .m-supplier-card').last().boundingBox(),
           page.locator('#root .mobile-page').boundingBox(),
         ]);
-        assert.equal(footer.y, initialPosition.y);
+        assert.ok(Math.abs(footer.y - initialPosition.y) < .5);
         assert.equal(Math.round(footer.y + footer.height), 829);
         assert.equal(Math.round(footer.height), 58);
         assert.equal(Math.round(footer.width), Math.min(304, prototype.width - 36));
@@ -675,7 +741,15 @@ try {
     assert.ok((await page.locator('#root').getByRole('combobox', { name: '合作类型', exact: true }).innerText()).includes('技术服务'));
     await button('重置').click();
     await button('应用筛选').click();
-    assert.equal(await button('清除筛选').count(), 0);
+    assert.equal(await button('清除条件').count(), 0);
+    await button('筛选评分').click();
+    await choose('合作类型', '技术服务');
+    await button('应用筛选').click();
+    await page.locator('#root').getByText('已应用1项条件', { exact: true }).waitFor();
+    assert.match(await button('筛选评分').locator('img').getAttribute('src'), /filter-active\.svg$/);
+    await button('清除条件').click();
+    assert.equal(await search.inputValue(), '滴滴');
+    assert.equal(await page.locator('#root .m-status-tabs .active > span').innerText(), '未评分');
     await goto('mobile/rating-filter?return=ratings');
     assert.equal(await field('业务线联系人').count(), 1);
     assert.equal(await field('所属部门').count(), 1);
@@ -1553,9 +1627,28 @@ try {
     await goto('mobile/workspace-home'); await button('报价管理待处理').click(); await button('筛选报价').click(); await field('采购单位').fill('演示采购'); await choose('采购类型', '服务器'); await button('应用筛选').click(); assert.ok(await button('报价').isVisible());
     await button('筛选报价').click(); await field('采购单位').fill('不存在'); await back(); assert.ok(await button('报价').isVisible());
     await button('已处理').click(); await button('筛选报价').click(); assert.equal(await field('采购单位').inputValue(), ''); await back();
-    await button('待处理').click(); assert.equal(await page.locator('#root .m-applied-conditions').count(), 0);
+    await button('待处理').click(); assert.equal(await page.locator('#root .m-filter-notice').getByRole('status').innerText(), '已应用2项条件');
     await button('筛选报价').click(); assert.equal(await field('采购单位').inputValue(), '演示采购'); await back();
     await headerBack(); await button('价税拆分待处理').click(); await page.locator('#root').getByRole('searchbox',{name:'搜索订单编号',exact:true}).fill('不存在'); assert.ok(await page.locator('#root').getByText('暂无匹配的订单',{exact:true}).isVisible()); await button('筛选价税拆分').click(); assert.ok(await field('采购公司').isVisible()); await button('重置').click(); await button('应用筛选').click(); assert.ok(await page.locator('#root').getByText('暂无匹配的订单',{exact:true}).isVisible()); await button('清空搜索').click(); assert.ok(await button('价税拆分').isVisible());
+  });
+  await check('采购报价和价税拆分各页签清除条件保留搜索', async () => {
+    for (const tab of [0, 1, 2, 3]) {
+      await goto('mobile/workspace-tasks?map=1&tab=' + tab);
+      const quote = tab < 2;
+      const search = field(quote ? '搜索询价单号' : '搜索订单编号');
+      const filterButton = button(quote ? '筛选报价' : '筛选价税拆分');
+      const businessTab = button(tab % 2 ? '已处理' : '待处理');
+      await search.fill('演示编号');
+      await filterButton.click();
+      await field(quote ? '采购单位' : '采购公司').fill('演示采购');
+      await button('应用筛选').click();
+      await page.locator('#root').getByText('已应用1项条件', { exact: true }).waitFor();
+      assert.match(await filterButton.locator('img').getAttribute('src'), /filter-active\.svg$/);
+      await button('清除条件').click();
+      assert.equal(await search.inputValue(), '演示编号');
+      assert.equal(await businessTab.getAttribute('aria-current'), 'page');
+      assert.match(await filterButton.locator('img').getAttribute('src'), /\/filter\.svg$/);
+    }
   });
   for (const width of [320, 390, 430, 768]) await check('代表页面宽度 ' + width, async () => {
     await page.setViewportSize({ width, height: width === 768 ? 1024 : 845 });
@@ -1707,7 +1800,7 @@ try {
         const action = results.getByRole('button', { name: '批量操作', exact: true });
         const [c, b] = await Promise.all([count.boundingBox(), action.boundingBox()]);
         assert.ok(b.x > c.x + c.width && Math.abs(b.y + b.height / 2 - c.y - c.height / 2) < 1);
-        assert.equal(await number.innerText(), String(await page.locator('#root .m-supplier-card').count()));
+        assert.ok(Number(await number.innerText()) >= await page.locator('#root .m-supplier-card').count());
         assert.equal(await number.evaluate(el => getComputedStyle(el).color), 'rgb(20, 92, 255)');
         assert.notEqual(await count.evaluate(el => getComputedStyle(el).color), 'rgb(20, 92, 255)');
         const card = page.locator('#root .m-supplier-card').first();

@@ -10,7 +10,8 @@
 | --- | --- | --- |
 | 标题、页签、步骤 | `Header`、`Tabs`、`CountTabs`、`Steps` | 标题及返回、关闭操作由页面传入。页签通过 `items`、`active`、`onChange` 管理选中项，支持下划线与胶囊样式、等宽排列和标签目录。数量页签由页面传入标签和对应数量。步骤条由页面传入步骤名、当前索引及展开状态。 |
 | 分组和表单 | `Section`、`Row`、`Field`、`Checkbox`、`DateRange` | 分组可折叠。只读信息使用 `Row`。日期区间通过 `DateRange` 传入起止日期。表单传入 `label`、`value` 和 `onChange`，按需配置 `required`、`readOnly`、`multiline`、`error`、`options`、`type="date"`、`onPick` 或键盘类型 `inputMode`。勾选框由页面管理 `checked`、`disabled` 和变更回调。 |
-| 搜索、筛选 | `SearchBox`、`FilterButton`、`FilterSummary` | 搜索词由页面保存。搜索框可并排放筛选按钮。摘要接收 `[字段名, 值]` 列表、结果数量、编辑和清空回调。 |
+| 搜索、筛选 | `SearchBox`、`FilterButton`、`AppliedFilters`、`FilterSummary` | 搜索词由页面保存。筛选按钮通过 `active` 切换图标。提示栏接收已应用条件数及清除回调，结果区单独接收查询总数和批量操作。 |
+| 列表刷新与加载 | `QueryList` | 接收按当前条件排序后的原型数据及条件标识 `queryKey`，向正文提供本次已加载的记录，处理顶部下拉刷新和底部追加。传入 `view` 时，返回相同查询可恢复已加载范围。 |
 | 卡片、状态和空态 | `RecordCollection`、`RecordCard`、`CardActions`、`StatusBadge`、`Empty` | 分组传入标题、数量、空态文字及新增动作。卡片接收标题、状态节点和正文。状态标签支持 `neutral`、`info`、`success`、`warning`、`danger`。搜索无结果使用 `Empty search`。 |
 | 批量操作栏 | `BatchActions` | 接收已选数量、可选数量、操作项和可选的全选回调。零选中时置灰操作，选中及执行规则由调用方决定。 |
 | 操作栏、弹层、确认 | `Actions`、`Overlay`、`ActionSheet`、`FullscreenPanel`、`Confirm`、`PickerHeading`、`SelectionMark` | 操作项包含 `label`、`onClick`，可指定 `primary`、`secondary`、`muted`、`disabled`。弹层传入 `label`、`onClose`，通过 `sheet` 切换底部面板。动作抽屉通过内容传入可用动作。全屏面板共用标题与返回，保存条件由调用页面处理。删除确认用 `danger`，离开未保存编辑用 `unsaved`。 |
