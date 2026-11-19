@@ -16,7 +16,7 @@
 .m-screenshot-scroll { flex: 1; min-height: 0; overflow: auto; border-top: 1px solid #e2e6f0; background: #f1f3f8; overscroll-behavior: contain; }
 .m-screenshot-scroll img { display: block; height: auto; }
 .m-screenshot-scroll p { margin: 16px; }
-@media(max-width: 1099px) { .m-screenshot-panel { left: auto; width: min(390px, calc(100vw - 24px)); z-index: 95; } .m-screenshot-toggle { top: auto; bottom: 92px; } }
+@media(max-width: 1099px) { .m-screenshot-panel { left: auto; width: min(390px, calc(100vw - 24px)); z-index: 95; } .m-screenshot-toggle { top: auto; bottom: var(--m-screenshot-toggle-bottom, 92px); } }
 
 /* 开启对照后共用列宽和顶部基线，原型仍沿用页面原有的滚动及定位逻辑。 */
 .m-prototype-caption { display: none; }
@@ -87,7 +87,7 @@
   }
   body.m-screenshot-comparing .mobile-page .m-actions.m-list-registration-actions {
     left: calc(var(--compare-left) + var(--compare-width) / 2);
-    width: min(var(--m-registration-bar-max-width), calc(var(--compare-width) - 32px));
+    width: min(var(--m-registration-bar-max-width), calc(var(--compare-width) - 2 * var(--m-registration-bar-inset)));
     transform: translateX(-50%);
   }
   body.m-screenshot-comparing .mobile-page .m-reference-list .m-actions,

@@ -462,9 +462,17 @@ try {
       for (const scene of ['query', 'mine']) {
         await goto('mobile/' + scene);
         await bar.waitFor();
-        assert.deepEqual(await bar.getByRole('button').allInnerTexts(), ['邀请注册', '代注册']);
+        assert.deepEqual(await bar.getByRole('button').allInnerTexts(), ['代注册', '邀请注册']);
         assert.equal(await button('新增供应商').count(), 0);
-        assert.equal(await bar.evaluate(el => getComputedStyle(el).borderRadius), '999px');
+        assert.equal(await bar.evaluate(el => getComputedStyle(el).borderRadius), '29px');
+        const buttonStyles = await bar.getByRole('button').evaluateAll(buttons => buttons.map(el => {
+          const { backgroundColor, color, borderRadius, columnGap } = getComputedStyle(el);
+          return [backgroundColor, color, borderRadius, columnGap];
+        }));
+        assert.deepEqual(buttonStyles, [
+          ['rgb(237, 244, 255)', 'rgb(20, 92, 255)', '22px', '4px'],
+          ['rgb(24, 74, 199)', 'rgb(255, 255, 255)', '22px', '4px'],
+        ]);
         const initialPosition = await bar.boundingBox();
         await page.evaluate(() => scrollTo(0, document.documentElement.scrollHeight));
         const [footer, first, last, finalCard, prototype] = await Promise.all([
@@ -473,16 +481,18 @@ try {
           page.locator('#root .mobile-page').boundingBox(),
         ]);
         assert.equal(footer.y, initialPosition.y);
-        assert.equal(Math.round(footer.y + footer.height), 833);
-        assert.equal(Math.round(footer.height), 56);
-        assert.equal(Math.round(footer.width), Math.min(304, prototype.width - 32));
+        assert.equal(Math.round(footer.y + footer.height), 829);
+        assert.equal(Math.round(footer.height), 58);
+        assert.equal(Math.round(footer.width), Math.min(304, prototype.width - 36));
         assert.ok(Math.abs(footer.x + footer.width / 2 - prototype.x - prototype.width / 2) < 1);
         assert.equal(Math.round(first.height), 44);
         assert.equal(Math.round(last.height), 44);
         assert.ok(Math.abs(first.width - last.width) < 1);
-        assert.equal(Math.round(last.x - first.x - first.width), 6);
+        assert.equal(Math.round(first.x - footer.x), 7);
+        assert.equal(Math.round(last.x - first.x - first.width), 8);
+        assert.equal(Math.round(footer.x + footer.width - last.x - last.width), 7);
         assert.equal(await bar.locator('button > svg[aria-hidden="true"]').count(), 2);
-        assert.ok(finalCard.y + finalCard.height <= footer.y);
+        assert.ok(footer.y - finalCard.y - finalCard.height >= 16);
         await button('批量操作').click();
         await bar.waitFor({ state: 'hidden' });
         await button('取消批量操作').click();
