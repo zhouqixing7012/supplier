@@ -1,13 +1,6 @@
 // 会话演示单据，不对应真实采购记录。
 const quoteLine = { material: 'Dell.R740', category: '服务器-服务器主机', quantity: '2', measure: '台', config: '双路处理器，32GB内存，企业级硬盘；含三年保修', grossUnit: '', rate: '', attachment: '', note: '' };
 const head = { unit: '演示采购公司', buyer: '采购员甲', department: '商务采购组', phone: '13800000000', supplier: '协同门户演示供应商', contact: '演示联系人', centralType: '', contract: '', contractName: '', documentStatus: '审批中' };
-export function portalPricingRecords(store) {
-  const account = store.portalAccount?.account ?? null;
-  const accounts = store.portalPricingByAccount ||= new Map();
-  if (!accounts.has(account)) accounts.set(account, { inquiries: createPortalInquiries(), orders: createPortalOrders() });
-  return accounts.get(account);
-}
-
 export function createPortalInquiries() {
   return [
     { number: 'MOCK-INQ-001', title: '服务器采购询价', unit: head.unit, buyer: head.buyer, type: '服务器', created: '2026-11-01 09:00:00', end: '2026-11-20 23:59:59', status: '待处理', inquiryStatus: '询价中', way: '邀请', rate: '', attachment: '', remark: '请核对配置与交付要求', lines: [{ ...quoteLine }, { ...quoteLine, material: '服务器扩展内存', quantity: '4', measure: '条', category: '服务器备件', config: '32GB ECC内存' }] },

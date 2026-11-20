@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Row } from '../components/mobile/index.js';
+import { focusFormError } from '../components/mobile/validation.js';
 import { Field } from './mobile-ui.jsx';
 import { useDirtyForm } from './mobile-interaction.jsx';
 import { registrationPasswordError, registrationPasswordRequirement } from './mobile-registration-password.js';
@@ -27,7 +28,7 @@ export function SupplierAccountRegistration({ invitation, accounts, onComplete }
     if (!form.verification.trim()) next.verification = '请输入验证码';
     else if (form.verification.toLowerCase() !== captcha) next.verification = '验证码错误，请重新输入';
     setErrors(next);
-    if (Object.keys(next).length) return;
+    if (Object.keys(next).length) return focusFormError();
     guard.accept();
     onComplete({ account });
   };

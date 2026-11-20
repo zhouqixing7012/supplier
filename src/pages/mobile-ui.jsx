@@ -1,6 +1,8 @@
+import { mobileAsset } from './mobile-prototype-runtime.js';
 import React from 'react';
-import { Field as MobileField, SearchBox as MobileSearchBox, StatusBadge, Steps } from '../components/mobile/index.js';
+import { Field as MobileField, Overlay, SearchBox as MobileSearchBox, StatusBadge, Steps } from '../components/mobile/index.js';
 import { informationSteps } from './mobile-edit-rules.js';
+import { readMobileRoute } from './mobile-prototype-runtime.js';
 
 export function ChangeTag({ value }) {
   if (!value) return null;
@@ -51,9 +53,13 @@ export function SupplierIdentityCard({ supplier, children, showMeta = true }) {
   return <div className="m-detail-summary"><div className="m-supplier-heading"><h2>{supplier.name}</h2>{supplier.status && <StatusTag value={supplier.status} />}</div>{showMeta && <p className="m-summary-meta"><span>{supplier.type || '—'} · {supplier.mode || '—'}</span></p>}{children}</div>;
 }
 
+export function ScreenshotTip({ onClose }) {
+  return <Overlay label="截屏提示" onClose={onClose}><div className="m-capture-tip"><span className="m-capture-plate"><img src={mobileAsset('mobile-assets/capture-notice-source.jpg')} alt="截屏分享提醒" /></span><p>截屏已生效，分享需谨慎</p><button onClick={onClose}>知道了</button></div></Overlay>;
+}
+
 export function RegistrationSteps({ personal, step, expanded, onExpandedChange }) {
   const stages = informationSteps(personal);
   const labels = ['基本信息', '联系人信息', '银行信息', '预览提交'];
   return <Steps label="注册步骤" items={stages.map(stage => labels[stage])} active={stages.indexOf(step)}
-    collapsible={false} expanded={expanded} onExpandedChange={onExpandedChange} />;
+    collapsible={readMobileRoute().startsWith('shot/')} expanded={expanded} onExpandedChange={onExpandedChange} />;
 }

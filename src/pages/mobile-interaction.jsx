@@ -38,6 +38,48 @@ export function useDirtyForm(data, active = true) {
   return { accept: () => context.clean(id), leave: action => context.request(action, id) };
 }
 
+// 隐藏时保留底部留白，停止滚动或回看前面的记录时恢复入口。
+export function useScrollAway(enabled) {
+  const [hidden, setHidden] = useState(false);
+  useEffect(() => {
+    setHidden(false);
+    if (!enabled) return;
+    let previous = Math.max(0, window.scrollY);
+    let turningPoint = previous;
+    let away = false;
+    let timer;
+    const show = () => {
+      away = false;
+      turningPoint = previous;
+      setHidden(false);
+    };
+    const onScroll = () => {
+      const current = Math.max(0, window.scrollY);
+      if (current === previous) return;
+      previous = current;
+      clearTimeout(timer);
+      if (away) {
+        turningPoint = Math.max(turningPoint, current);
+        if (current === 0 || turningPoint - current >= 8) show();
+      } else {
+        turningPoint = Math.min(turningPoint, current);
+        if (current - turningPoint >= 12) {
+          away = true;
+          turningPoint = current;
+          setHidden(true);
+        }
+      }
+      if (away) timer = setTimeout(show, 240);
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+      clearTimeout(timer);
+    };
+  }, [enabled]);
+  return enabled && hidden;
+}
+
 // 在内容区判断滑动方向；控件、横向滚动区和屏幕边缘保留原手势。
 export function SwipeArea({ active, count, onChange, children, className = '' }) {
   const ref = useRef(null);
@@ -50,8 +92,12 @@ export function SwipeArea({ active, count, onChange, children, className = '' })
     const begin = event => {
       restore(); start = null;
       const point = event.touches[0], box = node.closest('.mobile-page').getBoundingClientRect();
-      if (event.touches.length !== 1 || point.clientX < box.left + 24 || point.clientX > box.right - 24 || event.target.closest('input,textarea,select,button,a,label,[role="dialog"],.m-tabs,.m-table-scroll,[data-no-swipe]')) return;
-      if (event.target.closest('.m-swipe-area') !== node) return;
+      if (event.touches.length !== 1 || point.clientX < box.left + 24 || point.clientX > box.right - 24) return;
+      // 触摸浏览器可能将卡片间隙的触点分配给附近的按钮，按落点区分空白与控件。
+      const target = event.isTrusted && node.matches('.m-management-swipe')
+        ? document.elementFromPoint(point.clientX, point.clientY) || event.target : event.target;
+      if (target.closest('input,textarea,select,button,a,label,[role="dialog"],.m-tabs,.m-table-scroll,[data-no-swipe]')) return;
+      if (target.closest('.m-swipe-area') !== node) return;
       start = { x: point.clientX, y: point.clientY, time: Date.now(), horizontal: false };
     };
     const move = event => {
@@ -77,7 +123,8 @@ export function SwipeArea({ active, count, onChange, children, className = '' })
         Object.assign(visual.style, { position: 'absolute', top: box.top + 'px', width: '100%', margin: '0', pointerEvents: 'none' });
         visualFrame.appendChild(visual);
         node.closest('.mobile-page').appendChild(visualFrame); restoreScrollPositions(scrollPositions); dragNode = node; node.classList.add('m-swipe-dragging');
-        nav = [...node.closest('.mobile-page').querySelectorAll('.m-tabs')].at(-1);
+        nav = node.previousElementSibling?.querySelector('.m-tabs')
+          || [...node.closest('.mobile-page').querySelectorAll('.m-tabs')].at(-1);
       }
       const { active, count } = config.current;
       const edge = (dx > 0 && active === 0) || (dx < 0 && active === count - 1);

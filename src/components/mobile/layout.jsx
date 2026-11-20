@@ -6,7 +6,11 @@ import { Checkbox } from './fields.jsx';
 export function Section({ title, children, className = '', collapsible = true, defaultOpen = true }) {
   const [open, setOpen] = useState(defaultOpen);
   const ref = useRef(null);
-  useEffect(() => { const reveal = e => { if ([...ref.current.querySelectorAll('[data-field-label]')].some(n => e.detail.includes(n.dataset.fieldLabel))) setOpen(true); }; window.addEventListener('mobile-validation', reveal); return () => window.removeEventListener('mobile-validation', reveal); }, []);
+  useEffect(() => {
+    const reveal = ({ detail }) => { if (ref.current?.contains(detail.target)) setOpen(true); };
+    window.addEventListener('mobile-validation', reveal);
+    return () => window.removeEventListener('mobile-validation', reveal);
+  }, []);
   return <section ref={ref} className={`m-section ${className}`}>
     {title && <h2>{collapsible ? <button type="button" className="m-section-heading" onClick={() => setOpen(!open)} aria-expanded={open}><span className="m-collapse">{open ? <ChevronUp /> : <ChevronDown />}</span>{title}</button> : title}</h2>}
     {collapsible ? <div className="m-section-reveal" data-open={open} inert={!open ? true : undefined}><div className="m-section-content">{children}</div></div> : <div className="m-section-content">{children}</div>}
@@ -25,7 +29,7 @@ export function RecordCollection({ title, count = 0, emptyText, addLabel, onAdd,
   return <section className={'m-record-collection ' + className} aria-label={showTitle ? undefined : title}>
     {(showTitle || onAdd) && <div className="m-record-collection-header">
       {showTitle && <h2 className="m-record-collection-title">{title}</h2>}
-      {onAdd && <button type="button" className="m-record-add" aria-label={addLabel || '添加' + title} onClick={onAdd}><Plus aria-hidden="true" /><span>添加</span></button>}
+      {onAdd && <button type="button" className="m-record-add" data-field-label={addLabel || '添加' + title} aria-label={addLabel || '添加' + title} onClick={onAdd}><Plus aria-hidden="true" /><span>添加</span></button>}
     </div>}
     {count ? children : <div className="m-record-empty-card"><Empty text={emptyText || '暂无' + title} /></div>}
   </section>;
@@ -51,9 +55,9 @@ export function BatchActions({ selectedCount, selectableCount, onSelectAll, item
   </footer>;
 }
 
-export function Actions({ items, flat = false, className = '' }) {
+export function Actions({ items, flat = false, className = '', itemsInert = false }) {
   const primary = items.reduce((index, item, i) => !item.secondary && !item.muted && (items.length === 1 || !/^(取消|返回|关闭|上一步|重置|保存草稿|继续修改)/.test(item.label)) ? i : index, -1);
-  return <footer className={`m-actions ${flat ? 'm-actions-flat' : ''} ${className}`}>{items.map((item, i) => <button key={`${item.label}-${i}`} type={item.type || 'button'} className={item.secondary ? 'secondary' : item.muted ? 'muted' : item.primary || i === primary ? 'primary' : 'secondary'} disabled={item.disabled} onClick={item.onClick}>{item.label}</button>)}</footer>;
+  return <footer className={`m-actions ${flat ? 'm-actions-flat' : ''} ${className}`}>{items.map((item, i) => <button key={`${item.label}-${i}`} type={item.type || 'button'} className={item.secondary ? 'secondary' : item.muted ? 'muted' : item.primary || i === primary ? 'primary' : 'secondary'} disabled={item.disabled} inert={itemsInert} onClick={item.onClick}>{item.icon}{item.label}</button>)}</footer>;
 }
 
 export function FullscreenPanel({ title, label = title, onBack, className, children }) {

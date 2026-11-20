@@ -18,10 +18,12 @@ export function Field({
   const [visiblePassword, setVisiblePassword] = useState(false);
 
   useEffect(() => {
-    const show = event => { if (event.detail.includes(label)) setValidation(event.detail); };
+    const show = ({ detail }) => {
+      if (detail.message && detail.target === document.getElementById(id)?.closest('[data-field-label]')) setValidation(detail.message);
+    };
     window.addEventListener('mobile-validation', show);
     return () => window.removeEventListener('mobile-validation', show);
-  }, [label]);
+  }, [id]);
   useEffect(() => setValidation(''), [value]);
 
   const error = fieldError || validation;

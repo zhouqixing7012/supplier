@@ -1,3 +1,5 @@
+export const embeddedPrototype = false;
+
 const excludedRoutes = new Set(['page-map', 'scenes', 'components']);
 
 export function readMobileRoute() {

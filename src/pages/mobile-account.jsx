@@ -1,14 +1,14 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Actions, Row, Section } from '../components/mobile/index.js';
+import { focusFormError } from '../components/mobile/validation.js';
 import { Field } from './mobile-ui.jsx';
 import { useDirtyForm } from './mobile-interaction.jsx';
 import { registrationPasswordError } from './mobile-registration-password.js';
 
 const validEmail = value => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value || '');
-const codeLifetime = 5 * 60 * 1000;
 
 // 会话演示验证码自动回填，不发邮件，不修改真实账户凭据。
-export function AccountSecurityForm({ kind, email, onCancel, onComplete, initialStep = 0 }) {
+export function AccountSecurityForm({ kind, email, onCancel, onComplete, initialStep = 0, api }) {
   const changingEmail = kind === 'email';
   const [step, setStep] = useState(initialStep);
   const [data, setData] = useState({ newEmail: '', code: '', password: '', confirmation: '' });
@@ -27,17 +27,15 @@ export function AccountSecurityForm({ kind, email, onCancel, onComplete, initial
   const emailError = () => !validEmail(target) ? '请输入正确的新邮箱' : changingEmail && step === 1 && target === (email || '').trim() ? '新邮箱不能与原邮箱相同' : '';
   const sendCode = () => {
     const error = emailError();
-    if (error) return setErrors({ newEmail: error });
-    issued.current = { target, expires: Date.now() + codeLifetime };
-    setData(old => ({ ...old, code: '1234' })); setErrors({}); setCountdown(60);
+    if (error) { setErrors({ newEmail: error }); return focusFormError(); }
+    issued.current = api.issueSecurityCode(target);
+    setData(old => ({ ...old, code: issued.current.code })); setErrors({}); setCountdown(60);
   };
   const submit = () => {
     const next = {};
     if (changingEmail && step === 1) { const error = emailError(); if (error) next.newEmail = error; }
-    if (!data.code.trim()) next.code = '请输入邮箱验证码';
-    else if (!issued.current || issued.current.target !== target) next.code = '请先获取邮箱验证码';
-    else if (Date.now() > issued.current.expires) next.code = '验证码已过期，请重新获取';
-    else if (data.code.trim() !== '1234') next.code = '邮箱验证码错误';
+    const codeError = api.verifySecurityCode(issued.current, target, data.code);
+    if (codeError) next.code = codeError;
     if (!changingEmail) {
       const passwordError = registrationPasswordError(data.password);
       if (passwordError) next.password = passwordError;
@@ -45,11 +43,11 @@ export function AccountSecurityForm({ kind, email, onCancel, onComplete, initial
       else if (data.confirmation !== data.password) next.confirmation = '两次输入的密码不一致';
     }
     setErrors(next);
-    if (Object.keys(next).length) return;
+    if (Object.keys(next).length) return focusFormError();
     if (changingEmail && step === 0) {
       oldVerified.current = true; issued.current = null; setCountdown(0); setData(old => ({ ...old, code: '' })); setStep(1); return;
     }
-    if (changingEmail && !oldVerified.current) return setErrors({ code: '请先验证原邮箱' });
+    if (changingEmail && !oldVerified.current) { setErrors({ code: '请先验证原邮箱' }); return focusFormError(); }
     guard.accept();
     onComplete(changingEmail ? target : undefined);
   };

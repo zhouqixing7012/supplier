@@ -2,12 +2,13 @@ import { mobileAsset } from '../../pages/mobile-prototype-runtime.js';
 import React, { useEffect, useId, useRef, useState } from 'react';
 import { Camera, HelpCircle, Paperclip, Plus, X } from 'lucide-react';
 import { attachmentFiles, attachmentName, rememberAttachment } from './attachment-session.js';
+import { mobileFileApi } from '../../api/mobile/host-files.js';
 import { middleEllipsis } from './attachment-name.js';
 import { ActionSheet, Confirm, Overlay } from './dialogs.jsx';
 
-function AttachmentUploadButton({ icon: Icon = Paperclip, primary = false, label, onClick, children }) {
+function AttachmentUploadButton({ icon: Icon = Paperclip, primary = false, label, onClick, children, validation }) {
   return <button type="button" className="m-attachment-upload-button" data-primary={primary || undefined}
-    aria-label={label} onClick={onClick}><Icon aria-hidden="true" /><span>{children}</span></button>;
+    aria-label={label} {...validation} onClick={onClick}><Icon aria-hidden="true" /><span>{children}</span></button>;
 }
 
 function UploadedAttachment({ as: Container = 'div', value, onPreview, removeLabel, onRemove, className = '' }) {
@@ -20,7 +21,13 @@ function UploadedAttachment({ as: Container = 'div', value, onPreview, removeLab
 export function UploadField({ label, required, value, onChange, help, imageOnly = false, variant = 'compact' }) {
   const id = useId();
   const [error, setError] = useState('');
-  useEffect(() => { const show = e => { if (e.detail.includes(label)) setError(e.detail); }; window.addEventListener('mobile-validation', show); return () => window.removeEventListener('mobile-validation', show); }, [label]);
+  useEffect(() => {
+    const show = ({ detail }) => {
+      if (detail.message && detail.target === fileInput.current?.closest('[data-field-label]')) setError(detail.message);
+    };
+    window.addEventListener('mobile-validation', show);
+    return () => window.removeEventListener('mobile-validation', show);
+  }, []);
   useEffect(() => setError(''), [value]);
   const [helpOpen, setHelpOpen] = useState(false);
   const [removing, setRemoving] = useState(false);
@@ -28,6 +35,7 @@ export function UploadField({ label, required, value, onChange, help, imageOnly 
   const [choosingSource, setChoosingSource] = useState(false);
   const fileInput = useRef(null);
   const cameraInput = useRef(null);
+  const validation = { 'data-validation-control': true, 'aria-invalid': !!error, 'aria-describedby': error ? id + '-error' : undefined };
   const fileKind = imageOnly ? '照片' : '照片或文件';
   const receiveFile = file => {
     if (!file) return;
@@ -42,15 +50,15 @@ export function UploadField({ label, required, value, onChange, help, imageOnly 
     {value ? <>
       <UploadedAttachment value={value} onPreview={() => setPreviewOpen(true)} removeLabel={'移除' + label} onRemove={() => setRemoving(true)} />
       <div className="m-upload-tools">
-        <AttachmentUploadButton primary onClick={() => fileInput.current?.click()}>替换{fileKind}</AttachmentUploadButton>
+        <AttachmentUploadButton primary validation={validation} onClick={() => fileInput.current?.click()}>替换{fileKind}</AttachmentUploadButton>
         <AttachmentUploadButton icon={Camera} onClick={() => cameraInput.current?.click()}>拍照</AttachmentUploadButton>
       </div>
-    </> : variant === 'certificate' ? <button type="button" className="m-certificate-upload"
+    </> : variant === 'certificate' ? <button type="button" className="m-certificate-upload" {...validation}
       aria-label={'上传' + label} onClick={() => setChoosingSource(true)}>
       <img src={mobileAsset('mobile-assets/workbench/certificate-upload.svg')} width="28" height="28" alt="" />
       <span>上传图片</span>
     </button> : <div className="m-upload-empty">
-      <AttachmentUploadButton primary label={'选择' + label} onClick={() => fileInput.current?.click()}>
+      <AttachmentUploadButton primary validation={validation} label={'选择' + label} onClick={() => fileInput.current?.click()}>
         {imageOnly ? '选择照片' : '选择文件'}
       </AttachmentUploadButton>
       <AttachmentUploadButton icon={Camera} label={'拍照上传' + label} onClick={() => cameraInput.current?.click()}>拍照</AttachmentUploadButton>
@@ -123,7 +131,7 @@ export function AttachmentViewer({ value, title = '查看附件', onClose }) {
   const file = attachmentFiles.get(value) || resolved;
   const name = attachmentName(value);
   const isImage = file?.type.startsWith('image/');
-  const canResolve = !!value?.fileId && typeof window.__SUPPLIER_ATTACHMENT_DOWNLOAD__ === 'function';
+  const canResolve = !!value?.fileId && mobileFileApi.canDownloadAttachment();
   async function open() {
     if (file) { setOpened(true); return; }
     if (!canResolve || busy) return;
@@ -132,7 +140,7 @@ export function AttachmentViewer({ value, title = '查看附件', onClose }) {
     setBusy(true);
     setError('');
     try {
-      const content = await window.__SUPPLIER_ATTACHMENT_DOWNLOAD__({ fileId: value.fileId, signal: controller.signal });
+      const content = await mobileFileApi.downloadAttachment({ fileId: value.fileId, signal: controller.signal });
       if (!(content instanceof Blob) || !content.size) throw new Error('附件暂不可用，请联系提供方补充。');
       if (!controller.signal.aborted) {
         setResolved({ url: URL.createObjectURL(content), type: content.type });

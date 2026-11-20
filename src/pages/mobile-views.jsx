@@ -1,7 +1,7 @@
 import { readMobileRoute } from './mobile-prototype-runtime.js';
 import { bankApplicationNotice } from './bank-application.js';
 import { ActionSheet, Checkbox, Actions, CardActions, DateRange, RecordCard, RecordCollection, AttachmentLink, Empty, OptionSheet, Row, Section, Tabs } from '../components/mobile/index.js';
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { ChevronDown, ClipboardList, Edit3, Filter, List, MoreHorizontal, Plus, X } from 'lucide-react';
 import { QualificationInfo } from './mobile-qualifications.jsx';
 import { ChangeTag, Field, FilterField, StatusTag, SearchBox, SupplierIdentityCard } from './mobile-ui.jsx';
@@ -13,10 +13,65 @@ import { supplierListActions, canChangeSupplier, canRateSupplier, canReinviteSup
 
 import { MotionDetails, MotionPresence, runMotion } from './mobile-motion.jsx';
 
-export function SupplierList({ suppliers, mine = false, batch = false, checked, setChecked, onDetail, onBank, onMore, onInviter, onReinvite, onEdit, onEditAll, onDelete, onScore, admin = false, currentInviter = '', filtered = false }) {
-  return <div className="m-supplier-list">{suppliers.length ? suppliers.map(s => <SupplierSummary key={s.id} {...{ s, mine, batch, checked, setChecked, onDetail, onBank, onMore, onInviter, onReinvite, onEdit, onEditAll, onDelete, onScore, admin, currentInviter }} />) : <Empty search={filtered} text={filtered ? '暂无匹配结果，请调整搜索或筛选条件' : '暂无供应商记录'} />}</div>;
+export function SupplierList({ suppliers, mine = false, batch = false, checked, setChecked, onDetail, onBank, onMore, onInviter, onReinvite, onEdit, onEditAll, onDelete, onScore, admin = false, currentInviter = '', filtered = false, copyFeedback }) {
+  return <div className="m-supplier-list">{suppliers.length ? suppliers.map(s => <SupplierSummary key={s.id} {...{ s, mine, batch, checked, setChecked, onDetail, onBank, onMore, onInviter, onReinvite, onEdit, onEditAll, onDelete, onScore, admin, currentInviter, copyFeedback }} />) : <Empty search={filtered} text={filtered ? '暂无匹配结果，请调整搜索或筛选条件' : '暂无供应商记录'} />}</div>;
 }
-function SupplierSummary({ s, mine, batch, checked, setChecked, onDetail, onBank, onMore, onInviter, onReinvite, onEdit, onEditAll, onDelete, onScore, admin, currentInviter }) {
+
+async function copySupplierName(name) {
+  if (navigator.clipboard?.writeText) {
+    try {
+      await navigator.clipboard.writeText(name);
+      return true;
+    } catch {
+      // 内嵌页面或浏览器权限可能限制剪贴板 API，继续尝试系统复制命令。
+    }
+  }
+  const active = document.activeElement;
+  const field = document.createElement('textarea');
+  field.value = name;
+  field.readOnly = true;
+  field.tabIndex = -1;
+  Object.assign(field.style, { position: 'fixed', top: '0', left: '0', opacity: '0' });
+  document.body.appendChild(field);
+  try {
+    field.focus({ preventScroll: true });
+    field.select();
+    return document.execCommand('copy');
+  } catch {
+    return false;
+  } finally {
+    field.remove();
+    active?.focus({ preventScroll: true });
+  }
+}
+
+function CopyableSupplierName({ name, notify }) {
+  const press = useRef(null);
+  const moved = point => Math.hypot(point.clientX - press.current.x, point.clientY - press.current.y) > 10;
+  const begin = event => {
+    const point = event.touches[0];
+    press.current = event.touches.length === 1
+      ? { id: point.identifier, x: point.clientX, y: point.clientY, time: performance.now() }
+      : null;
+  };
+  const move = event => {
+    if (press.current && (event.touches.length !== 1 || moved(event.touches[0]))) press.current = null;
+  };
+  const end = async event => {
+    if (!press.current) return;
+    const point = Array.from(event.changedTouches).find(touch => touch.identifier === press.current.id);
+    const longPress = point && !event.touches.length && !moved(point) && performance.now() - press.current.time >= 500;
+    press.current = null;
+    if (longPress) notify(await copySupplierName(name) ? '已复制' : '复制失败，请重试', false);
+  };
+  return <span className="m-copy-supplier-name" onTouchStart={begin} onTouchMove={move} onTouchEnd={end}
+    onTouchCancel={() => { press.current = null; }}
+    onContextMenu={event => { if (press.current || event.nativeEvent.pointerType === 'touch') event.preventDefault(); }}>
+    {name}
+  </span>;
+}
+
+function SupplierSummary({ s, mine, batch, checked, setChecked, onDetail, onBank, onMore, onInviter, onReinvite, onEdit, onEditAll, onDelete, onScore, admin, currentInviter, copyFeedback }) {
   const [menu, setMenu] = useState(false);
   const historical = readMobileRoute().startsWith('shot/');
   const allowed = supplierListActions(s, { mine, inviter: currentInviter });
@@ -36,7 +91,7 @@ function SupplierSummary({ s, mine, batch, checked, setChecked, onDetail, onBank
   const fields = mine ? [['证件号码', displayCertificateNumber(s)], ['联系人姓名', s.contact], ['联系人邮箱', s.email], ['联系人电话', s.phone], ['邀请时间', s.date], ['更新时间', s.updated]] : [['注册方式', s.mode], ['更新时间', s.updated]];
   return <article data-motion-key={"supplier-" + s.id} className={'m-supplier-card' + (mine ? ' m-supplier-card-mine' : '')}>
     <div className="m-supplier-heading"><h3><MotionPresence show={batch} compact className="m-checkbox-presence"><Checkbox label={`选择${s.name}`} disabled={!selectable} checked={checked.includes(s.id)}
-      onChange={value => setChecked(value ? [...checked, s.id] : checked.filter(x => x !== s.id))} /></MotionPresence><i className="m-blue-mark" aria-hidden="true" /><span>{s.name}</span></h3>{!historical && <StatusTag value={s.status} />}</div>
+      onChange={value => setChecked(value ? [...checked, s.id] : checked.filter(x => x !== s.id))} /></MotionPresence><i className="m-blue-mark" aria-hidden="true" />{copyFeedback && s.name ? <CopyableSupplierName name={s.name} notify={copyFeedback} /> : <span>{s.name}</span>}</h3>{!historical && <StatusTag value={s.status} />}</div>
     {!historical && <p className="m-supplier-kind">{s.type}<span>·</span>{s.mode}</p>}
     <dl>{(historical ? [['供应商类型', s.type], ['审批状态', s.status], ...(!mine ? [['邀请人', s.inviter], ['邀请时间', s.date]] : []), ...fields, ...(!mine ? [['评分', s.score]] : [])] : [...(!mine ? [['邀请人', s.inviter], ['邀请时间', s.date]] : []), ...fields.filter(([label]) => label !== '注册方式'), ...(!mine ? [['评分', s.score]] : [])]).map(([label, value]) => <div className={/时间|邮箱|证件|评分/.test(label) ? 'm-supplier-wide' : ''} key={label}><dt>{label}{historical ? '：' : ''}</dt><dd>{label === '审批状态' ? <StatusTag value={value} /> : value || '—'}</dd></div>)}</dl>
 
@@ -61,10 +116,10 @@ export function FilterView({ rating = false, mine = false, listMine = false, ini
     if (data.start && data.end && data.start > data.end) return setDateError('结束日期不能早于开始日期');
     onApply(data);
   };
-  const fields = rating ? [['cooperationType', '合作类型', ['技术服务', '电子产品']], ...(!mine ? [['person', '业务线联系人'], ['department', '所属部门']] : []), ['start', '评分开始时间', 'date']] : [['type', '供应商类型', supplierTypeFilterOptions], ['status', '供应商状态', supplierStates], ['start', '邀请时间（起）', 'date'], ['recommended', '供应商推荐', supplierIndustries], ['inviter', '邀请人'], ...(!listMine ? [['certificate', '证件号码']] : [])];
+  const fields = rating ? [['cooperationType', '合作类型', ['技术服务', '电子产品']], ...(!mine ? [['person', '业务线联系人'], ['department', '所属部门']] : []), ['start', '评分时间', 'date']] : [['type', '供应商类型', supplierTypeFilterOptions], ['status', '供应商状态', supplierStates], ['start', '邀请时间（起）', 'date'], ['recommended', '供应商推荐', supplierIndustries], ['inviter', '邀请人'], ...(!listMine ? [['certificate', '证件号码']] : [])];
   return <div className="m-filter-view">{fields.map(([key, label, kind]) => {
     if (key === 'start') return <DateRange key={key} label={rating ? '评分时间' : '邀请时间'} value={[data.start || '', data.end || '']}
-      startLabel={rating ? '评分开始时间' : undefined} endLabel={rating ? '评分结束时间' : undefined} endError={dateError}
+      startLabel={rating && !mine ? '评分开始时间' : undefined} endLabel={rating && !mine ? '评分结束时间' : undefined} endError={dateError}
       onChange={([start, end]) => { setData({ ...data, start, end }); setDateError(''); }} />;
     const currentValue = data[key] || '';
     const value = key === 'type' && currentValue === institutionType ? institutionLabel : currentValue;
