@@ -7,8 +7,11 @@ import {
   certificateNumber, deleteStatuses, supplierAccount,
 } from '../../pages/mobile-rules.js';
 import { mobileSupplierSamples, registerMobileSupplierSampleFiles } from '../../pages/mobile-supplier-samples.js';
+import { mockInviterCode, mockSupplierUser, mockSupplierViewer, withMockSupplierAccess } from '../../pages/mock-supplier-access.js';
+import { canViewSupplier } from '../../pages/supplier-list-access.js';
 
-const currentInviter = '陈才慧';
+const currentInviter = mockSupplierUser.name;
+const defaultViewer = mockSupplierViewer();
 const now = () => new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Shanghai' });
 const clone = value => structuredClone(value);
 const reject = (message, title) => ({ error: message, title });
@@ -63,8 +66,7 @@ export function queryRatingOperations({ start, end, names }) {
 
 function supplierListFixture(records, { mine, scene, screenshot }) {
   let list = [...records];
-  if (!screenshot) return (mine ? list.filter(record => record.inviter === currentInviter) : list)
-    .sort((left, right) => right.date.localeCompare(left.date));
+  if (!screenshot) return list.sort((left, right) => right.date.localeCompare(left.date));
   list = list.filter(record => !record.id.startsWith('mock-'));
   if (scene === 'query-old') return ['old', 'person'].map(id => list.find(record => record.id === id)).filter(Boolean);
   if (scene === 'mine-empty') return [];
@@ -78,11 +80,13 @@ function supplierListFixture(records, { mine, scene, screenshot }) {
 }
 
 function querySupplierList(records, options) {
-  const { mine, search, filters } = options;
+  const { mine, search, filters, viewer = defaultViewer, inviterCode, screenshot } = options;
+  const scopedRecords = screenshot ? records : records.filter(record =>
+    canViewSupplier(record, viewer, mine ? viewer.userCode : inviterCode));
   const keys = ['type', 'status', 'start', 'end', 'recommended', 'inviter', ...(mine ? [] : ['certificate'])];
   const activeFilters = Object.fromEntries(keys.map(key => [key, filters[key]?.trim()]).filter(([, value]) => value));
   const { type, status, recommended, inviter, certificate, start, end } = activeFilters;
-  const matching = supplierListFixture(records, options).filter(record => (!search || record.name.includes(search))
+  const matching = supplierListFixture(scopedRecords, options).filter(record => (!search || record.name.includes(search))
     && (!type || record.type === type) && (!status || record.status === status)
     && (!recommended || (record.basic?.industry || record.industry) === recommended)
     && (!inviter || record.inviter.includes(inviter))
@@ -100,13 +104,14 @@ function registrationPatch({ basic, contacts, banks, draft = false }) {
 }
 
 function handoverFields(record, inviter) {
-  return record.mode === '历史供应商' ? { inviter, historicalHandoverTo: inviter, historicalInvite: null } : { inviter };
+  const fields = { inviter, inviterCode: mockInviterCode(inviter) };
+  return record.mode === '历史供应商' ? { ...fields, historicalHandoverTo: inviter, historicalInvite: null } : fields;
 }
 
 export function createMockManagement({ bankStorage } = {}) {
   registerMobileSupplierSampleFiles();
   let snapshot = {
-    suppliers: clone([...initialSuppliers, ...mobileSupplierSamples]),
+    suppliers: clone([...initialSuppliers, ...mobileSupplierSamples].map(withMockSupplierAccess)),
     ratings: clone(initialRatings),
     bankApplication: null,
     registrationDraft: null,
@@ -161,7 +166,7 @@ export function createMockManagement({ bankStorage } = {}) {
         return { id: target.id };
       }
       const id = createSessionId();
-      const record = { ...payload, id, supplierCode: 'DEMO-SUP-' + id, date: now(), score: '未评分', code: '', banks: [], permissions: [] };
+      const record = withMockSupplierAccess({ ...payload, id, supplierCode: 'DEMO-SUP-' + id, date: now(), score: '未评分', code: '', banks: [], permissions: [] });
       update({ suppliers: [record, ...snapshot.suppliers] });
       return { id };
     },
@@ -218,8 +223,8 @@ export function createMockManagement({ bankStorage } = {}) {
         return { id };
       }
       const newId = createSessionId();
-      const record = { ...registrationPatch({ ...input, draft: true }), id: newId, status: '草稿', inviter: currentInviter,
-        mode: '代注册', date: now(), permissions: [], score: '未评分' };
+      const record = withMockSupplierAccess({ ...registrationPatch({ ...input, draft: true }), id: newId, status: '草稿', inviter: currentInviter,
+        mode: '代注册', date: now(), permissions: [], score: '未评分' });
       update({ suppliers: [record, ...snapshot.suppliers] });
       return { id: newId };
     },
@@ -246,8 +251,9 @@ export function createMockManagement({ bankStorage } = {}) {
         return { id };
       }
       const newId = createSessionId();
-      update({ suppliers: [{ ...patch, id: newId, supplierCode: 'DEMO-SUP-' + newId, status: '审批中',
-        mode: '代注册', inviter: currentInviter, date: now(), updated: now(), score: '未评分', permissions: [] }, ...snapshot.suppliers] });
+      const record = withMockSupplierAccess({ ...patch, id: newId, supplierCode: 'DEMO-SUP-' + newId, status: '审批中',
+        mode: '代注册', inviter: currentInviter, date: now(), updated: now(), score: '未评分', permissions: [] });
+      update({ suppliers: [record, ...snapshot.suppliers] });
       return { id: newId };
     },
     getRegistrationInvitation: () => snapshot.registrationInvitation || snapshot.suppliers.find(record => record.status === '邀请中'),

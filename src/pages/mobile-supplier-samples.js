@@ -63,7 +63,7 @@ function registeredPerson({ id, name, certificateType, gender, creditCode, addre
 
 const personalSuppliers = [
   registeredPerson({
-    id: 'person-id-card', name: '许澄', certificateType: '身份证', gender: '女', creditCode: 'IDMOCK000120',
+    id: 'person-id-card', name: '许澄', certificateType: '身份证', gender: '女', creditCode: 'IDMOCK000120', source: 0,
     address: '北京市/北京市/朝阳区 样例街12号', cooperation: '专栏撰稿与稿件校对', phone: '10000000120',
     banks: [bank('person-id-card', '许澄', '0000000000120')],
     permissions: [{ id: 'mock-person-id-card-writer', group: '撰稿人权限', category: '撰稿人', note: '稿件结算' }],

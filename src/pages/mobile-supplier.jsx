@@ -17,6 +17,8 @@ import { BankApplicationForm, RatingEditor, RatingOperations, RatingWorkspace, r
 import { InteractionProvider, SwipeArea, useInteraction, useDirtyForm, useBackLayer, usePageIsolation, useScrollAway, attachmentName } from './mobile-interaction.jsx';
 import { SupplierExport, exportSupplierRows } from './mobile-export.jsx';
 import { supplierListActions, canChangeSupplier, canRateSupplier, canReinviteSupplier, canDeleteSupplier, canSelectSupplierForBatch, deleteStatuses, canInviteHistoricalSupplier } from './mobile-rules.js';
+import { mockSupplierUser, mockSupplierViewer } from './mock-supplier-access.js';
+import { canViewSupplier } from './supplier-list-access.js';
 import { procurementNoticeRoute } from './mobile-portal-procurement.js';
 import { PortalWorkspace } from './mobile-portal.jsx';
 import { RegistrationPreview } from './mobile-registration-preview.jsx';
@@ -47,7 +49,7 @@ const screenshotMenus = [
 ];
 
 const clone = value => structuredClone(value);
-const currentInviter = '陈才慧';
+const currentInviter = mockSupplierUser.name;
 const now = () => new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Shanghai' });
 const mobileTitle = scene => {
   if (scene === 'workspace-account-email') return '修改注册邮箱';
@@ -338,8 +340,9 @@ function MobileSurface({ scene, shot, api, snapshot, activeRating, setActiveRati
   const listScene = scene.startsWith('query') || mine;
   const filterMine = mine || mapParams.from === 'mine';
   // 此角色选择只用于原型演示；正式系统按登录身份授权。
-  if (mapParams.map && ['admin', 'employee'].includes(mapParams.role)) views.managementRole = mapParams.role;
-  const adminScene = shot ? shot.index >= 25 : views.managementRole !== 'employee';
+  if (mapParams.map && mapParams.role) views.managementRole = mapParams.role;
+  const viewer = mockSupplierViewer(views.managementRole);
+  const adminScene = shot ? shot.index >= 25 : viewer.isAcpAdmin;
   const canBatchOperate = mine || adminScene;
   const showRegistrationActions = listScene && !(batch && canBatchOperate);
   const registrationBarHidden = useScrollAway(!shot && showRegistrationActions);
@@ -349,10 +352,10 @@ function MobileSurface({ scene, shot, api, snapshot, activeRating, setActiveRati
   const menuRoute = listScene ? (mine ? 'mine' : 'query') : scene;
   const tab = menus.findIndex(menu => menu.route === menuRoute);
   const selectMenu = index => go(menus[index].route);
-  const supplierQuery = { mine, scene, screenshot: !!shot, search, filters };
+  const supplierQuery = { mine, scene, screenshot: !!shot, search, filters, viewer, inviterCode: mapParams.inviterCode };
   const { matching, records: list, activeFilters: appliedSupplierFilters } = management.querySuppliers(supplierQuery);
   const supplierFilterCount = Object.keys(appliedSupplierFilters).length;
-  const supplierQueryKey = JSON.stringify([search, appliedSupplierFilters]);
+  const supplierQueryKey = JSON.stringify([search, appliedSupplierFilters, views.managementRole, supplierQuery.inviterCode]);
   const canChangeInviter = canChangeSupplier;
   const selectableList = list.filter(x => canBatchOperate && canSelectSupplierForBatch(x, mine, currentInviter));
   const selectedRecords = list.filter(x => checked.includes(x.id));
@@ -619,6 +622,12 @@ function MobileSurface({ scene, shot, api, snapshot, activeRating, setActiveRati
     const error = bankFieldError(registerBankForm, basic.type === supplierTypes[0], hasOtherBasicAccount);
     if (error) return notifyField(error);
     setRegisterBanks(editingBank < 0 ? [...registerBanks, { ...registerBankForm, id: createSessionId() }] : registerBanks.map((b, i) => i === editingBank ? { ...registerBankForm, id: b.id } : b)); setRegisterBankPicker(false);
+  }
+
+  const detailFromMine = (mapParams.from || listReturn.current) === 'mine';
+  if (!shot && scene.startsWith('detail') && !canViewSupplier(management.getSupplier(selectedId), viewer, detailFromMine ? viewer.userCode : undefined)) {
+    return <div className="mobile-page" data-scene={scene}><Header title="供应商详情" onBack={() => go(detailFromMine ? 'mine' : 'query')} />
+      <Empty text="供应商记录不存在或超出查询范围" /></div>;
   }
 
   return <div className={'mobile-page ' + (shot ? 'm-shot ' : '') + (shot?.sourceHeight > 2340 ? 'm-long-shot ' : '') + (listScene ? 'm-list-page' : '')} data-scene={scene}>
