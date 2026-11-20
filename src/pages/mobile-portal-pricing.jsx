@@ -5,8 +5,6 @@ import { Field, StatusTag } from './mobile-ui.jsx';
 import { useBackLayer, useDirtyForm } from './mobile-interaction.jsx';
 import { runMotion } from './mobile-motion.jsx';
 import { calculateTax, isDecimal, quoteError, remainingTime } from './mobile-portal-pricing.js';
-import { clearPricingDraft, readPricingDraft, savePricingLine } from './mobile-portal-pricing-drafts.js';
-import { portalPricingRecords } from './mobile-portal-records.js';
 
 const taxFields = [['material', '物料编码'], ['name', '物料名称'], ['category', '物料类别'], ['quantity', '数量'], ['grossUnit', '含税单价'], ['rate', '税率（%）'], ['netUnit', '不含税单价'], ['tax', '税额'], ['net', '不含税金额'], ['gross', '含税金额']];
 const quoteFields = [['material', '物料名称'], ['measure', '单位'], ['quantity', '数量'], ['category', '物料类别'], ['config', '配置'], ['grossUnit', '含税单价'], ['rate', '税率（%）']];
@@ -66,12 +64,9 @@ export function QuoteRateField({ value, onChange }) {
   </div>;
 }
 
-export function PortalPricingDetail({ quote, records, store, go, notify, onPreview, mapParams = {} }) {
+export function PortalPricingDetail({ quote, api, store, go, notify, onPreview, mapParams = {}, record: knownRecord }) {
   const number = new URLSearchParams(readMobileSearch()).get('record');
-  const sample = mapParams.map
-    ? records.find(item => (item.status === '已处理') === (Number(mapParams.tab) % 2 === 1))
-    : null;
-  const record = records.find(item => item.number === number) || sample || (!quote && !number ? records[0] : null);
+  const record = knownRecord ?? api.getPricingRecord({ quote, number, sample: mapParams.map, tab: mapParams.tab });
   store.portalTaskTab ??= quote ? (record?.status === '已处理' ? 1 : 0) : (record?.status === '已处理' ? 3 : 2);
   const [saved, setSaved] = useState(record);
   const [draft, setDraft] = useState(record);
@@ -84,7 +79,7 @@ export function PortalPricingDetail({ quote, records, store, go, notify, onPrevi
   useEffect(() => {
     if (!editable) return;
     let active = true;
-    readPricingDraft(store, quote, record).then(lines => {
+    api.readPricingDraft(quote, record).then(lines => {
       if (!active) return;
       const restored = { ...record, lines: record.lines.map((line, index) => lines[index] ?? line) };
       setSaved(restored);
@@ -92,7 +87,7 @@ export function PortalPricingDetail({ quote, records, store, go, notify, onPrevi
       setReady(true);
     }).catch(() => { if (active) setLoadError(true); });
     return () => { active = false; };
-  }, [editable, quote, record, store]);
+  }, [api, editable, quote, record]);
   if (!record) return <Empty text={quote ? '未找到询价单' : '未找到采购订单'} />;
   if (!ready) return <Empty text={loadError ? '已保存明细读取失败，请重新打开单据。' : '正在读取明细'} />;
   const changeRate = value => setDraft({ ...draft, rate: value, lines: draft.lines.map(line => ({ ...line, rate: value })) });
@@ -106,12 +101,9 @@ export function PortalPricingDetail({ quote, records, store, go, notify, onPrevi
       const invalid = draft.lines.findIndex(line => taxFields.slice(5).some(([key]) => !isDecimal(line[key])));
       if (invalid >= 0) return notify(`请填写第${invalid + 1}项完整、有效的价税信息`);
     }
-    const next = { ...structuredClone(draft), status: '已处理', ...(quote ? { inquiryStatus: '定价完成' } : {}) };
     setSubmitting(true);
     try {
-      await clearPricingDraft(store, quote, record);
-      const key = quote ? 'inquiries' : 'orders';
-      portalPricingRecords(store)[key] = records.map(item => item === record ? next : item);
+      await api.submitPricing(quote, record, draft);
       guard.accept();
       notify(quote ? '报价已提交' : '价税拆分已提交');
       go('workspace-tasks');
@@ -122,7 +114,7 @@ export function PortalPricingDetail({ quote, records, store, go, notify, onPrevi
     }
   };
   async function saveLine(line) {
-    await savePricingLine(store, quote, record.number, editor, line);
+    await api.savePricingLine(quote, record.number, editor, line);
     const replace = current => ({ ...current, lines: current.lines.map((entry, index) => index === editor ? line : entry) });
     setSaved(replace);
     setDraft(replace);

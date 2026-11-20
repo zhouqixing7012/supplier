@@ -6,6 +6,7 @@ import {
 } from './supplier.js';
 import { bankError } from '../../pages/mobile-forms.jsx';
 import { regionData } from '../../pages/registration-regions.js';
+import { createPortalMockApi } from '../../api/mobile/mock-portal.js';
 
 const exampleBasic = {
   type: '企业供应商', supplierName: '示例办公用品供应商', registerEmail: 'contact@example.com',
@@ -109,6 +110,7 @@ export function WorkflowExamples() {
   const [active, setActive] = useState(0);
   const [preview, setPreview] = useState(0);
   const [result, setResult] = useState('');
+  const [portalApi] = useState(createPortalMockApi);
   return <>
     <Tabs items={['审批进度', '资料变更', '注册预览', '账户安全']}
       active={active} onChange={value => { setActive(value); setResult(''); }}
@@ -118,7 +120,7 @@ export function WorkflowExamples() {
       after={{ ...exampleSupplier, basic: { ...exampleBasic, address: '北京市/北京市/海淀区 示例路 2 号' } }} />}
     {active === 2 && <RegistrationPreview basic={exampleBasic} contacts={[]} banks={[exampleBank]}
       mode={exampleSupplier.mode} active={preview} onTabChange={setPreview} />}
-    {active === 3 && <AccountSecurityForm kind="password" email={exampleBasic.registerEmail}
+    {active === 3 && <AccountSecurityForm api={portalApi} kind="password" email={exampleBasic.registerEmail}
       onCancel={() => setActive(0)} onComplete={() => setResult('已完成密码修改示例')} />}
     {result && <p role="status" className="m-catalog-note">{result}</p>}
   </>;

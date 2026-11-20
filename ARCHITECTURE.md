@@ -4,13 +4,14 @@
 
 - `src/entry.jsx`：前端总入口，根据 Hash 加载移动端、PC 管理平台、PC 门户认证或 PC 门户工作区；跨模块切换时通过 Hash 触发模块重载。
 - `src/mobile-entry.jsx`：移动端独立入口，避免电脑端 CSS 污染移动端样式。
-- `src/pages/mobile-supplier.jsx`：移动端页面状态、会话演示数据、暂存与提交路径。
+- `src/pages/mobile-supplier.jsx`：移动端导航、表单和交互状态，从移动端 API 读取业务快照及执行操作。
+- `src/api/mobile/`：移动端统一入口、独立的 Mock 管理平台及门户会话、现行接口契约的 HTTP 封装，以及文件宿主适配。对接边界见[移动端 API 与 Mock](docs/mobile-api.md)。
 - `src/pages/mobile-data.js`：截图样本、演示参考目录和 47 张截图的独立路由映射。
 - `src/pages/mobile-context.js`：独立交互上下文身份，避免表单/弹层循环引用在热更新后产生不同上下文。
 - `src/pages/mobile-motion.js`：导航方向、嵌套动效优先级、滑动阈值与视觉副本滚动位置捕获/恢复。
 - `src/pages/mobile-motion.jsx`：即时状态更新、不可交互的动效副本、卡片区域与位置过渡、历史折叠、局部全屏状态、退出保留与弹层退出兜底；与mobile-motion.css共同实现现行动效规范。
 - `src/pages/mobile-interaction.jsx`：移动交互上下文、未保存保护、系统返回层级、滑动识别、焦点隔离和会话附件预览。
-- `src/pages/mobile-portal.jsx`：门户资料、首页、账户与任务容器；会话单据从mobile-portal-records.js初始化。
+- `src/pages/mobile-portal.jsx`：门户资料、首页、账户与任务容器；业务会话由门户 Mock API 管理。
 - `src/pages/mobile-portal-tasks.jsx`：报价及价税四页签列表、共享筛选及按页签条件保存。
 - `src/pages/mobile-portal-pricing.jsx`：报价与价税详情、全屏行编辑、整单提交和只读结果；复用公共字段、附件与未保存保护。
 - `src/pages/mobile-portal-pricing.js`：十进制分数价税计算、数值检查及剩余时间展示；计算规则由mobile-prd.md维护。
@@ -48,7 +49,7 @@
 
 ## 调用关系
 
-移动端：`index.html` → `src/entry.jsx` → `src/mobile-entry.jsx` → `MobileSupplier` → 表单、视图、通用组件及演示数据。组件库在 `#/mobile/components` 独立加载，与移动端业务页面共用组件和样式。
+移动端：`index.html` → `src/entry.jsx` → `src/mobile-entry.jsx` → `MobileSupplier` → 表单、视图及移动端 API。业务页面默认读取独立 Mock 会话。组件库在 `#/mobile/components` 独立加载，与移动端业务页面共用组件和样式。
 
 总入口通过独立的加载函数分别动态导入各模块，确保 Vite 预加载各自的 CSS。不得把各入口导入合并为同一动态条件表达式。
 

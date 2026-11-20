@@ -1,18 +1,18 @@
+import { mobileFileApi } from '../api/mobile/host-files.js';
+
 // 宿主负责鉴权并将服务结果转换为表单字段。
 const licenseIdentityFields = ['supplierName', 'creditCode'];
 const companyProfileFields = ['establishedAt', 'licenseUntil', 'legalRepresentative', 'companyType', 'industry', 'capital', 'currency', 'address', 'businessScope'];
 export async function recognizeCompanyLicense(file, isCurrent) {
-  if (typeof window.__SUPPLIER_DOCUMENT_OCR__ !== 'function') throw new Error('识别服务暂不可用，请手工填写。');
-  const recognized = await window.__SUPPLIER_DOCUMENT_OCR__({ kind: 'license', file });
+  const recognized = await mobileFileApi.recognizeLicense(file);
   if (!isCurrent()) return;
   const identity = normalizeFields(recognized, licenseIdentityFields);
   const { supplierName, creditCode } = identity;
   if (!supplierName || !creditCode) throw new Error('未能识别完整的供应商名称和统一社会信用代码，请手工填写。');
-  const lookup = window.__SUPPLIER_ENTERPRISE_LOOKUP__;
-  if (typeof lookup !== 'function') throw new Error('企业资料查询暂不可用，请手工填写。');
+  if (!mobileFileApi.hasEnterpriseLookup()) throw new Error('企业资料查询暂不可用，请手工填写。');
   let result;
   try {
-    result = await lookup({ name: supplierName, creditCode });
+    result = await mobileFileApi.lookupEnterprise({ name: supplierName, creditCode });
   } catch {
     throw new Error('查询企业资料失败，请手工填写。');
   }

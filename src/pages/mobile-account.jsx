@@ -6,10 +6,9 @@ import { useDirtyForm } from './mobile-interaction.jsx';
 import { registrationPasswordError } from './mobile-registration-password.js';
 
 const validEmail = value => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value || '');
-const codeLifetime = 5 * 60 * 1000;
 
 // 会话演示验证码自动回填，不发邮件，不修改真实账户凭据。
-export function AccountSecurityForm({ kind, email, onCancel, onComplete, initialStep = 0 }) {
+export function AccountSecurityForm({ kind, email, onCancel, onComplete, initialStep = 0, api }) {
   const changingEmail = kind === 'email';
   const [step, setStep] = useState(initialStep);
   const [data, setData] = useState({ newEmail: '', code: '', password: '', confirmation: '' });
@@ -29,16 +28,14 @@ export function AccountSecurityForm({ kind, email, onCancel, onComplete, initial
   const sendCode = () => {
     const error = emailError();
     if (error) { setErrors({ newEmail: error }); return focusFormError(); }
-    issued.current = { target, expires: Date.now() + codeLifetime };
-    setData(old => ({ ...old, code: '1234' })); setErrors({}); setCountdown(60);
+    issued.current = api.issueSecurityCode(target);
+    setData(old => ({ ...old, code: issued.current.code })); setErrors({}); setCountdown(60);
   };
   const submit = () => {
     const next = {};
     if (changingEmail && step === 1) { const error = emailError(); if (error) next.newEmail = error; }
-    if (!data.code.trim()) next.code = '请输入邮箱验证码';
-    else if (!issued.current || issued.current.target !== target) next.code = '请先获取邮箱验证码';
-    else if (Date.now() > issued.current.expires) next.code = '验证码已过期，请重新获取';
-    else if (data.code.trim() !== '1234') next.code = '邮箱验证码错误';
+    const codeError = api.verifySecurityCode(issued.current, target, data.code);
+    if (codeError) next.code = codeError;
     if (!changingEmail) {
       const passwordError = registrationPasswordError(data.password);
       if (passwordError) next.password = passwordError;

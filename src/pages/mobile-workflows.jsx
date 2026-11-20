@@ -5,46 +5,21 @@ import { createSessionId, useBackLayer } from './mobile-interaction.jsx';
 import React, { useEffect, useState } from 'react';
 import { Star } from 'lucide-react';
 import { Field, FilterField, SearchBox, StatusTag, SupplierIdentityCard } from './mobile-ui.jsx';
-import { cooperation, initialSuppliers } from './mobile-data.js';
+import { queryRatingOperations, queryRatings } from '../api/mobile/mock-management.js';
 import { useDirtyForm, attachmentName } from './mobile-interaction.jsx';
 
-// 截图记录仅有总分。另设一条明确标识的演示记录，用于查看分项星级。
-export const ratingDetailDemo = {
-  id: 'demo-rating-dimensions',
-  name: initialSuppliers[0].name,
-  type: '技术服务',
-  content: '评分明细演示',
-  person: '陈才慧',
-  department: '',
-  date: '2026-08-14',
-  rated: '2026-10-15 14:00:00',
-  status: '已评分',
-  score: '84',
-  dimensions: [4.5, 4, 3.5, 5, 4],
-  comment: '',
-};
-export const initialRatings = [
-  ...cooperation.map(x => ({ ...x, rated: '', status: '未评分', dimensions: [], comment: '' })),
-  { id: 'demo-rated', name: '快速创建557348', type: '技术服务', content: '测试PR授权行', person: '陈才慧', department: '', date: '2026-08-14', rated: '2026-10-15 13:53:41', status: '已评分', score: '66', dimensions: [], comment: '' },
-  ratingDetailDemo,
-];
+export { initialRatings, ratingDetailDemo } from '../api/mobile/mock-management.js';
 export const ratingTypes = ['技术服务', '电子产品'];
 export const dimensionsFor = type => type === '电子产品' ? ['产品外观、质量', '售后质量（退换货及维护等）', '供货/服务及时性', '服务体验', '诚信/合规'] : ['人员/服务质量', '供货/服务及时性', '产品质量', '服务体验', '诚信/合规'];
 const time = () => new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Shanghai' });
 
-export function RatingWorkspace({ mine = false, historical = false, records, onOpen, onAdd, go, filters = {}, savedView = {}, listView, onViewChange }) {
+export function RatingWorkspace({ mine = false, historical = false, records = [], queryRatings: loadRatings, onOpen, onAdd, go, filters = {}, savedView = {}, listView, onViewChange }) {
   const [query, setQuery] = useState(savedView.ratingQuery || '');
   const [status, setStatus] = useState(savedView.ratingStatus || '全部');
   useEffect(() => onViewChange?.({ ratingQuery: query, ratingStatus: status }), [query, status]);
-  // 我的评分不接受联系人和部门条件，兼容旧链接中残留的筛选参数。
-  const filterKeys = ['cooperationType', 'start', 'end', ...(mine ? [] : ['person', 'department'])];
-  const activeFilters = Object.fromEntries(filterKeys.filter(key => filters[key]?.trim()).map(key => [key, filters[key]]));
-  const matching = records.filter(x => (!mine || x.person === '陈才慧') && (!query || (mine ? [x.name, x.content] : [x.name, x.content, x.person]).some(v => v?.includes(query))) && (!activeFilters.cooperationType || activeFilters.cooperationType === x.type) && (!activeFilters.person || x.person.includes(activeFilters.person)) && (!activeFilters.department || x.department.includes(activeFilters.department)) && (!activeFilters.start || x.rated.slice(0, 10) >= activeFilters.start) && (!activeFilters.end || x.rated.slice(0, 10) <= activeFilters.end));
-  const entries = matching.filter(x => status === '全部' || x.status === status);
+  const criteria = { mine, query, status, filters };
+  const { records: entries, activeFilters, statusItems } = loadRatings ? loadRatings(criteria) : queryRatings(records, criteria);
   const filterCount = historical ? 0 : Object.keys(activeFilters).length;
-  const statusItems = ['全部', '未评分', '已评分'].map(label => ({
-    label, count: label === '全部' ? matching.length : matching.filter(x => x.status === label).length,
-  }));
   const scene = mine ? 'my-ratings' : 'ratings';
   const openFilters = () => go('rating-filter?' + new URLSearchParams({ ...activeFilters, return: scene }));
   return <>
@@ -141,14 +116,12 @@ export function RatingEditor({ record, supplier, readOnly, onCancel, onSave, not
 
 const emptyRatingFilters = { start: '', end: '', names: '' };
 
-export function RatingOperations({ historical }) {
+export function RatingOperations({ historical, queryRecords = queryRatingOperations }) {
   const [filterOpen, setFilterOpen] = useState(false);
   const [data, setData] = useState(emptyRatingFilters);
   const [applied, setApplied] = useState(emptyRatingFilters);
   const [dateError, setDateError] = useState('');
-  const rows = cooperation.map((x, i) => ({ ...x, created: '2026-08-14 18:52:32', id: ['20882171982136639490', '2088217198212136961', '2099345533281612000'][i] }));
-  const excluded = applied.names.split(/[\n#]/).map(x => x.trim()).filter(Boolean);
-  const visible = rows.filter(x => (!applied.start || x.created.slice(0, 10) >= applied.start) && (!applied.end || x.created.slice(0, 10) <= applied.end) && !excluded.includes(x.person));
+  const visible = queryRecords(applied);
   const filterCount = historical ? 0 : Object.values(applied).filter(value => value.trim()).length;
   useBackLayer(filterOpen, () => setFilterOpen(false));
   const apply = () => { if (data.start && data.end && data.start > data.end) return setDateError('结束日期不能早于开始日期'); setApplied({ ...data }); setFilterOpen(false); };

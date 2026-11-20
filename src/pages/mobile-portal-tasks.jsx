@@ -4,9 +4,9 @@ import { FilterField, SearchBox, StatusTag } from './mobile-ui.jsx';
 import { runMotion } from './mobile-motion.jsx';
 import { useBackLayer } from './mobile-interaction.jsx';
 import { remainingTime } from './mobile-portal-pricing.js';
-import { matchesPortalTask, purchaseTypes } from './mobile-portal-filters.js';
+import { purchaseTypes } from './mobile-portal-filters.js';
 
-export function PortalTaskList({ tab, inquiries, orders, store, go, initialFilterOpen = false }) {
+export function PortalTaskList({ tab, api, store, go, initialFilterOpen = false }) {
   const quote = tab < 2;
   const handled = tab % 2 === 1;
   const saved = store.portalTaskViews?.[tab] || {};
@@ -18,8 +18,7 @@ export function PortalTaskList({ tab, inquiries, orders, store, go, initialFilte
   const [dateError, setDateError] = useState('');
   useBackLayer(open, () => runMotion(() => setOpen(false), 'back'));
   const companyLabel = quote ? '采购单位' : '采购公司';
-  const all = quote ? inquiries : orders;
-  const records = all.filter(record => (record.status === '已处理') === handled && matchesPortalTask(record, query, filters));
+  const records = api.listPricingTasks({ quote, handled, query, filters });
   store.portalTaskViews = { ...store.portalTaskViews, [tab]: { query, filters, list: listView } };
   const begin = () => { setDraft({ ...filters }); setDateError(''); runMotion(() => setOpen(true), 'forward'); };
   const change = (key, value) => setDraft(old => ({ ...old, [key]: value }));
