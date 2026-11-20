@@ -1,9 +1,47 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createMockManagement } from '../src/api/mobile/mock-management.js';
+import { mockSupplierUser, mockSupplierViewer } from '../src/pages/mock-supplier-access.js';
+import { canViewSupplier } from '../src/pages/supplier-list-access.js';
 
 const queries = { mine: false, scene: 'query', screenshot: false, search: '', filters: {} };
 const invitation = { type: '企业供应商', name: '接口演示企业', contact: '测试联系人', email: 'mock@example.invalid', phone: '13800000000' };
+
+test('供应商可见范围按工号、ACP 身份、用户组、来源、状态和有效标识取交集', () => {
+  const other = { inviter: mockSupplierUser.name, inviterCode: 'OTHER', disabled: 0, source: -1, status: '已审批' };
+  const self = { ...other, inviter: '改名后的邀请人', inviterCode: mockSupplierUser.userCode };
+  for (const role of ['employee', 'admin_supplier', 'expLaPeople', 'admin']) {
+    const viewer = mockSupplierViewer(role);
+    assert.equal(canViewSupplier(other, viewer), true);
+    assert.equal(canViewSupplier({ ...other, source: 0 }, viewer), role !== 'employee');
+    assert.equal(canViewSupplier({ ...other, source: 1 }, viewer), role === 'admin');
+    for (const status of [0, 1, 2, 4, '0', '草稿', '邀请中', '注册中', '注册驳回']) {
+      assert.equal(canViewSupplier({ ...other, status }, viewer), role === 'admin');
+      assert.equal(canViewSupplier({ ...self, source: 1, status }, viewer, viewer.userCode), true);
+    }
+    assert.equal(canViewSupplier({ ...self, disabled: 1 }, viewer), false);
+    assert.equal(canViewSupplier(other, viewer, viewer.userCode), false);
+    assert.equal(canViewSupplier(self, viewer, other.inviterCode), false);
+    assert.equal(canViewSupplier(other, viewer, other.inviterCode), true);
+  }
+  assert.equal(canViewSupplier(other, { isAcpAdmin: true }), false);
+});
+
+test('移动列表及导出先按数据权限过滤，再按邀请人工号和其他条件查询', () => {
+  const api = createMockManagement();
+  const employee = mockSupplierViewer('employee');
+  const group = mockSupplierViewer('expLaPeople');
+  const list = options => api.querySuppliers({ ...queries, ...options }).records.map(record => record.id);
+  assert.deepEqual(list({ viewer: employee, inviterCode: 'MOCK-005' }), []);
+  assert.deepEqual(list({ viewer: group, inviterCode: 'MOCK-005', filters: { status: '审批中' } }), ['person']);
+  assert.deepEqual(list({ viewer: group, inviterCode: 'MOCK-005', filters: { status: '草稿' } }), []);
+  assert.ok(list({ viewer: employee, inviterCode: 'MOCK-002' }).includes('mock-historical'));
+  assert.ok(list({ viewer: employee, mine: true, inviterCode: 'MOCK-005' }).includes('mock-person-id-card'));
+  assert.deepEqual(api.exportSuppliers({ ...queries, viewer: employee, inviterCode: 'MOCK-005' }, {}), []);
+  assert.equal(api.changeInviters(['733324'], '周辉').count, 1);
+  assert.equal(list({ viewer: employee, mine: true }).includes('733324'), false);
+  assert.ok(list({ viewer: employee, inviterCode: 'MOCK-002' }).includes('733324'));
+});
 
 test('移动Mock API会话隔离，更新后查询和订阅读取同一结果', () => {
   const api = createMockManagement();

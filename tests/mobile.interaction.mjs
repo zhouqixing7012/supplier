@@ -1331,6 +1331,28 @@ try {
     assert.ok(await button('批量变更邀请人').isVisible());
     assert.ok(await page.locator('#root .m-supplier-card input[type=checkbox]:disabled').count() > 0);
   });
+  await check('移动供应商数据权限随演示身份、邀请人工号及菜单切换', async () => {
+    const search = field('搜索供应商名称');
+    const result = page.getByRole('region', { name: '查询结果' });
+    for (const role of ['employee', 'admin_supplier', 'expLaPeople', 'admin']) {
+      await goto('mobile/query?map=1&role=' + role);
+      await search.fill('哈哈人');
+      assert.equal(await card('哈哈人').count(), role === 'employee' ? 0 : 1);
+      assert.match(await result.innerText(), role === 'employee' ? /0\s*家供应商/ : /1\s*家供应商/);
+      assert.equal(await button('批量操作').count(), role === 'admin' ? 1 : 0);
+      await button('我的邀请').click();
+      await search.fill('哈哈人');
+      assert.equal(await card('哈哈人').count(), 0);
+      await search.fill('代注册草稿');
+      assert.ok(await card('代注册草稿').isVisible());
+    }
+    await goto('mobile/query?map=1&role=employee&inviterCode=MOCK-002');
+    assert.ok(await card('演示历史供应商').isVisible());
+    await search.fill('北京初然');
+    assert.equal(await card('北京初然').count(), 0);
+    await goto('mobile/detail?map=1&role=employee&record=person');
+    assert.ok(await page.getByText('供应商记录不存在或超出查询范围').isVisible());
+  });
   await check('移动复核：点击星星左右半边直接选择半星整星', async () => {
     await goto('mobile/my-ratings'); await page.locator('#root .m-bank-card').first().getByRole('button', { name: '评分', exact: true }).click(); assert.equal(await page.locator('#root .m-rating-precision').count(), 0); assert.equal(await page.locator('#root').getByText('点击星星左半边选半星，右半边选整星。', { exact: true }).count(), 0); assert.equal(await page.locator('#root').getByRole('spinbutton').count(), 0);
     for (let score = .5; score <= 5; score += .5) { await rate('人员/服务质量', score); assert.equal(await page.locator('#root').getByRole('slider', { name: '人员/服务质量', exact: true }).getAttribute('aria-valuenow'), String(score)); }

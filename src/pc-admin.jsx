@@ -13,6 +13,8 @@ import { bankChange, bankChangeCounts, normalizeBankChanges, readBankDraft, writ
 import { blankBank, bankError, bankFieldError, fieldsFor } from './pages/mobile-forms.jsx';
 import { canChangeSupplier, canDeleteSupplier, canRateSupplier, canReinviteSupplier, canSelectSupplierForBatch,
   certificateNumber, displayCertificateNumber, supplierListActions } from './pages/mobile-rules.js';
+import { mockSupplierUser, mockSupplierViewer, withMockSupplierAccess } from './pages/mock-supplier-access.js';
+import { canViewSupplier } from './pages/supplier-list-access.js';
 import { attachmentFiles, attachmentName, rememberAttachment } from './pages/mobile-interaction.jsx';
 import { bankAccountsError, isEffectiveBasicBankAccount, reinviteCandidate, validEmail } from './pages/mobile-edit-rules.js';
 
@@ -69,7 +71,7 @@ function useMediaMatch(query) {
   return matches;
 }
 
-const CURRENT_USER = '陈才慧';
+const CURRENT_USER = mockSupplierUser.name;
 const CURRENT_DEPARTMENT = people.find((person) => person.name === CURRENT_USER)?.department || '集团总部.ERP部.平台技术部';
 const supplierStorageKey = 'supplier:pc-session:v1';
 const approvalStorageKey = 'supplier:pc-approval-tasks:v1';
@@ -155,7 +157,7 @@ function readRoute() {
   const detail = path.match(/^\/admin\/suppliers\/([^/?]+)/);
   if (detail) return { page: 'detail', id: decodeURIComponent(detail[1]), origin };
   if (path.startsWith('/admin/invitations')) return { page: 'invitations' };
-  return { page: 'suppliers' };
+  return { page: 'suppliers', inviterCode: params.get('inviterCode') || undefined };
 }
 
 function SupplierFields({ fields, labelWidth }) {
@@ -756,8 +758,10 @@ function HelpModal({ open, onClose }) {
 
 function SupplierAdmin() {
   const [route, setRoute] = useState(readRoute);
-  // 原型角色只控制演示入口，正式授权由实际系统提供。
-  const [canBatchDelete] = useState(() => new URLSearchParams(window.location.hash.split('?')[1]).get('role') !== 'employee');
+  // 演示身份作用于原型会话，正式授权由实际系统提供。
+  const [role] = useState(() => new URLSearchParams(window.location.hash.split('?')[1]).get('role') || 'admin');
+  const viewer = useMemo(() => mockSupplierViewer(role), [role]);
+  const canBatchDelete = viewer.isAcpAdmin;
   const compact = useMediaMatch(compactSidebar);
   const [sidebarPreference, setSidebarPreference] = useState(null);
   const collapsed = sidebarPreference ?? compact;
@@ -788,10 +792,10 @@ function SupplierAdmin() {
       const rows = saved ? JSON.parse(saved) : clone(initialSuppliers);
       return rows.map((row) => {
         const task = row.maintenanceApproval && approvalTasks.find((item) => item.number === row.maintenanceApproval);
-        return task ? resolveSupplierApproval(row, task) : row;
+        return withMockSupplierAccess(task ? resolveSupplierApproval(row, task) : row);
       });
     } catch {
-      return clone(initialSuppliers);
+      return clone(initialSuppliers).map(withMockSupplierAccess);
     }
   });
   const [approvalViews, setApprovalViews] = useState({});
@@ -858,31 +862,35 @@ function SupplierAdmin() {
     catch { messageApi.error('审批任务会话保存失败，请检查浏览器存储后重试。'); }
   }, [approvalTasks, messageApi]);
 
-  const currentSupplier = route.id ? suppliers.find((supplier) => supplier.id === route.id) : suppliers[0];
   const fromInvitations = route.from === 'invitations' || route.origin === 'invitations';
-  const accessibleSupplier = currentSupplier && (!fromInvitations || currentSupplier.inviter === CURRENT_USER);
+  const selectedSupplier = route.id ? suppliers.find((supplier) => supplier.id === route.id) : suppliers[0];
+  const listRecordRoute = route.page === 'detail' || route.page === 'profile-edit' || route.fromDetail
+    || route.from === 'suppliers' || fromInvitations;
+  const currentSupplier = listRecordRoute && !canViewSupplier(selectedSupplier, viewer, fromInvitations ? viewer.userCode : undefined)
+    ? undefined : selectedSupplier;
   const currentBankEntries = currentSupplier ? (bankDrafts[currentSupplier.id] || currentSupplier.banks || []) : [];
   const originalBanks = currentSupplier?.banks || [];
   const pendingBankCount = currentSupplier ? bankChangeCounts(originalBanks, currentBankEntries).total : 0;
 
   const supplierScope = useMemo(() => suppliers.filter((record) => {
     const filters = appliedSupplierFilters;
-    return (!filters.name || String(record.name || '').toLowerCase().includes(filters.name.trim().toLowerCase()))
+    return canViewSupplier(record, viewer, route.inviterCode)
+      && (!filters.name || String(record.name || '').toLowerCase().includes(filters.name.trim().toLowerCase()))
       && (!filters.type || record.type === filters.type)
       && (!filters.status || record.status === filters.status)
       && (!filters.recommended || (record.industry || record.basic?.industry) === filters.recommended)
       && (!filters.inviter || String(record.inviter || '').includes(filters.inviter.trim()))
       && (!filters.certificate?.trim() || String(certificateNumber(record)).toUpperCase().includes(filters.certificate.trim().toUpperCase()));
-  }).sort(latestInvitationFirst), [suppliers, appliedSupplierFilters]);
+  }).sort(latestInvitationFirst), [suppliers, appliedSupplierFilters, viewer, route.inviterCode]);
 
   const invitationScope = useMemo(() => suppliers.filter((record) => {
     const filters = appliedInvitationFilters;
-    return record.inviter === CURRENT_USER
+    return canViewSupplier(record, viewer, viewer.userCode)
       && (!filters.name || String(record.name || '').toLowerCase().includes(filters.name.trim().toLowerCase()))
       && (!filters.status || record.status === filters.status)
       && (!filters.type || record.type === filters.type)
       && (!filters.registrationNumber || String(record.documentNo || '').includes(filters.registrationNumber.trim()));
-  }).sort(latestInvitationFirst), [suppliers, appliedInvitationFilters]);
+  }).sort(latestInvitationFirst), [suppliers, appliedInvitationFilters, viewer]);
 
   const supplierRows = supplierScope.filter((record) => isDateInRange(record.date, appliedSupplierFilters.start, appliedSupplierFilters.end))
     .map((record) => record.score == null || record.score === '' || record.score === '未评分'
@@ -891,7 +899,7 @@ function SupplierAdmin() {
   const invitationRows = invitationScope.filter((record) => isDateInRange(record.date, appliedInvitationFilters.start, appliedInvitationFilters.end));
 
   const navigate = (path) => {
-    if (!canBatchDelete && path.startsWith('/admin/')) path += (path.includes('?') ? '&' : '?') + 'role=employee';
+    if (role !== 'admin' && path.startsWith('/admin/')) path += (path.includes('?') ? '&' : '?') + 'role=' + encodeURIComponent(role);
     if (window.location.hash === '#' + path) { setRoute(readRoute()); return; }
     window.location.hash = path;
   };
@@ -962,13 +970,13 @@ function SupplierAdmin() {
       // 邀请注册重邀保留身份和原邀请时间，登记资料随旧邀请作废。
       const reuse = target?.mode === '邀请注册';
       const id = reuse ? target.id : newId();
-      const invitation = {
+      const invitation = withMockSupplierAccess({
         ...details, id, supplierCode: reuse ? target.supplierCode : 'MOCK-SUP-' + id,
-        inviter: CURRENT_USER, inviterCode: target?.inviterCode, inviterDept: target?.inviterDept || CURRENT_DEPARTMENT,
+        inviter: CURRENT_USER, inviterCode: mockSupplierUser.userCode, source: target?.source, inviterDept: target?.inviterDept || CURRENT_DEPARTMENT,
         date: reuse ? target.date : time, updated: time, invitationNo: 'MOCK-INV-' + newId(),
         invitationExpiresAt: new Date(Date.now() + 7 * 86400000).toISOString(),
         score: '未评分', code: '', banks: [], permissions: [],
-      };
+      });
       const next = reuse ? latest.map((row) => row.id === targetId ? invitation : row)
         : [invitation, ...latest.filter((row) => row.id !== targetId)];
       try { persistSuppliers(next); }
@@ -1079,10 +1087,10 @@ function SupplierAdmin() {
       return false;
     }
     const updated = nowText();
-    const next = { inviter: CURRENT_USER, mode: '代注册', date: updated, permissions: [], score: '未评分',
+    const next = withMockSupplierAccess({ inviter: CURRENT_USER, mode: '代注册', date: updated, permissions: [], score: '未评分',
       ...record, ...profile, id: record?.id || profile.id || newId(), name, code, updated,
       contact: profile.contacts[0]?.name || '', phone: profile.contacts[0]?.phone || profile.basic.mobile || '',
-      email: profile.contacts[0]?.email || profile.basic.email || '', status: submit ? '审批中' : '草稿' };
+      email: profile.contacts[0]?.email || profile.basic.email || '', status: submit ? '审批中' : '草稿' });
     const task = submit ? makeApprovalTask('注册', next, profileOf(next)) : null;
     if (task) next.maintenanceApproval = task.number;
     const savedRows = record ? rows.map((row) => row.id === record.id ? next : row) : [next, ...rows];
@@ -1110,8 +1118,8 @@ function SupplierAdmin() {
     }
   };
   const openBankModal = (bank) => setBankModal({ bank: bank ? { ...bank } : null });
-  const canMaintainSupplier = (record) => !!record && canChangeSupplier(record)
-    && (route.from !== 'invitations' || record.inviter === CURRENT_USER);
+  const canMaintainSupplier = (record) => canViewSupplier(record, viewer, fromInvitations ? viewer.userCode : undefined)
+    && canChangeSupplier(record);
 
   const handleBankSave = (draft) => {
     const latest = latestSuppliers.current.find((record) => record.id === currentSupplier?.id);
@@ -1231,9 +1239,9 @@ function SupplierAdmin() {
     const name = profile.basic.supplierName.trim();
     const code = profile.basic.creditCode?.trim() || '';
     const time = nowText();
-    const record = { ...profile, ...extra, id: newId(), name, code, mode, status: mode === '代注册' ? '审批中' : '已审批',
+    const record = withMockSupplierAccess({ ...profile, ...extra, id: newId(), name, code, mode, status: mode === '代注册' ? '审批中' : '已审批',
       email: profile.contacts[0]?.email || '', contact: profile.contacts[0]?.name || '', phone: profile.contacts[0]?.phone || '',
-      date: time, updated: time, inviter: CURRENT_USER, score: '未评分', permissions: extra.permissions || [] };
+      date: time, updated: time, inviter: CURRENT_USER, score: '未评分', permissions: extra.permissions || [] });
     setSuppliers((current) => [record, ...current]);
     messageApi.success('演示供应商记录已创建');
     return record;
@@ -1469,7 +1477,7 @@ function SupplierAdmin() {
                       else navigate(path);
                     }} />
                 ) : maintenanceTitle ? (
-                  route.id && accessibleSupplier && canChangeSupplier(currentSupplier) ? (
+                  route.id && currentSupplier && canChangeSupplier(currentSupplier) ? (
                     <Card size="small" title={currentSupplier.name}>
                       {route.page === 'banks' ? <>
                         <BankInformation supplier={currentSupplier} entries={currentBankEntries} pendingCount={pendingBankCount}
@@ -1487,7 +1495,7 @@ function SupplierAdmin() {
                     ? <SupplierProfileEditor key={currentSupplier.id} leaveRef={workspaceLeave} profile={profileOf(currentSupplier)}
                       onCancel={backFromDetail} onSubmit={submitProfile} />
                     : <Card size="small"><EmptyContent description="当前供应商资料不可修改" /><Button onClick={backFromDetail}>返回</Button></Card>
-                ) : route.page === 'detail' ? (accessibleSupplier ? (
+                ) : route.page === 'detail' ? (currentSupplier ? (
                   <SupplierDetailPage
                     supplier={currentSupplier}
                     ratings={ratings}
