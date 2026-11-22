@@ -3,6 +3,8 @@
 - 已整理[项目知识索引](docs/supplier-project-knowledge.md)，可按业务查找现行 PRD、PC 覆盖、设计和原型、历史差异与待确认事项。
 - 当前业务待确认项见[移动端 PRD 第 5 章](docs/supplier-mobile-prd.md#5-当前尚未定义)。正式认证、网关身份与工号绑定及后续接口接入见[移动端 API 与 Mock](docs/mobile-api.md)。
 
+- 复核补齐[PC 门户资料编辑设计](DESIGN.md#资料修改与附件显示补充)和[移动端筛选与采购走查](docs/mobile-ux-followup.md#2026-11-17-移动端筛选与采购表单交互走查)。已记录[PC 下一步文案](docs/pc-coverage.md#pc-门户资料编辑的验收差异)与[移动端开户证明对比展示](docs/mobile-prd-open-items.md#移动端银行修改的附件展示差异)两处静态核对差异，待交互验证。
+
 # 当前：供应商列表数据权限（2026-11-20）
 
 - 移动端与 PC 的供应商查询、我的邀请按[数据权限](docs/supplier-mobile-prd.md#22-数据权限)共用来源、状态、有效标识和邀请人工号判断。各身份演示入口见[API 与 Mock](docs/mobile-api.md#演示能力)。
