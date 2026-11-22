@@ -1,3 +1,8 @@
+# 项目知识索引（2026-11-22）
+
+- 已整理[项目知识索引](docs/supplier-project-knowledge.md)，可按业务查找现行 PRD、PC 覆盖、设计和原型、历史差异与待确认事项。
+- 当前业务待确认项见[移动端 PRD 第 5 章](docs/supplier-mobile-prd.md#5-当前尚未定义)。正式认证、网关身份与工号绑定及后续接口接入见[移动端 API 与 Mock](docs/mobile-api.md)。
+
 # 当前：供应商列表数据权限（2026-11-20）
 
 - 移动端与 PC 的供应商查询、我的邀请按[数据权限](docs/supplier-mobile-prd.md#22-数据权限)共用来源、状态、有效标识和邀请人工号判断。各身份演示入口见[API 与 Mock](docs/mobile-api.md#演示能力)。
