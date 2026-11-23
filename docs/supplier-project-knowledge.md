@@ -11,6 +11,7 @@
 | 移动端、PC 端问题及优化的原始需求脉络 | [问题修复与优化 PRD](mobile-prd.md)。保留移动端问题及优化、PC 端线上问题、PC 端新增优化需求三部分，部分移动规则已有后续版本。 |
 | 双端界面、组件、交互和动效 | [设计规范](../DESIGN.md) · [移动端组件库](mobile-component-library.md) · [资产 UI 规范适配记录](mobile-ui-guideline-adoption.md) |
 | 原型路由、截图对照、评审与前端拆分 | [移动端工程说明](mobile-prototype.md) · [截图覆盖表](mobile-screenshot-coverage.md) · [评审模式](mobile-review-mode.md) · [前端拆分及估时](mobile-frontend-estimate.md) |
+| PR付款重构的供应商查询及详情跳转 | [按名称和银行账号查询](pr-payment-supplier-bank-search-prd.md) · [跳转供应商详情](pr-payment-supplier-detail-prd.md) · [按EBSID查询](pr-payment-supplier-ebsid-query-prd.md) |
 | 接口封装、演示身份和接入条件 | [移动端 API 与 Mock](mobile-api.md) · [接口文档](供应商管理平台接口文档.pdf) |
 | 需求评审、已决事项、旧系统与原型差异 | [评审核对记录](mobile-prd-open-items.md) · [PRD 核对记录](mobile-prd-review.md) · [PC／原型／PRD 三方核对](mobile-three-way-comparison-2026-11-14.md) · [能力差异报告](mobile-pc-gap-report.md) |
 | 当前工作、交付记录与工程经验 | [当前上下文](../CONTEXT.md) · [复盘经验](../lessons.md) · [PRD 写作规则](prd-writing-guide.md) · [仓库交付约定](../AGENTS.md) |
