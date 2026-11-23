@@ -96,9 +96,9 @@ export function Field({
       <div className="m-dialog-actions"><button type="button" onClick={closeHelp}>知道了</button></div>
     </Overlay>}
     {choosing && <OptionSheet title={label} options={options} value={value} onChange={onChange}
-      onClose={() => setChoosing(false)} mode={selectionMode} searchable={searchable} />}
+      onClose={() => setChoosing(false)} mode={selectionMode} searchable={searchable} clearable={!required} />}
     {dateOpen && <DateSheet title={label} value={value} onChange={onChange}
-      onClose={() => setDateOpen(false)} allowClear={allowClearDate} />}
+      onClose={() => setDateOpen(false)} allowClear={allowClearDate && !required} />}
   </>;
 }
 

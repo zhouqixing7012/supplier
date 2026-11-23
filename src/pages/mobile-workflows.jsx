@@ -84,7 +84,7 @@ function RatingDimension({ label, index, value, readOnly, error, onChange }) {
   </div>;
 }
 
-export function RatingEditor({ record, supplier, readOnly, onCancel, onSave, notify }) {
+export function RatingEditor({ record, supplier, readOnly, onSave, notify }) {
   const [data, setData] = useState(record || { name: supplier.name, supplierId: supplier.id, type: '', content: '', person: '陈才慧', department: '', date: '', dimensions: [], comment: '', status: '未评分' });
   const [errors, setErrors] = useState({});
   const guard = useDirtyForm(data, !readOnly);
@@ -111,7 +111,7 @@ export function RatingEditor({ record, supplier, readOnly, onCancel, onSave, not
     <div className="m-rating-dimensions" data-no-swipe>{labels.map((label, index) => <RatingDimension key={label}
       label={label} index={index} value={data.dimensions?.[index]} readOnly={readOnly} error={!validRating(data.dimensions?.[index]) && errors.dimensions}
       onChange={value => changeDimension(index, value)} />)}</div>{errors.dimensions && <p className="m-field-error">{errors.dimensions}</p>}
-    {readOnly ? <><Row label="评价">{data.comment || '—'}</Row><Row label="评价得分">{data.score || '—'}</Row><Row label="评分时间">{data.rated}</Row></> : <Field label="评价" multiline maxLength={500} value={data.comment} onChange={comment => setData({ ...data, comment })} />}</Section>{!readOnly && <Actions items={[{ label: '取消', secondary: true, onClick: onCancel }, { label: '提交', onClick: submit }]} />}{nextType && <Confirm text="切换合作类型后需要重新填写评分项，是否继续？" onCancel={() => setNextType('')} onConfirm={() => { setData({ ...data, type: nextType, dimensions: [] }); setErrors({}); setNextType(''); }} />}</>;
+    {readOnly ? <><Row label="评价">{data.comment || '—'}</Row><Row label="评价得分">{data.score || '—'}</Row><Row label="评分时间">{data.rated}</Row></> : <Field label="评价" multiline maxLength={500} value={data.comment} onChange={comment => setData({ ...data, comment })} />}</Section>{!readOnly && <Actions items={[{ label: '提交', onClick: submit }]} />}{nextType && <Confirm text="切换合作类型后需要重新填写评分项，是否继续？" onCancel={() => setNextType('')} onConfirm={() => { setData({ ...data, type: nextType, dimensions: [] }); setErrors({}); setNextType(''); }} />}</>;
 }
 
 const emptyRatingFilters = { start: '', end: '', names: '' };
@@ -152,7 +152,7 @@ export function RatingOperations({ historical, queryRecords = queryRatingOperati
   </>;
 }
 
-export function BankApplicationForm({ notify, onCancel, savedApplication, onComplete }) {
+export function BankApplicationForm({ notify, savedApplication, onComplete }) {
   const [data, setData] = useState(savedApplication || { bank: '', code: '', branch: '', country: '', province: '', city: '', explanation: '', attachment: '' });
   const [submitted, setSubmitted] = useState(!!savedApplication);
   const guard = useDirtyForm(data, !submitted);
@@ -161,7 +161,7 @@ export function BankApplicationForm({ notify, onCancel, savedApplication, onComp
   if (submitted) return <Section title="银行信息申请"><p className="m-form-result" role="status">申请信息已暂存</p><Row label="银行名称">{data.bank}</Row><Row label="开户行(分行)名称">{data.branch}</Row>{[["code", "银行编码"], ["country", "国家/地区"], ["province", "开户行省"], ["city", "开户行市"], ["explanation", "申请说明"], ["attachment", "附件"]].map(([key, label]) => <Row key={key} label={label}>{key === 'attachment' && data[key] ? <AttachmentLink value={data[key]} /> : attachmentName(data[key]) || "—"}</Row>)}</Section>;
   return <><Section title="申请信息"><Row label="申请人员">陈才慧</Row><Row label="人员部门">集团总部.ERP部.平台技术部</Row><Row label="申请日期">{time().slice(0, 10)}</Row></Section><Section title="银行信息" className="m-supplier-form-fields">{bankApplicationFields.map(({ key, label, maxLength, options, placeholder, multiline }) =>
     <Field key={key} error={errors[key]} label={label} required maxLength={maxLength} options={options}
-      placeholder={placeholder} multiline={multiline} value={data[key]} onChange={value => change(key, value)} />)}<UploadField label="附件" value={data.attachment} onChange={v => change('attachment', v)} /></Section><Actions items={[{ label: '取消', secondary: true, onClick: () => guard.leave(onCancel) }, { label: '提交', onClick: () => { const next = {}; for (const field of bankApplicationFields) if (!data[field.key]?.trim()) next[field.key] = bankApplicationRequired(field); setErrors(next); if (Object.keys(next).length) { notify(Object.values(next)[0], false); return focusFormError(); } guard.accept(); onComplete?.(data); setSubmitted(true); window.scrollTo(0, 0); } }]} /></>;
+      placeholder={placeholder} multiline={multiline} value={data[key]} onChange={value => change(key, value)} />)}<UploadField label="附件" value={data.attachment} onChange={v => change('attachment', v)} /></Section><Actions items={[{ label: '提交', onClick: () => { const next = {}; for (const field of bankApplicationFields) if (!data[field.key]?.trim()) next[field.key] = bankApplicationRequired(field); setErrors(next); if (Object.keys(next).length) { notify(Object.values(next)[0], false); return focusFormError(); } guard.accept(); onComplete?.(data); setSubmitted(true); window.scrollTo(0, 0); } }]} /></>;
 }
 
 

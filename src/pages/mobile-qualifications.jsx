@@ -32,7 +32,7 @@ export function QualificationInfo({ records = [], onChange, onPreview, initialEd
   </RecordCollection>
     {editing !== null && <FullscreenPanel className="m-record-editor m-supplier-form-fields" title={editing < 0 ? '新增资质' : '编辑资质'} onBack={close}>
       <Section title="资质信息" collapsible={false}>{qualificationFields.map(([key, label, kind]) => <Field key={key} label={label} value={draft[key] || ''} type={kind === 'date' ? 'date' : 'text'} allowClearDate onChange={value => setDraft({ ...draft, [key]: value })} />)}<FileUploadField label="附件上传" value={draft.qualificationCertificatePicture} onChange={value => setDraft({ ...draft, qualificationCertificatePicture: value })} /></Section>
-      <Actions items={[{ label: '取消', secondary: true, onClick: close }, { label: '保存', onClick: save }]} />
+      <Actions items={[{ label: '保存', onClick: save }]} />
     </FullscreenPanel>}
     {removing !== null && <Confirm danger text="确认删除这条资质信息？" onCancel={() => setRemoving(null)} onConfirm={() => { onChange(records.filter((_, i) => i !== removing)); setRemoving(null); }} />}
   </>;

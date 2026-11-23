@@ -85,7 +85,7 @@ export function AddressForm({
         value={detail} maxLength={50} onChange={setDetail} />
     </div>
     <Actions flat items={[
-      { label: '取消', muted: true, onClick: close },
+      ...(sheet ? [{ label: '取消', muted: true, onClick: close }] : []),
       { label: '确定', disabled: open || !region || !detail.trim(), onClick: save },
     ]} />
   </div>;

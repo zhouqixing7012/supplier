@@ -128,7 +128,7 @@ function AddressAndDirectoryExamples() {
     {open === 'address' && <AddressForm sheet regions={regionData} initial={address}
       onCancel={close} onConfirm={value => { setAddress(value); close(); }} />}
     {open === 'person' && <FullscreenPanel title="选择人员" onBack={close}>
-      <ReferencePicker entries={samplePeople} selected={person} mode="confirm" onCancel={close}
+      <ReferencePicker entries={samplePeople} selected={person} mode="confirm"
         searchLabel="搜索姓名或工号" searchPrompt="请输入姓名搜索人员"
         onConfirm={value => { setPerson(value); close(); }} />
     </FullscreenPanel>}

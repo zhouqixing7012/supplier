@@ -45,7 +45,7 @@ export function RatingExamples() {
       <FilterView rating mine initial={filters} onApply={value => { setFilters(value); closeFilter(); }} />
     </FullscreenPanel>}
     {editor && <FullscreenPanel title={editor.readOnly ? '供应商评分详情' : '填写供应商评分'} onBack={close}>
-      <RatingEditor record={editor.record} readOnly={editor.readOnly} supplier={ratingSupplier} onCancel={close}
+      <RatingEditor record={editor.record} readOnly={editor.readOnly} supplier={ratingSupplier}
         onSave={save} notify={setMessage} />
       {message && <p className="m-catalog-note" role="alert">{message}</p>}
     </FullscreenPanel>}

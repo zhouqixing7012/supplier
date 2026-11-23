@@ -70,7 +70,7 @@ function BankExample() {
     {open && <FullscreenPanel title="编辑银行账户" onBack={requestClose}>
       <BankFields bank={draft} setBank={setDraft} onCancel={close} />
       {error && <p role="alert" className="m-catalog-note">{error}</p>}
-      <Actions items={[{ label: '取消', onClick: requestClose }, { label: '保存此账户', onClick: save }]} />
+      <Actions items={[{ label: '保存此账户', onClick: save }]} />
     </FullscreenPanel>}
   </>;
 }

@@ -58,7 +58,7 @@ export function AccountSecurityForm({ kind, email, onCancel, onComplete, initial
       <Field label="邮箱验证码" required inputMode="text" placeholder="输入验证码" autoComplete="one-time-code" value={data.code} error={errors.code} onChange={value => change('code', value)} trailing={<button className="m-account-code-button" type="button" disabled={countdown > 0} onClick={sendCode}>{countdown ? countdown + '秒后重发' : '获取验证码'}</button>} />
       {!changingEmail && <><Field label="新密码" required type="password" autoComplete="new-password" value={data.password} error={errors.password} onChange={value => change('password', value)} /><Field label="确认新密码" required type="password" autoComplete="new-password" value={data.confirmation} error={errors.confirmation} onChange={value => change('confirmation', value)} /></>}
     </Section>
-    <Actions items={[{ label: '取消', secondary: true, onClick: () => guard.leave(onCancel) }, { label: changingEmail && step === 0 ? '下一步' : '保存', onClick: submit }]} />
+    <Actions items={[...(onCancel ? [{ label: '取消', secondary: true, onClick: () => guard.leave(onCancel) }] : []), { label: changingEmail && step === 0 ? '下一步' : '保存', onClick: submit }]} />
   </>;
 }
 

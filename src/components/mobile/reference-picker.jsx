@@ -34,9 +34,9 @@ export function ReferencePicker({
       </label>) : <Empty search={!!query}
         text={query ? noMatchText : searchPrompt || emptyText} />}
     </div>
-    <Actions flat items={[
-      { label: '取消', muted: true, onClick: onCancel },
+    {(onCancel || confirm) && <Actions flat items={[
+      ...(onCancel ? [{ label: '取消', muted: true, onClick: onCancel }] : []),
       ...(confirm ? [{ label: '确认', disabled: !pending, onClick: () => onConfirm(pending) }] : []),
-    ]} />
+    ]} />}
   </div>;
 }

@@ -54,7 +54,7 @@ export function PricingLineEditor({ line, index, quote, onCancel, onSave, notify
       {quote && <><MultiAttachmentField label="报价附件" value={draft.attachment} onChange={attachment => setDraft({ ...draft, attachment })} onPreview={onPreview} /><Field label="报价说明" multiline value={draft.note} onChange={note => setDraft({ ...draft, note })} /></>}
     </Section>
     {children}
-    <Actions items={[{ label: '取消', secondary: true, disabled: saving, onClick: cancel }, { label: '确定', disabled: saving, onClick: save }]} />
+    <Actions items={[{ label: '确定', disabled: saving, onClick: save }]} />
   </FullscreenPanel>;
 }
 
