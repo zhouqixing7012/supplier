@@ -1402,7 +1402,15 @@ body:has(.mobile-page > .m-list-registration-actions) {
 @media (pointer: coarse) {
   .m-copy-supplier-name { -webkit-user-select: none; user-select: none; }
 }
-.mobile-page:not(.m-shot) :is(.m-supplier-card .m-supplier-heading, .m-rating-card-state) > .m-status {
+.mobile-page:not(.m-shot) :is(
+  .m-supplier-heading,
+  .m-rating-card-state,
+  .m-approval-heading,
+  .m-approval-history-card > summary,
+  .m-supplier-detail .m-record-card-heading,
+  .m-portal-identity-heading
+) > .m-status {
+  flex: none;
   border: 1px solid var(--m-status-stroke, var(--m-border));
   border-radius: 999px;
   font-size: 12px;

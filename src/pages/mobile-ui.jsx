@@ -13,7 +13,8 @@ export function ChangeTag({ value }) {
 const statusTone = { '已拉黑': 'danger', '已移除': 'neutral',
   '草稿': 'neutral', '邀请中': 'info', '注册中': 'info',
   '审批中': 'warning', '待审批': 'warning', '变更中': 'warning',
-  '已审批': 'success', '注册驳回': 'danger',
+  '已审批': 'success', '审批通过': 'success', '同意': 'success',
+  '注册驳回': 'danger', '审批驳回': 'danger', '已驳回': 'danger', '驳回': 'danger',
 };
 export function StatusTag({ value }) {
   return value ? <StatusBadge tone={statusTone[value]}>{value}</StatusBadge> : <span>—</span>;
