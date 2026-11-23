@@ -469,7 +469,7 @@ function MobileSurface({ onComparisonChange, scene, shot, api, snapshot, activeR
     if (scene.startsWith('portal') && passwordScreen) return leavePassword();
     if (scene.startsWith('portal') && portalEmail) return setPortalEmail(false);
     if (['rating-edit', 'rating-detail'].includes(scene)) return go(ratingReturn);
-    if (isRegistration && step > 0) return changeStep(step === 2 && basic.type === supplierTypes[1] ? 0 : step - 1);
+    if (isRegistration && !editingAll && step > 0) return changeStep(step === 2 && basic.type === supplierTypes[1] ? 0 : step - 1);
     go(portalRegistration || scene === 'supplier-registration-result' ? 'portal' : returnToList());
   };
   const preview = name => setSheet({ kind: 'attachment', name });

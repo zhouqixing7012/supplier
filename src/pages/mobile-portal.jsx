@@ -133,6 +133,10 @@ function PortalWorkspaceContent({ scene, go, notify, store, onPreview, accountMe
   const [stepsExpanded, setStepsExpanded] = useState(false);
   const [previewTab, setPreviewTab] = useState(0);
   const editSteps = informationSteps(draft.basic.type === supplierTypes[1]);
+  const stepIndex = editSteps.indexOf(tab);
+  const previousStepActions = stepIndex > 0 ? [
+    { label: '上一步', secondary: true, onClick: () => changeInformationStep(editSteps[stepIndex - 1]) },
+  ] : [];
   const [taskTab, setTaskTab] = useState(() => portalTaskTabFor(mapParams.tab, store.portalTaskTab));
   const [address, setAddress] = usePanelState(editing && mapParams.panel === 'address');
   const [bankIndex, setBankIndex] = usePanelState(mapParams.panel === 'bank' ? -1 : null);
@@ -181,7 +185,7 @@ function PortalWorkspaceContent({ scene, go, notify, store, onPreview, accountMe
   };
   const next = () => {
     const error = validateStep(tab); if (error) return showValidation(tab, error);
-    changeInformationStep(editSteps[editSteps.indexOf(tab) + 1]);
+    changeInformationStep(editSteps[stepIndex + 1]);
   };
   const submit = () => {
     for (const index of editSteps.slice(0, -1)) {
@@ -194,9 +198,8 @@ function PortalWorkspaceContent({ scene, go, notify, store, onPreview, accountMe
     guard.accept(); notify('原型演示：资料变更已提交，等待审批'); go('workspace-approval');
   };
   const backFromInformation = () => {
-    if (!editing) return go('workspace-home');
-    const position = editSteps.indexOf(tab);
-    if (position > 0) changeInformationStep(editSteps[position - 1]); else cancel();
+    if (editing) return cancel();
+    return go('workspace-home');
   };
   useBackLayer(editing && scene === 'workspace-info', backFromInformation);
   useEffect(() => {
@@ -228,7 +231,10 @@ function PortalWorkspaceContent({ scene, go, notify, store, onPreview, accountMe
       {editing ? <RegistrationSteps personal={draft.basic.type === supplierTypes[1]} step={tab} expanded={stepsExpanded} onExpandedChange={setStepsExpanded} /> : <Tabs showDirectory={false} stretch variant="pill" items={['基本信息', '联系人信息', '银行信息']} active={tab} onChange={setInfoTab} />}
       <SwipeArea active={editing ? 0 : tab} count={editing ? 1 : 3} onChange={i => editing ? changeInformationStep(editSteps[i]) : setInfoTab(i)}>
       {!editing && <>{tab === 0 && <><Section title="基本信息" collapsible={false}>{fieldsFor(profile.type).map(([key, label]) => <Row key={key} label={label}>{profile.basic[key] || '—'}</Row>)}<Row label="注册邮箱">{profile.email}</Row><CertificateAttachmentRows basic={profile.basic} type={profile.type} onPreview={onPreview} /></Section>{profile.type === supplierTypes[0] && <QualificationInfo records={profile.basic.qualifications} onPreview={onPreview} />}</>}{tab === 1 && <RecordCollection title="联系人信息" count={profile.contacts.length} emptyText="暂无联系人信息">{profile.contacts.map(c => <RecordCard key={c.id} title={c.name}>{[['phone', '电话'], ['email', '邮箱'], ['department', '部门'], ['job', '职位'], ['wechat', '微信'], ['note', '备注']].map(([key, label]) => <Row key={key} label={label}>{c[key] || '—'}</Row>)}</RecordCard>)}</RecordCollection>}{tab === 2 && <RecordCollection title="银行信息" count={profile.banks.length} emptyText="暂无银行信息">{profile.banks.map(b => <BankCard showProof={false} key={b.id} bank={b} />)}</RecordCollection>}<Actions items={[pending ? { label: '查看审批', onClick: () => go('workspace-approval') } : { label: '修改', onClick: () => { setDraft(clone(savedProfileDraft || profile)); setInfoTab(editSteps.includes(tab) ? tab : 0); setStepsExpanded(!editSteps.includes(tab) || tab === 0); setPreviewTab(0); setEditing(true); } }]} /></>}
-      {editing && <div className="m-edit-mode">{tab === 0 && <BasicFields initialPanel={mapParams.panel} hideSupplierType data={draft.basic} setData={basic => setDraft({ ...draft, basic })} onAddress={() => setAddress(true)} />}{tab === 1 && <ContactFields initialPanel={mapParams.panel} contacts={draft.contacts} setContacts={contacts => setDraft({ ...draft, contacts })} validation={invalidContact} onValidationHandled={() => setInvalidContact(null)} />}{tab === 2 && <RecordCollection title="银行信息" count={draft.banks.length} emptyText="暂无银行信息" addLabel="添加银行账户" onAdd={() => beginBank(blankBank(profile.name), -1)}>{draft.banks.map((b, i) => <BankCard key={b.id} bank={b} deleteDisabledReason={isOriginalBasicBank(b) ? effectiveBasicBankDeleteError : ''} onPreview={() => onPreview(b.proof)} onEdit={() => beginBank(b, i)} onDelete={isOriginalBasicBank(b) ? undefined : () => setRemoveBank(i)} />)}</RecordCollection>}{tab === 3 && <RegistrationPreview supplierFacing basic={draft.basic} contacts={draft.contacts} banks={draft.banks} active={previewTab} onTabChange={setPreviewTab} onPreview={onPreview}><ChangeComparison before={profile} after={{ ...draft, name: draft.basic.supplierName, type: draft.basic.type, email: draft.basic.registerEmail }} /></RegistrationPreview>}<Actions className="m-registration-actions m-info-edit-actions" items={[{ label: tab === 3 ? '提交' : '下一步（' + (editSteps.indexOf(tab) + 1) + '/' + editSteps.length + '）', onClick: tab === 3 ? submit : next }]} /></div>}
+      {editing && <div className="m-edit-mode">{tab === 0 && <BasicFields initialPanel={mapParams.panel} hideSupplierType data={draft.basic} setData={basic => setDraft({ ...draft, basic })} onAddress={() => setAddress(true)} />}{tab === 1 && <ContactFields initialPanel={mapParams.panel} contacts={draft.contacts} setContacts={contacts => setDraft({ ...draft, contacts })} validation={invalidContact} onValidationHandled={() => setInvalidContact(null)} />}{tab === 2 && <RecordCollection title="银行信息" count={draft.banks.length} emptyText="暂无银行信息" addLabel="添加银行账户" onAdd={() => beginBank(blankBank(profile.name), -1)}>{draft.banks.map((b, i) => <BankCard key={b.id} bank={b} deleteDisabledReason={isOriginalBasicBank(b) ? effectiveBasicBankDeleteError : ''} onPreview={() => onPreview(b.proof)} onEdit={() => beginBank(b, i)} onDelete={isOriginalBasicBank(b) ? undefined : () => setRemoveBank(i)} />)}</RecordCollection>}{tab === 3 && <RegistrationPreview supplierFacing basic={draft.basic} contacts={draft.contacts} banks={draft.banks} active={previewTab} onTabChange={setPreviewTab} onPreview={onPreview}><ChangeComparison before={profile} after={{ ...draft, name: draft.basic.supplierName, type: draft.basic.type, email: draft.basic.registerEmail }} /></RegistrationPreview>}<Actions className="m-registration-actions m-info-edit-actions" items={[
+        ...previousStepActions,
+        { label: tab === 3 ? '提交' : `下一步（${stepIndex + 1}/${editSteps.length}）`, onClick: tab === 3 ? submit : next },
+      ]} /></div>}
       </SwipeArea>
     </>}
     {scene === 'workspace-changes' && <>{savedProfileDraft ? <><ChangeComparison before={profile} after={savedProfileDraft} /><Actions items={[{ label: '继续修改', secondary: true, onClick: () => go('workspace-info?edit=1') }, { label: '取消本次修改', secondary: true, onClick: () => { api.discardProfileDraft(); go('workspace-info'); } }, { label: '提交变更', onClick: () => { api.submitProfile(savedProfileDraft); notify('原型演示：资料变更已提交，等待审批'); go('workspace-approval'); } }]} /></> : <><Section title="资料变更" collapsible={false}><Empty text="没有待提交的修改" /></Section></>}</>}
