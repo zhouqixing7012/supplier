@@ -401,7 +401,7 @@ html:has(.m-query-list) { overscroll-behavior-y: none; }
 .mobile-page .m-batch-buttons > button { flex: 1; min-width: 0; }
 .mobile-page .m-batch-actions-mine .m-batch-buttons > .m-action-danger { flex: 0 0 80px; }
 
-.m-rating-card-state { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 6px; flex-shrink: 0; }
+.m-rating-card-state { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 6px; flex-shrink: 0; white-space: nowrap; }
 .m-rating-card-state strong { font-size: 16px; color: var(--m-action); }
 .m-rating-supplier-meta { border-top: 1px solid var(--m-border-subtle); margin-top: 12px; padding-top: 6px; }
 .mobile-page:not(.m-shot) .m-rating-dimensions { padding-inline: 0; }
@@ -1392,6 +1392,12 @@ body:has(.mobile-page > .m-list-registration-actions) {
 .mobile-page .m-filter-summary > .m-batch-toggle { display: inline-flex; align-items: center; gap: 4px; flex: none; min-height: 44px; padding: 0 !important; color: var(--m-action); font-size: 14px; white-space: nowrap; }
 .mobile-page:not(.m-shot) .m-supplier-card .m-supplier-heading { flex-wrap: nowrap; }
 .mobile-page:not(.m-shot) .m-supplier-card .m-supplier-heading h3 { flex-basis: 0; }
+.mobile-page:not(.m-shot) .m-supplier-card-name {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
 .m-copy-supplier-name { -webkit-touch-callout: none; }
 @media (pointer: coarse) {
   .m-copy-supplier-name { -webkit-user-select: none; user-select: none; }

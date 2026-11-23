@@ -64,7 +64,7 @@ function CopyableSupplierName({ name, notify }) {
     press.current = null;
     if (longPress) notify(await copySupplierName(name) ? '已复制' : '复制失败，请重试', false);
   };
-  return <span className="m-copy-supplier-name" onTouchStart={begin} onTouchMove={move} onTouchEnd={end}
+  return <span className="m-supplier-card-name m-copy-supplier-name" onTouchStart={begin} onTouchMove={move} onTouchEnd={end}
     onTouchCancel={() => { press.current = null; }}
     onContextMenu={event => { if (press.current || event.nativeEvent.pointerType === 'touch') event.preventDefault(); }}>
     {name}
@@ -91,7 +91,7 @@ function SupplierSummary({ s, mine, batch, checked, setChecked, onDetail, onBank
   const fields = mine ? [['证件号码', displayCertificateNumber(s)], ['联系人姓名', s.contact], ['联系人邮箱', s.email], ['联系人电话', s.phone], ['邀请时间', s.date], ['更新时间', s.updated]] : [['注册方式', s.mode], ['更新时间', s.updated]];
   return <article data-motion-key={"supplier-" + s.id} className={'m-supplier-card' + (mine ? ' m-supplier-card-mine' : '')}>
     <div className="m-supplier-heading"><h3><MotionPresence show={batch} compact className="m-checkbox-presence"><Checkbox label={`选择${s.name}`} disabled={!selectable} checked={checked.includes(s.id)}
-      onChange={value => setChecked(value ? [...checked, s.id] : checked.filter(x => x !== s.id))} /></MotionPresence><i className="m-blue-mark" aria-hidden="true" />{copyFeedback && s.name ? <CopyableSupplierName name={s.name} notify={copyFeedback} /> : <span>{s.name}</span>}</h3>{!historical && <StatusTag value={s.status} />}</div>
+      onChange={value => setChecked(value ? [...checked, s.id] : checked.filter(x => x !== s.id))} /></MotionPresence><i className="m-blue-mark" aria-hidden="true" />{copyFeedback && s.name ? <CopyableSupplierName name={s.name} notify={copyFeedback} /> : <span className="m-supplier-card-name">{s.name}</span>}</h3>{!historical && <StatusTag value={s.status} />}</div>
     {!historical && <p className="m-supplier-kind">{s.type}<span>·</span>{s.mode}</p>}
     <dl>{(historical ? [['供应商类型', s.type], ['审批状态', s.status], ...(!mine ? [['邀请人', s.inviter], ['邀请时间', s.date]] : []), ...fields, ...(!mine ? [['评分', s.score]] : [])] : [...(!mine ? [['邀请人', s.inviter], ['邀请时间', s.date]] : []), ...fields.filter(([label]) => label !== '注册方式'), ...(!mine ? [['评分', s.score]] : [])]).map(([label, value]) => <div className={/时间|邮箱|证件|评分/.test(label) ? 'm-supplier-wide' : ''} key={label}><dt>{label}{historical ? '：' : ''}</dt><dd>{label === '审批状态' ? <StatusTag value={value} /> : value || '—'}</dd></div>)}</dl>
 
