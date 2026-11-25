@@ -1,3 +1,9 @@
+# 当前：PC端新增新媒体版权权限（2026-11-25）
+
+- 分支：`feat/mobile-change-comparison`。PC权限维护弹窗新增【新媒体版权】，分类为【免费类】【采购类】；供应商详情的【分配权限】和快速创建供应商的权限添加共用该选项。
+- 新增PC专用权限目录 `src/pc/permission-options.js`，未修改移动端共享权限目录 `src/pages/mobile-data.js`。
+- 新增 `tests/pc-permission-options.test.mjs`，覆盖新媒体版权分类及PC、移动端权限目录隔离。当前容器无法解析 GitHub 域名，未执行本地构建和测试。
+
 # 当前：采购日期文案及供应商查询（2026-11-17）
 
 - 报价管理和价税拆分筛选使用“选择开始日期”和“选择结束日期”。供应商查询的搜索框按供应商名称模糊匹配，邀请人通过独立条件筛选。规则见[供应商移动端 PRD](docs/supplier-mobile-prd.md)。
