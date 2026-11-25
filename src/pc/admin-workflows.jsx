@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { App, Button, Card, Form, Input, Select } from 'antd-pc';
 import { PcModal, PcTable } from '../erp/components.jsx';
-import { people, permissionGroups, supplierTypes } from '../pages/mobile-data.js';
+import { people, supplierTypes } from '../pages/mobile-data.js';
+import { pcPermissionGroups } from './permission-options.js';
 
 const options = (values) => values.map((value) => ({ value }));
 const departments = [...new Set(people.map((person) => person.department).filter(Boolean))];
@@ -53,9 +54,9 @@ export function PermissionModal({ initial, existing, onCancel, onSave }) {
       }
       onSave({ ...initial, ...values, id: initial?.id || crypto.randomUUID() });
     }}>
-      <Form.Item name="group" label="所属权限" rules={[{ required: true }]}><Select options={options(Object.keys(permissionGroups))}
+      <Form.Item name="group" label="所属权限" rules={[{ required: true }]}><Select options={options(Object.keys(pcPermissionGroups))}
         onChange={() => form.setFieldValue('category', undefined)} /></Form.Item>
-      <Form.Item name="category" label="权限分类" rules={[{ required: true }]}><Select showSearch options={options(permissionGroups[group] || [])} /></Form.Item>
+      <Form.Item name="category" label="权限分类" rules={[{ required: true }]}><Select showSearch options={options(pcPermissionGroups[group] || [])} /></Form.Item>
       <Form.Item name="note" label="备注"><Input.TextArea maxLength={100} rows={3} /></Form.Item>
     </Form>
   </PcModal>;
