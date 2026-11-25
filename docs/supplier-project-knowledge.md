@@ -12,6 +12,8 @@
 | 双端界面、组件、交互和动效 | [设计规范](../DESIGN.md) · [移动端组件库](mobile-component-library.md) · [资产 UI 规范适配记录](mobile-ui-guideline-adoption.md) |
 | 原型路由、截图对照、评审与前端拆分 | [移动端工程说明](mobile-prototype.md) · [截图覆盖表](mobile-screenshot-coverage.md) · [评审模式](mobile-review-mode.md) · [前端拆分及估时](mobile-frontend-estimate.md) |
 | PR付款重构的供应商查询及详情跳转 | [按名称和银行账号查询](pr-payment-supplier-bank-search-prd.md) · [跳转供应商详情](pr-payment-supplier-detail-prd.md) · [按供应商名称查询基本信息及银行账户](pr-payment-supplier-name-query-prd.md) |
+| 代注册初始密码 | 代注册自动创建账号时的初始密码规则，维护在[供应商移动端 PRD 4.3](supplier-mobile-prd.md#43-代注册与受邀资料登记)。 |
+| 新媒体版权供应商统一管理与查询 | 新媒体版权权限配置见[供应商移动端 PRD 4.6](supplier-mobile-prd.md#46-分配权限)，外部系统查询接口见[新媒体版权供应商查询接口 PRD](new-media-copyright-supplier-query-prd.md)。 |
 | 接口封装、演示身份和接入条件 | [移动端 API 与 Mock](mobile-api.md) · [接口文档](供应商管理平台接口文档.pdf) |
 | 需求评审、已决事项、旧系统与原型差异 | [评审核对记录](mobile-prd-open-items.md) · [PRD 核对记录](mobile-prd-review.md) · [PC／原型／PRD 三方核对](mobile-three-way-comparison-2026-11-14.md) · [能力差异报告](mobile-pc-gap-report.md) |
 | 当前工作、交付记录与工程经验 | [当前上下文](../CONTEXT.md) · [复盘经验](../lessons.md) · [PRD 写作规则](prd-writing-guide.md) · [仓库交付约定](../AGENTS.md) |
@@ -29,6 +31,7 @@
 | 代注册及受邀登记 | 企业、个人、政府机构或社团、国外供应商的字段和步骤不同。按类型核对国家、证件、注册邮箱、营业执照识别及企业资料回填、名称与证件查重、联系人、银行、资质和预览。普通邀请名称匹配与提交登记查重分别核对。 | [代注册与受邀登记](supplier-mobile-prd.md#43-代注册与受邀资料登记) |
 | 修改全部信息、注册驳回和审批 | 注册中继续登记，审批中看只读资料，注册驳回进入修改全部信息。注册驳回重提走注册审批，已生效资料修改走变更审批。整份修改中的明细保存、整体提交和主动放弃影响的范围不同。 | [修改全部信息](supplier-mobile-prd.md#44-修改全部信息) · [门户登录](supplier-mobile-prd.md#491-登录) · [审批结果](supplier-mobile-prd.md#412-审批记录与结果) |
 | 修改银行、分配权限、变更邀请人 | 修改银行与分配权限各用独立办理页，单条保存与整单提交审批分开。银行已有记录和本次新增记录的删除规则不同，开户证明单份上传。邀请人交接从两个列表按实际权限办理，单条和批量免审批，批量按整批处理。 | [修改银行](supplier-mobile-prd.md#45-修改银行) · [分配权限](supplier-mobile-prd.md#46-分配权限) · [变更邀请人](supplier-mobile-prd.md#47-变更邀请人) |
+| 新媒体版权供应商 | 供应商统一纳入供应商管理平台维护，通过【新媒体版权】权限及【免费类】【采购类】分类标识业务范围；新媒体版权系统通过接口查询已生效权限对应的供应商。 | [分配权限](supplier-mobile-prd.md#46-分配权限) · [查询接口](new-media-copyright-supplier-query-prd.md) |
 | 评分 | 区分从供应商查询发起评分、我的评分待办、已评分修改和只读详情。评分星级、得分、合作信息的读写范围及原记录关联各有规则。PC 供应商评分、评分运维的查询条件按各自入口核对。 | [我的评分](supplier-mobile-prd.md#48-我的评分) · [PC 覆盖](pc-coverage.md) |
 | 门户认证与账户 | 注册邮箱用于账号验证，联系人邮箱用于业务联系。供应商自助修改注册邮箱与邀请人通过资料变更修改注册邮箱的验证和生效时点不同。账号、邮箱的空白字符处理与密码规则分别核对。 | [账号和邮箱空格处理](supplier-mobile-prd.md#33-账号和邮箱的空格处理) · [账户维护](supplier-mobile-prd.md#493-账户维护) |
 | 采购报价与价税拆分 | 两类任务都分待处理和已处理，日期界面可共用，查询字段的含义各自保留。按任务分别核对单头税率、明细保存、多附件、暂存、整单提交与处理结果。 | [采购报价及价税拆分](supplier-mobile-prd.md#410-采购报价及价税拆分) |
