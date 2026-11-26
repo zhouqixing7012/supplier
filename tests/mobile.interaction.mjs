@@ -1757,16 +1757,22 @@ try {
         const field = [...summary.parentElement.querySelectorAll('[data-field-label]')].find(node => node.dataset.fieldLabel === fieldLabel);
         const editLabel = field.querySelector('.m-field-name');
         const edit = field.querySelector('input');
-        const style = getComputedStyle(edit);
         return {
-          leftEdges: [readLabel.getBoundingClientRect().left, value.getBoundingClientRect().left, editLabel.getBoundingClientRect().left,
-            edit.getBoundingClientRect().left + parseFloat(style.paddingLeft) + parseFloat(style.borderLeftWidth)],
+          readLabel: readLabel.getBoundingClientRect().toJSON(),
+          readValue: value.getBoundingClientRect().toJSON(),
+          editLabel: editLabel.getBoundingClientRect().toJSON(),
+          editControl: field.querySelector('.m-field-control').getBoundingClientRect().toJSON(),
+          align: getComputedStyle(value).textAlign,
           labels: [readLabel, editLabel].map(node => getComputedStyle(node).color),
           values: [value, edit].map(node => getComputedStyle(node).color),
           gap: summary.nextElementSibling.getBoundingClientRect().top - summary.getBoundingClientRect().bottom,
         };
       }, label);
-      assert.ok(layout.leftEdges.every(edge => Math.abs(edge - layout.leftEdges[0]) <= 1));
+      assert.ok(layout.readLabel.right <= layout.readValue.left);
+      assert.equal(layout.readLabel.top, layout.readValue.top);
+      assert.equal(layout.readValue.right, layout.editControl.right);
+      assert.equal(layout.align, 'right');
+      assert.ok(layout.editLabel.bottom < layout.editControl.top);
       assert.equal(layout.labels[0], layout.labels[1]);
       assert.equal(layout.values[0], layout.values[1]);
       assert.equal(layout.gap, 16);
@@ -2063,10 +2069,13 @@ try {
       const fields = await panel.locator(':scope > .m-field').evaluateAll(nodes => nodes.map(field => {
         const label = field.querySelector(':scope > label').getBoundingClientRect();
         const control = field.querySelector(':scope > .m-field-control').getBoundingClientRect();
-        return { name: field.dataset.fieldLabel, gap: control.top - label.bottom, width: control.width };
+        return { name: field.dataset.fieldLabel, gap: control.top - label.bottom, width: control.width,
+          readOnly: !!field.querySelector('input[readonly]'), inline: label.right <= control.left && label.top === control.top };
       }));
       assert.ok(fields.length > 10);
-      for (const field of fields) assert.ok(field.gap >= 7 && field.width > 290, route + ' · ' + field.name);
+      for (const field of fields) {
+        assert.ok(field.readOnly ? field.inline : field.gap >= 7 && field.width > 290, route + ' · ' + field.name);
+      }
     }
     await goto('mobile/register');
     const chooseLicense = button('选择营业执照');

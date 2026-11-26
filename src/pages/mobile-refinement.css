@@ -1493,32 +1493,30 @@ body:has(.mobile-page > .m-list-registration-actions) {
 .mobile-page:not(.m-shot) .m-workspace .m-section > h2:not(:has(.m-section-heading)) { border-bottom: 0; }
 .mobile-page:not(.m-shot) .m-detail .m-section-content > .m-row { border-bottom: 0; }
 
-/* 上下排版的混排表单共用标签和正文起点。 */
+/* 混排表单中的只读字段沿用同行信息行。 */
 .mobile-page:not(.m-shot) .m-form-summary { margin-bottom: 16px; }
-.mobile-page:not(.m-shot) .m-form-summary > .m-row {
-  display: grid;
-  gap: 8px;
-  min-height: 0;
-  padding: 0 var(--m-control-inset);
-}
-.mobile-page:not(.m-shot) .m-form-summary .m-label {
-  width: auto;
-  max-width: none;
-  padding: 0;
-  line-height: 20px;
-}
-.mobile-page:not(.m-shot) .m-form-summary .m-value {
-  color: #334155;
-  line-height: 22px;
-  text-align: left;
-}
+.mobile-page:not(.m-shot) .m-form-summary > .m-row { padding-inline-start: var(--m-control-inset); }
 .mobile-page:not(.m-shot) .m-supplier-form-fields .m-form-summary ~ .m-field > label,
 .mobile-page:not(.m-shot) :is(.m-supplier-basic-fields, .m-supplier-form-fields .m-section-content):has(> .m-field > .m-field-control > input[readonly]) > .m-field > label {
   color: var(--m-text-secondary);
 }
+.mobile-page:not(.m-shot) .m-supplier-form-fields .m-field:has(> .m-field-control > input[readonly]) {
+  display: grid;
+  grid-template-columns: min(144px, 48%) minmax(0, 1fr);
+  align-items: start;
+  gap: 8px;
+  min-height: var(--m-card-field-min);
+  margin-bottom: 0;
+  padding-block: var(--m-card-field-padding);
+}
+.mobile-page:not(.m-shot) .m-supplier-form-fields .m-field:has(> .m-field-control > input[readonly]) > label {
+  margin-bottom: 0;
+  line-height: var(--m-card-field-line);
+}
 .mobile-page:not(.m-shot) .m-supplier-form-fields .m-field-control > input[readonly] {
   display: block;
   min-height: 0;
-  padding-inline: var(--m-control-inset);
-  line-height: 22px;
+  padding-inline: 0;
+  line-height: var(--m-card-field-line);
+  text-align: right;
 }
