@@ -36,7 +36,7 @@ export function SupplierAccountRegistration({ invitation, accounts, onComplete }
     <div className="m-portal-brand"><img className="m-portal-brand-mark" src={import.meta.env.BASE_URL + 'sohu-logo.png'} alt="搜狐" /><span>供应商协同门户</span></div>
     <section className="m-portal-login-card" aria-labelledby="supplier-account-heading">
       <h2 id="supplier-account-heading">账号注册</h2>
-      <div className="m-signup-identity"><Row label="供应商名称">{invitation.name}</Row></div>
+      <div className="m-form-summary"><Row label="供应商名称">{invitation.name}</Row></div>
       <form className="m-portal-form" onSubmit={submit} noValidate>
         <Field label="账号" required value={form.account} onChange={v => change('account', v)} error={errors.account} autoComplete="username" />
         <Field label="密码" required type="password" value={form.password} onChange={v => change('password', v)} error={errors.password} autoComplete="new-password" />

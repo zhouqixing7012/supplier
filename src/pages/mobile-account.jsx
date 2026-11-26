@@ -53,7 +53,7 @@ export function AccountSecurityForm({ kind, email, onCancel, onComplete, initial
   };
   return <>
     <Section title={changingEmail ? (step === 0 ? '验证原邮箱' : '设置新邮箱') : undefined} collapsible={false} className="m-supplier-form-fields">
-      <Row label="当前注册邮箱">{email}</Row>
+      <div className="m-form-summary"><Row label="当前注册邮箱">{email}</Row></div>
       {changingEmail && step === 1 && <Field label="新邮箱" required type="email" autoComplete="email" value={data.newEmail} error={errors.newEmail} onChange={value => change('newEmail', value)} />}
       <Field label="邮箱验证码" required inputMode="text" placeholder="输入验证码" autoComplete="one-time-code" value={data.code} error={errors.code} onChange={value => change('code', value)} trailing={<button className="m-account-code-button" type="button" disabled={countdown > 0} onClick={sendCode}>{countdown ? countdown + '秒后重发' : '获取验证码'}</button>} />
       {!changingEmail && <><Field label="新密码" required type="password" autoComplete="new-password" value={data.password} error={errors.password} onChange={value => change('password', value)} /><Field label="确认新密码" required type="password" autoComplete="new-password" value={data.confirmation} error={errors.confirmation} onChange={value => change('confirmation', value)} /></>}

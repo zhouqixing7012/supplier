@@ -1743,15 +1743,47 @@ try {
     assert.equal(await page.locator('.m-portal-entry-grid').first().evaluate(node => getComputedStyle(node).gridTemplateColumns.split(' ').length), 3);
     assert.equal(await page.locator('.m-portal-entry-icon img').evaluateAll(images => images.filter(img => img.complete && img.naturalWidth === 20).length), 7);
     assert.ok(await button('退出账号').isVisible());
+    const rightEdges = await page.locator('#root .m-portal-home-identity :is(.m-status, .m-value)').evaluateAll(nodes => nodes.map(node => {
+      const text = document.createRange();
+      text.selectNodeContents(node);
+      return text.getBoundingClientRect().right;
+    }));
+    assert.ok(rightEdges.every(edge => Math.abs(edge - rightEdges[0]) < 1));
+
+    const checkSecurityLayout = async label => {
+      const layout = await page.locator('#root .m-form-summary').evaluate((summary, fieldLabel) => {
+        const readLabel = summary.querySelector('.m-label');
+        const value = summary.querySelector('.m-value');
+        const field = [...summary.parentElement.querySelectorAll('[data-field-label]')].find(node => node.dataset.fieldLabel === fieldLabel);
+        const editLabel = field.querySelector('.m-field-name');
+        const edit = field.querySelector('input');
+        const style = getComputedStyle(edit);
+        return {
+          leftEdges: [readLabel.getBoundingClientRect().left, value.getBoundingClientRect().left, editLabel.getBoundingClientRect().left,
+            edit.getBoundingClientRect().left + parseFloat(style.paddingLeft) + parseFloat(style.borderLeftWidth)],
+          labels: [readLabel, editLabel].map(node => getComputedStyle(node).color),
+          values: [value, edit].map(node => getComputedStyle(node).color),
+          gap: summary.nextElementSibling.getBoundingClientRect().top - summary.getBoundingClientRect().bottom,
+        };
+      }, label);
+      assert.ok(layout.leftEdges.every(edge => Math.abs(edge - layout.leftEdges[0]) <= 1));
+      assert.equal(layout.labels[0], layout.labels[1]);
+      assert.equal(layout.values[0], layout.values[1]);
+      assert.equal(layout.gap, 16);
+    };
     await button('修改注册邮箱').click();
+    await checkSecurityLayout('邮箱验证码');
     await button('下一步').click();
     assert.ok(await page.getByText('请输入邮箱验证码', { exact: true }).isVisible());
     await button('获取验证码').click(); await button('下一步').click();
+    await field('新邮箱').waitFor();
+    await checkSecurityLayout('新邮箱');
     await field('新邮箱').fill('updated@example.invalid');
     await button('获取验证码').click(); await button('保存').click();
     await page.locator('#root [data-scene="workspace-home"]').waitFor();
     assert.ok(await page.locator('#root .m-portal-identity-details').getByText('updated@example.invalid', { exact: true }).isVisible());
     await button('修改密码').click();
+    await checkSecurityLayout('新密码');
     await button('获取验证码').click();
     await page.locator('#root').getByLabel('新密码', { exact: true }).fill('Mock-Password-A1');
     await page.locator('#root').getByLabel('确认新密码', { exact: true }).fill('Mock-Password-B1');
