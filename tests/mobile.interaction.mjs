@@ -796,8 +796,8 @@ try {
   await check('注册缺项定位首个字段且持续显示错误', async () => {
     await goto('mobile/register');
     await button('下一步（1/4）').click();
-    await page.waitForFunction(() => document.activeElement?.getAttribute('aria-label') === '上传营业执照');
-    assert.equal(await button('上传营业执照').getAttribute('aria-invalid'), 'true');
+    await page.waitForFunction(() => document.activeElement?.getAttribute('aria-label') === '选择营业执照');
+    assert.equal(await button('选择营业执照').getAttribute('aria-invalid'), 'true');
     assert.equal(await page.locator('#root [data-field-label="营业执照"] .m-field-error').innerText(), '请上传营业执照');
   });
   await check('评分半分输入、类型切换取消保护及提交修改', async () => {
@@ -1161,7 +1161,7 @@ try {
     await goto('mobile/register'); await button('注册地址').click(); assert.equal(await page.locator('#root').getByRole('dialog', { name: '编辑注册地址', exact: true }).count(), 1); assert.equal(await page.locator('#root .m-fullscreen-panel').count(), 0); await field('搜索省份').fill('北京'); assert.equal(await page.locator('#root .m-sheet-options button').count(), 1); await page.locator('#root .m-sheet-options').getByRole('button', { name: '北京市', exact: true }).click(); await page.locator('#root .m-sheet-options').getByRole('button', { name: '北京市', exact: true }).click(); await page.locator('#root .m-sheet-options').getByRole('button', { name: '朝阳区', exact: true }).click(); await field('详细地址').fill('不应写入'); await button('取消').click(); await button('放弃修改').click(); assert.equal(await button('注册地址').innerText(), '请选择注册地址');
   });
   await check('门户导航、内容滑动、价税直达去重和返回', async () => {
-    await goto('mobile/workspace-home'); await button('价税拆分待处理').click(); await button('价税拆分').click(); await page.locator('#root [data-scene="workspace-tax-split"]').waitFor(); assert.equal(await page.locator('#root').getByText('物料编码', { exact: true }).count(), 1); assert.equal(await page.locator('#root').getByText('含税金额', { exact: true }).count(), 1); await headerBack(); assert.equal(await page.locator('#root .m-tabs [aria-current]').innerText(), '待处理'); await swipe(page.locator('#root .m-portal-task-card').first(), -130); await page.locator('#root').getByText('DEMO-ORDER-002', { exact: true }).waitFor(); await headerBack(); await button('账户设置').click(); await button('退出登录').click(); await page.locator('#root').getByRole('dialog').getByRole('button', { name: '取消', exact: true }).click(); await button('账户设置').click(); await button('退出登录').click(); await page.locator('#root').getByRole('dialog', { name: '退出登录？', exact: true }).getByRole('button', { name: '退出登录', exact: true }).click(); await page.locator('#root [data-scene="portal"]').waitFor();
+    await goto('mobile/workspace-home'); await button('价税拆分待处理').click(); await button('价税拆分').click(); await page.locator('#root [data-scene="workspace-tax-split"]').waitFor(); assert.equal(await page.locator('#root').getByText('物料编码', { exact: true }).count(), 1); assert.equal(await page.locator('#root').getByText('含税金额', { exact: true }).count(), 1); await headerBack(); assert.equal(await page.locator('#root .m-tabs [aria-current]').innerText(), '待处理'); await swipe(page.locator('#root .m-portal-task-card').first(), -130); await page.locator('#root').getByText('DEMO-ORDER-002', { exact: true }).waitFor(); await headerBack(); await button('退出账号').click(); await page.locator('#root').getByRole('dialog').getByRole('button', { name: '取消', exact: true }).click(); await button('退出账号').click(); await page.locator('#root').getByRole('dialog', { name: '退出登录？', exact: true }).getByRole('button', { name: '退出登录', exact: true }).click(); await page.locator('#root [data-scene="portal"]').waitFor();
   });
   await check('门户只读修改取消、清空、保存对比与审批原值保留', async () => {
     await goto('mobile/workspace-info'); assert.equal(await field('法人代表').count(), 0); await button('修改').click(); await field('法人代表').fill('取消修改测试'); await headerBack(); await button('放弃修改').click(); assert.equal(await page.locator('#root').getByText('取消修改测试', { exact: true }).count(), 0);
@@ -1605,8 +1605,8 @@ try {
     ]) {
       await goto('mobile/' + route);
       const row = page.locator(fieldSelector).first();
-      assert.equal(await row.evaluate(el => getComputedStyle(el).minHeight), '36px', route);
-      assert.equal(await row.evaluate(el => getComputedStyle(el).lineHeight), '22px', route);
+      assert.equal(await row.evaluate(el => getComputedStyle(el).minHeight), route === 'workspace-home' ? '20px' : '36px', route);
+      assert.equal(await row.evaluate(el => getComputedStyle(el).lineHeight), route === 'workspace-home' ? '20px' : '22px', route);
       assert.equal(await row.locator(valueSelector).evaluate(el => getComputedStyle(el).textAlign), 'right', route);
     }
     await goto('mobile/bank');
@@ -1617,8 +1617,12 @@ try {
       const style = getComputedStyle(node);
       return [style.minHeight, style.borderRadius, style.backgroundColor, style.color, style.fontSize];
     };
-    const proofStyle = await proofSelect.evaluate(appearance);
-    assert.ok(await proof.getByRole('button', { name: '拍照上传开户证明', exact: true }).isVisible());
+    const proofCamera = proof.getByRole('button', { name: '拍照上传开户证明', exact: true });
+    assert.deepEqual(await proofSelect.evaluate(appearance), ['44px', '12px', 'rgb(229, 241, 255)', 'rgb(20, 92, 255)', '14px']);
+    assert.deepEqual(await proofCamera.evaluate(appearance), await proofSelect.evaluate(appearance));
+    const [fileBox, cameraBox] = await Promise.all([proofSelect.boundingBox(), proofCamera.boundingBox()]);
+    assert.equal(fileBox.width, cameraBox.width);
+    assert.equal(cameraBox.x - fileBox.x - fileBox.width, 8);
     const chooser = page.waitForEvent('filechooser');
     await proofSelect.click();
     await (await chooser).setFiles(upload);
@@ -1634,7 +1638,7 @@ try {
     await button('编辑第1项报价').click();
     const quote = page.locator('[data-field-label="报价附件"]');
     const chooseAttachment = quote.getByRole('button', { name: '选择文件', exact: true });
-    assert.deepEqual(await chooseAttachment.evaluate(appearance), proofStyle);
+    assert.equal(await quote.locator('input[capture]').count(), 0);
     const input = quote.locator('input[type="file"][id]');
     assert.equal(await input.getAttribute('multiple'), '');
     const quoteChooser = page.waitForEvent('filechooser');
@@ -1736,7 +1740,9 @@ try {
   await check('门户待办角标、双邮箱验证及密码修改', async () => {
     await goto('mobile/workspace-home');
     assert.equal(await page.locator('#root .m-portal-pending-count').count(), 2);
-    await button('账户设置').click();
+    assert.equal(await page.locator('.m-portal-entry-grid').first().evaluate(node => getComputedStyle(node).gridTemplateColumns.split(' ').length), 3);
+    assert.equal(await page.locator('.m-portal-entry-icon img').evaluateAll(images => images.filter(img => img.complete && img.naturalWidth === 20).length), 7);
+    assert.ok(await button('退出账号').isVisible());
     await button('修改注册邮箱').click();
     await button('下一步').click();
     assert.ok(await page.getByText('请输入邮箱验证码', { exact: true }).isVisible());
@@ -1745,7 +1751,7 @@ try {
     await button('获取验证码').click(); await button('保存').click();
     await page.locator('#root [data-scene="workspace-home"]').waitFor();
     assert.ok(await page.locator('#root .m-portal-identity-details').getByText('updated@example.invalid', { exact: true }).isVisible());
-    await button('账户设置').click(); await button('修改密码').click();
+    await button('修改密码').click();
     await button('获取验证码').click();
     await page.locator('#root').getByLabel('新密码', { exact: true }).fill('Mock-Password-A1');
     await page.locator('#root').getByLabel('确认新密码', { exact: true }).fill('Mock-Password-B1');
@@ -1877,7 +1883,7 @@ try {
     await goto('mobile/register');
     await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
     await button('下一步（1/4）').click();
-    await waitForFocus('上传营业执照');
+    await waitForFocus('选择营业执照');
     assert.equal(await field('供应商名称').getAttribute('aria-invalid'), 'false');
 
     await goto('mobile/register?map=1&step=3');
@@ -2031,19 +2037,19 @@ try {
       for (const field of fields) assert.ok(field.gap >= 7 && field.width > 290, route + ' · ' + field.name);
     }
     await goto('mobile/register');
-    const tile = button('上传营业执照');
-    assert.match(await tile.innerText(), /上传图片/);
-    assert.ok((await tile.boundingBox()).height >= 100);
-    assert.ok(await tile.locator('img').evaluate(img => img.complete && img.naturalWidth === 28));
-    await tile.click();
-    const uploadSheet = page.locator('#root').getByRole('dialog', { name: '上传营业执照', exact: true });
-    assert.ok(await uploadSheet.getByRole('button', { name: '拍照', exact: true }).isVisible());
-    await uploadSheet.getByRole('button', { name: '取消', exact: true }).click();
-    await uploadSheet.waitFor({ state: 'hidden' });
-    await tile.click();
+    const chooseLicense = button('选择营业执照');
+    assert.equal(await chooseLicense.innerText(), '选择文件');
+    assert.equal((await chooseLicense.boundingBox()).height, 44);
     const chooser = page.waitForEvent('filechooser');
-    await uploadSheet.getByRole('button', { name: '选择文件', exact: true }).click();
-    await (await chooser).setFiles(upload);
+    await chooseLicense.click();
+    await (await chooser).setFiles({ name: '营业执照.pdf', mimeType: 'application/pdf', buffer: Buffer.from('%PDF-1.4') });
+    await button('查看附件：营业执照.pdf').waitFor();
+
+    const camera = page.waitForEvent('filechooser');
+    await button('拍照上传营业执照').click();
+    const cameraInput = await camera;
+    assert.equal(await cameraInput.element().getAttribute('capture'), 'environment');
+    await cameraInput.setFiles(upload);
     const link = page.locator('#root').getByRole('button', { name: '查看附件：测试证明.png', exact: true });
     await link.click();
     await page.locator('#root').getByRole('button', { name: '打开附件', exact: true }).click();

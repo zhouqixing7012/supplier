@@ -414,9 +414,9 @@ export const reviewDefinitions = [
   ],
   [
     "prd-1.25-account",
-    ".m-portal-account-button, .m-portal-account-panel",
+    ".m-portal-logout, .m-portal-account-panel",
     "1.25 协同门户增加菜单及账户入口",
-    "定位：账户入口。支持修改密码、注册邮箱及退出；有未保存修改时先确认继续编辑或放弃，退出后返回登录页。",
+    "工作台信息管理提供修改密码、修改注册邮箱，账号卡片提供退出账号。退出时确认，存在未提交资料时提示放弃范围。",
     "docs/mobile-prd.md",
     [
       "workspace-home",

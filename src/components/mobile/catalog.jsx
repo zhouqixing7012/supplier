@@ -201,8 +201,8 @@ function AttachmentExamples() {
   const [attachments, setAttachments] = useState([]);
 
   return <Section title="上传与预览">
-    <UploadField label="营业执照" variant="certificate" value={certificate} onChange={setCertificate} />
-    <UploadField label="开户证明" value={image} onChange={setImage} />
+    <UploadField label="营业执照" variant="file-photo" value={certificate} onChange={setCertificate} />
+    <UploadField variant="file-photo" label="开户证明" value={image} onChange={setImage} />
     <FileUploadField label="证明文件" value={file} onChange={setFile} />
     <MultiAttachmentField label="报价附件" value={attachments} onChange={setAttachments} />
     <p className="m-catalog-note">示例文件仅在本次页面会话中预览。</p>

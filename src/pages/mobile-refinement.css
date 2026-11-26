@@ -172,6 +172,18 @@ html:has(.m-query-list) { overscroll-behavior-y: none; }
 }
 .mobile-page .m-attachment-upload-button[data-primary] { flex: 1; min-width: 0; background: var(--m-info-surface); }
 .m-attachment-upload-button svg { width: 16px; height: 16px; flex: 0 0 16px; }
+.mobile-page:not(.m-shot) .m-upload-field[data-dual-source] :is(.m-upload-empty, .m-upload-tools) { gap: 8px; }
+.mobile-page:not(.m-shot) .m-upload-field[data-dual-source] .m-attachment-upload-button {
+  flex: 1;
+  min-width: 0;
+  gap: 4px;
+  border: 0;
+  border-radius: 12px;
+  background: #e5f1ff;
+  line-height: 20px;
+}
+.m-upload-field[data-dual-source] .m-attachment-upload-button img { flex-shrink: 0; }
+
 .m-bank-location-note { padding: 8px 16px; margin: 0; font-size: 14px; color: var(--m-text-secondary); }
 .m-rating-value { font-size: 16px; font-variant-numeric: tabular-nums; color: var(--m-text); }
 .mobile-page:not(.m-shot) .m-star-control > span:first-child { display: grid; grid-template-columns: repeat(5, 44px); gap: 0; }
@@ -494,29 +506,41 @@ html:has(.m-query-list) { overscroll-behavior-y: none; }
 .m-batch-supplier + .m-batch-supplier { border-top: 1px solid var(--m-border-subtle); }
 .m-batch-supplier h3 { margin: 0; padding: 12px 0 0; font-size: 16px; line-height: 1.6; overflow-wrap: anywhere; }
 
-/* 门户首页以实际业务模块组织图标入口，颜色只用于区分功能。 */
-.m-portal-home { padding: 12px 16px 20px; }
-.m-portal-home-identity { display: flex; align-items: center; gap: 10px; padding: 14px 16px; margin-bottom: 12px; background: var(--m-surface); border: 1px solid var(--m-border); border-radius: 12px; }
-.m-portal-home-identity > svg { width: 22px; height: 22px; flex-shrink: 0; color: var(--m-action); }
-.m-portal-home-identity h2 { flex: 1; min-width: 0; margin: 0; font-size: 16px; line-height: 1.5; overflow-wrap: anywhere; }
-.m-portal-travel-note { margin: 0 0 12px; padding: 4px 0 8px; color: var(--m-text-secondary); font-size: 14px; }
-.m-portal-home-group { margin-bottom: 12px; background: var(--m-surface); border: 1px solid var(--m-border); border-radius: 12px; overflow: hidden; }
-.m-portal-home-group h2 { display: flex; align-items: center; gap: 8px; margin: 0; padding: 12px 16px 8px; font-size: 16px; font-weight: 600; line-height: 1.5; }
-.m-portal-home-group h2::before { content: ''; width: 3px; height: 14px; flex-shrink: 0; border-radius: 2px; background: var(--m-action); }
-.m-portal-entry-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; padding: 4px 12px 14px; }
-.mobile-page .m-portal-entry-grid button { display: flex; flex-direction: column; align-items: center; gap: 8px; min-width: 0; min-height: 96px; padding: 8px 0 0; border: 0; background: transparent; color: var(--m-text); cursor: pointer; }
-.m-portal-entry-icon { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 12px; }
-.m-portal-entry-icon.is-blue { color: var(--m-action); background: var(--m-info-surface); }
-.m-portal-entry-icon.is-orange { color: var(--m-warning-text); background: var(--m-warning-surface); }
-.m-portal-entry-icon.is-green { color: var(--m-success-text); background: var(--m-success-surface); }
-.m-portal-entry-icon svg { width: 25px; height: 25px; stroke-width: 1.8; }
-.m-portal-entry-label { display: block; font-size: 14px; line-height: 1.5; text-align: center; }
+/* 协同门户工作台的账号卡和三列业务入口。 */
+.mobile-page:not(.m-shot):is([data-scene="workspace-home"], [data-scene="workspace-account"]) {
+  --m-header-height: 44px;
+  background: var(--m-neutral-surface);
+}
+.mobile-page:not(.m-shot):is([data-scene="workspace-home"], [data-scene="workspace-account"]) > .m-header { border-bottom: 0; }
+.mobile-page:not(.m-shot):is([data-scene="workspace-home"], [data-scene="workspace-account"]) > .m-header h1 { font-size: 18px; }
+.mobile-page:not(.m-shot):is([data-scene="workspace-home"], [data-scene="workspace-account"]) > .m-header button { width: 56px; height: 44px; }
+.m-portal-home { display: flex; flex-direction: column; gap: 16px; padding: 16px 16px 20px; color: #1d2126; }
+.m-portal-home-identity { position: relative; overflow: hidden; padding: 16px 16px 4px; background: var(--m-surface); border-radius: 12px; }
+.m-portal-identity-glow { position: absolute; top: -108px; right: -81px; max-width: none; pointer-events: none; }
+.m-portal-identity-heading { position: relative; display: flex; align-items: center; gap: 4px; }
+.m-portal-identity-heading img { flex-shrink: 0; }
+.m-portal-home-identity h2 { flex: 1; min-width: 0; margin: 0; font-size: 16px; font-weight: 500; line-height: 22px; overflow-wrap: anywhere; }
+.m-portal-identity-details { position: relative; display: grid; gap: 12px; margin-top: 12px; }
+.mobile-page:not(.m-shot) .m-portal-identity-details .m-row { min-height: 20px; padding: 0; font-size: 14px; line-height: 20px; }
+.m-portal-identity-actions { display: flex; justify-content: flex-end; margin-top: 12px; border-top: 1px solid #e2e6f0; }
+.mobile-page .m-portal-logout { min-height: 44px; color: #ec221f; font-size: 14px; line-height: 20px; }
+.m-portal-home-group h2 { margin: 0 0 8px; font-size: 14px; font-weight: 500; line-height: 20px; }
+.m-portal-entry-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: start; gap: 8px; padding: 16px; background: var(--m-surface); border-radius: 12px; }
+.mobile-page .m-portal-entry-grid button { display: flex; flex-direction: column; align-items: center; gap: 8px; min-width: 0; padding: 0; border: 0; background: transparent; color: inherit; cursor: pointer; }
+.m-portal-entry-icon { position: relative; display: grid; place-items: center; width: 44px; height: 44px; border: 3px solid rgb(255 255 255 / 40%); border-radius: 12px; }
+.m-portal-entry-icon[data-icon="information"] { background: linear-gradient(#44bbfe, #1e78fe); }
+.m-portal-entry-icon[data-icon="password"] { background: linear-gradient(#ff7c7a, #ec221f); }
+.m-portal-entry-icon[data-icon="email"] { background: linear-gradient(#99d518, #72a800); }
+.m-portal-entry-icon[data-icon="quote-pending"] { background: linear-gradient(#ff9900, #ed6300); }
+.m-portal-entry-icon[data-icon="quote-handled"] { background: linear-gradient(#36d480, #14ae5c); }
+.m-portal-entry-icon[data-icon="tax-pending"] { background: linear-gradient(#58d7df, #0ba9ae); }
+.m-portal-entry-icon[data-icon="tax-handled"] { background: linear-gradient(#b473ff, #6f00ed); }
+.m-portal-entry-label { display: block; font-size: 12px; line-height: 16px; text-align: center; }
 .m-portal-entry-label > span { display: block; }
-.m-portal-entry-grid button:focus-visible { outline: 2px solid var(--m-action); outline-offset: -2px; border-radius: 8px; }
+.m-portal-entry-grid button:focus-visible { outline: 2px solid var(--m-action); outline-offset: 4px; border-radius: 8px; }
 .m-portal-entry-grid button:active .m-portal-entry-icon { filter: brightness(.93); }
-@media (max-width: 359px) { .m-portal-home { padding-right: 12px; padding-left: 12px; } .m-portal-entry-grid { gap: 4px; padding-right: 8px; padding-left: 8px; } }
+.m-portal-travel-note { margin: -8px 0 0; color: var(--m-text-secondary); font-size: 12px; line-height: 16px; }
 
-.m-portal-entry-icon { position: relative; }
 .m-portal-pending-count { position: absolute; top: -7px; right: -9px; min-width: 20px; height: 20px; padding: 0 4px; display: grid; place-items: center; border-radius: 10px; border: 2px solid #fff; box-sizing: content-box; color: #b42318; background: #fff0ed; font-size: 13px; font-weight: 700; line-height: 20px; font-variant-numeric: tabular-nums; }
 .m-account-security-menu button { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; }
 .m-account-security-menu button > span { flex: 1; }
@@ -590,9 +614,6 @@ html:has(.m-query-list) { overscroll-behavior-y: none; }
 
 
 /* 门户走查：统一业务卡片密度、对象标题与任务操作层级。 */
-.m-portal-home-group h2 { padding-block: 10px 6px; }
-.m-portal-entry-grid { padding-bottom: 10px; }
-.mobile-page .m-portal-entry-grid button { min-height: 88px; padding-top: 4px; gap: 6px; }
 .mobile-page:not(.m-shot) .m-portal-task-card .m-record-heading { padding: 16px 0 8px; }
 .m-portal-record-number { margin: 0 0 8px; color: var(--m-text-secondary); font-size: 14px; overflow-wrap: anywhere; }
 .m-portal-object-summary { margin: 12px 16px; padding: 14px 16px 0; background: var(--m-surface); border: 1px solid var(--m-border); border-radius: 12px; }
@@ -749,12 +770,6 @@ html:has(.m-query-list) { overscroll-behavior-y: none; }
 /* 门户以工作台承载导航，账户入口位于页面标题栏右上角。 */
 .mobile-page .m-workspace { padding-bottom: 16px; }
 .mobile-page .m-workspace:has(.m-actions) { padding-bottom: 90px; }
-.mobile-page .m-portal-home-identity { display: block; position: relative; background: linear-gradient(115deg, #e8f1ff, #f1f5ff); border-color: #d9e5fb; }
-.m-portal-identity-heading { display: flex; align-items: center; gap: 8px; }
-.m-portal-identity-heading > svg { width: 22px; height: 22px; flex-shrink: 0; color: var(--m-action); }
-.mobile-page .m-portal-account-button { display: grid; place-items: center; width: 44px; height: 44px; flex-shrink: 0; margin: 0; color: var(--m-action); }
-.m-portal-account-button > svg { width: 20px; height: 20px; }
-.m-portal-identity-details { margin: 12px 0; font-size: 14px; line-height: 22px; }
 .mobile-page .m-portal-account-panel .m-picker-title { display: grid; grid-template-columns: 44px 1fr 44px; align-items: center; padding: 0 12px; min-height: 52px; }
 .m-portal-account-panel .m-picker-title > strong { grid-column: 2; text-align: center; font-size: 16px; }
 .mobile-page .m-portal-account-panel .m-picker-title > button { grid-column: 3; display: grid; place-items: center; width: 44px; height: 44px; }
@@ -766,14 +781,11 @@ html:has(.m-query-list) { overscroll-behavior-y: none; }
 .mobile-page .m-account-panel-logout > button { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: 48px; color: var(--m-danger-text); font-size: 14px; }
 .m-account-panel-logout svg { width: 20px; height: 20px; }
 
-.m-portal-home-identity .m-portal-identity-details { margin-bottom: 0; }
 
 /* 双页签居中等宽排列，不占用目录按钮位置。 */
 .mobile-page:not(.m-shot) .m-tab-bar-stretch { padding-inline: 16px; }
 .mobile-page:not(.m-shot) .m-tab-bar-stretch .m-tabs { flex: 1; width: 100%; overflow: hidden; }
 .mobile-page:not(.m-shot) .m-tab-bar-stretch .m-tabs > button { flex: 1 1 0; min-width: 0; padding-inline: 0; text-align: center; }
-.mobile-page .m-header > .m-portal-account-button { margin: 0 12px 0 auto; }
-.mobile-page .m-header > .m-portal-account-button > svg { width: 24px; height: 24px; }
 
 /* 地区选择在同一地址面板内展开，避免反复叠加弹层。 */
 .mobile-page .m-address-editor { display: flex; flex-direction: column; max-height: 85dvh; overflow: hidden; padding-bottom: 0; }
@@ -822,7 +834,6 @@ html:has(.m-query-list) { overscroll-behavior-y: none; }
 .mobile-page .m-portal-login .m-forgot-link { margin: 0 0 8px; }
 .m-login-email-code { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: end; }
 .mobile-page .m-portal-login .m-login-email-code .m-send-code { margin: 0 0 14px; padding: 0 8px; min-height: 48px; font-size: 14px; }
-.mobile-page .m-portal-home-identity { background: white url('/mobile-assets/portal-identity.svg') center top / cover no-repeat; border-color: #e6ebf2; }
 .mobile-page:has(.m-portal-home) { padding-bottom: 0; }
 .mobile-page .m-workspace:has(.m-portal-home) { padding-bottom: 0; }
 .mobile-page .m-quote-deadline { color: #EC221F; }
@@ -1458,7 +1469,6 @@ body:has(.mobile-page > .m-list-registration-actions) {
 .mobile-page:not(.m-shot) .m-supplier-form-fields .m-field > .m-field-control { width: 100%; }
 .mobile-page:not(.m-shot) .m-supplier-form-fields .m-multi-attachment-field > label { padding-top: 0; }
 .mobile-page:not(.m-shot) .m-supplier-form-fields :is(.m-control-trailing, .m-field-control > :where(input:not([type=file]), textarea, .m-select-field)) { border-radius: 12px; }
-.mobile-page .m-field-control > button.m-certificate-upload { display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 8px; width: 100%; min-height: 102px; padding: 24px 12px; border: 1px solid var(--m-border); border-radius: 12px; background: var(--m-surface); color: var(--m-text-secondary); font-size: 12px; line-height: 16px; }
 
 /* 评分数量按同一查询结果统计，当前状态只决定下面展示的记录。 */
 .mobile-page .m-status-tabs.m-count-tabs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; padding: 0 16px; margin: 8px 0 12px; }

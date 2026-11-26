@@ -40,10 +40,12 @@ const css = bundle.output.find(item => item.type === 'asset' && item.fileName.en
 const assets = {};
 const assetRoot = join(root, 'public');
 const workbench = await readdir(join(assetRoot, 'mobile-assets/workbench'));
+const supplierPortal = await readdir(join(assetRoot, 'mobile-assets/supplier-portal'));
 const mobileFiles = [
   'sohu-logo.png', 'mobile-assets/noto-sans-sc-400.woff2', 'mobile-assets/portal-city.png',
-  'mobile-assets/portal-identity.svg', 'mobile-assets/supplier-document-demo.png',
+  'mobile-assets/supplier-document-demo.png',
   ...workbench.map(name => 'mobile-assets/workbench/' + name),
+  ...supplierPortal.map(name => 'mobile-assets/supplier-portal/' + name),
 ];
 for (const name of mobileFiles) {
   const type = mime[extname(name)];

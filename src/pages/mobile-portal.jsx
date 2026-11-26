@@ -1,11 +1,11 @@
 import { portalTaskTabFor } from './mobile-portal-filters.js';
-import { readMobileSearch } from './mobile-prototype-runtime.js';
+import { mobileAsset, readMobileSearch } from './mobile-prototype-runtime.js';
 import { usePanelState } from './mobile-motion.jsx';
 import { AddressForm, Actions, PickerHeading, RecordCard, RecordCollection, Confirm, Empty, Overlay, Row, Section, Tabs } from '../components/mobile/index.js';
 import { focusFormError } from '../components/mobile/validation.js';
 import { regionData } from './registration-regions.js';
 import React, { useEffect, useRef, useState } from 'react';
-import { Building2, Store, FolderClock, FolderCheck, ReceiptText, Receipt, Plane, Train, Hotel, Car, Upload, Download, LoaderCircle, Plus, Mail, MailCheck, KeyRound, LockKeyhole, ChevronRight, X, LogOut } from 'lucide-react';
+import { Plane, Train, Hotel, Car, Upload, Download, LoaderCircle, Plus, Mail, KeyRound, ChevronRight, X, LogOut } from 'lucide-react';
 import { RegistrationSteps, StatusTag } from './mobile-ui.jsx';
 import { QualificationInfo } from './mobile-qualifications.jsx';
 import { BankCard, BankFields, BasicFields, ContactFields, bankFieldError, fieldsFor, blankBank, registrationBasicError, registrationBankError, registrationContactError } from './mobile-forms.jsx';
@@ -24,17 +24,17 @@ import { readProcurementNotice } from './mobile-portal-procurement.js';
 const clone = value => structuredClone(value);
 const homeGroups = [
   { title: '信息管理', entries: [
-    { label: '供应商信息管理', lines: ['供应商', '信息管理'], icon: Store, color: 'blue', route: 'workspace-info' },
-    { label: '修改密码', lines: ['修改密码'], icon: LockKeyhole, color: 'blue', route: 'workspace-account-password' },
-    { label: '修改注册邮箱', lines: ['修改', '注册邮箱'], icon: MailCheck, color: 'blue', route: 'workspace-account-email' },
+    { label: '供应商信息管理', lines: ['供应商', '信息管理'], icon: 'information', route: 'workspace-info' },
+    { label: '修改密码', lines: ['修改密码'], icon: 'password', route: 'workspace-account-password' },
+    { label: '修改注册邮箱', lines: ['修改', '注册邮箱'], icon: 'email', route: 'workspace-account-email' },
   ] },
   { title: '采购报价管理', entries: [
-    { label: '报价管理待处理', lines: ['报价管理', '待处理'], icon: FolderClock, color: 'orange', route: 'workspace-tasks', task: 0 },
-    { label: '报价管理已处理', lines: ['报价管理', '已处理'], icon: FolderCheck, color: 'green', route: 'workspace-tasks', task: 1 },
+    { label: '报价管理待处理', lines: ['报价管理', '待处理'], icon: 'quote-pending', route: 'workspace-tasks', task: 0 },
+    { label: '报价管理已处理', lines: ['报价管理', '已处理'], icon: 'quote-handled', route: 'workspace-tasks', task: 1 },
   ] },
   { title: '采购价税拆分', entries: [
-    { label: '价税拆分待处理', lines: ['价税拆分', '待处理'], icon: ReceiptText, color: 'orange', route: 'workspace-tasks', task: 2 },
-    { label: '价税拆分已处理', lines: ['价税拆分', '已处理'], icon: Receipt, color: 'green', route: 'workspace-tasks', task: 3 },
+    { label: '价税拆分待处理', lines: ['价税拆分', '待处理'], icon: 'tax-pending', route: 'workspace-tasks', task: 2 },
+    { label: '价税拆分已处理', lines: ['价税拆分', '已处理'], icon: 'tax-handled', route: 'workspace-tasks', task: 3 },
   ] },
 ];
 const travelEntryDefinitions = [
@@ -213,10 +213,39 @@ function PortalWorkspaceContent({ scene, go, notify, store, onPreview, accountMe
   const beginBank = (entry, index) => { setBank(clone(entry)); setBankIndex(index); };
   return <div className="m-workspace">
     {['workspace-home', 'workspace-account'].includes(scene) && <div className="m-portal-home">
-      <section className="m-portal-home-identity" aria-label="当前供应商"><div className="m-portal-identity-heading"><Building2 aria-hidden="true" /><h2>{profile.name}</h2><StatusTag value={pending ? '变更中' : profile.status} /></div><div className="m-portal-identity-details"><Row label="账号">{api.getAccount()?.account || '演示供应商账号'}</Row><Row label="注册邮箱">{profile.email}</Row></div></section>
+      <section className="m-portal-home-identity" aria-label="当前供应商">
+        <img className="m-portal-identity-glow" src={mobileAsset('mobile-assets/supplier-portal/identity-glow.svg')} alt="" width="548" height="167" />
+        <div className="m-portal-identity-heading">
+          <img src={mobileAsset('mobile-assets/supplier-portal/identity-building.svg')} alt="" width="24" height="24" />
+          <h2>{profile.name}</h2>
+          <StatusTag value={pending ? '变更中' : profile.status} />
+        </div>
+        <div className="m-portal-identity-details">
+          <Row label="账号">{api.getAccount()?.account || '演示供应商账号'}</Row>
+          <Row label="注册邮箱">{profile.email}</Row>
+        </div>
+        <div className="m-portal-identity-actions">
+          <button type="button" className="m-portal-logout" onClick={() => setLogout(true)}>退出账号</button>
+        </div>
+      </section>
       {savedProfileDraft && !pending && <button className="m-preview-edit" onClick={() => go('workspace-changes')}>继续提交资料修改</button>}
       {pending && <button className="m-preview-edit" onClick={() => go('workspace-approval')}>查看资料变更审批</button>}
-      {homeGroups.map(group => <section className="m-portal-home-group" key={group.title} aria-label={group.title}><h2>{group.title}</h2><div className="m-portal-entry-grid">{group.entries.map(({ label, lines, icon: Icon, color, route, task }) => <button key={label} aria-label={label} onClick={() => { if (task !== undefined) store.portalTaskTab = task; if (route.startsWith('workspace-account-')) { store.portalSecurityReturn = 'workspace-home'; } go(route); }}><span className={'m-portal-entry-icon is-' + color}><Icon aria-hidden="true" />{pendingCounts[task] > 0 && <span className="m-portal-pending-count" aria-label={pendingCounts[task] + '项待处理'}>{pendingCounts[task]}</span>}</span><span className="m-portal-entry-label">{lines.map(line => <span key={line}>{line}</span>)}</span></button>)}</div></section>)}
+      {homeGroups.map(group => <section className="m-portal-home-group" key={group.title} aria-label={group.title}>
+        <h2>{group.title}</h2>
+        <div className="m-portal-entry-grid">
+          {group.entries.map(({ label, lines, icon, route, task }) => <button type="button" key={label} aria-label={label} onClick={() => {
+            if (task !== undefined) store.portalTaskTab = task;
+            if (route.startsWith('workspace-account-')) store.portalSecurityReturn = 'workspace-home';
+            go(route);
+          }}>
+            <span className="m-portal-entry-icon" data-icon={icon}>
+              <img src={mobileAsset('mobile-assets/supplier-portal/' + icon + '.svg')} alt="" width="20" height="20" />
+              {pendingCounts[task] > 0 && <span className="m-portal-pending-count" aria-label={pendingCounts[task] + '项待处理'}>{pendingCounts[task]}</span>}
+            </span>
+            <span className="m-portal-entry-label">{lines.map(line => <span key={line}>{line}</span>)}</span>
+          </button>)}
+        </div>
+      </section>)}
       <p className="m-portal-travel-note">差旅服务请在电脑端协同门户办理。</p>
     </div>}
 

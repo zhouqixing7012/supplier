@@ -7,7 +7,7 @@ import { bankChangeCounts } from './mobile-bank-changes.js';
 import { createMobileMockApi } from '../api/mobile/index.js';
 import { createSessionId } from './mobile-interaction.jsx';
 import React, { useEffect, useId, useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react';
-import { Check, Send, ClipboardPenLine, Landmark, Download, Filter, Plus, Search, Signal, Wifi, Battery, X, CircleUserRound } from 'lucide-react';
+import { Check, Send, ClipboardPenLine, Landmark, Download, Filter, Plus, Search, Signal, Wifi, Battery, X } from 'lucide-react';
 import { Field, RegistrationSteps, ScreenshotTip, SearchBox } from './mobile-ui.jsx';
 import { BankCard, BankFields, BasicFields, ContactFields, InviteForm, PermissionForm, ReferenceList, bankFieldError, blankBank, filledBasic, registrationBasicError, registrationBankError, registrationContactError } from './mobile-forms.jsx';
 import { focusFormError } from '../components/mobile/validation.js';
@@ -457,6 +457,7 @@ function MobileSurface({ onComparisonChange, scene, shot, api, snapshot, activeR
     if (scene === 'invite-historical') return go('detail');
     if (scene === 'inviter-batch') return go('mine');
     if (['bank-application-form', 'application-empty'].includes(scene)) return go('bank-application');
+    if (scene === 'workspace-home') return go('portal');
     if (scene === 'workspace-info') return window.dispatchEvent(new CustomEvent('mobile-portal-info-back'));
     if (scene.startsWith('workspace-account-')) return go(views.portalSecurityReturn || 'workspace-home');
     if (['rating-filter', 'department'].includes(scene)) return returnFromRatingFilter();
@@ -677,7 +678,7 @@ function MobileSurface({ onComparisonChange, scene, shot, api, snapshot, activeR
   return <div className={'mobile-page ' + (shot ? 'm-shot ' : '') + (shot?.sourceHeight > 2340 ? 'm-long-shot ' : '') + (listScene ? 'm-list-page' : '')} data-scene={scene}>
     {shot && <div className="m-watermark" aria-hidden="true">{Array.from({ length: 60 }, (_, i) => <span key={i}>{shot.index < 25 ? '孙志强213852' : '陈才慧208660'}</span>)}</div>}
     {shot && <div className="m-status-bar"><span>{shot.time.slice(0, 2)}:{shot.time.slice(2, 4)}</span><div><Signal /><Wifi /><Battery /><small>67</small></div></div>}
-    <Header right={['workspace-home', 'workspace-account'].includes(scene) ? <button type="button" className="m-portal-account-button" aria-label="账户设置" onClick={() => setPortalAccountMenu(true)}><CircleUserRound aria-hidden="true" /></button> : undefined} hideBack={(portalRegistration && !accountRegistered) || ['workspace-home', 'workspace-account'].includes(scene)} onBack={back} title={shot ? (scene.startsWith('portal') ? '协同门户-登录' : '供应商管理平台') : scene === 'workspace-tasks' ? portalTaskTabFor(mapParams.tab, views.portalTaskTab) < 2 ? '采购报价' : '价税拆分' : mobileTitle(scene)} close={scene.startsWith('portal') ? () => go('query') : undefined} />
+    <Header hideBack={portalRegistration && !accountRegistered} onBack={back} title={shot ? (scene.startsWith('portal') ? '协同门户-登录' : '供应商管理平台') : scene === 'workspace-tasks' ? portalTaskTabFor(mapParams.tab, views.portalTaskTab) < 2 ? '采购报价' : '价税拆分' : mobileTitle(scene)} close={scene.startsWith('portal') ? () => go('query') : undefined} />
     {tab >= 0 && <Tabs active={tab} items={menus.map(menu => menu.label)} onChange={selectMenu} showDirectory={false} stretch />}
     <SwipeArea active={Math.max(0, tab)} count={tab >= 0 ? menus.length : 1} onChange={selectMenu}
       className={!shot && isManagementList(scene) ? 'm-management-swipe' : undefined}>

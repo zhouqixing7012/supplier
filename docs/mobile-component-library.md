@@ -16,7 +16,7 @@
 | 批量操作栏 | `BatchActions` | 接收已选数量、可选数量、操作项和可选的全选回调。零选中时置灰操作，选中及执行规则由调用方决定。 |
 | 操作栏、弹层、确认 | `Actions`、`Overlay`、`ActionSheet`、`FullscreenPanel`、`Confirm`、`PickerHeading`、`SelectionMark` | 操作项包含 `label`、`onClick`，可指定 `primary`、`secondary`、`muted`、`disabled`。弹层传入 `label`、`onClose`，通过 `sheet` 切换底部面板。动作抽屉通过内容传入可用动作。全屏面板共用标题与返回，保存条件由调用页面处理。删除确认用 `danger`，离开未保存编辑用 `unsaved`。 |
 | 选项、日期 | `OptionSheet`、`DateSheet` | 两者都由页面保存选中值并传入 `onChange`、`onClose`。选项可即时生效或通过 `mode="confirm"` 确认，支持搜索和清空。日期使用 `YYYY-MM-DD`，按场景开放长期或清空。 |
-| 上传、附件 | `UploadField`、`FileUploadField`、`MultiAttachmentField`、`AttachmentLink`、`AttachmentViewer` | 页面通过 `value`、`onChange` 保存附件标识。照片入口可调用设备拍照，文件入口可选本机文件，两者都支持预览、替换和确认移除。多附件接收旧版单值或附件数组，新增和删除后返回数组。上传校验和提交由业务页面处理。 |
+| 上传、附件 | `UploadField`、`FileUploadField`、`MultiAttachmentField`、`AttachmentLink`、`AttachmentViewer` | 页面通过 `value`、`onChange` 保存附件标识。同时支持文件和拍照的字段使用 `UploadField` 的 `file-photo` 样式，照片专用字段使用 `imageOnly`。单份附件支持预览、替换和确认移除。多附件接收旧版单值或附件数组，新增和删除后返回数组。上传校验和提交由业务页面处理。 |
 | 地址、目录 | `AddressForm`、`ReferencePicker` | 地址读取调用方的省、市、区县目录 `regions`，通过 `sheet` 以半屏形式打开，保留分级搜索、详细地址、旧草稿回显及离开确认。目录支持卡片字段、搜索前空态、即时选择和选中后确认。 |
 | 前后值对比 | `ComparisonField` | 调用方传入字段名、当前值、上一值和变更标记。当前值在上，原值在下。银行维护与供应商资料变更共用。 |
 

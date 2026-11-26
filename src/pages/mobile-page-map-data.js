@@ -110,11 +110,7 @@ export const pageMap = [
       ]),
       node('采购报价管理', target('workspace-tasks', { tab: 0 }), [pricing(true, false), pricing(true, true)]),
       node('采购价税拆分', target('workspace-tasks', { tab: 2 }), [pricing(false, false), pricing(false, true)]),
-      node('账户设置', 'workspace-account', [
-        accountEmail('信息管理的修改注册邮箱'),
-        link('修改密码', 'workspace-account-password', '信息管理的修改密码'),
-        link('退出登录确认', target('workspace-home', { panel: 'logout' })),
-      ]),
+      link('退出账号确认', target('workspace-home', { panel: 'logout' })),
     ]),
     node('新供应商账号注册（邀请链接）', target('register-supplier'), [
       ...registration('register-supplier', {}, '管理平台代注册'),
