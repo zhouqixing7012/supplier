@@ -2,9 +2,9 @@ import { exampleBank } from '../../pages/mobile-data.js';
 import { filledBasic } from './mock-registration-fixture.js';
 
 export const portalDemoAccounts = [
-  { account: 'supplier-demo', password: 'Demo1234', email: 'supplier@example.com', name: '协同门户演示供应商' },
-  { account: 'supplier-email', password: 'Email1234', email: 'email-review@example.com', name: '邮箱变更演示供应商' },
-  { account: 'supplier-profile', password: 'Profile1234', email: 'profile-review@example.com', name: '资料变更演示供应商' },
+  { account: 'supplier-demo', password: '123456', email: 'supplier@example.com', name: '协同门户演示供应商' },
+  { account: 'supplier-email', password: '234567', email: 'email-review@example.com', name: '邮箱变更演示供应商' },
+  { account: 'supplier-profile', password: '345678', email: 'profile-review@example.com', name: '资料变更演示供应商' },
 ];
 
 export function createPortalDemoSuppliers(inviter) {

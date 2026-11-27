@@ -6,7 +6,7 @@ const byId = entries => new Map(entries.map(entry => [entry.id, entry]));
 const isRecordList = value => Array.isArray(value) && value.every(entry => isRecord(entry) && entry.id);
 
 export const emailVersionChanged = '注册邮箱已变化，请刷新供应商资料后重新提交';
-export const emailApprovalLocked = '当前注册邮箱存在一笔由供应商管理平台发起的变更申请，审批完成后方可再次修改。';
+export const emailApprovalLocked = '当前注册邮箱正在变更中，待审批完成后方可再次修改';
 
 export function changesBetween(before, after) {
   if (same(before, after) || ((before ?? '') === '' && (after ?? '') === '')) return undefined;

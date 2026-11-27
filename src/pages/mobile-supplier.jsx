@@ -1,4 +1,3 @@
-import { portalDemoAccounts } from '../api/mobile/mock-portal-accounts.js';
 import { portalTaskTabFor } from './mobile-portal-filters.js';
 import { embeddedPrototype, mobileAsset, readMobileRoute, readMobileSearch, replaceFrameRoute } from './mobile-prototype-runtime.js';
 import { BankChangeCard } from './mobile-bank-change-view.jsx';
@@ -62,7 +61,6 @@ const mobileTitle = scene => {
   if (scene === 'workspace-account-password') return '修改密码';
   if (scene === 'workspace-tasks') return '采购业务';
   if (scene === 'workspace-changes') return '资料变更预览';
-  if (scene === 'workspace-approval') return '资料变更审批';
   if (scene === 'workspace-info') return '供应商信息';
   if (scene === 'workspace-travel') return '差旅账单录入';
   if (scene === 'workspace-quote-detail') return '报价详情';
@@ -164,8 +162,9 @@ function MobileApp() {
   }, []);
   useEffect(() => { if (!message) return; const timer = setTimeout(() => setMessage(''), 4500); return () => clearTimeout(timer); }, [message]);
   const shot = route.startsWith('shot/') ? screenshotScenes.find(s => s.time === route.split('/')[1]) : null;
-  const routeScene = route.split('?')[0];
-  const scene = shot?.scene || (routeScene === 'export' ? 'mine' : routeScene === 'query-export' ? 'query' : routeScene);
+  const [routeScene] = route.split('?');
+  const aliases = { export: 'mine', 'query-export': 'query', 'workspace-approval': 'workspace-info' };
+  const scene = shot?.scene || (Object.hasOwn(aliases, routeScene) ? aliases[routeScene] : routeScene);
   const mapParams = readPageMapParams(route);
   const mapSupplier = mapParams.map && (suppliers.find(s => s.id === mapParams.record) || (scene === 'register-edit'
     ? suppliers.find(s => s.status === '草稿' && s.inviter === currentInviter)
@@ -307,7 +306,13 @@ function MobileSurface({ onComparisonChange, scene, shot, api, snapshot, activeR
   const [step, setStep] = useState(mappedStep ?? registrationDraft?.step ?? (scene.includes('contacts') ? 1 : scene.includes('banks') ? 2 : 0));
   const [stepsExpanded, setStepsExpanded] = useState(step === 0);
   const stepScroll = useRef({});
-  const changeStep = next => { stepScroll.current[step] = window.scrollY; runMotion(() => setStep(next), next < step ? 'back' : 'forward', () => setStepsExpanded(next === 0)); };
+  const changeStep = next => {
+    stepScroll.current[step] = window.scrollY;
+    runMotion(() => {
+      if (next === 3) setPreviewTab(0);
+      setStep(next);
+    }, next < step ? 'back' : 'forward', () => setStepsExpanded(next === 0));
+  };
   useLayoutEffect(() => { if (isRegistration) window.scrollTo(0, stepScroll.current[step] || 0); }, [step, isRegistration]);
   const [basic, setBasic] = useState(() => registrationDraft ? clone(registrationDraft.basic) : portalRegistration && registrationInvitation ? { type: registrationInvitation.type, supplierName: registrationInvitation.name, registerEmail: registrationInvitation.email || '', country: defaultSupplierCountry(registrationInvitation.type) } : scene === 'expiry' ? { ...clone(filledBasic), supplierName: 'Gys', creditCode: 'qqq', establishedAt: '2026-10-14', licenseUntil: '2036-12-31', legalRepresentative: '', companyPhone: '', proof: '' } : shot || (mapParams.map && !editingRegistration && mappedStep === 3) ? clone(filledBasic) : editingRegistration ? { ...(supplier.basic || {}), type: supplier.type, supplierName: supplier.name, registerEmail: supplier.email || supplier.basic?.registerEmail || '', creditCode: supplier.code } : { type: supplierTypes[0], supplierName: '', registerEmail: '', country: defaultSupplierCountry(supplierTypes[0]) });
   const editSteps = informationSteps(basic.type === supplierTypes[1]);
@@ -482,7 +487,7 @@ function MobileSurface({ onComparisonChange, scene, shot, api, snapshot, activeR
     if (scene === 'registration-approval-demo') return go('page-map');
     if (scene === 'workspace-procurement') return go(portalApi.getAccount() ? 'workspace-tasks' : 'portal');
     if (scene.startsWith('workspace-tax') || scene.startsWith('workspace-quote')) return go('workspace-tasks');
-    if (scene === 'workspace-approval' || scene === 'workspace-changes') return go('workspace-info');
+    if (scene === 'workspace-changes') return go('workspace-info');
     if (scene.startsWith('workspace')) return go('workspace-home');
     if (scene.startsWith('portal') && passwordScreen) return leavePassword();
     if (scene.startsWith('portal') && portalEmail) return setPortalEmail(false);
@@ -814,12 +819,8 @@ function MobileSurface({ onComparisonChange, scene, shot, api, snapshot, activeR
       {!passwordScreen && !portalEmail && <><Field label="账号" required value={portal.account} error={portalErrors.account} onChange={account => changePortal('account', account)} placeholder="请输入登录账号" /><Field label="密码" required type="password" value={portal.password} error={portalErrors.password} onChange={password => changePortal('password', password)} placeholder="请输入登录密码" /><div className="m-captcha-field"><Field label="验证码" required value={portal.captcha} error={portalErrors.captcha} onChange={v => changePortal('captcha', v)} placeholder="请输入验证码" /><span className="m-captcha">{captcha}</span><button onClick={() => { setCaptcha(captcha === 'cbvs' ? '39qq' : 'cbvs'); setPortal({ ...portal, captcha: '' }); }}>换一张</button></div></>}
       {(portalEmail || passwordScreen) && <><Field label="注册邮箱" required type="email" error={portalErrors.email} value={portal.email} onChange={email => changePortal('email', email)} /><div className="m-login-email-code"><Field label="邮箱验证码" required error={portalErrors.code} value={portal.code} onChange={code => changePortal('code', code)} /><button className="m-send-code" disabled={countdown > 0} onClick={sendPortalCode}>{countdown ? countdown + ' s 后可重发' : '发送验证码'}</button></div></>}
       {passwordScreen && <Field label="新密码" required type="password" value={newPassword} onChange={setNewPassword} />}
-      {!shot && !portalEmail && !passwordScreen && <details className="m-portal-demo-accounts">
-        <summary>查看演示账号</summary>
-        {!embeddedPrototype && !new URLSearchParams(window.location.search).has('demo-shared') &&
-          <a href="?demo-shared=1#/mobile/portal">打开双窗口审批演示</a>}
-        <ul>{portalDemoAccounts.map(({ account, password, name }) => <li key={account}>{name}<span>{account} / {password}</span></li>)}</ul>
-      </details>}
+      {!shot && !portalEmail && !passwordScreen && !embeddedPrototype && !new URLSearchParams(window.location.search).has('demo-shared') &&
+        <a className="m-portal-demo-link" href="?demo-shared=1#/mobile/portal">打开双窗口审批演示</a>}
       {!portalEmail && !passwordScreen && <button className="m-forgot-link" onClick={() => setPasswordScreen(true)}>修改密码</button>}<button className="m-login-button" onClick={submitPortalLogin}>{passwordScreen ? '提交' : portalEmail ? '登录' : '下一步'}</button>
     </div></section></div>}
     {scene.startsWith('workspace') && <PortalWorkspace api={portalApi} mapParams={mapParams} accountMenu={portalAccountMenu} setAccountMenu={setPortalAccountMenu} scene={scene} go={go} notify={notify} store={views} onPreview={preview} />}

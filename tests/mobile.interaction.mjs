@@ -882,9 +882,9 @@ try {
   await check('首页入口及登录键盘语义、显示密码和验证码演示', async () => {
     await goto('mobile');
     await page.getByLabel('原型导航').getByRole('link', { name: '协同门户移动端', exact: true }).click();
-    await field('账号').fill('supplier-demo');
+    await field('账号').fill('演示随便填');
     const password = page.locator('#root').getByLabel('密码', { exact: true });
-    await password.fill('Demo1234');
+    await password.fill('123456');
     await button('显示密码').click();
     assert.equal(await password.getAttribute('type'), 'text');
     await field('验证码').fill('cbvs');
@@ -897,6 +897,7 @@ try {
     await shot('portal-email');
     await button('登录').click();
     const workspace = page.locator('#root [data-scene="workspace-home"]');
+    await workspace.getByText('协同门户演示供应商', { exact: true }).waitFor();
     await workspace.getByRole('button', { name: '供应商信息管理', exact: true }).waitFor();
     await page.waitForFunction(() => !document.querySelector('#root .m-result-banner, #root .m-toast, #root .m-decision-confirm'));
   });
@@ -992,10 +993,13 @@ try {
     await button('下一步（1/4）').click();
     await button('下一步（2/4）').click();
     await button('下一步（3/4）').click();
-    await page.locator('#root .m-registration-preview').waitFor();
+    const preview = page.locator('#root .m-registration-preview');
+    assert.equal(await preview.locator('.m-tabs [aria-current="page"]').innerText(), '基本信息');
+    await preview.getByRole('button', { name: '银行信息', exact: true }).click();
     await button('上一步').click();
     await button('添加银行账户').waitFor();
     await button('下一步（3/4）').click();
+    assert.equal(await preview.locator('.m-tabs [aria-current="page"]').innerText(), '基本信息');
     await headerBack();
     await button('继续编辑').click();
     assert.match(await page.locator('#root .m-registration-preview').innerText(), /本次修改的门户法人/);
@@ -1163,9 +1167,25 @@ try {
   await check('门户导航、内容滑动、价税直达去重和返回', async () => {
     await goto('mobile/workspace-home'); await button('价税拆分待处理').click(); await button('价税拆分').click(); await page.locator('#root [data-scene="workspace-tax-split"]').waitFor(); assert.equal(await page.locator('#root').getByText('物料编码', { exact: true }).count(), 1); assert.equal(await page.locator('#root').getByText('含税金额', { exact: true }).count(), 1); await headerBack(); assert.equal(await page.locator('#root .m-tabs [aria-current]').innerText(), '待处理'); await swipe(page.locator('#root .m-portal-task-card').first(), -130); await page.locator('#root').getByText('DEMO-ORDER-002', { exact: true }).waitFor(); await headerBack(); await button('退出账号').click(); await page.locator('#root').getByRole('dialog').getByRole('button', { name: '取消', exact: true }).click(); await button('退出账号').click(); await page.locator('#root').getByRole('dialog', { name: '退出登录？', exact: true }).getByRole('button', { name: '退出登录', exact: true }).click(); await page.locator('#root [data-scene="portal"]').waitFor();
   });
-  await check('门户只读修改取消、清空、保存对比与审批原值保留', async () => {
-    await goto('mobile/workspace-info'); assert.equal(await field('法人代表').count(), 0); await button('修改').click(); await field('法人代表').fill('取消修改测试'); await headerBack(); await button('放弃修改').click(); assert.equal(await page.locator('#root').getByText('取消修改测试', { exact: true }).count(), 0);
-    await button('修改').click(); await button('清空法人代表').click(); assert.equal(await field('法人代表').inputValue(), ''); await button('保存修改').click(); assert.equal(await page.locator('[aria-invalid="true"]').count(), 1); assert.equal(await page.locator('#root').getByRole('alert').count(), 1); await field('法人代表').fill('变更后的法人'); await shot('portal-edit'); await button('保存修改').click(); await page.locator('#root [data-scene="workspace-changes"]').waitFor(); assert.ok((await page.locator('#root .m-change-comparison').innerText()).includes('变更后的法人')); await button('提交变更').click(); await page.locator('#root [data-scene="workspace-approval"]').waitFor(); assert.ok(await page.locator('#root').getByText('修改前后对比', { exact: true }).isVisible()); await headerBack(); assert.equal(await page.locator('#root').getByText('变更后的法人', { exact: true }).count(), 0); await button('查看审批').click(); await shot('portal-change-approval');
+  await check('门户提交资料后显示只读差异，重新进入默认查看基本信息', async () => {
+    await goto('mobile/workspace-home');
+    await button('供应商信息管理').click();
+    await button('修改').click();
+    await field('法人代表').fill('变更后的法人');
+    for (const label of ['下一步（1/4）', '下一步（2/4）', '下一步（3/4）']) await button(label).click();
+    await button('提交').click();
+    const info = page.locator('#root [data-scene="workspace-info"]');
+    await info.locator('.m-preview-basic [data-changed="true"]').getByText('变更后的法人', { exact: true }).waitFor();
+    assert.equal(await button('查看审批').count(), 0);
+    assert.equal(await button('修改').count(), 0);
+    await button('银行信息').click();
+    await headerBack();
+    assert.equal(await button('查看资料变更审批').count(), 0);
+    await button('供应商信息管理').click();
+    assert.equal(await info.locator('.m-tabs [aria-current="page"]').innerText(), '基本信息');
+    await goto('mobile/workspace-approval');
+    await info.locator('.m-preview-basic').waitFor();
+    assert.equal(await page.locator('#root .m-approval').count(), 0);
   });
   await check('门户银行修改回填和联系人专用图标', async () => {
     await goto('mobile/workspace-info'); await button('银行信息').click(); await button('修改').click(); await page.locator('#root .m-bank-card').getByRole('button', { name: '修改', exact: true }).click(); assert.equal(await field('开户所在省').inputValue(), '北京市'); assert.equal(await field('银行账号').inputValue(), '6214589503254174'); await page.locator('#root').getByRole('dialog', { name: '门户银行编辑' }).locator('.m-actions').getByRole('button', { name: '取消', exact: true }).click(); await headerBack(); await button('联系人信息').click(); await button('修改').click(); assert.equal(await button('添加联系人').locator('svg').count(), 1);
@@ -1189,6 +1209,9 @@ try {
     assert.equal(await updated.locator('[data-changed="true"] .m-change-value-new').innerText(), '13800000003');
     const added = preview.locator('.m-record-card').filter({ hasText: '新增联系人' });
     assert.equal(await added.locator('.m-change-badge').innerText(), '新增');
+    await button('上一步').click();
+    await button('下一步（3/4）').click();
+    assert.equal(await preview.locator('.m-tabs [aria-current="page"]').innerText(), '基本信息');
     await button('提交').click();
     await page.locator('#root [data-scene="information-change"] .m-registration-preview').waitFor();
     await button('查看审批').click();
@@ -1920,11 +1943,11 @@ try {
     assert.equal(await field('账号').inputValue(), 'Juniper Crest');
     await field('账号').fill('　 supplier-demo  '); await field('账号').blur();
     assert.equal(await field('账号').inputValue(), 'supplier-demo');
-    await page.getByLabel('密码', { exact: true }).fill(' Demo1234');
+    await page.getByLabel('密码', { exact: true }).fill(' 123456');
     await field('验证码').fill('cbvs');
     await button('下一步').click();
-    await page.getByText('账号或密码错误', { exact: true }).waitFor();
-    await page.getByLabel('密码', { exact: true }).fill('Demo1234');
+    await page.getByText('密码错误', { exact: true }).waitFor();
+    await page.getByLabel('密码', { exact: true }).fill('123456');
     await button('下一步').click();
     await field('注册邮箱').fill('　 supplier@example.com  '); await field('注册邮箱').blur();
     assert.equal(await field('注册邮箱').inputValue(), 'supplier@example.com');
@@ -2099,6 +2122,10 @@ try {
         assert.ok(field.readOnly ? field.inline : field.gap >= 7 && field.width > 290, route + ' · ' + field.name);
       }
     }
+    await goto('mobile/register?map=1&step=3');
+    const registrationPreview = page.locator('#root .m-registration-preview');
+    await registrationPreview.locator('.m-preview-basic').waitFor();
+    assert.equal(await registrationPreview.locator('.m-qualification-section').count(), 0);
     await goto('mobile/register');
     const chooseLicense = button('选择营业执照');
     assert.equal(await chooseLicense.innerText(), '选择文件');

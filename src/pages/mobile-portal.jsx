@@ -9,7 +9,6 @@ import { Plane, Train, Hotel, Car, Upload, Download, LoaderCircle, Plus, Mail, K
 import { RegistrationSteps, StatusTag } from './mobile-ui.jsx';
 import { BankCard, BankFields, BasicFields, ContactFields, bankFieldError, blankBank, registrationBasicError, registrationBankError, registrationContactError } from './mobile-forms.jsx';
 import { supplierTypes } from './mobile-data.js';
-import { Approval } from './mobile-views.jsx';
 import { createSessionId, SwipeArea, useBackLayer, useDirtyForm } from './mobile-interaction.jsx';
 import { informationSteps, isEffectiveBasicBankAccount, effectiveBasicBankDeleteError } from './mobile-edit-rules.js';
 import { RegistrationDetails, RegistrationPreview } from './mobile-registration-preview.jsx';
@@ -127,8 +126,9 @@ function PortalWorkspaceContent({ scene, go, notify, store, onPreview, accountMe
   const savedProfileDraft = api.getProfileDraft();
   const [draft, setDraft] = useState(() => clone(savedProfileDraft || profile));
   const pending = api.getPendingProfile();
+  const hasPending = !!pending;
   const [requestedEditing, setEditing] = useState(scene === 'workspace-info' && new URLSearchParams(readMobileSearch()).get('edit') === '1');
-  const editing = requestedEditing && !pending;
+  const editing = requestedEditing && !hasPending;
   const editBaseline = useRef(profile);
   const [emailLocked, setEmailLocked] = useState(false);
   const openAccountRoute = route => {
@@ -136,7 +136,8 @@ function PortalWorkspaceContent({ scene, go, notify, store, onPreview, accountMe
     store.portalSecurityReturn = 'workspace-home';
     go(route);
   };
-  const [tab, setTab] = useState(/^[0-3]$/.test(mapParams.step ?? mapParams.tab) ? Number(mapParams.step ?? mapParams.tab) : Math.min(store.portalInfoTab || 0, 2));
+  const initialTab = mapParams.step ?? mapParams.tab;
+  const [tab, setTab] = useState(!hasPending && /^[0-3]$/.test(initialTab) ? Number(initialTab) : 0);
   const [stepsExpanded, setStepsExpanded] = useState(false);
   const [previewTab, setPreviewTab] = useState(0);
   const editSteps = informationSteps(draft.basic.type === supplierTypes[1]);
@@ -153,14 +154,15 @@ function PortalWorkspaceContent({ scene, go, notify, store, onPreview, accountMe
   const isOriginalBasicBank = bank => isEffectiveBasicBankAccount(bank, profile.banks, profile.type === supplierTypes[0]);
   const [logout, setLogout] = useState(mapParams.panel === 'logout');
   const guard = useDirtyForm(draft, editing);
-  useEffect(() => { if (pending && requestedEditing) setEditing(false); }, [pending, requestedEditing]);
+  useEffect(() => {
+    if (hasPending) { setEditing(false); setTab(0); }
+  }, [hasPending]);
   const bankGuard = useDirtyForm(bank, bankIndex !== null);
   const closeBank = () => bankGuard.leave(() => setBankIndex(null));
   useBackLayer(editing && bankIndex !== null, closeBank);
-  const setInfoTab = i => { store.portalInfoTab = i; setTab(i); };
   const setTasks = i => { store.portalTaskTab = i; setTaskTab(i); };
   const cancel = () => guard.leave(() => {
-    api.discardProfileDraft(); setDraft(clone(profile)); setEditing(false); setInfoTab(0);
+    api.discardProfileDraft(); setDraft(clone(profile)); setEditing(false); setTab(0);
   });
   const validateStep = index => {
     if (index === 0) return registrationBasicError(draft.basic);
@@ -169,7 +171,7 @@ function PortalWorkspaceContent({ scene, go, notify, store, onPreview, accountMe
   };
   const showValidation = (index, error) => {
     notify(error.message, false);
-    setInfoTab(index);
+    setTab(index);
     if (index === 1 && error.index !== undefined) {
       setInvalidContact(error);
       return;
@@ -182,11 +184,12 @@ function PortalWorkspaceContent({ scene, go, notify, store, onPreview, accountMe
       const error = validateStep(index);
       if (error) return showValidation(index, error);
     }
-    setInfoTab(3);
+    setPreviewTab(0);
+    setTab(3);
   };
   const changeInformationStep = index => {
     if (index === 3) { showPreview(); return; }
-    setStepsExpanded(index === 0); setInfoTab(index);
+    setStepsExpanded(index === 0); setTab(index);
   };
   const next = () => {
     const error = validateStep(tab); if (error) return showValidation(tab, error);
@@ -200,7 +203,7 @@ function PortalWorkspaceContent({ scene, go, notify, store, onPreview, accountMe
     if (JSON.stringify(next) === JSON.stringify(profile)) return notify('请先修改信息');
     const result = api.submitProfile(next, editBaseline.current);
     if (result.error) return notify(result.error, false);
-    guard.accept(); setInfoTab(0); setEditing(false); notify('原型演示：资料变更已提交，等待审批');
+    guard.accept(); setTab(0); setEditing(false); notify('原型演示：资料变更已提交，等待审批');
   };
   const backFromInformation = () => {
     if (editing) return cancel();
@@ -234,7 +237,6 @@ function PortalWorkspaceContent({ scene, go, notify, store, onPreview, accountMe
         </div>
       </section>
       {savedProfileDraft && !pending && <button className="m-preview-edit" onClick={() => go('workspace-changes')}>继续提交资料修改</button>}
-      {pending && <button className="m-preview-edit" onClick={() => go('workspace-approval')}>查看资料变更审批</button>}
       {homeGroups.map(group => <section className="m-portal-home-group" key={group.title} aria-label={group.title}>
         <h2>{group.title}</h2>
         <div className="m-portal-entry-grid">
@@ -276,15 +278,15 @@ function PortalWorkspaceContent({ scene, go, notify, store, onPreview, accountMe
       <div className="m-dialog-actions"><button type="button" onClick={() => setEmailLocked(false)}>我知道了</button></div>
     </Overlay>}
     {scene === 'workspace-info' && <>
-      {editing ? <RegistrationSteps personal={draft.basic.type === supplierTypes[1]} step={tab} expanded={stepsExpanded} onExpandedChange={setStepsExpanded} /> : <Tabs showDirectory={false} stretch variant="pill" items={['基本信息', '联系人信息', '银行信息']} active={tab} onChange={setInfoTab} />}
-      <SwipeArea active={editing ? 0 : tab} count={editing ? 1 : 3} onChange={i => editing ? changeInformationStep(editSteps[i]) : setInfoTab(i)}>
+      {editing ? <RegistrationSteps personal={draft.basic.type === supplierTypes[1]} step={tab} expanded={stepsExpanded} onExpandedChange={setStepsExpanded} /> : <Tabs showDirectory={false} stretch variant="pill" items={['基本信息', '联系人信息', '银行信息']} active={tab} onChange={setTab} />}
+      <SwipeArea active={editing ? 0 : tab} count={editing ? 1 : 3} onChange={i => editing ? changeInformationStep(editSteps[i]) : setTab(i)}>
       {!editing && <>
         <RegistrationDetails {...(pending || profile)} before={pending ? profile : undefined} step={Math.min(tab, 2)} portalView onPreview={onPreview} />
-        <Actions items={[pending ? { label: '查看审批', onClick: () => go('workspace-approval') } : { label: '修改', onClick: () => {
+        {!hasPending && <Actions items={[{ label: '修改', onClick: () => {
           editBaseline.current = profile;
-          setDraft(clone(savedProfileDraft || profile)); setInfoTab(editSteps.includes(tab) ? tab : 0);
+          setDraft(clone(savedProfileDraft || profile)); setTab(editSteps.includes(tab) ? tab : 0);
           setStepsExpanded(!editSteps.includes(tab) || tab === 0); setPreviewTab(0); setEditing(true);
-        } }]} />
+        } }]} />}
       </>}
       {editing && <div className="m-edit-mode">{tab === 0 && <BasicFields initialPanel={mapParams.panel} hideSupplierType lockRegisterEmail data={draft.basic} setData={basic => setDraft({ ...draft, basic })} onAddress={() => setAddress(true)} />}{tab === 1 && <ContactFields initialPanel={mapParams.panel} contacts={draft.contacts} setContacts={contacts => setDraft({ ...draft, contacts })} validation={invalidContact} onValidationHandled={() => setInvalidContact(null)} />}{tab === 2 && <RecordCollection title="银行信息" count={draft.banks.length} emptyText="暂无银行信息" addLabel="添加银行账户" onAdd={() => beginBank(blankBank(profile.name), -1)}>{draft.banks.map((b, i) => <BankCard key={b.id} bank={b} deleteDisabledReason={isOriginalBasicBank(b) ? effectiveBasicBankDeleteError : ''} onPreview={() => onPreview(b.proof)} onEdit={() => beginBank(b, i)} onDelete={isOriginalBasicBank(b) ? undefined : () => setRemoveBank(i)} />)}</RecordCollection>}{tab === 3 && <RegistrationPreview supplierFacing basic={draft.basic} contacts={draft.contacts} banks={draft.banks} active={previewTab} onTabChange={setPreviewTab} onPreview={onPreview} before={editBaseline.current} />}<Actions className="m-registration-actions m-info-edit-actions" items={[
         ...previousStepActions,
@@ -293,7 +295,6 @@ function PortalWorkspaceContent({ scene, go, notify, store, onPreview, accountMe
       </SwipeArea>
     </>}
     {scene === 'workspace-changes' && <>{savedProfileDraft && !pending ? <><RegistrationPreview {...savedProfileDraft} supplierFacing before={profile} active={previewTab} onTabChange={setPreviewTab} onPreview={onPreview} /><Actions items={[{ label: '继续修改', secondary: true, onClick: () => go('workspace-info?edit=1') }, { label: '取消本次修改', secondary: true, onClick: () => { api.discardProfileDraft(); go('workspace-info'); } }, { label: '提交变更', onClick: () => { const result = api.submitProfile(savedProfileDraft); if (result.error) return notify(result.error, false); notify('原型演示：资料变更已提交，等待审批'); go('workspace-info'); } }]} /></> : <><Section title="资料变更" collapsible={false}><Empty text="没有待提交的修改" /></Section></>}</>}
-    {scene === 'workspace-approval' && <Approval supplier={profile} compare={false} type="资料变更" onPreview={onPreview} />}
     {scene === 'workspace-tasks' && <><Tabs showDirectory={false} stretch items={['待处理', '已处理']} active={taskTab % 2} onChange={i => setTasks((taskTab < 2 ? 0 : 2) + i)} /><SwipeArea active={taskTab % 2} count={2} onChange={i => setTasks((taskTab < 2 ? 0 : 2) + i)}><PortalTaskList initialFilterOpen={mapParams.panel === 'filter'} key={taskTab} tab={taskTab} api={api} store={store} go={go} /></SwipeArea></>}
 
     {scene === 'workspace-quote-detail' && <PortalPricingDetail mapParams={mapParams} quote api={api} store={store} go={go} notify={notify} onPreview={onPreview} />}

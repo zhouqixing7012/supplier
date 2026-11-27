@@ -1537,10 +1537,6 @@ body:has(.mobile-page > .m-list-registration-actions) {
   line-height: var(--m-card-field-line);
 }
 
-.m-portal-demo-accounts { margin: 0 0 12px; color: var(--m-text-secondary); font-size: 13px; }
-.m-portal-demo-accounts summary { min-height: 36px; padding-block: 8px; cursor: pointer; }
-.m-portal-demo-accounts ul { margin: 0; padding: 0; list-style: none; }
-.m-portal-demo-accounts li { padding-block: 4px; overflow-wrap: anywhere; }
-.m-portal-demo-accounts span { display: block; }
+.m-portal-demo-link { display: block; margin: 0 0 12px; color: var(--m-action); font-size: 13px; }
 .m-demo-approval-actions { display: flex; flex-wrap: wrap; gap: 12px; }
 .mobile-page .m-demo-approval-actions button { min-height: 44px; padding-inline: 12px; color: var(--m-action); }

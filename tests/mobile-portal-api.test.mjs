@@ -8,7 +8,7 @@ import { createMobileRequest } from '../src/api/mobile/request.js';
 
 function login(api, index) {
   const { account, email, password } = portalDemoAccounts[index];
-  assert.equal(api.validateLogin({ account: ' ' + account + ' ', password, captcha: 'CBVS' }, 'cbvs').account, account);
+  assert.equal(api.validateLogin({ account: ' 任意演示账号 ', password, captcha: 'CBVS' }, 'cbvs').account, account);
   assert.equal(api.validateLogin({ account, password: 'other', captcha: 'CBVS' }, 'cbvs').field, 'password');
   assert.equal(api.validateLogin({ account, password, captcha: 'no' }, 'cbvs').field, 'captcha');
   assert.equal(api.verifyLogin({ account, email, code: 'not-valid' }).field, 'code');
@@ -39,7 +39,7 @@ test('邮箱变更审批拦截自助修改和重复提交，通过或驳回后�
   login(portal, 1);
   const original = portal.getProfile();
   assert.ok(portal.isEmailChangeLocked());
-  assert.match(portal.updateEmail('blocked@example.com').error, /审批完成后/);
+  assert.equal(portal.updateEmail('blocked@example.com').error, '当前注册邮箱正在变更中，待审批完成后方可再次修改');
   assert.ok(management.submitRegistration(original, { id: original.id, editingAll: true, before: original }).error);
   assert.deepEqual(management.resolveInformation(original.id, false), {});
   assert.equal(portal.isEmailChangeLocked(), false);

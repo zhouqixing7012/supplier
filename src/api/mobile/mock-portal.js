@@ -59,8 +59,9 @@ export function createPortalMockApi(management = createMockManagement()) {
       if (!normalized) return { field: 'account', message: '请输入账号' };
       if (!password) return { field: 'password', message: '请输入密码' };
       if (captcha.toLowerCase() !== expectedCaptcha) return { field: 'captcha', message: '图形验证码错误' };
-      const selected = findAccount(normalized);
-      if (!selected || demoPasswords.get(selected) !== password) return { field: 'password', message: '账号或密码错误' };
+      const matching = [...demoPasswords].filter(([, candidate]) => candidate === password).map(([id]) => id);
+      const selected = matching.length === 1 ? matching[0] : matching.find(id => id === normalized);
+      if (!selected) return { field: 'password', message: '密码错误' };
       return { account: selected, email: management.getSupplier(supplierId(selected)).email };
     },
     sendAuthCode(email, account) {

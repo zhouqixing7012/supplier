@@ -36,7 +36,7 @@ const withDeleted = (entries, previous, kind, changes) => [
   ...entries, ...previous.filter((entry, i) => changes.get(kind + '-' + recordKey(entry, i, kind))?.action === '删除'),
 ];
 
-export function RegistrationDetails({ basic, contacts, banks, onPreview, step, invited = false, before, portalView = false }) {
+export function RegistrationDetails({ basic, contacts, banks, onPreview, step, invited = false, before, portalView = false, hideEmptyQualifications = false }) {
   const personal = basic.type === supplierTypes[1];
   const show = section => step === undefined || step === section;
   const changes = new Map(before ? informationChangeGroups(before, { basic, contacts, banks }).map(group => [group.key, group]) : []);
@@ -58,6 +58,9 @@ export function RegistrationDetails({ basic, contacts, banks, onPreview, step, i
   const allContacts = withDeleted(contacts, before?.contacts || [], 'contacts', changes);
   const allBanks = withDeleted(banks, before?.banks || [], 'banks', changes);
   const allQualifications = withDeleted(basic.qualifications || [], before?.basic?.qualifications || [], 'qualifications', changes);
+  const visibleQualifications = hideEmptyQualifications ? allQualifications.filter(record =>
+    record.qualificationCertificatePicture || qualificationFields.some(([key]) => String(record[key] ?? '').trim())) : allQualifications;
+  const showQualifications = visibleQualifications.length > 0 || (!hideEmptyQualifications && basic.type === supplierTypes[0]);
   return <>
     {show(0) && <>
       <Section title="基本信息" collapsible={false} className="m-preview-basic" status={<ChangeBadge action={basicChange?.action} />}>
@@ -65,7 +68,7 @@ export function RegistrationDetails({ basic, contacts, banks, onPreview, step, i
         {(portalView || showRegistrationEmail(basic.type, invited)) && basicRow('registerEmail', '注册邮箱', basic.registerEmail)}
         {[...certificates].map(([key, label]) => basicRow(key, label, attachment(basic[key], onPreview)))}
       </Section>
-      {(basic.type === supplierTypes[0] || allQualifications.length > 0) && <QualificationInfo records={allQualifications} onPreview={onPreview}
+      {showQualifications && <QualificationInfo records={visibleQualifications} onPreview={onPreview}
         renderRecord={before ? (record, i) => {
           const id = recordKey(record, i, 'qualifications');
           const change = changes.get('qualifications-' + id);
@@ -107,7 +110,7 @@ export function RegistrationPreview({ basic, contacts, banks, mode, active, onTa
     <SupplierIdentityCard showMeta={!supplierFacing} supplier={{ name: basic.supplierName, type: basic.type, mode }} />
     <Tabs variant="pill" items={tabs.map(tab => tab.label)} active={index} onChange={onTabChange} />
     <SwipeArea active={index} count={tabs.length} onChange={onTabChange}>
-      <RegistrationDetails basic={basic} contacts={contacts} banks={banks} onPreview={onPreview} step={tabs[index].step} invited={invited} before={before} />
+      <RegistrationDetails basic={basic} contacts={contacts} banks={banks} onPreview={onPreview} step={tabs[index].step} invited={invited} before={before} hideEmptyQualifications />
     </SwipeArea>
   </div>;
 }

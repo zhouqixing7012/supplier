@@ -103,7 +103,6 @@ export const pageMap = [
           ...['基本信息', '联系人信息', '银行信息'].map((label, tab) => link(label, target('workspace-info', { tab }), '供应商信息页签')),
           node('供应商信息修改', target('workspace-info', { edit: 1, step: 0 }),
             registration('workspace-info', { edit: 1 }, '管理平台代注册'), '管理平台代注册'),
-          link('资料变更审批', target('workspace-approval'), '审批记录组件'),
         ]),
         accountEmail(),
         link('修改密码', 'workspace-account-password', '账户安全表单'),
