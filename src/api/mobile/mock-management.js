@@ -1,3 +1,5 @@
+import { createPortalDemoSuppliers } from './mock-portal-accounts.js';
+import { applyProfileChange, emailApprovalLocked, emailVersionChanged, prepareProfileChange } from './profile-change.js';
 import { createSessionId } from '../../components/mobile/attachment-session.js';
 import { bankChangeCounts, normalizeBankChanges, readBankDraft, writeBankDraft } from '../../pages/mobile-bank-changes.js';
 import { cooperation, initialSuppliers, supplierTypes } from '../../pages/mobile-data.js';
@@ -108,10 +110,19 @@ function handoverFields(record, inviter) {
   return record.mode === '历史供应商' ? { ...fields, historicalHandoverTo: inviter, historicalInvite: null } : fields;
 }
 
-export function createMockManagement({ bankStorage } = {}) {
+const demoProfileKey = 'supplier:shared-mobile-demo:';
+
+export function createMockManagement({ bankStorage, demoStorage } = {}) {
   registerMobileSupplierSampleFiles();
+  const demoSuppliers = createPortalDemoSuppliers(currentInviter);
+  const demoIds = new Set(demoSuppliers.map(record => record.id));
+  const readSharedDemo = id => {
+    const saved = demoStorage?.getItem(demoProfileKey + id);
+    return saved ? JSON.parse(saved) : null;
+  };
   let snapshot = {
-    suppliers: clone([...initialSuppliers, ...mobileSupplierSamples].map(withMockSupplierAccess)),
+    suppliers: clone([...initialSuppliers, ...mobileSupplierSamples,
+      ...demoSuppliers.map(record => readSharedDemo(record.id) || record)].map(withMockSupplierAccess)),
     ratings: clone(initialRatings),
     bankApplication: null,
     registrationDraft: null,
@@ -125,12 +136,44 @@ export function createMockManagement({ bankStorage } = {}) {
     snapshot = { ...snapshot, ...patch };
     for (const listener of listeners) listener();
   };
-  const getSupplier = id => snapshot.suppliers.find(record => record.id === id);
+  const getSupplier = id => (demoIds.has(id) && readSharedDemo(id)) || snapshot.suppliers.find(record => record.id === id);
+  const refreshSharedDemo = key => {
+    if (!key?.startsWith(demoProfileKey)) return;
+    const id = key.slice(demoProfileKey.length);
+    if (!demoIds.has(id)) return;
+    const record = readSharedDemo(id);
+    if (record) update({ suppliers: snapshot.suppliers.map(item => item.id === id ? record : item) });
+  };
   const getSupplierDetail = id => getSupplier(id) || snapshot.suppliers[0] || clone(initialSuppliers[0]);
   const patchSupplier = (id, patch, state = {}) => {
-    update({ ...state, suppliers: snapshot.suppliers.map(record => record.id === id
-      ? { ...record, ...patch, updated: patch.status ? now() : patch.updated ?? record.updated } : record) });
+    const record = getSupplier(id);
+    if (!record) return;
+    const next = { ...record, ...patch, updated: patch.status ? now() : patch.updated ?? record.updated };
+    if (demoIds.has(id)) demoStorage?.setItem(demoProfileKey + id, JSON.stringify(next));
+    update({ ...state, suppliers: snapshot.suppliers.map(item => item.id === id ? next : item) });
   };
+  const submitInformation = (record, profile, before, source) => {
+    if (record.status !== '已审批') return reject('供应商资料正在变更中，请等待审批完成');
+    if (source === 'management' && (before.emailVersion ?? 0) !== (record.emailVersion ?? 0)) return reject(emailVersionChanged);
+    const request = prepareProfileChange(before, profile, { source, number: 'DEMO-CHANGE-' + createSessionId() });
+    if (!request) return reject('请先修改信息');
+    patchSupplier(record.id, {
+      status: '变更中', pendingInformation: profile, profileChange: request,
+      currentApprovalType: '资料变更', approvalNumber: request.number,
+      approvalNodes: [{ name: '业务审批', status: '待审批' }],
+    });
+    return { id: record.id };
+  };
+  // 两笔预置申请用于分别演示邮箱占用和其他资料审批。
+  for (const [id, basicChange] of [
+    ['mock-supplier-email', { registerEmail: 'email-approved@example.com' }],
+    ['mock-supplier-profile', { businessScope: '技术服务与项目交付' }],
+  ]) {
+    if (readSharedDemo(id)) continue;
+    const record = getSupplier(id);
+    const basic = { ...record.basic, ...basicChange };
+    submitInformation(record, { basic, contacts: record.contacts, banks: record.banks, email: basic.registerEmail, name: record.name, type: record.type }, record, 'management');
+  }
   const findReinvite = name => reinviteCandidate(snapshot.suppliers, name, currentInviter);
   const accounts = ({ historical = false } = {}) => [
     ...snapshot.suppliers.map(record => historical ? supplierAccount(record) : record.account).filter(Boolean),
@@ -138,6 +181,7 @@ export function createMockManagement({ bankStorage } = {}) {
   ];
   return {
     registrationApproval,
+    refreshSharedDemo,
     getSnapshot: () => snapshot,
     subscribe(listener) {
       listeners.add(listener);
@@ -145,6 +189,37 @@ export function createMockManagement({ bankStorage } = {}) {
     },
     getSupplier,
     getSupplierDetail,
+    submitPortalInformation(id, profile, before) {
+      const record = getSupplier(id);
+      if (!record) return reject('未找到供应商');
+      const email = record.basic?.registerEmail ?? record.email;
+      return submitInformation(record, { ...profile, email, basic: { ...profile.basic, registerEmail: email } },
+        { ...before, email, basic: { ...before.basic, registerEmail: email } }, 'portal');
+    },
+    updatePortalEmail(id, email, version) {
+      const record = getSupplier(id);
+      if (!record) return reject('未找到供应商');
+      if (record.profileChange?.source === 'management' && record.profileChange.changesEmail) return reject(emailApprovalLocked);
+      if ((record.emailVersion ?? 0) !== version) return reject('注册邮箱已变化，请重新验证');
+      if (email === record.email) return reject('新邮箱不能与原邮箱相同');
+      patchSupplier(id, { email, basic: { ...record.basic, registerEmail: email }, emailVersion: version + 1 });
+      return {};
+    },
+    resolveInformation(id, approved, number) {
+      const record = getSupplier(id);
+      const request = record?.profileChange;
+      if (!request || record.status !== '变更中' || (number && request.number !== number)) return reject('此变更已处理，请刷新资料');
+      if (approved && request.changesEmail && request.emailVersion !== (record.emailVersion ?? 0)) return reject(emailVersionChanged);
+      const status = approved ? '审批通过' : '审批驳回';
+      const approval = { number: request.number, type: '资料变更', status, before: request.before, after: request.after, startedAt: record.updated, initiator: request.source === 'portal' ? record.name : record.inviter };
+      patchSupplier(id, {
+        ...(approved ? applyProfileChange(record, request) : {}),
+        status: '已审批', pendingInformation: undefined, profileChange: undefined,
+        approvalNodes: [{ name: '业务审批', status, person: '演示审批人', time: now() }],
+        approvalHistory: [approval, ...(record.approvalHistory || [])],
+      });
+      return {};
+    },
     querySuppliers: options => querySupplierList(snapshot.suppliers, options),
     exportSuppliers: (criteria, { start, end }) => querySupplierList(snapshot.suppliers, criteria)
       .matching.filter(record => within(record.date, start, end)),
@@ -228,7 +303,7 @@ export function createMockManagement({ bankStorage } = {}) {
       update({ suppliers: [record, ...snapshot.suppliers] });
       return { id: newId };
     },
-    submitRegistration(input, { id, editingAll, invited } = {}) {
+    submitRegistration(input, { id, editingAll, invited, before } = {}) {
       const patch = registrationPatch(input);
       if (invited) {
         const account = snapshot.registrationAccount?.account;
@@ -241,8 +316,7 @@ export function createMockManagement({ bankStorage } = {}) {
       if (editingAll) {
         const record = getSupplier(id);
         if (!record || record.inviter !== currentInviter || !canChangeSupplier(record)) return reject('当前状态不能修改全部信息，请返回列表核对');
-        patchSupplier(id, { pendingInformation: patch, status: '变更中' });
-        return { id };
+        return submitInformation(record, patch, before || record, 'management');
       }
       if (id) {
         const record = getSupplier(id);

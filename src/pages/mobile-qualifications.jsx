@@ -10,7 +10,7 @@ export const qualificationFields = [
   ['qualificationNo', '资质编号'], ['issuingUnit', '颁发单位'],
   ['qualificationEffectiveBeginDate', '有效开始日期', 'date'], ['qualificationEffectiveEndDate', '有效结束日期', 'date'],
 ];
-export function QualificationInfo({ records = [], onChange, onPreview, initialEditing = false }) {
+export function QualificationInfo({ records = [], onChange, onPreview, initialEditing = false, renderRecord }) {
   const [editing, setEditing] = usePanelState(initialEditing ? -1 : null);
   const [draft, setDraft] = useState(() => initialEditing ? { id: createSessionId() } : null);
   const [removing, setRemoving] = useState(null);
@@ -24,7 +24,7 @@ export function QualificationInfo({ records = [], onChange, onPreview, initialEd
     setEditing(null);
   };
   return <><RecordCollection title={onChange ? '资质信息（选填）' : '资质信息'} count={records.length} emptyText="暂无资质信息" addLabel="添加资质" onAdd={onChange ? () => begin(-1) : undefined} className="m-qualification-section">
-    {records.map((record, i) => <RecordCard key={record.id || i} motionKey={'qualification-' + (record.id || i)} title={record.qualificationName || '资质信息 ' + (i + 1)}>
+    {records.map((record, i) => renderRecord ? renderRecord(record, i) : <RecordCard key={record.id || i} motionKey={'qualification-' + (record.id || i)} title={record.qualificationName || '资质信息 ' + (i + 1)}>
       {qualificationFields.filter(([key]) => key !== 'qualificationName').map(([key, label]) => <Row key={key} label={label}>{record[key] || '—'}</Row>)}
       <Row label="附件">{record.qualificationCertificatePicture ? <AttachmentLink value={record.qualificationCertificatePicture} onPreview={onPreview} /> : '—'}</Row>
       {onChange && <CardActions><button type="button" onClick={() => begin(i)}>编辑</button><button type="button" className="m-action-danger" onClick={() => setRemoving(i)}>删除</button></CardActions>}

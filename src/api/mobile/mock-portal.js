@@ -1,11 +1,12 @@
-import { exampleBank } from '../../pages/mobile-data.js';
 import { validEmail } from '../../pages/mobile-edit-rules.js';
 import { matchesPortalTask } from '../../pages/mobile-portal-filters.js';
 import { clearPricingDraft, readPricingDraft, savePricingLine } from '../../pages/mobile-portal-pricing-drafts.js';
 import { findDemoProcurementTask } from '../../pages/mobile-portal-procurement.js';
 import { createPortalInquiries, createPortalOrders } from '../../pages/mobile-portal-records.js';
 import { registrationPasswordError } from '../../pages/mobile-registration-password.js';
-import { filledBasic } from './mock-registration-fixture.js';
+import { portalDemoAccounts } from './mock-portal-accounts.js';
+import { createMockManagement } from './mock-management.js';
+import { applyProfileChange } from './profile-change.js';
 
 const demoAuthCode = '123456';
 const demoSecurityCode = '1234';
@@ -16,26 +17,6 @@ function authEmailError(email) {
 
 function authCodeError(code) {
   return code === demoAuthCode ? null : { field: 'code', message: '邮箱验证码错误' };
-}
-
-function createProfile() {
-  const basic = {
-    ...structuredClone(filledBasic),
-    supplierName: '协同门户演示供应商',
-    address: '北京市/北京市/朝阳区 演示地址',
-    businessScope: '技术与电子产品服务',
-    cooperation: '平台技术服务',
-    businessAdvantage: '技术服务与项目交付经验',
-  };
-  return {
-    name: basic.supplierName,
-    type: basic.type,
-    email: basic.registerEmail,
-    basic,
-    status: '已审批',
-    contacts: [{ id: 'portal-contact', name: '演示联系人', phone: '13800000000', email: 'supplier@example.com', department: '', job: '', wechat: '', note: '' }],
-    banks: [{ ...structuredClone(exampleBank), name: basic.supplierName }],
-  };
 }
 
 function issuePortalSecurityCode(target, now = Date.now()) {
@@ -49,8 +30,14 @@ function verifyPortalSecurityCode(issued, target, code = '', now = Date.now()) {
   return code.trim() === issued.code ? '' : '邮箱验证码错误';
 }
 
-export function createPortalMockApi() {
-  const store = { portalAccount: null, portalProfile: createProfile(), portalDraft: null, portalPending: null };
+export function createPortalMockApi(management = createMockManagement()) {
+  const store = { portalAccount: null };
+  const demoPasswords = new Map(portalDemoAccounts.map(({ account, password }) => [account, password]));
+  const supplierId = account => 'mock-' + account;
+  const getProfile = () => management.getSupplier(supplierId(store.portalAccount?.account ?? portalDemoAccounts[0].account));
+  const findAccount = value => portalDemoAccounts.find(({ account }) =>
+    account === value || management.getSupplier(supplierId(account))?.email === value)?.account;
+  const profileDrafts = new Map();
   const pricingByAccount = new Map();
   const pendingPricing = new Set();
   const pricing = () => {
@@ -61,50 +48,75 @@ export function createPortalMockApi() {
   const pricingRecords = quote => pricing()[quote ? 'inquiries' : 'orders'];
 
   return {
-    getAccount: () => store.portalAccount,
+    getAccount: () => store.portalAccount && { ...store.portalAccount, email: getProfile().email },
+    getEmailVersion: () => getProfile().emailVersion ?? 0,
+    isEmailChangeLocked: () => {
+      const change = getProfile().profileChange;
+      return change?.source === 'management' && change.changesEmail;
+    },
     validateLogin({ account = '', password = '', captcha = '' } = {}, expectedCaptcha) {
       const normalized = account.trim();
       if (!normalized) return { field: 'account', message: '请输入账号' };
       if (!password) return { field: 'password', message: '请输入密码' };
       if (captcha.toLowerCase() !== expectedCaptcha) return { field: 'captcha', message: '图形验证码错误' };
-      return { account: normalized };
+      const selected = findAccount(normalized);
+      if (!selected || demoPasswords.get(selected) !== password) return { field: 'password', message: '账号或密码错误' };
+      return { account: selected, email: management.getSupplier(supplierId(selected)).email };
     },
-    sendAuthCode: email => authEmailError(email) || { code: demoAuthCode },
+    sendAuthCode(email, account) {
+      const error = authEmailError(email);
+      if (error) return error;
+      const selected = account && findAccount(account.trim());
+      if (selected && management.getSupplier(supplierId(selected)).email !== email.trim()) {
+        return { field: 'email', message: '请输入该账号当前的注册邮箱' };
+      }
+      return { code: demoAuthCode };
+    },
     verifyLogin({ account = '', email, code } = {}) {
       const error = authEmailError(email) || authCodeError(code);
       if (error) return error;
-      store.portalAccount = { account: account.trim() || '演示供应商账号', email: email.trim() };
+      const selected = findAccount(account.trim());
+      const profile = selected && management.getSupplier(supplierId(selected));
+      if (!profile || profile.email !== email.trim()) return { field: 'email', message: '请输入该账号当前的注册邮箱' };
+      store.portalAccount = { account: selected, email: profile.email };
       return store.portalAccount;
     },
     resetPassword({ email, code, password } = {}) {
       const error = authEmailError(email) || authCodeError(code);
       if (error) return error;
       const message = registrationPasswordError(password);
-      return message ? { message } : {};
+      if (message) return { message };
+      const account = findAccount(email.trim());
+      if (!account) return { field: 'email', message: '未找到使用该注册邮箱的演示账号' };
+      demoPasswords.set(account, password);
+      return {};
     },
     logout() {
-      store.portalDraft = null;
+      profileDrafts.delete(getProfile().id);
       store.portalAccount = null;
     },
-    getProfile: () => store.portalProfile,
-    getProfileDraft: () => store.portalDraft,
-    getPendingProfile: () => store.portalPending,
+    getProfile,
+    getProfileDraft: () => profileDrafts.get(getProfile().id),
+    getPendingProfile() {
+      const profile = getProfile();
+      return profile.profileChange ? applyProfileChange(profile, profile.profileChange) : null;
+    },
     discardProfileDraft() {
-      store.portalDraft = null;
+      profileDrafts.delete(getProfile().id);
     },
-    submitProfile(profile) {
-      store.portalPending = structuredClone(profile);
-      store.portalDraft = null;
+    submitProfile(profile, before = getProfile()) {
+      const id = getProfile().id;
+      const result = management.submitPortalInformation(id, profile, before);
+      if (!result.error) profileDrafts.delete(id);
+      return result;
     },
-    updateEmail(email) {
-      const sync = profile => profile ? { ...profile, email, basic: { ...profile.basic, registerEmail: email } } : profile;
-      store.portalProfile = sync(store.portalProfile);
-      store.portalDraft = sync(store.portalDraft);
-      store.portalPending = sync(store.portalPending);
-      if (store.portalAccount) store.portalAccount = { ...store.portalAccount, email };
+    updateEmail(email, version = getProfile().emailVersion ?? 0) {
+      const account = findAccount(email);
+      if (account && supplierId(account) !== getProfile().id) return { error: '该邮箱已用于其他演示账号' };
+      return management.updatePortalEmail(getProfile().id, email, version);
     },
-    markPasswordChanged() {
-      store.portalPasswordChangedAt = new Date().toISOString();
+    markPasswordChanged(password) {
+      if (store.portalAccount) demoPasswords.set(store.portalAccount.account, password);
     },
     issueSecurityCode: issuePortalSecurityCode,
     verifySecurityCode: verifyPortalSecurityCode,

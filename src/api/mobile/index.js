@@ -8,8 +8,9 @@ export { MobileApiError } from './request.js';
 export { mobileFileApi } from './host-files.js';
 
 // 每次挂载独立创建会话，避免原型导图节点共享业务记录。
-export function createMobileMockApi() {
-  return { management: createMockManagement(), portal: createPortalMockApi() };
+export function createMobileMockApi(options) {
+  const management = createMockManagement(options);
+  return { management, portal: createPortalMockApi(management) };
 }
 
 // 当前用于按契约联调，页面仍由本地会话 API 提供完整演示。

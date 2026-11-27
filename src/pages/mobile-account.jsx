@@ -8,7 +8,7 @@ import { registrationPasswordError } from './mobile-registration-password.js';
 const validEmail = value => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value || '');
 
 // 会话演示验证码自动回填，不发邮件，不修改真实账户凭据。
-export function AccountSecurityForm({ kind, email, onCancel, onComplete, initialStep = 0, api }) {
+export function AccountSecurityForm({ kind, email, onCancel, onComplete, onSuccess, initialStep = 0, api }) {
   const changingEmail = kind === 'email';
   const [step, setStep] = useState(initialStep);
   const [data, setData] = useState({ newEmail: '', code: '', password: '', confirmation: '' });
@@ -16,6 +16,7 @@ export function AccountSecurityForm({ kind, email, onCancel, onComplete, initial
   const [countdown, setCountdown] = useState(0);
   const issued = useRef(null);
   const oldVerified = useRef(false);
+  const emailVersion = useRef(api.getEmailVersion?.()).current;
   const guard = useDirtyForm(data);
   const target = changingEmail && step === 1 ? data.newEmail.trim() : (email || '').trim();
   useEffect(() => { if (!countdown) return; const timer = setTimeout(() => setCountdown(value => value - 1), 1000); return () => clearTimeout(timer); }, [countdown]);
@@ -48,8 +49,15 @@ export function AccountSecurityForm({ kind, email, onCancel, onComplete, initial
       oldVerified.current = true; issued.current = null; setCountdown(0); setData(old => ({ ...old, code: '' })); setStep(1); return;
     }
     if (changingEmail && !oldVerified.current) { setErrors({ code: '请先验证原邮箱' }); return focusFormError(); }
-    guard.accept();
-    onComplete(changingEmail ? target : undefined);
+    if (onSuccess) {
+      const error = onComplete(changingEmail ? target : data.password, emailVersion);
+      if (error) { setErrors({ code: error }); return focusFormError(); }
+      guard.accept();
+      onSuccess();
+    } else {
+      guard.accept();
+      onComplete(changingEmail ? target : undefined);
+    }
   };
   return <>
     <Section title={changingEmail ? (step === 0 ? '验证原邮箱' : '设置新邮箱') : undefined} collapsible={false} className="m-supplier-form-fields">

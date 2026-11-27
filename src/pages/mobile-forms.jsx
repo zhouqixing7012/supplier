@@ -92,10 +92,20 @@ export function ReferenceList({ kind, bank = bankNames[0], ...props }) {
     noMatchText={isPeople ? undefined : '未找到匹配银行或分行，请核对关键词；目录缺失请联系业务对接人申请补充 EBS 银行目录'} />;
 }
 
-export function BankCard({ bank, onEdit, onDelete, onPreview, deleteDisabledReason = '', showProof = true, changeLabel }) {
+export function BankCard({ bank, onEdit, onDelete, onPreview, deleteDisabledReason = '', showProof = true, changeLabel, status, renderField }) {
   const [blockedDelete, setBlockedDelete] = useState(false);
-  return <><article data-motion-key={"bank-" + bank.id} className="m-bank-card" data-change={bank.change || undefined}><div className="m-record-heading"><h3>{bank.accountType || '银行账户'} · {bank.bank || '未选择银行'}{bank.number ? ' · 尾号' + bank.number.slice(-4) : ''}</h3><ChangeTag value={changeLabel ?? bank.change} /></div><div className="m-card-body">
-    {bank.accountType && <Row label="账户类型" compact>{bank.accountType}</Row>}<Row label="开户银行" compact>{bank.bank}</Row><Row label="银行分行" compact>{bank.branch}</Row><Row label="开户行所在国家/地区" compact>{bank.country}</Row><Row label="开户所在省" compact>{bank.province}</Row><Row label="开户所在市" compact>{bank.city}</Row><Row label="账户名称" compact>{bank.name}</Row><Row label="银行账号" compact>{bank.number}</Row><Row label="币种" compact>{bank.currency}</Row>{showProof && <Row label="开户证明" compact>{bank.proof ? <AttachmentLink value={bank.proof} onPreview={onPreview} /> : '—'}</Row>}<Row label="备注" compact>{bank.note}</Row>
+  const fields = [
+    ...(bank.accountType ? [['accountType', '账户类型']] : []),
+    ['bank', '开户银行'], ['branch', '银行分行'], ['country', '开户行所在国家/地区'],
+    ['province', '开户所在省'], ['city', '开户所在市'], ['name', '账户名称'],
+    ['number', '银行账号'], ['currency', '币种'],
+    ...(showProof ? [['proof', '开户证明']] : []), ['note', '备注'],
+  ];
+  return <><article data-motion-key={"bank-" + bank.id} className="m-bank-card" data-change={bank.change || undefined}><div className="m-record-heading"><h3>{bank.accountType || '银行账户'} · {bank.bank || '未选择银行'}{bank.number ? ' · 尾号' + bank.number.slice(-4) : ''}</h3>{status ?? <ChangeTag value={changeLabel ?? bank.change} />}</div><div className="m-card-body">
+    {fields.map(([key, label]) => {
+      const value = key === 'proof' ? (bank.proof ? <AttachmentLink value={bank.proof} onPreview={onPreview} /> : '—') : bank[key];
+      return renderField ? renderField(key, label, value, true) : <Row key={key} label={label} compact>{value}</Row>;
+    })}
     {(onEdit || onDelete) && <CardActions>{onEdit && <button onClick={onEdit}>修改</button>}{(onDelete || (onEdit && deleteDisabledReason)) && <button className="m-action-danger" onClick={() => deleteDisabledReason ? setBlockedDelete(true) : onDelete?.()}>删除</button>}</CardActions>}
   </div></article>{blockedDelete && <Overlay label="银行删除校验" onClose={() => setBlockedDelete(false)}><h2>无法删除</h2><p>{deleteDisabledReason}</p><div className="m-dialog-actions"><button type="button" onClick={() => setBlockedDelete(false)}>知道了</button></div></Overlay>}</>;
 }
@@ -173,7 +183,7 @@ export function registrationContactError(contacts, required = true) {
 
 export { filledBasic } from '../api/mobile/mock-registration-fixture.js';
 
-export function BasicFields({ data, setData, shot = false, onAddress, initialDate = false, identityReadOnly = false, hideSupplierType = false, initialPanel }) {
+export function BasicFields({ data, setData, shot = false, onAddress, initialDate = false, identityReadOnly = false, hideSupplierType = false, initialPanel, lockRegisterEmail = false }) {
   const [nextType, setNextType] = useState('');
   const layout = shot ? undefined : 'stacked';
   useEffect(() => { if (data.country == null) setData({ ...data, country: defaultSupplierCountry(data.type) }); }, [data.type, data.country]);
@@ -205,7 +215,7 @@ export function BasicFields({ data, setData, shot = false, onAddress, initialDat
   }
   const renderField = ([key, label, required, kind]) => {
     const isCertificateType = key === 'certificateType';
-    const readOnly = identityReadOnly && key === 'supplierName';
+    const readOnly = (identityReadOnly && key === 'supplierName') || (lockRegisterEmail && key === 'registerEmail');
     const options = isCertificateType ? personalCertificateTypes : Array.isArray(kind) ? kind : undefined;
     const onChange = value => {
       if (isCertificateType) {

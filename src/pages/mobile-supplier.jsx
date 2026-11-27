@@ -1,3 +1,4 @@
+import { portalDemoAccounts } from '../api/mobile/mock-portal-accounts.js';
 import { portalTaskTabFor } from './mobile-portal-filters.js';
 import { embeddedPrototype, mobileAsset, readMobileRoute, readMobileSearch, replaceFrameRoute } from './mobile-prototype-runtime.js';
 import { BankChangeCard } from './mobile-bank-change-view.jsx';
@@ -24,7 +25,6 @@ import { PortalWorkspace } from './mobile-portal.jsx';
 import { RegistrationPreview } from './mobile-registration-preview.jsx';
 import { RegistrationApprovalDemo } from './mobile-registration-approval.jsx';
 import { SupplierAccountRegistration } from './mobile-account-registration.jsx';
-import { ChangeComparison } from './mobile-changes.jsx';
 import { defaultSupplierCountry, informationSteps, isEffectiveBasicBankAccount, effectiveBasicBankDeleteError } from './mobile-edit-rules.js';
 import { PrototypeReview } from './mobile-review.jsx';
 import { MobilePageMap, readPageMapParams } from './mobile-page-map.jsx';
@@ -117,7 +117,14 @@ function MobileApp() {
   const [result, setResult] = useState(null);
   const [comparisonState, setComparisonState] = useState({});
   const [route, setRoute] = useState(readMobileRoute);
-  const [api] = useState(createMobileMockApi);
+  const sharedDemo = !embeddedPrototype && new URLSearchParams(window.location.search).get('demo-shared') === '1';
+  const [api] = useState(() => createMobileMockApi(sharedDemo ? { demoStorage: window.localStorage } : undefined));
+  useEffect(() => {
+    if (!sharedDemo) return;
+    const sync = event => api.management.refreshSharedDemo(event.key);
+    window.addEventListener('storage', sync);
+    return () => window.removeEventListener('storage', sync);
+  }, [api, sharedDemo]);
   const snapshot = useSyncExternalStore(api.management.subscribe, api.management.getSnapshot);
   const { suppliers, ratings } = snapshot;
   const [activeRating, setActiveRating] = useState(null);
@@ -287,6 +294,8 @@ function MobileSurface({ onComparisonChange, scene, shot, api, snapshot, activeR
   const [peoplePicker, setPeoplePicker] = usePanelState(mapParams.panel === 'people');
   const editingRegistration = ['register-edit', 'register-edit-all'].includes(scene);
   const editingAll = scene === 'register-edit-all';
+  const editBaseline = useRef(editingAll ? clone(supplier) : null).current;
+  const [changePreviewTab, setChangePreviewTab] = useState(0);
   const registrationDraftId = useRef(editingRegistration && !editingAll ? selectedId : null);
   const portalRegistration = scene === 'register-supplier';
   const registrationDraft = portalRegistration ? snapshot.registrationDraft : null;
@@ -387,6 +396,14 @@ function MobileSurface({ onComparisonChange, scene, shot, api, snapshot, activeR
   const registrationBarHidden = useScrollAway(!shot && showRegistrationActions);
   const historicalDemo = mapParams.historyDemo === '1';
   const ownSupplier = supplier.inviter === currentInviter;
+  const approvalActions = !shot && ownSupplier && supplier.profileChange && <Section title="原型演示 · 审批处理" collapsible={false}>
+      <div className="m-demo-approval-actions">{[[false, '模拟驳回'], [true, '模拟通过']].map(([approved, label]) =>
+        <button type="button" key={label} onClick={() => {
+          const result = management.resolveInformation(supplier.id, approved, supplier.profileChange.number);
+          notify(result.error || (approved ? '演示审批已通过' : '演示审批已驳回'), false);
+        }}>{label}</button>)}</div>
+    </Section>;
+
   const menus = shot ? screenshotMenus : managementMenus;
   const menuRoute = listScene ? (mine ? 'mine' : 'query') : scene;
   const tab = menus.findIndex(menu => menu.route === menuRoute);
@@ -580,7 +597,7 @@ function MobileSurface({ onComparisonChange, scene, shot, api, snapshot, activeR
     const hadDraft = !!registrationDraftId.current;
     const result = management.submitRegistration({ basic, contacts, banks: registerBanks }, {
       id: portalRegistration ? registrationInvitation?.id : editingAll ? supplier.id : registrationDraftId.current,
-      editingAll, invited: portalRegistration,
+      editingAll, invited: portalRegistration, before: editBaseline,
     });
     if (result.error) { setSaving(false); return notify(result.error); }
     if (portalRegistration) {
@@ -640,7 +657,7 @@ function MobileSurface({ onComparisonChange, scene, shot, api, snapshot, activeR
   }
 
   function sendPortalCode() {
-    const result = portalApi.sendAuthCode(portal.email);
+    const result = portalApi.sendAuthCode(portal.email, passwordScreen ? undefined : portal.account);
     if (result.message) return portalError(result.field, result.message);
     setPortalErrors({}); setCountdown(60); notify('演示验证码：' + result.code + '；未发送真实邮件');
   }
@@ -652,8 +669,8 @@ function MobileSurface({ onComparisonChange, scene, shot, api, snapshot, activeR
       notify('原型演示：密码修改完成，未更新真实账号'); setPasswordScreen(false);
     } else if (!portalEmail) {
       const result = portalApi.validateLogin(portal, captcha);
-      if (!result.message || result.field === 'captcha') setPortal(current => ({ ...current, account: portal.account.trim() }));
       if (result.message) return portalError(result.field, result.message);
+      setPortal(current => ({ ...current, account: result.account, email: result.email }));
       setPortalErrors({}); setPortalEmail(true);
     } else {
       const result = portalApi.verifyLogin(portal);
@@ -717,10 +734,14 @@ function MobileSurface({ onComparisonChange, scene, shot, api, snapshot, activeR
       </>}
     </QueryList>}
     {(scene === 'filter' || filtering) && <div className={filtering ? 'm-fullscreen-panel' : ''}>{filtering && <Header title="筛选供应商" onBack={() => runMotion(() => setFiltering(false), 'back')} />}<FilterView listMine={filterMine} initial={filters} onApply={v => { setFilters(v); if (filtering) runMotion(() => setFiltering(false), 'back'); else { views[returnToList()] = { ...views[returnToList()], filters: v }; go(returnToList()); } }} /></div>}
-    {scene === 'information-change' && <>{supplier.pendingInformation && supplier.status === '变更中' ? <><ChangeComparison before={supplier} after={supplier.pendingInformation} onPreview={preview} /><Actions items={[{ label: '查看审批', onClick: () => go('approval') }]} /></> : <><Section title="资料变更对比" collapsible={false}><Empty text="暂无待查看的资料变更" /></Section></>}</>}
-    {scene.startsWith('detail') && <SupplierDetail supplier={supplier} historicalDemo={historicalDemo} onHistoricalInvite={historicalDemo && canInviteHistoricalSupplier(supplier, currentInviter) ? () => go('invite-historical') : undefined} initialTab={/^[0-8]$/.test(mapParams.tab) ? Number(mapParams.tab) : scene === 'detail-bank' ? 3 : ['detail-approval', 'detail-approval-empty'].includes(scene) ? 7 : scene === 'detail-ratings' ? 8 : 0} approvalEmpty={scene === 'detail-approval-empty'} onPreview={preview} ratings={ratings} onScore={() => { setActiveRating(null); setRatingReturn('detail-ratings'); go('rating-edit'); }} onRatingOpen={(record, readOnly) => { setActiveRating(record); setRatingReturn('detail-ratings'); go(readOnly ? 'rating-detail' : 'rating-edit'); }} />}
+    {scene === 'information-change' && (supplier.pendingInformation && supplier.status === '变更中' ? <>
+      <RegistrationPreview {...supplier.pendingInformation} mode={supplier.mode} before={supplier.profileChange?.before || supplier}
+        active={changePreviewTab} onTabChange={setChangePreviewTab} onPreview={preview} />
+      <Actions items={[{ label: '查看审批', onClick: () => go('approval') }]} />
+    </> : <Section title="资料变更对比" collapsible={false}><Empty text="暂无待查看的资料变更" /></Section>)}
+    {scene.startsWith('detail') && <SupplierDetail supplier={supplier} approvalActions={approvalActions} historicalDemo={historicalDemo} onHistoricalInvite={historicalDemo && canInviteHistoricalSupplier(supplier, currentInviter) ? () => go('invite-historical') : undefined} initialTab={/^[0-8]$/.test(mapParams.tab) ? Number(mapParams.tab) : scene === 'detail-bank' ? 3 : ['detail-approval', 'detail-approval-empty'].includes(scene) ? 7 : scene === 'detail-ratings' ? 8 : 0} approvalEmpty={scene === 'detail-approval-empty'} onPreview={preview} ratings={ratings} onScore={() => { setActiveRating(null); setRatingReturn('detail-ratings'); go('rating-edit'); }} onRatingOpen={(record, readOnly) => { setActiveRating(record); setRatingReturn('detail-ratings'); go(readOnly ? 'rating-detail' : 'rating-edit'); }} />}
     {scene === 'registration-approval-demo' && mapParams.map && <RegistrationApprovalDemo api={api.management.registrationApproval} sampleId={mapParams.record} onPreview={preview} />}
-    {scene.startsWith('approval') && <Approval type={supplier.pendingInformation ? '资料变更' : '注册'} supplier={shot ? { ...supplier, name: '北京初然文化传媒有限公司827583' } : supplier} history={scene === 'approval-history'} number={shot?.time === '194516' ? 'SUP202610140006' : 'SUP202610140004'} showSupplier={!shot || shot.time !== '194516'} onPreview={preview} />}
+    {scene.startsWith('approval') && <Approval actions={approvalActions} type={supplier.pendingInformation ? '资料变更' : '注册'} supplier={shot ? { ...supplier, name: '北京初然文化传媒有限公司827583' } : supplier} history={scene === 'approval-history'} number={shot?.time === '194516' ? 'SUP202610140006' : 'SUP202610140004'} showSupplier={!shot || shot.time !== '194516'} onPreview={preview} />}
     {['bank', 'bank-tip'].includes(scene) && <>
       <Section title="供应商信息"><Row label="供应商名称">{supplier.name}</Row><Row label="供应商类型">{supplier.type}</Row></Section>
       <RecordCollection title="银行信息" count={banks.length} emptyText="暂无银行信息" addLabel="添加银行账户" onAdd={() => { setEditingBank(-1); setBankForm(blankBank(supplier.name)); setShowBankForm(true); }}>{banks.map((b, i) => <BankChangeCard key={b.id} id={'mobile-bank-' + b.id} before={supplier.banks} bank={b} deleteDisabledReason={isOriginalBasicBank(b) && b.change !== '删除' ? effectiveBasicBankDeleteError : ''} onPreview={preview} onEdit={b.change === '删除' ? undefined : () => { setEditingBank(i); setBankForm(clone(b)); setShowBankForm(true); }} onDelete={isOriginalBasicBank(b) || b.change === '删除' ? undefined : () => setConfirm({ type: 'delete-bank', index: i, text: '是否将该银行账户标记为待提交删除？' })} />)}</RecordCollection>
@@ -768,7 +789,9 @@ function MobileSurface({ onComparisonChange, scene, shot, api, snapshot, activeR
       {step === 0 && <BasicFields initialPanel={mapParams.panel} data={basic} setData={setBasic} identityReadOnly={portalRegistration} hideSupplierType={portalRegistration} shot={!!shot} onAddress={() => setAddressOpen(true)} initialDate={scene === 'expiry'} />}
       {step === 1 && <ContactFields initialPanel={mapParams.panel} contacts={contacts} setContacts={setContacts} validation={invalidContact} onValidationHandled={() => setInvalidContact(null)} />}
       {step === 2 && <RecordCollection title="银行信息" count={registerBanks.length} emptyText="暂无银行信息" addLabel="添加银行账户" onAdd={() => { setEditingBank(-1); setRegisterBankForm(blankBank(basic.supplierName)); setRegisterBankPicker(true); }}>{registerBanks.map((b, i) => <BankCard key={b.id} bank={b} onPreview={preview} onEdit={() => { setEditingBank(i); setRegisterBankForm(clone(b)); setRegisterBankPicker(true); }} deleteDisabledReason={editingAll && isOriginalBasicBank(b) ? effectiveBasicBankDeleteError : ''} onDelete={editingAll && isOriginalBasicBank(b) ? undefined : () => setConfirm({ type: 'delete-register-bank', index: i, text: '确认删除银行信息' + (i + 1) + '？' })} />)}</RecordCollection>}
-      {step === 3 && <RegistrationPreview supplierFacing={portalRegistration} invited={portalRegistration} basic={basic} contacts={contacts} banks={registerBanks} mode={portalRegistration ? '邀请注册' : editingRegistration ? supplier.mode : '代注册'} active={previewTab} onTabChange={setPreviewTab} onEdit={next => { setReturnPreview(true); changeStep(next); }} onPreview={preview}>{editingAll && <ChangeComparison before={supplier} after={{ basic, name: basic.supplierName, email: basic.registerEmail, type: basic.type, contacts, banks: registerBanks }} onPreview={preview} />}</RegistrationPreview>}
+      {step === 3 && <RegistrationPreview supplierFacing={portalRegistration} invited={portalRegistration} basic={basic} contacts={contacts} banks={registerBanks}
+        mode={portalRegistration ? '邀请注册' : editingRegistration ? supplier.mode : '代注册'} active={previewTab} onTabChange={setPreviewTab}
+        onPreview={preview} before={editBaseline} />}
       <Actions className="m-registration-actions" items={editingAll ? [
         ...previousStepActions,
         { label: step === 3 ? '提交' : '下一步（' + (stepIndex + 1) + '/' + editSteps.length + '）', disabled: saving, onClick: step === 3 ? submitRegister : nextStep },
@@ -791,6 +814,12 @@ function MobileSurface({ onComparisonChange, scene, shot, api, snapshot, activeR
       {!passwordScreen && !portalEmail && <><Field label="账号" required value={portal.account} error={portalErrors.account} onChange={account => changePortal('account', account)} placeholder="请输入登录账号" /><Field label="密码" required type="password" value={portal.password} error={portalErrors.password} onChange={password => changePortal('password', password)} placeholder="请输入登录密码" /><div className="m-captcha-field"><Field label="验证码" required value={portal.captcha} error={portalErrors.captcha} onChange={v => changePortal('captcha', v)} placeholder="请输入验证码" /><span className="m-captcha">{captcha}</span><button onClick={() => { setCaptcha(captcha === 'cbvs' ? '39qq' : 'cbvs'); setPortal({ ...portal, captcha: '' }); }}>换一张</button></div></>}
       {(portalEmail || passwordScreen) && <><Field label="注册邮箱" required type="email" error={portalErrors.email} value={portal.email} onChange={email => changePortal('email', email)} /><div className="m-login-email-code"><Field label="邮箱验证码" required error={portalErrors.code} value={portal.code} onChange={code => changePortal('code', code)} /><button className="m-send-code" disabled={countdown > 0} onClick={sendPortalCode}>{countdown ? countdown + ' s 后可重发' : '发送验证码'}</button></div></>}
       {passwordScreen && <Field label="新密码" required type="password" value={newPassword} onChange={setNewPassword} />}
+      {!shot && !portalEmail && !passwordScreen && <details className="m-portal-demo-accounts">
+        <summary>查看演示账号</summary>
+        {!embeddedPrototype && !new URLSearchParams(window.location.search).has('demo-shared') &&
+          <a href="?demo-shared=1#/mobile/portal">打开双窗口审批演示</a>}
+        <ul>{portalDemoAccounts.map(({ account, password, name }) => <li key={account}>{name}<span>{account} / {password}</span></li>)}</ul>
+      </details>}
       {!portalEmail && !passwordScreen && <button className="m-forgot-link" onClick={() => setPasswordScreen(true)}>修改密码</button>}<button className="m-login-button" onClick={submitPortalLogin}>{passwordScreen ? '提交' : portalEmail ? '登录' : '下一步'}</button>
     </div></section></div>}
     {scene.startsWith('workspace') && <PortalWorkspace api={portalApi} mapParams={mapParams} accountMenu={portalAccountMenu} setAccountMenu={setPortalAccountMenu} scene={scene} go={go} notify={notify} store={views} onPreview={preview} />}

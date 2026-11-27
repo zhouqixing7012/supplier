@@ -3,7 +3,7 @@ import { ChevronDown, ChevronLeft, ChevronUp, Plus, X } from 'lucide-react';
 import { Empty } from './feedback.jsx';
 import { Checkbox } from './fields.jsx';
 
-export function Section({ title, children, className = '', collapsible = true, defaultOpen = true }) {
+export function Section({ title, children, className = '', collapsible = true, defaultOpen = true, status }) {
   const [open, setOpen] = useState(defaultOpen);
   const ref = useRef(null);
   useEffect(() => {
@@ -12,7 +12,7 @@ export function Section({ title, children, className = '', collapsible = true, d
     return () => window.removeEventListener('mobile-validation', reveal);
   }, []);
   return <section ref={ref} className={`m-section ${className}`}>
-    {title && <h2>{collapsible ? <button type="button" className="m-section-heading" onClick={() => setOpen(!open)} aria-expanded={open}><span className="m-collapse">{open ? <ChevronUp /> : <ChevronDown />}</span>{title}</button> : title}</h2>}
+    {title && <h2>{collapsible ? <button type="button" className="m-section-heading" onClick={() => setOpen(!open)} aria-expanded={open}><span className="m-collapse">{open ? <ChevronUp /> : <ChevronDown />}</span>{title}</button> : <>{title}{status}</>}</h2>}
     {collapsible ? <div className="m-section-reveal" data-open={open} inert={!open ? true : undefined}><div className="m-section-content">{children}</div></div> : <div className="m-section-content">{children}</div>}
   </section>;
 }

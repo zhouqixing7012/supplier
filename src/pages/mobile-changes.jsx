@@ -8,7 +8,7 @@ import { supplierTypes } from './mobile-data.js';
 import { attachmentName } from './mobile-interaction.jsx';
 import { personalCertificatePhotoFields } from './mobile-edit-rules.js';
 
-const contactFields = [['name', '姓名'], ['phone', '电话'], ['email', '邮箱'], ['department', '部门'], ['job', '职位'], ['wechat', '微信'], ['note', '备注']];
+export const contactFields = [['name', '姓名'], ['phone', '电话'], ['email', '邮箱'], ['department', '部门'], ['job', '职位'], ['wechat', '微信'], ['note', '备注']];
 const bankFields = [['accountType', '账户类型'], ['bank', '开户银行'], ['branch', '银行分行'], ['country', '国家/地区'], ['province', '省'], ['city', '市'], ['name', '账户名称'], ['number', '银行账号'], ['currency', '币种'], ['proof', '开户证明'], ['note', '备注']];
 const qualificationChangeFields = [...qualificationFields, ['qualificationCertificatePicture', '附件']];
 const attachmentKeys = new Set(['proof', 'personalSupplierBackPicture', 'qualificationCertificatePicture']);
@@ -20,7 +20,7 @@ const basicProfile = profile => ({
   ...(profile?.basic || {}),
   type: profile?.type || profile?.basic?.type,
   supplierName: profile?.name || profile?.basic?.supplierName,
-  registerEmail: profile?.email || profile?.basic?.registerEmail,
+  registerEmail: profile?.basic?.registerEmail ?? profile?.email,
   creditCode: profile?.basic?.creditCode ?? profile?.code,
 });
 
@@ -30,7 +30,7 @@ function entriesFor(profile, property) {
     return profile?.basic?.qualifications || profile?.qualifications || [];
   }
   if (property === 'contacts') {
-    if (Array.isArray(profile?.contacts) && profile.contacts.length) return profile.contacts;
+    if (Array.isArray(profile?.contacts)) return profile.contacts;
     if ([profile?.contact, profile?.phone, profile?.email].some(hasContent)) {
       return [{ id: 'legacy-contact', name: profile.contact, phone: profile.phone, email: profile.email }];
     }
@@ -82,6 +82,7 @@ export function informationChangeGroups(before, after, ordinaryDetail = false) {
     previous.creditCode = displayCertificateNumber({ type: previous.type, basic: previous });
     next.creditCode = displayCertificateNumber({ type: next.type, basic: next });
   } else {
+    basicDefinitions.set('type', '供应商类型');
     basicDefinitions.set('registerEmail', '注册邮箱');
     for (const basic of [previous, next]) {
       const attachments = basic.type === supplierTypes[1] ? personalCertificatePhotoFields(basic.certificateType) : [['proof', '证照附件']];
@@ -171,13 +172,23 @@ function FieldValue({ field, raw, value, onPreview }) {
   return value || '—';
 }
 
+export function ChangeBadge({ action }) {
+  return action && <span className="m-change-badge" data-action={action} aria-label={'变更状态：' + action}>{action}</span>;
+}
+
+export function InlineChangeField({ field, label, onPreview }) {
+  return <ComparisonField label={label} changed inline
+    current={<FieldValue field={field} raw={field.nextRaw} value={field.next} onPreview={onPreview} />}
+    previous={<FieldValue field={field} raw={field.previousRaw} value={field.previous} onPreview={onPreview} />} />;
+}
+
 function ChangeGroup({ group, onPreview }) {
   const deleted = group.action === '删除';
   const modified = group.action === '变更';
   return <article className="m-change-group" data-change-action={group.action}>
     <header className="m-change-group-heading">
       <h3>{group.title}</h3>
-      <span className="m-change-badge" data-action={group.action} aria-label={'变更状态：' + group.action}>{group.action}</span>
+      <ChangeBadge action={group.action} />
     </header>
     <div className="m-change-group-body">
       {group.fields.map(field => {

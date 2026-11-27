@@ -1,32 +1,80 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { createMobileMockApi } from '../src/api/mobile/index.js';
+import { portalDemoAccounts } from '../src/api/mobile/mock-portal-accounts.js';
 import { createPortalMockApi } from '../src/api/mobile/mock-portal.js';
 import { createPortalHttpApi } from '../src/api/mobile/http-portal.js';
 import { createMobileRequest } from '../src/api/mobile/request.js';
 
-test('门户演示登录保持账号隔离，修改邮箱同步资料及待审批快照', () => {
-  const api = createPortalMockApi();
-  const other = createPortalMockApi();
-  assert.equal(api.validateLogin({ account: ' supplier-demo ', password: ' a ', captcha: 'CBVS' }, 'cbvs').account, 'supplier-demo');
-  assert.equal(api.validateLogin({ account: 'supplier-demo', password: 'a', captcha: 'no' }, 'cbvs').field, 'captcha');
-  assert.equal(api.verifyLogin({ account: 'supplier-demo', email: 'a@example.com', code: 'not-valid' }).field, 'code');
-  const { code } = api.sendAuthCode(' a@example.com ');
-  assert.equal(api.getProcurementNotice({ task: 'quote', record: 'MOCK-INQ-001' }), null);
-  assert.equal(api.verifyLogin({ account: ' supplier-demo ', email: ' a@example.com ', code }).email, 'a@example.com');
-  assert.equal(api.getProcurementNotice({ task: 'quote', record: 'MOCK-INQ-001' })?.number, 'MOCK-INQ-001');
-  const profile = structuredClone(api.getProfile());
-  profile.basic.remark = '待审批修改';
-  api.submitProfile(profile);
-  profile.basic.remark = '继续打字';
-  api.updateEmail('changed@example.com');
-  assert.equal(api.getProfile().basic.registerEmail, 'changed@example.com');
-  assert.equal(api.getPendingProfile().basic.remark, '待审批修改');
-  assert.equal(api.getPendingProfile().email, 'changed@example.com');
-  assert.equal(api.getAccount().email, 'changed@example.com');
-  api.logout();
-  assert.equal(api.getAccount(), null);
-  assert.equal(other.getAccount(), null);
-  assert.notEqual(other.getProfile().email, api.getProfile().email);
+function login(api, index) {
+  const { account, email, password } = portalDemoAccounts[index];
+  assert.equal(api.validateLogin({ account: ' ' + account + ' ', password, captcha: 'CBVS' }, 'cbvs').account, account);
+  assert.equal(api.validateLogin({ account, password: 'other', captcha: 'CBVS' }, 'cbvs').field, 'password');
+  assert.equal(api.validateLogin({ account, password, captcha: 'no' }, 'cbvs').field, 'captcha');
+  assert.equal(api.verifyLogin({ account, email, code: 'not-valid' }).field, 'code');
+  assert.equal(api.sendAuthCode('other@example.com', account).field, 'email');
+  const { code } = api.sendAuthCode(email, account);
+  assert.equal(api.verifyLogin({ account, email, code }).email, email);
+}
+
+test('资料审批期间供应商可自助修改邮箱，审批仅写入实际变更字段', () => {
+  const { management, portal } = createMobileMockApi();
+  login(portal, 2);
+  const before = portal.getProfile();
+  assert.equal(before.status, '变更中');
+  assert.equal(portal.isEmailChangeLocked(), false);
+  assert.ok(portal.submitProfile(before).error);
+  assert.deepEqual(portal.updateEmail('updated@example.com', before.emailVersion), {});
+  assert.ok(portal.updateEmail('stale@example.com', before.emailVersion).error);
+  assert.equal(portal.getPendingProfile().basic.registerEmail, 'updated@example.com');
+  assert.deepEqual(management.resolveInformation(before.id, true), {});
+  assert.equal(portal.getProfile().basic.businessScope, '技术服务与项目交付');
+  assert.equal(portal.getProfile().basic.registerEmail, 'updated@example.com');
+  assert.equal(portal.getAccount().email, 'updated@example.com');
+  assert.equal(portal.getPendingProfile(), null);
+});
+
+test('邮箱变更审批拦截自助修改和重复提交，通过或驳回后解锁', () => {
+  const { management, portal } = createMobileMockApi();
+  login(portal, 1);
+  const original = portal.getProfile();
+  assert.ok(portal.isEmailChangeLocked());
+  assert.match(portal.updateEmail('blocked@example.com').error, /审批完成后/);
+  assert.ok(management.submitRegistration(original, { id: original.id, editingAll: true, before: original }).error);
+  assert.deepEqual(management.resolveInformation(original.id, false), {});
+  assert.equal(portal.isEmailChangeLocked(), false);
+  assert.equal(portal.getProfile().email, original.email);
+  const before = portal.getProfile();
+  const basic = { ...before.basic, registerEmail: 'pending@example.com' };
+  assert.deepEqual(management.submitRegistration({ ...before, basic }, { id: before.id, editingAll: true, before }), { id: before.id });
+  assert.deepEqual(management.resolveInformation(before.id, true), {});
+  assert.equal(portal.getAccount().email, 'pending@example.com');
+  assert.equal(portal.getProfile().emailVersion, before.emailVersion + 1);
+  assert.deepEqual(portal.getProfile().approvalHistory.map(entry => entry.status), ['审批通过', '审批驳回']);
+  portal.logout();
+  login(portal, 0);
+  assert.equal(portal.getProfile().email, portalDemoAccounts[0].email);
+  assert.equal(portal.getProcurementNotice({ task: 'quote', record: 'MOCK-INQ-001' })?.number, 'MOCK-INQ-001');
+});
+
+test('员工提交时校验所打开的邮箱版本，审批写入前再次核对', () => {
+  const entries = new Map();
+  const demoStorage = { getItem: key => entries.get(key), setItem: (key, value) => entries.set(key, value) };
+  const { management, portal } = createMobileMockApi({ demoStorage });
+  login(portal, 0);
+  const before = portal.getProfile();
+  portal.updateEmail('new@example.com');
+  const profile = { ...before, basic: { ...before.basic, remark: '其他资料', registerEmail: 'requested@example.com' } };
+  assert.match(management.submitRegistration(profile, { id: before.id, editingAll: true, before }).error, /请刷新/);
+  const refreshed = portal.getProfile();
+  const requested = { ...refreshed, basic: { ...refreshed.basic, registerEmail: 'requested@example.com' } };
+  assert.deepEqual(management.submitRegistration(requested, { id: refreshed.id, editingAll: true, before: refreshed }), { id: refreshed.id });
+  const key = 'supplier:shared-mobile-demo:' + refreshed.id;
+  const record = JSON.parse(entries.get(key));
+  entries.set(key, JSON.stringify({ ...record, emailVersion: record.emailVersion + 1 }));
+  assert.match(management.resolveInformation(refreshed.id, true).error, /请刷新/);
+  assert.equal(portal.getAccount().email, 'new@example.com');
+  assert.equal(portal.getProfile().status, '变更中');
 });
 
 test('门户安全验证码绑邮箱、校验错误与有效期保留原型行为', () => {
@@ -64,8 +112,7 @@ test('明细暂存清理失败时保留待处理状态，错误不会被替换�
     else delete globalThis.indexedDB;
   });
   const api = createPortalMockApi();
-  const { code } = api.sendAuthCode('a@example.com');
-  api.verifyLogin({ account: 'supplier-demo', email: 'a@example.com', code });
+  login(api, 0);
   const [record] = api.listPricingTasks({ quote: true, handled: false });
   await assert.rejects(api.submitPricing(true, record, record), /暂存不可用/);
   assert.equal(api.getPricingRecord({ quote: true, number: record.number }).status, '待处理');
