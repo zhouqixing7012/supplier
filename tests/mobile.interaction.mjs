@@ -882,6 +882,7 @@ try {
   await check('首页入口及登录键盘语义、显示密码和验证码演示', async () => {
     await goto('mobile');
     await page.getByLabel('原型导航').getByRole('link', { name: '协同门户移动端', exact: true }).click();
+    assert.equal(await page.getByRole('link', { name: '打开双窗口审批演示', exact: true }).count(), 0);
     await field('账号').fill('演示随便填');
     const password = page.locator('#root').getByLabel('密码', { exact: true });
     await password.fill('123456');
@@ -1170,12 +1171,15 @@ try {
   await check('门户提交资料后显示只读差异，重新进入默认查看基本信息', async () => {
     await goto('mobile/workspace-home');
     await button('供应商信息管理').click();
+    const heading = page.locator('#root .m-preview-basic > h2');
+    assert.equal(await heading.evaluate(node => getComputedStyle(node).borderBottom), '1px solid rgb(237, 241, 245)');
     await button('修改').click();
     await field('法人代表').fill('变更后的法人');
     for (const label of ['下一步（1/4）', '下一步（2/4）', '下一步（3/4）']) await button(label).click();
     await button('提交').click();
     const info = page.locator('#root [data-scene="workspace-info"]');
     await info.locator('.m-preview-basic [data-changed="true"]').getByText('变更后的法人', { exact: true }).waitFor();
+    assert.equal(await heading.evaluate(node => getComputedStyle(node).borderBottom), '1px solid rgb(237, 241, 245)');
     assert.equal(await button('查看审批').count(), 0);
     assert.equal(await button('修改').count(), 0);
     await button('银行信息').click();
@@ -1204,11 +1208,15 @@ try {
     assert.ok(await preview.getByText('有限责任公司', { exact: true }).isVisible());
     await preview.getByRole('button', { name: '联系人信息', exact: true }).click();
     assert.equal(await preview.locator('.m-preview-basic').count(), 0);
+    assert.equal(await preview.getByRole('heading', { name: '联系人信息', exact: true }).count(), 0);
     const updated = preview.locator('.m-record-card').filter({ hasText: '林晓' });
     assert.equal(await updated.locator('.m-change-badge').innerText(), '变更');
     assert.equal(await updated.locator('[data-changed="true"] .m-change-value-new').innerText(), '13800000003');
     const added = preview.locator('.m-record-card').filter({ hasText: '新增联系人' });
     assert.equal(await added.locator('.m-change-badge').innerText(), '新增');
+    await preview.getByRole('button', { name: '银行信息', exact: true }).click();
+    assert.equal(await preview.getByRole('heading', { name: '银行信息', exact: true }).count(), 0);
+    await preview.locator('.m-bank-card h3').first().waitFor();
     await button('上一步').click();
     await button('下一步（3/4）').click();
     assert.equal(await preview.locator('.m-tabs [aria-current="page"]').innerText(), '基本信息');

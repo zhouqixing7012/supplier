@@ -1490,7 +1490,7 @@ body:has(.mobile-page > .m-list-registration-actions) {
 /* 门户页签用选中态和留白区分，普通信息卡片以外框和留白分组。 */
 .mobile-page:not(.m-shot):is([data-scene="workspace-info"], [data-scene="workspace-tasks"]):has(.m-workspace > .m-tab-bar) > .m-header { border-bottom: 0; }
 .mobile-page:not(.m-shot) .m-workspace .m-tab-bar { border-block: 0; }
-.mobile-page:not(.m-shot) .m-workspace .m-section > h2:not(:has(.m-section-heading)) { border-bottom: 0; }
+.mobile-page:not(.m-shot) .m-workspace .m-section:not(.m-preview-basic) > h2:not(:has(.m-section-heading)) { border-bottom: 0; }
 .mobile-page:not(.m-shot) .m-detail .m-section-content > .m-row { border-bottom: 0; }
 
 /* 混排表单中的只读字段沿用同行信息行。 */
@@ -1537,6 +1537,5 @@ body:has(.mobile-page > .m-list-registration-actions) {
   line-height: var(--m-card-field-line);
 }
 
-.m-portal-demo-link { display: block; margin: 0 0 12px; color: var(--m-action); font-size: 13px; }
 .m-demo-approval-actions { display: flex; flex-wrap: wrap; gap: 12px; }
 .mobile-page .m-demo-approval-actions button { min-height: 44px; padding-inline: 12px; color: var(--m-action); }

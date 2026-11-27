@@ -36,7 +36,7 @@ const withDeleted = (entries, previous, kind, changes) => [
   ...entries, ...previous.filter((entry, i) => changes.get(kind + '-' + recordKey(entry, i, kind))?.action === '删除'),
 ];
 
-export function RegistrationDetails({ basic, contacts, banks, onPreview, step, invited = false, before, portalView = false, hideEmptyQualifications = false }) {
+export function RegistrationDetails({ basic, contacts, banks, onPreview, step, invited = false, before, portalView = false, hideEmptyQualifications = false, showRecordTitles = true }) {
   const personal = basic.type === supplierTypes[1];
   const show = section => step === undefined || step === section;
   const changes = new Map(before ? informationChangeGroups(before, { basic, contacts, banks }).map(group => [group.key, group]) : []);
@@ -80,7 +80,7 @@ export function RegistrationDetails({ basic, contacts, banks, onPreview, step, i
           </RecordCard>;
         } : undefined} />}
     </>}
-    {(!personal || portalView || allContacts.length > 0) && show(1) && <RecordCollection title="联系人信息" count={allContacts.length} emptyText="暂无联系人信息">
+    {(!personal || portalView || allContacts.length > 0) && show(1) && <RecordCollection title="联系人信息" showTitle={showRecordTitles} count={allContacts.length} emptyText="暂无联系人信息">
       {allContacts.map((contact, i) => {
         const id = recordKey(contact, i, 'contacts');
         const change = changes.get('contacts-' + id);
@@ -91,7 +91,7 @@ export function RegistrationDetails({ basic, contacts, banks, onPreview, step, i
         </RecordCard>;
       })}
     </RecordCollection>}
-    {show(2) && <RecordCollection title="银行信息" count={allBanks.length} emptyText="暂无银行信息">
+    {show(2) && <RecordCollection title="银行信息" showTitle={showRecordTitles} count={allBanks.length} emptyText="暂无银行信息">
       {allBanks.map((bank, i) => {
         const id = recordKey(bank, i, 'banks');
         const change = changes.get('banks-' + id);
@@ -110,7 +110,7 @@ export function RegistrationPreview({ basic, contacts, banks, mode, active, onTa
     <SupplierIdentityCard showMeta={!supplierFacing} supplier={{ name: basic.supplierName, type: basic.type, mode }} />
     <Tabs variant="pill" items={tabs.map(tab => tab.label)} active={index} onChange={onTabChange} />
     <SwipeArea active={index} count={tabs.length} onChange={onTabChange}>
-      <RegistrationDetails basic={basic} contacts={contacts} banks={banks} onPreview={onPreview} step={tabs[index].step} invited={invited} before={before} hideEmptyQualifications />
+      <RegistrationDetails basic={basic} contacts={contacts} banks={banks} onPreview={onPreview} step={tabs[index].step} invited={invited} before={before} hideEmptyQualifications showRecordTitles={!before} />
     </SwipeArea>
   </div>;
 }
