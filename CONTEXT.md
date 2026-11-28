@@ -1,9 +1,10 @@
 # 当前：移动端 PWA 安装与启动
 
 - 站点根地址默认进入移动端管理平台的「供应商查询」。PWA 安装名称为「供应商」，使用 standalone 独立窗口和独立应用图标。
+- Android 系统状态栏及底部系统导航区使用浅色画布 `#F4F7FA`，应用内部主色保持 `#145CFF`。固定操作栏和底部导航保留系统安全区留白。
 - 已配置 Manifest、Android/iOS 主屏幕元信息和生产环境 Service Worker。Service Worker 仅网络优先缓存已访问页面及同源静态资源，不缓存业务接口或提交请求。
 - 安装、更新和离线范围见 [工程说明](docs/mobile-prototype.md#android-pwa-安装与更新)。
-- Vercel 对应提交的构建与部署检查已成功。待验证：Android 真机安装、独立窗口、系统返回、软键盘、相机/文件上传和离线访问。
+- 本轮代码已提交 main@f14413a，Vercel 部署状态 pending。PWA 系统主题、standalone 背景及底部安全区静态核对 7 项通过、0 项失败；本地构建和 Android 真机验证未执行。
 
 # 当前：门户登录与资料预览细节
 
