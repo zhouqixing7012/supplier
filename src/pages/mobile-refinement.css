@@ -1539,3 +1539,18 @@ body:has(.mobile-page > .m-list-registration-actions) {
 
 .m-demo-approval-actions { display: flex; flex-wrap: wrap; gap: 12px; }
 .mobile-page .m-demo-approval-actions button { min-height: 44px; padding-inline: 12px; color: var(--m-action); }
+
+/* 已安装的 PWA 使用浅色系统画布，系统导航区与页面底色保持一致。 */
+@media (display-mode: standalone) {
+  html,
+  body,
+  #root {
+    min-height: 100dvh;
+    background-color: #F4F7FA;
+    color-scheme: light;
+  }
+
+  .mobile-page {
+    min-height: 100dvh;
+  }
+}
