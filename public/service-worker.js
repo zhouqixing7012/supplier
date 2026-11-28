@@ -1,4 +1,4 @@
-const CACHE_NAME = 'supplier-pwa-shell-v1';
+const CACHE_NAME = 'supplier-pwa-shell-v2';
 const STATIC_ASSET_PATTERN = /\.(?:css|js|png|svg|ico|webp|jpe?g|woff2?|ttf|otf)$/i;
 
 self.addEventListener('install', (event) => {
