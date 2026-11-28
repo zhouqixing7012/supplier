@@ -1,0 +1,27 @@
+{
+  "id": "/",
+  "name": "搜狐供应商平台",
+  "short_name": "供应商",
+  "description": "搜狐供应商管理平台与协同门户移动端原型",
+  "lang": "zh-CN",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "theme_color": "#145CFF",
+  "background_color": "#F4F7FA",
+  "prefer_related_applications": false,
+  "icons": [
+    {
+      "src": "/pwa-icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/pwa-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

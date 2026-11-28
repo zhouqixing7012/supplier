@@ -1,3 +1,14 @@
+if (import.meta.env.PROD && 'serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/service-worker.js', {
+      scope: '/',
+      updateViaCache: 'none',
+    }).catch((error) => {
+      console.error('供应商系统 Service Worker 注册失败：', error);
+    });
+  });
+}
+
 const getMode = () => {
   const hash = window.location.hash;
   if (hash === '#/mobile/components') return 'mobileComponents';
